@@ -1,0 +1,55 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+auth.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# PHP / Laravel (apps/api)
+apps/api/vendor/
+apps/api/node_modules/
+apps/api/public/build/
+apps/api/public/hot
+apps/api/public/storage
+apps/api/storage/*.key
+apps/api/.phpunit.cache
+apps/api/.phpunit.result.cache
+apps/api/_ide_helper.php
+
+# Node / Next.js (apps/web)
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+apps/web/build/
+apps/web/.vercel
+apps/web/*.tsbuildinfo
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Misc build artifacts
+dist/
+*.pem
+
+# Local infra artifacts (when added later)
+infra/.env
+infra/**/*.local

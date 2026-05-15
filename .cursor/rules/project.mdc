@@ -1,0 +1,52 @@
+---
+description: Zdravje360 monorepo conventions — read brief and architecture before structural changes
+alwaysApply: true
+---
+
+# Zdravje360 project rules
+
+## Required reading
+
+Before proposing **structural changes** (new apps, packages, top-level folders, cross-cutting patterns, auth architecture, database engine choice, or API/client boundaries):
+
+1. Read [PROJECT_BRIEF.md](../../PROJECT_BRIEF.md)
+2. Read [docs/architecture.md](../../docs/architecture.md)
+3. Check the active phase in [TASKS.md](../../TASKS.md)
+
+If a change contradicts those documents, call it out and suggest updating the docs first.
+
+## Repository map
+
+- `apps/api` — Laravel 13 API, Filament admin (when installed), PostgreSQL, jobs, Meilisearch indexing
+- `apps/web` — Next.js public frontend, Macedonian-first UI
+- `docs/` — architecture and design
+- `infra/` — deployment definitions (future)
+- `packages/` — shared code only when justified
+
+Do not add new top-level applications or packages without an explicit task in `TASKS.md`.
+
+## Architecture constraints
+
+- **Direct API:** Next.js calls Laravel over HTTPS JSON by default. Do not introduce a Next.js BFF/proxy layer unless the user requests it for a documented exception (e.g. SSR session aggregation).
+- **API-first:** Business logic, validation, and persistence live in Laravel. The web app is a client.
+- **Honest scaffold:** Distinguish what exists (skeleton) from target stack (PostgreSQL, Redis, Meilisearch, Filament). Do not imply features are shipped when they are only planned.
+- **Locale:** Macedonian is the primary launch language; English is optional later.
+
+## What not to build without approval
+
+- Domain features: doctors, facilities, pharmacy catalog, reviews, forum, triage/AI, sponsorships, CMS models
+- Auth flows, roles, Filament, Meilisearch integration — until the relevant `TASKS.md` phase
+- Random Composer/npm packages — align with the current phase and existing stack versions
+
+## Implementation habits
+
+- Scope edits to the correct app (`apps/api` vs `apps/web`).
+- Prefer small, reviewable changes tied to one phase or epic.
+- When code exists: follow Laravel and Next.js conventions in each app; run existing linters/tests.
+- Medical UX: never present platform content as diagnosis or emergency care; include disclaimers for triage-related work.
+- Sponsored or featured content must be clearly labeled in UI copy when implemented.
+
+## Documentation
+
+- Update `docs/architecture.md` decision log when making binding technical choices.
+- Keep [README.md](../../README.md) as the main entry point; link outward rather than duplicating long sections.
