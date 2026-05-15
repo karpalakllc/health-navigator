@@ -6,9 +6,10 @@ System design for the monorepo: what exists today, what we are building toward, 
 
 | Component | Reality today |
 |-----------|----------------|
-| `apps/api` | Laravel 13 skeleton: default `web` routes, stock `User` migration, no public JSON API, no Filament |
+| `apps/api` | Laravel 13: PostgreSQL in `.env.example`, `GET /api/v1/health`, local CORS for Next dev origins; stock `User` migration; no Filament |
 | `apps/web` | Next.js 16 App Router starter; no API client, no MK i18n |
-| PostgreSQL / Redis / Meilisearch | **Not wired** in scaffold; target stack only |
+| PostgreSQL | **Intended** app database (`pgsql`, DB `zdravje360` in `.env.example`); not SQLite for local dev |
+| Redis / Meilisearch | Target stack; **not wired** yet |
 | `infra/` | Empty placeholder |
 | `packages/` | Empty placeholder |
 | Auth, domains, search indexes | **Not started** |
@@ -85,8 +86,8 @@ Deployment manifests, compose files, or IaC. **Not defined in Phase 0.** Phase 1
 | Format | JSON over HTTPS |
 
 Next.js may call Laravel from **Server Components** (server-side `fetch`) or from the **browser** (client-side `fetch`), depending on caching, secrets, and interactivity needs — still direct to the API, not via a default BFF.
-| Versioning | URL prefix e.g. `/api/v1` (to be added Phase 1) |
-| CORS | Laravel allows web origin(s) in dev/staging/prod |
+| Versioning | `/api/v1` prefix; health at `GET /api/v1/health` |
+| CORS | Local dev: `http://localhost:3000`, `http://127.0.0.1:3000` on `api/*` paths only |
 | Errors | Consistent JSON structure (code, message, errors) — specify in Phase 1 |
 | Pagination | Cursor or page-based — choose per resource in Phase 2 contract |
 
@@ -112,7 +113,7 @@ Laravel remains the only writer to PostgreSQL and the authority for what gets in
 
 ## Data and search
 
-- **Source of truth:** PostgreSQL schemas owned by Laravel migrations.
+- **Source of truth:** PostgreSQL schemas owned by Laravel migrations. SQLite is not used for local application data; tests may use in-memory SQLite via `phpunit.xml` only.
 - **Search:** Meilisearch holds denormalized indexes; Laravel jobs update indexes on create/update/delete.
 - **Files:** User uploads and CMS media stored via Laravel filesystem disks; URLs returned to clients as needed.
 - **Caching:** Redis for hot reads and rate-limit counters where appropriate; cache invalidation owned by API.
@@ -174,7 +175,7 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 
 - Structured application logging from Laravel and Next.js.
 - Error tracking service (e.g. Sentry) — adopt in Phase 1 CI or Phase 4.
-- Health check endpoint on API for load balancers.
+- Public health: `GET /api/v1/health` (load balancers may also use Laravel `/up`).
 
 ---
 
@@ -187,8 +188,10 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 | Phase 0 | Postgres + Redis + Meilisearch as target data/search stack |
 | Phase 0 | Filament admin inside Laravel |
 | Phase 0 | No Docker Compose in repo until infra task |
+| Phase 1 | PostgreSQL as local/dev app DB; SQLite only in PHPUnit (in-memory), not project DB standard |
+| Phase 1 | `GET /api/v1/health`; local CORS for Next on ports 3000 |
 
-Update this table when Phase 1–2 choices (auth mode, API versioning details) are finalized.
+Update this table when Phase 1–2 choices (auth mode, API response envelope) are finalized.
 
 ---
 
