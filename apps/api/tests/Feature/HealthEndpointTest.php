@@ -12,6 +12,6 @@ class HealthEndpointTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertExactJson(['status' => 'ok']);
+            ->assertExactJson(['data' => ['status' => 'ok']]);
     }
 }

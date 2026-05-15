@@ -1,0 +1,69 @@
+import { redirect } from "next/navigation";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { AccountLayout } from "@/components/account/account-layout";
+import { PageHeader } from "@/components/directory/page-header";
+import { Card } from "@/components/ui/card";
+import { HubLinkCard } from "@/components/ui/hub-link-card";
+import { PageShell } from "@/components/ui/page-shell";
+import { getSessionToken } from "@/lib/auth/session";
+import { fetchMe } from "@/lib/api/me";
+import { ApiRequestError } from "@/lib/api/server";
+import { roleLabel } from "@/lib/roles";
+import { t } from "@/i18n/t";
+
+export default async function AccountPage() {
+  const token = await getSessionToken();
+
+  if (!token) {
+    redirect("/login?redirect=/account");
+  }
+
+  let user;
+
+  try {
+    user = await fetchMe();
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 401) {
+      redirect("/login?redirect=/account");
+    }
+
+    throw error;
+  }
+
+  return (
+    <PageShell>
+      <AccountLayout current="overview">
+        <PageHeader title={t("auth.accountTitle")} description={t("auth.accountDescription")} />
+        <Card className="p-5 sm:p-6">
+          <dl className="grid gap-4 text-sm">
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
+              <dt className="text-muted-foreground">{t("account.name")}</dt>
+              <dd className="font-medium text-foreground">{user.name}</dd>
+            </div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
+              <dt className="text-muted-foreground">{t("account.email")}</dt>
+              <dd className="break-all font-medium text-foreground">{user.email}</dd>
+            </div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
+              <dt className="text-muted-foreground">{t("account.role")}</dt>
+              <dd className="font-medium text-foreground">{roleLabel(user.role)}</dd>
+            </div>
+          </dl>
+        </Card>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <HubLinkCard
+            href="/account/reviews"
+            title={t("nav.myReviews")}
+            description={t("account.hubReviewsDesc")}
+          />
+          <HubLinkCard
+            href="/account/forum"
+            title={t("nav.myForum")}
+            description={t("account.hubForumDesc")}
+          />
+        </div>
+        <LogoutButton className="w-full sm:w-auto" />
+      </AccountLayout>
+    </PageShell>
+  );
+}

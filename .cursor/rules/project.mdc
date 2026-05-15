@@ -11,7 +11,7 @@ Before proposing **structural changes** (new apps, packages, top-level folders, 
 
 1. Read [PROJECT_BRIEF.md](../../PROJECT_BRIEF.md)
 2. Read [docs/architecture.md](../../docs/architecture.md)
-3. Read [TASKS.md](../../TASKS.md) and follow the **current active phase** only
+3. Read [TASKS.md](../../TASKS.md) and [docs/roadmap.md](../../docs/roadmap.md); follow the **current active roadmap phase** only (today: **R1 launch** — beta verification + ops; MVP is complete unless reprioritized)
 
 If a change contradicts those documents, call it out and suggest updating the docs first.
 
@@ -34,14 +34,16 @@ Do not add new top-level applications without an explicit task in `TASKS.md`.
 
 ## What not to build without approval
 
-- Domain features: doctors, facilities, pharmacy catalog, reviews, forum, triage/AI, sponsorships, CMS models
-- Auth flows, roles, Filament, Meilisearch integration — until the relevant `TASKS.md` phase
+- New domain features outside the active roadmap phase (see TASKS **R1 launch**, then **R2–R8**, gated **G** for AI triage)
+- Meilisearch, sponsorships, mobile — until the relevant TASKS roadmap phase (R3+)
+- Symptom guidance **visual rule builder** — post-MVP (validation/helper text shipped in MVP-4)
 - Composer/npm **dependencies** — do not add without user approval; align with the active phase and existing stack versions
 
 ## Monorepo discipline
 
 - **Scope:** Keep edits in one app (`apps/api` or `apps/web`) unless a cross-app change is required; avoid drive-by changes in the other app.
-- **Phase:** Do not start work from a later `TASKS.md` phase while earlier phase acceptance criteria are still open, unless the user reprioritizes.
+- **Roadmap phase:** **MVP is complete.** Active work is **R1 launch** (beta verification, staging deploy). Do not start **R2+** or **G (3f-b AI)** unless the user reprioritizes.
+- **Permissions:** Moderators **view** directory/guidance/categories; **admins** mutate directory/triage/categories. UGC moderation is **staff** — see TASKS MVP-1 table.
 
 ## Implementation habits
 

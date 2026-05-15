@@ -6,13 +6,16 @@ System design for the monorepo: what exists today, what we are building toward, 
 
 | Component | Reality today |
 |-----------|----------------|
-| `apps/api` | Laravel 13: PostgreSQL in `.env.example`, `GET /api/v1/health`, local CORS for Next dev origins; stock `User` migration; no Filament |
-| `apps/web` | Next.js 16 App Router starter; no API client, no MK i18n |
+| `apps/api` | Laravel 13: PostgreSQL, Sanctum API, roles, Filament; domain APIs incl. doctors, facilities, pharmacies, products, reviews, forum, **symptom guidance** (`/triage/*`) |
+| `apps/web` | Next.js 16: directories, forum, guidance (`/guidance`), login, reviews, SQL search hub; **cookie bridge** for member writes; **MK i18n not started** (R1) |
 | PostgreSQL | **Intended** app database (`pgsql`, DB `zdravje360` in `.env.example`); not SQLite for local dev |
-| Redis / Meilisearch | Target stack; **not wired** yet |
-| `infra/` | Empty placeholder |
+| Redis / Meilisearch | Target stack; **not wired** yet (R2 / R3) |
+| `infra/` | Placeholder; staging/prod deploy **not defined** (R1) |
 | `packages/` | Empty placeholder |
-| Auth, domains, search indexes | **Not started** |
+| Auth | Sanctum tokens (API) + web session (Filament); see [api-contract.md](./api-contract.md) |
+| CMS (legal/marketing pages) | **Not started** (R1 E1 essentials, R5 broader) |
+| Meilisearch indexes | **Not started** (R3) |
+| 3f-b AI triage | **Gated** — not started; see [triage-safety.md](./triage-safety.md) and [roadmap.md](./roadmap.md) |
 
 All diagrams below labeled **target** describe the intended production architecture, not what runs after `composer install` alone.
 
@@ -85,10 +88,11 @@ Deployment manifests, compose files, or IaC. **Not defined in Phase 0.** Phase 1
 | Pattern | Direct API calls web → Laravel |
 | Format | JSON over HTTPS |
 
-Next.js may call Laravel from **Server Components** (server-side `fetch`) or from the **browser** (client-side `fetch`), depending on caching, secrets, and interactivity needs — still direct to the API, not via a default BFF.
+Next.js calls Laravel from **Server Components** (server-side `fetch`) for public read routes. **Member auth is an intentional exception:** a minimal Next.js Route Handler layer stores the Sanctum Bearer token in an **httpOnly cookie** and forwards mutating requests (login, logout, review submit) to Laravel with `Authorization: Bearer`. The token is never exposed to browser JavaScript. Mobile clients continue to use Bearer tokens directly.
 | Versioning | `/api/v1` prefix; health at `GET /api/v1/health` |
 | CORS | Local dev: `http://localhost:3000`, `http://127.0.0.1:3000` on `api/*` paths only |
-| Errors | Consistent JSON structure (code, message, errors) — specify in Phase 1 |
+| Success body | `{ "data": { ... } }` via `App\Http\Responses\ApiResponse` |
+| Error body | `{ "message": string, "errors"?: object }` — normalized on `/api/v1/*` for 401, 403, 404, 429 |
 | Pagination | Cursor or page-based — choose per resource in Phase 2 contract |
 
 Mobile apps reuse the same versioned endpoints and auth mechanisms.
@@ -115,10 +119,38 @@ Laravel remains the only writer to PostgreSQL and the authority for what gets in
 
 - **Source of truth:** PostgreSQL schemas owned by Laravel migrations. SQLite is not used for local application data; tests may use in-memory SQLite via `phpunit.xml` only.
 - **Search:** Meilisearch holds denormalized indexes; Laravel jobs update indexes on create/update/delete.
+- **Meilisearch index names (planned, Phase 3+):** `doctors`, `facilities`, `pharmacy_products`, `forum_topics` — one primary index per searchable domain; prefix with app env if multi-tenant later (e.g. `local_doctors`).
 - **Files:** User uploads and CMS media stored via Laravel filesystem disks; URLs returned to clients as needed.
 - **Caching:** Redis for hot reads and rate-limit counters where appropriate; cache invalidation owned by API.
 
-No domain tables exist until Phase 3 epics.
+**Phase 3a (shipped):** `specialties`, `doctors`, `doctor_specialty` (optional `is_primary` on pivot). Public read API + Filament CRUD; Meilisearch indexing deferred.
+
+**Phase 3b (shipped):** `facilities` (`type`: clinic, hospital, laboratory), `doctor_facility` (optional `is_primary`). Public list/detail API; affiliations edited in Filament on facility records only; `pharmacy` type deferred to pharmacy epic.
+
+**Phase 3c (shipped):** `reviews` (polymorphic doctor/facility), statuses `pending` / `approved` / `rejected`, member submit + staff moderation in Filament; public approved lists + `review_summary` on detail; no registration endpoint.
+
+**Phase 3d (shipped):** Pharmacies as `facilities.type = pharmacy` with dedicated `/pharmacies` API; `products` + `pharmacy_product` pivot (per-pharmacy price, `price_updated_at`, `is_available`); `/products` catalog API; clinical `/facilities` excludes pharmacies; prices are admin-managed informational data only.
+
+**Phase 4 (shipped):** API rate limits and JSON errors; Sanctum token expiration (default 30 days); unified list `q` filter (min 2 characters); public web shell; member login/account/reviews via cookie bridge; review submission UI; thin `/search` hub. Meilisearch, Redis, and registration remain deferred.
+
+**Phase 3e (shipped):** `forum_categories`, `forum_topics` (opening body on topic), `forum_posts` (flat replies); `pending`/`approved`/`rejected`; public read approved only; member create; Filament moderation with pin/lock; rate limits 5 topics/day and 30 posts/day per member; SQL `q` on topic titles only.
+
+**Phase 3f-a (shipped):** Rule-based symptom guidance; public `/triage/*` API; web `/guidance`; Filament flow config — [triage-safety.md](./triage-safety.md). **3f-b AI not shipped.**
+
+**Roadmap (planning only):** [roadmap.md](./roadmap.md), [TASKS.md](../TASKS.md) — not duplicated in this file.
+
+### Web member auth (cookie bridge)
+
+| Piece | Role |
+|-------|------|
+| Cookie `zdravje_api_token` | httpOnly; set by `POST /api/session/login` (Next Route Handler) after Laravel `POST /api/v1/auth/login` |
+| `POST /api/session/logout` | Revokes token via Laravel, clears cookie |
+| `POST /api/reviews` | Forwards review body to Laravel with Bearer from cookie |
+| `POST /api/forum/topics` | Forwards new topic to Laravel |
+| `POST /api/forum/posts` | Forwards reply to Laravel |
+| Server Components | `src/lib/api/server.ts` reads cookie and calls Laravel for `/me`, `/me/reviews` |
+
+**Rationale:** Keeps Bearer auth on the API (mobile-ready) while avoiding `localStorage` token exposure on the public site. Scope is limited to session and review submit — not a general API proxy.
 
 ---
 
@@ -136,6 +168,7 @@ No domain tables exist until Phase 3 epics.
 - **Launch:** Macedonian (`mk`) for public UI and user-generated content defaults.
 - **API:** Responses may return MK strings first; field-level translation tables possible later for EN.
 - **English:** Secondary locale post-launch; not blocking Phase 0–1.
+- **Phase 1 decision:** Keep default Next.js App Router locale (`en` in `layout.tsx`) until `next-intl` is chosen in Phase 2; product copy will switch to `mk` before launch.
 
 ---
 
@@ -144,7 +177,7 @@ No domain tables exist until Phase 3 epics.
 - TLS everywhere outside local dev.
 - Secrets in environment variables, never committed.
 - Laravel policies and gates on all mutating endpoints.
-- Rate limiting on auth and UGC endpoints (Phase 4 hardening).
+- Rate limiting on auth and UGC endpoints — **shipped Phase 4** (`api-login`, `api-reviews`; file/database cache until Redis is wired).
 - CSRF: relevant for cookie-based SPA flows if chosen in Phase 2; not applicable to pure bearer-token mobile clients.
 - Content Security Policy and security headers on Next.js for public site.
 
@@ -155,7 +188,7 @@ No domain tables exist until Phase 3 epics.
 - Implemented in API with explicit audit logging and configurable provider.
 - Web renders disclaimers on every step; no diagnostic claims.
 - Fail closed on provider errors; human-readable fallback copy in Macedonian.
-- Detailed legal copy and retention policy — separate doc before Phase 3f.
+- **3f-a shipped:** rule-based symptom guidance; see [triage-safety.md](./triage-safety.md). **3f-b (AI)** still requires provider integration and legal review.
 
 ---
 
@@ -190,8 +223,21 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 | Phase 0 | No Docker Compose in repo until infra task |
 | Phase 1 | PostgreSQL as local/dev app DB; SQLite only in PHPUnit (in-memory), not project DB standard |
 | Phase 1 | `GET /api/v1/health`; local CORS for Next on ports 3000 |
+| Phase 1 | JSON envelope: success `{ data }`, error `{ message, errors? }` |
+| Phase 1 | Web foundation: `src/lib/config`, `src/lib/api/client`, dev status page |
+| Phase 1 | CI: GitHub Actions for `apps/api` tests + `apps/web` lint/build |
+| Phase 2 | Sanctum personal access tokens for API/mobile; Filament session for `/admin` |
+| Phase 2 | Roles: `admin`, `moderator`, `member` on `users.role` |
+| Phase 2 | API contract: [api-contract.md](./api-contract.md) |
+| Phase 2 | Filament user CRUD restricted to `admin` via `UserPolicy` |
+| Phase 2 | `PlatformUserSeeder` runs in `local` / `testing` only |
+| Phase 4 | Web auth: httpOnly cookie bridge via Next Route Handlers (not localStorage Bearer) |
+| R1 | Closed beta: Path B invite-only; MK UI via `apps/web/src/i18n/mk.ts` (no next-intl); static legal pages; Sentry; CORS via `CORS_ALLOWED_ORIGINS`; deploy runbook in `infra/deploy.md` |
+| Phase 4 | Rate limits: `api-login` (5/min per IP + email), `api-reviews` (10/hour, 20/day per user) |
+| Phase 4 | Sanctum `expiration` default 43200 minutes; Meilisearch still deferred |
+| R1 UI | Public web IA: directory in primary nav; **global search** as header affordance (modal / command palette) deep-linking to existing list filters — not a primary nav item; spec: [frontend-ui-transformation.md](./frontend-ui-transformation.md) |
 
-Update this table when Phase 1–2 choices (auth mode, API response envelope) are finalized.
+Update this table when OpenAPI export or auth refinements are finalized.
 
 ---
 
@@ -199,4 +245,6 @@ Update this table when Phase 1–2 choices (auth mode, API response envelope) ar
 
 - [PROJECT_BRIEF.md](../PROJECT_BRIEF.md)
 - [TASKS.md](../TASKS.md)
+- [roadmap.md](./roadmap.md)
+- [frontend-ui-transformation.md](./frontend-ui-transformation.md) (target public UI)
 - [README.md](../README.md)

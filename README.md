@@ -2,7 +2,7 @@
 
 Web-first medical platform for North Macedonia — doctor directory, healthcare facilities, pharmacy catalog, community forum, and admin-managed content. Mobile apps will consume the same API later.
 
-**Status:** Monorepo scaffold only. Domain features, Filament, search, and production infra are not implemented yet. See [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) and [docs/architecture.md](./docs/architecture.md) for intent vs current state.
+**Status:** **MVP product finalization** is complete ([mvp acceptance](docs/mvp-acceptance.md)). **Next:** [beta verification](docs/beta-verification.md) and R1 ops (staging deploy) before external invite-only testers — see [TASKS.md](./TASKS.md). API: [docs/api-contract.md](./docs/api-contract.md). Guidance safety: [docs/triage-safety.md](./docs/triage-safety.md).
 
 ## Getting started
 
@@ -22,10 +22,10 @@ Read [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) and [docs/architecture.md](./docs/ar
 
 | Layer | Technology | Status |
 |-------|------------|--------|
-| API | Laravel 13, PHP 8.3+ | Scaffolded |
-| Admin | Filament (on Laravel) | Planned |
-| Web | Next.js 16, React 19, Tailwind 4 | Scaffolded |
-| Database | PostgreSQL | Configured in API (`.env.example`); run Postgres locally |
+| API | Laravel 13, PHP 8.3+ | `/api/v1`, Sanctum tokens, JSON envelope |
+| Admin | Filament at `/admin` (session) | Phase 2 baseline |
+| Web | Next.js 16, React 19, Tailwind 4 | Public directories, login, reviews (cookie auth bridge) |
+| Database | PostgreSQL | Runtime standard; see `apps/api/.env.example` |
 | Cache / queues | Redis | Planned |
 | Search | Meilisearch | Planned |
 | Mobile | Same REST/JSON API | Future |
@@ -48,7 +48,17 @@ SQLite is **not** the project’s local application database. PHPUnit may still 
 
 ## Local development
 
-Default URLs: API `http://localhost:8000`, web `http://localhost:3000`. The web app calls the API directly (no BFF).
+| App | URL | Env file |
+|-----|-----|----------|
+| API | http://127.0.0.1:8000 | `apps/api/.env` (from `.env.example`) |
+| Web | http://127.0.0.1:3000 | `apps/web/.env.local` (from `.env.example`) |
+
+| Variable | App | Purpose |
+|----------|-----|---------|
+| `DB_*` | API | PostgreSQL connection |
+| `NEXT_PUBLIC_API_URL` | Web | Laravel API base URL (no trailing slash) |
+
+The web app calls the API directly (no BFF). **Docker Postgres:** if you use a container on port 5432 (e.g. `qss-postgres`), set `DB_USERNAME` / `DB_PASSWORD` in `apps/api/.env` to match the container — see comment in `apps/api/.env.example`.
 
 ### API — PostgreSQL setup (macOS)
 
@@ -104,24 +114,44 @@ php artisan migrate
 php artisan serve
 ```
 
+Run **`php artisan migrate` before `db:seed`**: profile fields (doctor/facility `office_hours`, `avatar_url`, languages, etc.) come from `2026_05_21_120000_add_profile_fields_to_doctors_and_facilities.php`. Check with `php artisan migrate:status` (no pending migrations).
+
 **5. Verify health**
 
 ```bash
 curl -s http://127.0.0.1:8000/api/v1/health
-# Expected: {"status":"ok"}
+# Expected: {"data":{"status":"ok"}}
 ```
 
 `SESSION_DRIVER`, `CACHE_STORE`, and `QUEUE_CONNECTION` use the database; default migrations create `sessions`, `cache`, and `jobs` tables on PostgreSQL.
 
-**Web**
+**Both apps (recommended)**
 
 ```bash
-cd apps/web
-npm install
-npm run dev
+chmod +x scripts/dev.sh   # once
+./scripts/dev.sh
 ```
 
-The web starter does not call the API yet; use the health URL above or `curl` to verify the API. CORS allows `localhost:3000` and `127.0.0.1:3000` for future browser calls.
+Or two terminals: `cd apps/api && php artisan serve` and `cd apps/web && npm run dev`.
+
+Open http://127.0.0.1:3000 (web) and http://127.0.0.1:8000/api/v1/health (API). Browse `/forum` after `php artisan db:seed`. **If `/doctors`, `/facilities`, etc. are empty:** the API database has no published rows (seed not run, or seeders were skipped). From `apps/api` run `php artisan migrate:fresh --seed`, or if `APP_ENV` is not `local`/`development`, set `SEED_LOCAL_DEMO=true` in `apps/api/.env` and run `php artisan db:seed`. Ensure `NEXT_PUBLIC_API_URL` in `apps/web/.env.local` matches your API (e.g. `http://127.0.0.1:8000`). **Keep both dev processes running** (`./scripts/dev.sh` or two terminals).
+
+## Phase 2 — Auth and admin (local)
+
+Seed staff users (local/testing only): `cd apps/api && php artisan db:seed` (see `PLATFORM_*` in `.env.example`).
+
+| | |
+|--|--|
+| Filament admin | http://127.0.0.1:8000/admin — staff login (`admin` / `moderator` roles) |
+| Filament user CRUD | **Admin role only** (moderators cannot manage users/roles) |
+| API login | `POST /api/v1/auth/login` → Bearer token (no web session created) |
+| Contract | [docs/api-contract.md](./docs/api-contract.md) |
+
+Default seeded passwords in `.env.example` are for **local development only**. Change them before any shared or production environment.
+
+## CI
+
+On push/PR to `main`, [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs Laravel tests and Next.js lint + build.
 
 ## Documentation
 
@@ -129,12 +159,15 @@ The web starter does not call the API yet; use the health URL above or `curl` to
 |----------|----------|
 | [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) | Product vision, domains, constraints, non-goals |
 | [docs/architecture.md](./docs/architecture.md) | System design, boundaries, target services |
-| [TASKS.md](./TASKS.md) | Phased backlog (foundation before domain work) |
+| [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) | Target public UI/UX (shell, pages, search overlay, T1–T4) |
+| [TASKS.md](./TASKS.md) | Backlog, beta checklist, roadmap phases R1–R8 |
+| [docs/beta-verification.md](./docs/beta-verification.md) | Pre-invite verification checklist |
+| [docs/roadmap.md](./docs/roadmap.md) | One-page roadmap summary |
 | [.cursor/rules/project.mdc](./.cursor/rules/project.mdc) | Cursor agent conventions for this repo |
 
 ## Out of scope (current phase)
 
-Do not implement yet: authentication, doctors, clinics, pharmacy catalog, reviews, forum, symptom triage, sponsorships, or CMS content models. Track work in [TASKS.md](./TASKS.md).
+Complete [docs/beta-verification.md](./docs/beta-verification.md) before external testers. Do not implement yet: Meilisearch (R3), sponsorships (R4), triage **AI** (G / 3f-b), mobile (R8), or checkout.
 
 ## Contributing
 

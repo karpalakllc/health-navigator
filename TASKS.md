@@ -1,140 +1,527 @@
 # Zdravje360 — Tasks
 
-Phased backlog for the monorepo. Check items off as they are completed. **Do not start domain feature implementation until Phase 3** unless priorities change and docs are updated.
+Backlog and checklists for the monorepo.
+
+**Canonical planning model:** active **MVP** (product finalization), then roadmap phases **R1–R8** and gated epic **G (3f-b AI)** — see [docs/roadmap.md](./docs/roadmap.md) for the one-page summary.
+
+**Public web — full UI target:** [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) (shell, all pages, search overlay). Incremental notes: [docs/frontend-ux-plan.md](./docs/frontend-ux-plan.md).
+
+**Historical labels:** Phases 0–4 and domain IDs **3a–3f-a** remain in the archive below for traceability. New work is tracked under **R*** / **G**, not “Phase 3g/3h”.
 
 Legend: `[ ]` open · `[x]` done
 
 ---
 
-## Phase 0 — Documentation and conventions
-
-**Goal:** Align team and agents on product intent, architecture, and repo rules without shipping domain code.
-
-- [x] Repository scaffold (`apps/api`, `apps/web`, `docs/`, `infra/`, `packages/`)
-- [x] Root `README.md`, `PROJECT_BRIEF.md`, `docs/architecture.md`
-- [x] Phased `TASKS.md` and `.cursor/rules/project.mdc`
-- [x] Root `.gitignore`
-- [ ] Review and approve Phase 0 docs (team sign-off)
-
-**Acceptance:** New contributors can read root docs and understand scaffold vs target, direct API pattern, MK-first locale, and what not to build yet.
-
----
-
-## Phase 1 — Foundation and local parity
-
-**Goal:** Repeatable local environment and minimal API surface for the web app to integrate against. No domain models.
-
-### Repository and environment
-
-- [ ] Expand root `.gitignore` coverage if gaps appear during Phase 1 work
-- [ ] Document standard ports and env vars in `README.md` (after agreed locally)
-- [ ] Align `apps/api/.env.example` for PostgreSQL and Redis (no domain tables)
-- [ ] Add `apps/web` env example for public API base URL
-
-### Local services (no Docker Compose in repo yet)
-
-- [ ] Document how to run PostgreSQL, Redis, and Meilisearch locally (install or host-specific; see architecture doc)
-- [ ] Verify Laravel connects to PostgreSQL and Redis
-- [ ] Plan Meilisearch index naming convention (document only until indexes exist)
-
-### API baseline
-
-- [ ] API versioning prefix (e.g. `/api/v1`) and health route
-- [ ] CORS configuration for Next.js dev and staging origins
-- [ ] Agree and document standard API response envelope (success and error payloads)
-- [ ] Basic CI: lint/test for `apps/api` and `apps/web` on push
-
-### Web baseline
-
-- [ ] Shared config module for API base URL
-- [ ] Proof-of-life: fetch health endpoint from Next.js (server or client)
-- [ ] MK locale groundwork (routing or `next-intl` decision — install only when chosen)
-
-### Infra directory
-
-- [x] Add `infra/` README describing future compose/k8s layout (placeholder OK)
-- [ ] Docker Compose or IaC — **deferred** until explicitly scheduled; not required for Phase 1 completion
-
-**Acceptance:** Developer can run API + web + Postgres + Redis + Meilisearch locally, hit health check from the browser, and CI passes on scaffold tests.
-
-**Blocked by:** None (start after Phase 0 sign-off).
-
----
-
-## Phase 2 — Platform (auth, admin, API contract)
-
-**Goal:** Staff can administer content; clients can authenticate; API shape is stable for domain teams.
-
-- [ ] Choose auth model (e.g. Laravel Sanctum SPA/token, session cookies) and document in `docs/architecture.md`
-- [ ] User model extensions: roles (admin, moderator, member) — minimal, no forum profile yet
-- [ ] Install and configure Filament; restrict to staff roles
-- [ ] Admin authentication separate from public member auth
-- [ ] Public API authentication endpoints and policies skeleton
-- [ ] OpenAPI or equivalent contract published from `apps/api`
-- [ ] Meilisearch Laravel integration package (when search epics approach)
-- [ ] Queue workers documented for async jobs (indexing, notifications)
-
-**Acceptance:** Admin user can log into Filament; authenticated API client can call protected placeholder route; contract doc exists.
-
-**Blocked by:** Phase 1.
-
----
-
-## Phase 3 — Domain epics (order tentative)
-
-Implement one epic at a time behind feature flags or env toggles where useful. Each epic needs migrations, API resources, policies, Filament resources where applicable, and Next.js pages — **only when that epic is active**.
-
-| Epic | Scope (high level) | Depends on |
-|------|-------------------|------------|
-| 3a Doctors | Specialties, profiles, search/list/detail | Phase 2, Meilisearch plan |
-| 3b Facilities | Clinics, hospitals, labs, pharmacies | 3a (shared location/geo patterns optional) |
-| 3c Pharmacy catalog | Products, prices, pharmacy linkage | 3b |
-| 3d Reviews | Submit, pending, approve/reject, display | 3a, 3b |
-| 3e Forum | Categories, topics, posts, moderation, sticky, achievements | Phase 2 |
-| 3f Triage | Symptom flow, AI integration, disclaimers, logging | Phase 2, legal copy |
-| 3g Sponsorships | Featured slots, labeling, admin scheduling | 3a–3c |
-| 3h CMS pages | Static/editorial pages, banners | Filament (Phase 2) |
-
-Do not create tickets that implement multiple epics in one PR.
-
-**Blocked by:** Phase 2.
-
----
-
-## Phase 4 — Hardening and mobile readiness
-
-- [ ] Rate limiting and abuse protection on public API
-- [ ] Audit logging for admin and moderation actions
-- [ ] Staging environment and deployment runbooks in `infra/`
-- [ ] Performance budgets and search relevance tuning
-- [ ] Mobile API compatibility review (versioning, pagination, media URLs)
-
-**Blocked by:** Core domain epics substantially complete.
-
----
-
-## Phase 5 — Mobile apps (future)
-
-- [ ] Native or cross-platform clients against versioned API
-- [ ] Push notifications strategy (if required)
-- [ ] App store compliance and MK store listings
-
-**Blocked by:** Stable API v1 and auth for mobile clients.
-
----
-
-## Explicitly deferred
-
-- Next.js BFF layer (optional only for documented SSR/session cases)
-- English locale until after MK launch quality bar
-- Docker Compose in repo (until infra task is prioritized)
-- Domain business logic in Phase 0–1
-
----
-
 ## How to use this file
 
-1. Pick the earliest open phase.
-2. Complete acceptance criteria before moving on.
-3. Update `docs/architecture.md` when making binding technical decisions.
-4. Link PRs to task bullets where helpful.
+1. **Active work:** [Frontend UI transformation](#frontend-ui-transformation-target-experience) (target shell + pages) and [Frontend UX](#frontend-ux-active) (completed incremental pass); [Beta verification](#beta-verification-resume) / deploy when you choose. MVP product finalization is **complete** — see [MVP — Product finalization](#mvp--product-finalization-complete).
+2. **Do not** start R2+ search/sponsorships, **G (3f-b AI)**, or broad product expansions without explicit reprioritization.
+3. **One epic per PR** where possible; implement MVP chunks **MVP-1 → MVP-5** in order unless noted.
+4. Update [docs/architecture.md](./docs/architecture.md) only for binding *technical* decisions (not roadmap prose).
+5. **Do not start G (3f-b AI)** without legal sign-off and an updated [docs/triage-safety.md](./docs/triage-safety.md).
+6. Link PRs to MVP or roadmap bullets (e.g. `MVP-1`, `R3-C1`).
+
+---
+
+## MVP — Product finalization (complete)
+
+**Goal:** Credible **internal** MVP — staff can load content, moderate UGC, and use the public site daily. **Signed off** via [docs/mvp-acceptance.md](./docs/mvp-acceptance.md). **Not** launch-ready until [beta verification](#beta-verification-resume) passes on staging.
+
+**Out of scope for MVP:** staging/prod deploy, beta verification execution, legal counsel sign-off, Meilisearch, sponsorships, registration, **3f-b AI**, mobile, visual triage rule builder, full visual rebrand.
+
+### Permissions (MVP-1 — decided)
+
+**Chosen:** Moderators **view** directory/guidance/forum categories for context; **mutations** to directory, catalog, triage config, and forum categories require **admin**. UGC moderation (reviews, topics, replies) remains **staff**.
+
+| Area | Admin | Moderator |
+|------|-------|-----------|
+| Users (create/edit/set password) | Yes | No |
+| Reviews / forum topics / replies | Yes | Yes (moderate) |
+| Doctors, facilities, specialties, products, triage flows | Full CRUD | View only |
+| Forum categories | Full CRUD | View only |
+
+Implemented via `AdminManagesDirectoryRecords` policy trait (MVP-1).
+
+### MVP-1 — Admin moderation & member ops
+
+**Highest priority (before triage admin niceties):**
+
+- [x] Dashboard: pending counts (reviews, forum topics, forum posts)
+- [x] Bulk approve / reject (reviews; forum topics; posts)
+- [x] Member ops: set password in Filament; invite-only helper on user form
+- [x] Table filters: `status=pending` defaults retained; **published / draft** filters on directory + guidance
+- [x] Nav groups: Directory · Community · Guidance · Users
+- [x] Permissions: moderators view directory; admins mutate directory/triage/categories
+
+### MVP-2 — Web i18n + UI primitives
+
+**Highest priority:**
+
+- [x] MK string sweep (detail pages, UGC forms, account, errors — extend `src/i18n/mk.ts`, no `next-intl`)
+- [x] Shared primitives: `BackLink`, `PageSection`, `PageShell`, `ContactBlock`, `LoginPrompt`; `max-w-4xl` layout constant
+- [x] Fix theme basics (`globals.css`: Geist font, removed `prefers-color-scheme` variable conflict)
+
+### MVP-3 — Web detail, account & UGC completeness
+
+- [x] Review / forum / account UX polish (stars, pending copy, empty states, form labels from `mk`)
+- [x] Doctor detail: affiliated **facilities** on public page (API `facilities[]` + `EntityLinkList`)
+- [x] Pharmacy/product/facility detail consistency with shared components
+
+### MVP-4 — Admin content ergonomics
+
+**After MVP-1 priorities:**
+
+- [x] Directory relation editing: searchable attach (doctor↔facility), not huge checkbox lists
+- [x] Publish/draft visibility improvements (filters, optional public URL hint)
+- [x] Symptom guidance admin: JSON **validation**, helper text, safer dehydrate — **no visual rule builder**
+- [x] Pharmacy shelf: practical improvements only (e.g. stale `price_updated_at` visible in table)
+
+### MVP-5 — Internal acceptance pass
+
+- [x] Scripted walkthrough: [docs/mvp-acceptance.md](./docs/mvp-acceptance.md) (directory publish → member review/topic → moderate → verify on web)
+- [x] Automated API flow: `apps/api/tests/Feature/MvpAcceptanceFlowTest.php`
+- [x] Engineering baseline: API tests + web lint/build green; no P0 code fixes required in this pass
+- [x] Sign off MVP → resume [beta verification](#beta-verification-resume)
+
+**MVP acceptance:** Team can run content + moderation internally without engineering for routine tasks. *Human sign-off table in mvp-acceptance.md is for product/ops when they run the walkthrough locally.*
+
+**Active planning focus:** [Frontend UI transformation](#frontend-ui-transformation-target-experience) — deploy/beta verification when you choose.
+
+---
+
+## Frontend UI transformation (target experience)
+
+**Doc:** [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) — master plan for a **product-grade** public web (header/footer, all pages, **search as overlay** not primary nav). Implements in phases **T1** (shell) → **T4** (auth/forum/guidance polish).
+
+### T1 — Global shell
+
+- [x] Header: remove `/search` from primary nav; add **search icon** → modal/command palette (reuse multi-destination links from `directorySearchHref`; optional keep `/search` route off-nav)
+- [x] Header: account **dropdown** (logged in); clear **Најава** CTA (logged out); mobile **sheet** or bottom bar (pick one)
+- [x] Footer: multi-column (directory / resources / legal), token-based styling; emergency strip
+- [x] Search overlay + `SearchDialogProvider` (custom modal, no new deps); optional full `/search` page remains for bookmarks
+
+### T2 — Home & section templates
+
+- [x] Home: hero + trust strip + refined quick actions + featured blocks
+- [x] Standardise section spacing: `PageSection` primitive (title, description, actions); adopt site-wide incrementally
+
+### T3 — Directory pages
+
+- [x] Doctors / facilities / pharmacies / products: shared list grid (`DirectoryCardGrid`), sticky filter bar (responsive field grid), token-aligned header/pagination/empty state
+- [x] Detail templates: `DirectoryDetailLayout` for doctor/facility/pharmacy; product detail breadcrumbs aligned with directory IA
+- [x] Route `loading.tsx` for directory lists + root loading uses shared skeleton
+
+### T4 — Auth, forum, guidance, system
+
+- [x] Login + account hub: split login layout (desktop trust panel), token forms; account sub-nav + `AccountLayout`; forum topic/category breadcrumbs, `StackedList`, `LoginPrompt` / safety / forms aligned with design tokens
+- [x] Guidance: wizard framed in bordered panel on the main page
+- [x] Loading routes: login, account, search, guidance, forum (+ category + thread); `error`/`not-found` quick links to home, doctors, guidance
+- [x] Pagination: optional `pageParam` (fix `topics_page` on account forum)
+
+### Admin — Track A (parallel)
+
+See [Admin — Track A](#admin--track-a-parallel-after-w1) below (A1–A4).
+
+---
+
+## Frontend UX (active)
+
+**Goal:** Fully working, polished product on **local** — no deploy required. Reference: Lovable `health-navigator-mk-main` (patterns only). Plan: [docs/frontend-ux-plan.md](./docs/frontend-ux-plan.md).
+
+### Web — Track W
+
+- [x] **W0** Profile schema + API + Filament fields (doctors, facilities)
+- [x] **D0** Rich demo seed (`RichDemoSeeder`, `database/seeders/data/rich-profiles.php`)
+- [x] **W1** Design foundation (tokens, Button/Card/Badge/Skeleton, layout widths) — first pass
+- [x] **W2** App chrome (sticky header, mobile nav, guidance in nav, active states) — first pass
+- [x] **W3** Home & search hub (hero, quick actions, optional featured API blocks)
+- [x] **W4** Directory lists & detail (cards, sticky filters, sidebar, breadcrumbs) — incl. products (cards + compare table)
+- [x] **W5** Guidance, forum, account polish
+- [x] **W6** loading/error/404, per-page SEO (home, doctors, guidance, search, forum, products; product detail dynamic), a11y pass (light)
+
+### Quick wins
+
+- [x] `/guidance` in header nav
+- [x] i18n fixes (facilities name label, products price, guidance emergency CTA)
+- [x] Home hero + quick actions + featured doctors
+- [x] Doctor list cards + richer doctor detail layout
+
+### Admin — Track A (parallel after W1)
+
+- [ ] **A1** Filament branding / primary color aligned with web tokens
+- [ ] **A2** Directory tables density & badges
+- [ ] **A3** Moderation queue / preview polish
+- [ ] **A4** Form sections & helper text consistency
+
+**Out of scope:** deploy, Meilisearch UI, maps SDK, barcode/vitamins from reference, public registration.
+
+---
+
+## Beta checklist
+
+Use this list to declare **beta-ready**. All **required** items must be checked unless marked *invite-only alternative*.
+
+**R1 defaults (locked):** Path B invite-only · static legal pages in `apps/web` · PaaS deploy runbook · Sentry · MK dictionary (no `next-intl`) · cookies in privacy only.
+
+### Product & content
+
+- [x] **H1** — Macedonian-first public UI chrome (`src/i18n/mk.ts`); DB content may stay EN — see content debt below.
+- [x] **E1 + A5** — Static `/privacy`, `/terms`, `/disclaimer` (legal review still required).
+- [x] **Onboarding path** — **Path B:** [docs/beta-closed.md](./docs/beta-closed.md); no public sign-up.
+- [x] **A2** — **N/A** (invite-only; admin resets password in Filament).
+- [ ] Real directory content loaded (doctors, facilities, pharmacies) — *ops/content, not code*.
+- [ ] Moderation process for reviews and forum — *ops*.
+
+### Engineering & ops
+
+- [x] **D1** — Repo: [infra/deploy.md](./infra/deploy.md), env examples, CORS env, seed safety docs. *Hosting apply is ops.*
+- [x] **D4 (light)** — Sentry wired (API + web); set DSNs per environment. *Uptime monitoring is ops.*
+- [ ] CI green on `main`; seeded credentials rotated for non-local environments.
+- [ ] [docs/triage-safety.md](./docs/triage-safety.md) constraints respected in production copy for Symptom guidance.
+
+### Explicitly out of beta scope
+
+Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage (G)**, mobile (R8), checkout, deep forum/pharmacy/directory expansions (R6), English locale, OpenAPI export.
+
+---
+
+## Beta scope (summary)
+
+| In beta | Out of beta |
+|---------|-------------|
+| Shipped platform + domains (see [Completed foundations](#completed-foundations)) | Unified Meilisearch search |
+| R1 blockers only | Sponsored placements |
+| Rule-based Symptom guidance (3f-a) | AI-assisted triage (3f-b) |
+| SQL `/search` hub + list filters | Native mobile apps |
+| Invite-only **or** registration + reset | Checkout, pharmacy integrations, rich media/maps |
+
+**Registration policy:** Public registration (**A1**) is **preferred** before a **broad** public beta. It is **not mandatory** for a **closed, invite-only** beta — document the chosen path in the checklist above and in release notes.
+
+---
+
+## Beta verification (resume)
+
+> **Unparked** after **MVP-5**. Use for staging/external invite-only beta — not for new MVP feature work.
+
+**Checklist:** [docs/beta-verification.md](./docs/beta-verification.md) — practical pass before **external** invite-only beta.
+
+**Internal MVP walkthrough (done):** [docs/mvp-acceptance.md](./docs/mvp-acceptance.md)
+
+| Track | Owner | Status |
+|-------|-------|--------|
+| Repo (tests, build, no register CTA) | Engineering | [ ] |
+| Staging deploy + end-to-end smoke | Eng + ops | [ ] |
+| Legal copy approved (no DRAFT for external) | Legal → eng PR | [ ] |
+| Content + moderation + tester provisioning | Ops / content | [ ] |
+| Sentry + health checks | Ops | [ ] |
+
+**DRAFT legal pages:** OK for staging/internal review only — **not** for external testers.
+
+**Policy:** [docs/beta-closed.md](./docs/beta-closed.md) · **Content/moderation:** [docs/beta-content-readiness.md](./docs/beta-content-readiness.md) · **Deploy:** [infra/deploy.md](./infra/deploy.md)
+
+---
+
+## R1 — Beta launch blockers (complete — repo, launch parked)
+
+**Goal:** Credible closed invite-only beta. **Repo deliverables done.** Ops/deploy, legal external sign-off, and [beta verification](#beta-verification-resume) are **active** after MVP sign-off.
+
+| ID | Epic | Status |
+|----|------|--------|
+| D1 | Deploy / staging / prod baseline | [x] repo docs; [ ] ops deploy |
+| H1 | Macedonian-first UI (lightweight dictionary) | [x] |
+| E1 | Legal / editorial essentials (static web) | [x] |
+| A5 | Policy & disclaimer pages | [x] |
+| A1 | Path B invite-only documented | [x] |
+| A2 | Password reset | [x] N/A |
+| D4 | Sentry (errors only) | [x] |
+
+### D1 — Deploy / staging / prod baseline
+
+- [ ] Staging environment parity with production topology
+- [ ] Production: managed PostgreSQL, TLS, secrets via env (not committed)
+- [ ] Separate deployables for `apps/api` and `apps/web`
+- [ ] Database backup / restore documented
+- [ ] `infra/` assets or runbook (compose, IaC, or host-specific — team choice)
+
+### H1 — Macedonian-first public UI
+
+- [ ] Choose and wire i18n (`next-intl` per architecture)
+- [ ] MK strings for nav, directories, forum, guidance, auth, errors, legal pages
+- [ ] `layout` / `lang` attributes correct for MK
+- [ ] English remains deferred (post-beta)
+
+### E1 + A5 — Legal / editorial essentials
+
+- [ ] Minimal CMS or static pipeline for legal/editorial pages (slug, title, body, publish)
+- [ ] Web routes for legal pages (e.g. `/privacy`, `/terms`, `/disclaimer`)
+- [ ] Footer / header links to legal pages
+- [ ] Staff can update copy in Filament or agreed static workflow
+
+### A1 — Registration **or** invite-only onboarding
+
+**Pick one path and document it in the beta checklist.**
+
+**Path A — Public registration (preferred before broad beta)**
+
+- [ ] `POST /auth/register` (or equivalent) + validation
+- [ ] Terms acceptance at sign-up
+- [ ] Web sign-up flow; member role assignment
+- [ ] Rate limits / abuse controls
+
+**Path B — Invite-only beta (*valid without A1*)**
+
+- [ ] Written beta scope: “members are staff-provisioned only”
+- [ ] Filament or documented process to create member accounts
+- [ ] No public sign-up link in UI
+- [ ] Communicate invite-only limitation to testers
+
+### A2 — Password reset
+
+- [ ] Required when **Path A** is chosen
+- [ ] Forgot-password API + web flow (email driver configured for staging/prod)
+- [ ] For **Path B**, mark N/A in beta checklist
+
+### D4 — Light observability
+
+- [ ] Error tracking hooked to API and web (e.g. Sentry)
+- [ ] Alerting or dashboard for `GET /api/v1/health` (and web availability)
+- [ ] Structured logging baseline documented
+
+**R1 acceptance:** Beta checklist (required items) can be signed off for the chosen onboarding path.
+
+---
+
+## R2 — Post-beta scale
+
+**Goal:** Operate reliably as traffic and UGC grow.
+
+- [ ] **D2** — Redis wired (cache, rate limits, sessions/queues per architecture)
+- [ ] **D3** — Queue workers documented and running in staging/prod
+- [ ] **D7** — Triage session purge job (90-day default per [triage-safety.md](./docs/triage-safety.md))
+- [ ] **D8** — Moderation and incident runbooks
+- [ ] Redis-backed rate limiting (replace file/database where needed)
+- [ ] Security headers / CSP on Next.js (architecture security baseline)
+
+---
+
+## R3 — Search infrastructure
+
+**Goal:** Meilisearch-backed discovery; not required for beta.
+
+- [ ] **C1** — Meilisearch Laravel integration + env config
+- [ ] **C2** — Index jobs: `doctors`, `facilities`, `pharmacy_products`, `forum_topics`
+- [ ] **C3** — Unified search API + web hub (replace or augment thin `/search`)
+- [ ] **C4** — SQL fallbacks retained; optional DB indexes if profiling warrants
+- [ ] Local Redis + Meilisearch documented in README
+
+**Depends on:** R2 (D2/D3) recommended first.
+
+---
+
+## R4 — Monetization (sponsorships)
+
+**Goal:** Transparent paid visibility — post-beta unless sales requires earlier pilot.
+
+- [ ] **B1** — Sponsored flag on doctors / facilities / products in API + UI labels
+- [ ] **B2** — Filament: campaigns, schedules, placement slots
+- [ ] Copy review: paid vs organic clearly distinguished (see PROJECT_BRIEF)
+- [ ] No checkout / billing in this phase
+
+**Out of scope:** Self-serve billing, auctions.
+
+---
+
+## R5 — Editorial CMS (beyond legal)
+
+**Goal:** Marketing and editorial content after legal essentials (R1 E1) exist.
+
+- [ ] **E2** — Pages, banners, optional EN fields later
+- [ ] **E3** — Public `/pages/[slug]` (or equivalent) for non-legal content
+- [ ] Filament workflows for editors
+
+---
+
+## R6 — Domain depth (optional, pick per priority)
+
+Not beta blockers. Implement as small epics; do not bundle.
+
+### Forum
+
+- [ ] Member edit/delete own pending content
+- [ ] Reports / flags queue
+- [ ] Nested replies, attachments (if ever)
+
+### Pharmacy & catalog
+
+- [ ] Product images, price history
+- [ ] `/pharmacies/{slug}/reviews` alias (optional)
+- [ ] External stock/price APIs — only if product approves
+
+### Directories
+
+- [ ] Photos, opening hours, maps/geo
+- [ ] Doctor detail: affiliated facilities
+- [ ] `GET /specialties/{slug}`
+
+### Reviews & guidance
+
+- [ ] Review author edit window, reporting
+- [ ] Guidance: session resume API (if product wants)
+- [ ] Guidance: richer handoffs (still non-diagnostic)
+
+**Explicitly out:** Checkout, e-commerce cart, appointment booking.
+
+---
+
+## G — 3f-b AI triage assist (gated — not beta)
+
+**Do not implement in R1 or beta.** Separate epic from rule-based Symptom guidance (3f-a).
+
+**Gates (all required before code):**
+
+- [ ] Legal sign-off for AI-specific claims and retention
+- [ ] [docs/triage-safety.md](./docs/triage-safety.md) updated (AI scope, fail-closed, banned claims)
+- [ ] Product decision recorded in TASKS / roadmap
+- [ ] Feature flag / env toggle designed
+
+**Implementation (after gates):**
+
+- [ ] Provider abstraction in API; audit log for prompts/responses
+- [ ] Fail-closed MK fallback copy
+- [ ] No diagnostic certainty language in UI or API outcomes
+- [ ] Web: AI clearly optional sub-step; disclaimers on every AI touchpoint
+
+---
+
+## R8 — Mobile apps (later)
+
+- [ ] Client against stable `/api/v1` + auth story (A1/A2)
+- [ ] Push notifications strategy (if required)
+- [ ] App store compliance and MK listings
+
+**Blocked by:** R1 auth path stable; API contract stable.
+
+---
+
+## Completed foundations
+
+Everything below is **shipped** unless noted. API details: [docs/api-contract.md](./docs/api-contract.md).
+
+| Area | Status |
+|------|--------|
+| Phase 0 — Docs & conventions | ✅ |
+| Phase 1 — Local API/web/Postgres/CI | ✅ (Redis/Meilisearch local optional) |
+| Phase 2 — Auth, Filament, API contract | ✅ (OpenAPI export deferred) |
+| 3a Doctors directory | ✅ |
+| 3b Clinical facilities | ✅ |
+| 3c Reviews + moderation | ✅ |
+| 3d Pharmacy catalog | ✅ |
+| 3e Forum + moderation | ✅ |
+| 3f-a Symptom guidance (rules, no AI) | ✅ |
+| Phase 4 — Public UX hardening | ✅ |
+
+**Not shipped:** Registration, password reset, MK i18n, Meilisearch, Redis in prod, sponsorships, CMS (beyond what R1 adds), 3f-b AI, mobile, staging/prod (R1 D1).
+
+---
+
+## Historical archive (Phases 0–4 & 3a–3f-a)
+
+<details>
+<summary>Phase 0 — Documentation (complete)</summary>
+
+- [x] Repository scaffold, README, PROJECT_BRIEF, architecture, TASKS, cursor rules
+- [ ] Team sign-off on Phase 0 docs (optional)
+
+</details>
+
+<details>
+<summary>Phase 1 — Foundation (complete)</summary>
+
+- [x] API v1, envelope, CORS, health, CI, web API client, Postgres docs
+- [ ] Redis/Meilisearch local verify (deferred to R2/R3)
+- [ ] Docker Compose in repo (deferred to R1 D1)
+
+</details>
+
+<details>
+<summary>Phase 2 — Platform (complete)</summary>
+
+- [x] Sanctum, roles, Filament, `/auth/login`, contract doc
+- [ ] OpenAPI export (optional, post-beta)
+- [ ] Queue worker docs (R2 D3)
+
+</details>
+
+<details>
+<summary>Phase 3a — Doctors (complete)</summary>
+
+- [x] Specialties, doctors, API, Filament, web `/doctors`, tests, seeder
+
+</details>
+
+<details>
+<summary>Phase 3b — Facilities (complete)</summary>
+
+- [x] Clinical facilities, API, Filament, web `/facilities`, tests, seeder
+
+</details>
+
+<details>
+<summary>Phase 3c — Reviews (complete)</summary>
+
+- [x] Polymorphic reviews, moderation, member submit, web forms, tests
+
+</details>
+
+<details>
+<summary>Phase 3d — Pharmacy (complete)</summary>
+
+- [x] Pharmacies, products, shelf prices, Filament, web, tests
+
+</details>
+
+<details>
+<summary>Phase 3e — Forum (complete)</summary>
+
+- [x] Categories, topics, posts, moderation, rate limits, web, cookie bridge, tests
+
+</details>
+
+<details>
+<summary>Phase 3f-a — Symptom guidance (complete)</summary>
+
+- [x] Rule-based flow, triage API, Filament, web `/guidance`, [triage-safety.md](./docs/triage-safety.md), tests
+
+</details>
+
+<details>
+<summary>Phase 4 — Hardening & public UX (complete)</summary>
+
+- [x] Rate limits, JSON errors, token expiry, site shell, login/account, review submit, `/search` hub
+- [x] Cookie bridge for reviews + forum
+- [ ] Meilisearch, registration (moved to R1/R3)
+
+</details>
+
+---
+
+## Explicitly deferred (cross-cutting)
+
+- Next.js BFF beyond documented cookie bridge exceptions
+- English locale until after MK launch quality bar (R1 H1 first)
+- Checkout / pharmacy e-commerce
+- Pharmacy external integrations without product approval
+- OpenAPI export until team wants SDK/docs portal
+
+---
+
+## Open product decisions (sign-off)
+
+| Decision | Options | Default in docs |
+|----------|---------|-----------------|
+| Beta onboarding | **A1** public registration vs **invite-only** | Invite-only allowed; registration preferred before broad beta |
+| CMS for R1 legal pages | Minimal Filament pages vs static MD/MDX in web | Team choice in R1 E1 |
+| Hosting / IaC | Compose vs managed PaaS vs k8s | Team choice in R1 D1 |
+| Error tracking vendor | Sentry vs other | Team choice in R1 D4 |
+
+Record the chosen option in the beta checklist when decided.

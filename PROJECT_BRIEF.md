@@ -75,35 +75,38 @@ This brief is not legal advice. Engineering and content must support:
 
 ## Current state vs target
 
-| Area | Current (scaffold) | Target |
-|------|-------------------|--------|
-| API | Laravel 13 default app, SQLite/default DB in `.env.example` | PostgreSQL, Redis, versioned JSON API |
-| Admin | Not installed | Filament CMS + moderation |
-| Web | Next.js starter page | MK-localized product UI consuming API |
-| Search | Not configured | Meilisearch indexes |
-| Domains | No business models or routes | Modules per `TASKS.md` phases |
+| Area | Shipped today | Next (roadmap) |
+|------|---------------|----------------|
+| **API** | Doctors, facilities, pharmacies, products, reviews, forum, rule-based symptom guidance (`/triage/*`), auth, rate limits | Registration/reset (R1), Redis/queues (R2), Meilisearch (R3), sponsorships (R4) |
+| **Admin** | Filament: directories, reviews, forum, symptom guidance flow | Legal/CMS pages (R1 E1), sponsorship tools (R4), marketing CMS (R5) |
+| **Web** | Directories, forum, login, reviews, SQL `/search` hub, `/guidance`, EN dev default | MK-first UI (R1 H1), legal pages (R1), staging/prod deploy (R1 D1) |
+| **Search** | SQL `q` on list endpoints; thin search hub | Meilisearch indexes + unified search (R3) — **not beta** |
+| **Guidance** | Rules-only Symptom guidance (3f-a); [triage-safety.md](./docs/triage-safety.md) | AI assist (G / 3f-b) — **gated, not beta** |
+| **Accounts** | Staff-seeded members; login via cookie bridge | Public registration **preferred** before broad beta; invite-only beta **valid** (R1 A1) |
+| **Infra** | CI; local Postgres; `infra/` placeholder | Staging/production baseline (R1 D1); Redis (R2) |
+| **Mobile** | — | Same API v1 clients (R8) |
 
-## Non-goals (this phase)
+Planning detail: [docs/roadmap.md](./docs/roadmap.md) and [TASKS.md](./TASKS.md) (phases **R1–R8**, gated **G**).
 
-- Implementing auth, roles, or user registration flows.
-- Doctor, facility, pharmacy, review, forum, or triage **features**.
-- Installing Filament, Meilisearch client packages, or production infra (Docker, CI) — tracked in [TASKS.md](./TASKS.md) Phase 1+.
-- Mobile app repositories or app-store releases.
+## Non-goals (current engineering)
+
+- **3f-b AI triage** until legal gate and triage-safety update (see TASKS **G**).
+- Meilisearch, sponsorships, mobile apps — post-beta unless explicitly reprioritized.
+- Checkout, cart, pharmacy stock sync, external pharmacy APIs.
+- Diagnosis claims, emergency dispatch, clinician escalation in guidance flows.
 
 ## Definition of “foundation complete”
 
-Foundation is ready to start domain work when:
+**Platform + domain foundations are in place** for beta prep:
 
-1. Root and architecture docs match reality and decisions.
-2. Local PostgreSQL, Redis, and Meilisearch are documented and runnable (Phase 1).
-3. API has health check, CORS for web origin, and agreed API versioning prefix.
-4. Auth approach is chosen and documented (Phase 2).
-5. Filament is installed and reachable for staff (Phase 2).
+- PostgreSQL, Sanctum API auth, roles, Filament admin, [API contract](./docs/api-contract.md).
+- Public directories, moderated reviews and forum, pharmacy catalog, rule-based Symptom guidance (3f-a), public web shell and member UX (Phase 4).
 
-Domain epics (doctors, pharmacy, forum, etc.) begin only after Phase 2 unless explicitly reprioritized.
+**Beta-ready** is defined separately in [TASKS.md](./TASKS.md) (beta checklist + **R1**). Do not confuse “foundation complete” with “beta launched.”
 
 ## Related documents
 
 - [README.md](./README.md) — entry point and local dev
 - [docs/architecture.md](./docs/architecture.md) — system design
-- [TASKS.md](./TASKS.md) — phased backlog
+- [TASKS.md](./TASKS.md) — backlog and beta checklist (roadmap R1–R8)
+- [docs/roadmap.md](./docs/roadmap.md) — one-page roadmap summary
