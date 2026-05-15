@@ -1,7 +1,8 @@
 # Infrastructure (`infra/`)
 
-This folder is reserved for future **local development**, **DevOps**, and **deployment** assets — for example Docker Compose, environment templates, CI/CD helpers, or IaC modules.
+**Placeholder only.** This folder is reserved for future **local development**, **DevOps**, and **deployment** assets (e.g. Docker Compose, env templates, CI/CD helpers, IaC). No operational infra is committed here yet.
 
-Nothing is committed here yet. Service topology and hosting choices are described at a high level in [docs/architecture.md](../docs/architecture.md). Concrete setup work is tracked in [TASKS.md](../TASKS.md) (Phase 1+).
+- **Architecture intent (target stack, services):** [docs/architecture.md](../docs/architecture.md)
+- **When to implement:** [TASKS.md](../TASKS.md) Phase 1 and later
 
-Do not add compose files or deployment scripts until an explicit infra task is scheduled.
+Do not add compose files, deployment scripts, or other operational assets until explicitly requested or scheduled in `TASKS.md`.

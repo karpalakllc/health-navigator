@@ -1,5 +1,5 @@
 ---
-description: Zdravje360 monorepo conventions — read brief and architecture before structural changes
+description: Zdravje360 monorepo — read brief, architecture, and TASKS before structural changes
 alwaysApply: true
 ---
 
@@ -11,7 +11,7 @@ Before proposing **structural changes** (new apps, packages, top-level folders, 
 
 1. Read [PROJECT_BRIEF.md](../../PROJECT_BRIEF.md)
 2. Read [docs/architecture.md](../../docs/architecture.md)
-3. Check the active phase in [TASKS.md](../../TASKS.md)
+3. Read [TASKS.md](../../TASKS.md) and follow the **current active phase** only
 
 If a change contradicts those documents, call it out and suggest updating the docs first.
 
@@ -21,9 +21,9 @@ If a change contradicts those documents, call it out and suggest updating the do
 - `apps/web` — Next.js public frontend, Macedonian-first UI
 - `docs/` — architecture and design
 - `infra/` — deployment definitions (future)
-- `packages/` — shared code only when justified
+- `packages/` — reserved; do not add shared code here unless duplication is proven and agreed in `TASKS.md`
 
-Do not add new top-level applications or packages without an explicit task in `TASKS.md`.
+Do not add new top-level applications without an explicit task in `TASKS.md`.
 
 ## Architecture constraints
 
@@ -36,17 +36,23 @@ Do not add new top-level applications or packages without an explicit task in `T
 
 - Domain features: doctors, facilities, pharmacy catalog, reviews, forum, triage/AI, sponsorships, CMS models
 - Auth flows, roles, Filament, Meilisearch integration — until the relevant `TASKS.md` phase
-- Random Composer/npm packages — align with the current phase and existing stack versions
+- Composer/npm **dependencies** — do not add without user approval; align with the active phase and existing stack versions
+
+## Monorepo discipline
+
+- **Scope:** Keep edits in one app (`apps/api` or `apps/web`) unless a cross-app change is required; avoid drive-by changes in the other app.
+- **Phase:** Do not start work from a later `TASKS.md` phase while earlier phase acceptance criteria are still open, unless the user reprioritizes.
 
 ## Implementation habits
 
 - Scope edits to the correct app (`apps/api` vs `apps/web`).
 - Prefer small, reviewable changes tied to one phase or epic.
+- When finishing a task, briefly state what changed, what was intentionally left unchanged, and any assumptions.
 - When code exists: follow Laravel and Next.js conventions in each app; run existing linters/tests.
 - Medical UX: never present platform content as diagnosis or emergency care; include disclaimers for triage-related work.
 - Sponsored or featured content must be clearly labeled in UI copy when implemented.
 
 ## Documentation
 
-- Update `docs/architecture.md` decision log when making binding technical choices.
+- If architecture, workflow, or phase scope changes, update the relevant docs (**`docs/architecture.md`**, **`TASKS.md`**, or **`PROJECT_BRIEF.md`**) in the **same change** — especially the architecture decision log for binding technical choices.
 - Keep [README.md](../../README.md) as the main entry point; link outward rather than duplicating long sections.
