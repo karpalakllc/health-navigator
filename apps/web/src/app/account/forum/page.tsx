@@ -85,6 +85,12 @@ export default async function AccountForumPage({
                       </>
                     ) : null}
                   </p>
+                  {topic.status === "rejected" && topic.rejection_note ? (
+                    <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                      {topic.rejection_note}
+                    </p>
+                  ) : null}
                 </li>
               ))
             )}
@@ -123,6 +129,12 @@ export default async function AccountForumPage({
                   </div>
                   {post.body ? (
                     <p className="whitespace-pre-wrap text-sm text-muted-foreground">{post.body}</p>
+                  ) : null}
+                  {post.status === "rejected" && post.rejection_note ? (
+                    <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                      {post.rejection_note}
+                    </p>
                   ) : null}
                 </li>
               ))

@@ -94,5 +94,7 @@ class Review extends Model
             'moderated_at' => now(),
             'rejection_note' => $note,
         ]);
+
+        UgcMailer::notifyRejected($this->fresh());
     }
 }

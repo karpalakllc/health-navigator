@@ -84,10 +84,42 @@ const items = [
   },
 ] as const;
 
-export function HomeQuickActions() {
+type HomeQuickActionsProps = {
+  showPharmacies?: boolean;
+  showProducts?: boolean;
+  showGuidance?: boolean;
+  showForum?: boolean;
+};
+
+export function HomeQuickActions({
+  showPharmacies = true,
+  showProducts = true,
+  showGuidance = true,
+  showForum = true,
+}: HomeQuickActionsProps) {
+  const visible = items.filter((item) => {
+    if (item.href === "/pharmacies") {
+      return showPharmacies;
+    }
+
+    if (item.href === "/products") {
+      return showProducts;
+    }
+
+    if (item.href === "/guidance") {
+      return showGuidance;
+    }
+
+    if (item.href === "/forum") {
+      return showForum;
+    }
+
+    return true;
+  });
+
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
+      {visible.map((item) => (
         <li key={item.href}>
           <Link href={item.href} className="block min-h-[44px]">
             <Card className="card-hover flex h-full gap-4 border-border p-5">

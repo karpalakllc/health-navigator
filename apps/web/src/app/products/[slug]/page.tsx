@@ -6,7 +6,9 @@ import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchProduct } from "@/lib/api/products";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
@@ -17,6 +19,12 @@ type ProductDetailPageProps = {
 export async function generateMetadata({
   params,
 }: ProductDetailPageProps): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_products) {
+    return pageMetadata(t("products.title"));
+  }
+
   const { slug } = await params;
 
   try {
@@ -31,6 +39,17 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_products) {
+    return (
+      <ComingSoonShell
+        title={t("products.title")}
+        description={t("products.description")}
+      />
+    );
+  }
+
   const { slug } = await params;
 
   let product;

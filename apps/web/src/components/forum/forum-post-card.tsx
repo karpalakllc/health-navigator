@@ -38,12 +38,20 @@ export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardPro
         </aside>
 
         <div className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">
-          <header className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {isOriginalPost ? t("forum.originalPost") : t("forum.reply")}
-            </p>
+          <header className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {isOriginalPost ? t("forum.originalPost") : t("forum.reply")}
+              </p>
+              {!isOriginalPost ? (
+                <p className="text-sm font-medium text-foreground lg:hidden">{author.name}</p>
+              ) : null}
+            </div>
             {post.published_at ? (
-              <time dateTime={post.published_at} className="text-xs text-muted-foreground">
+              <time
+                dateTime={post.published_at}
+                className="shrink-0 text-xs text-muted-foreground"
+              >
                 {formatForumDateTime(post.published_at)}
               </time>
             ) : null}

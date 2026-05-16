@@ -30,5 +30,7 @@ trait ModeratesForumContent
             'moderated_at' => now(),
             'rejection_note' => $note,
         ]);
+
+        UgcMailer::notifyRejected($this->fresh());
     }
 }

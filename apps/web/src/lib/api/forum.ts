@@ -69,6 +69,7 @@ export type MyForumTopic = {
   slug: string;
   title: string;
   status: string;
+  rejection_note: string | null;
   replies_count: number;
   last_post_at: string | null;
   published_at: string | null;
@@ -80,6 +81,7 @@ export type MyForumPost = {
   id: number;
   body: string;
   status: string;
+  rejection_note: string | null;
   topic: { slug: string; title: string; category_slug: string };
   created_at: string | null;
 };

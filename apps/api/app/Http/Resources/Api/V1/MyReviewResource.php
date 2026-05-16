@@ -27,7 +27,7 @@ class MyReviewResource extends JsonResource
                 'name' => $reviewable->full_name,
             ],
             $reviewable instanceof Facility => [
-                'kind' => 'facility',
+                'kind' => $reviewable->isPharmacy() ? 'pharmacy' : 'facility',
                 'slug' => $reviewable->slug,
                 'name' => $reviewable->name,
             ],
@@ -38,6 +38,7 @@ class MyReviewResource extends JsonResource
             'rating' => $this->rating,
             'body' => $this->body,
             'status' => $this->status->value,
+            'rejection_note' => $this->rejection_note,
             'reviewable' => $target,
             'created_at' => $this->created_at?->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),

@@ -87,6 +87,7 @@ export function FacilitySidebarContact({ facility }: { facility: FacilityDetail 
         latitude={facility.latitude}
         longitude={facility.longitude}
         name={facility.name}
+        mapFallbackUrl={mapFallback}
       />
     </aside>
   );

@@ -27,6 +27,10 @@ function targetHref(review: {
     return `/doctors/${review.reviewable.slug}`;
   }
 
+  if (review.reviewable.kind === "pharmacy") {
+    return `/pharmacies/${review.reviewable.slug}`;
+  }
+
   return `/facilities/${review.reviewable.slug}`;
 }
 
@@ -91,6 +95,12 @@ export default async function AccountReviewsPage({
                   ) : null}
                   {review.body ? (
                     <p className="whitespace-pre-wrap text-sm text-foreground">{review.body}</p>
+                  ) : null}
+                  {review.status === "rejected" && review.rejection_note ? (
+                    <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                      {review.rejection_note}
+                    </p>
                   ) : null}
                 </li>
               );

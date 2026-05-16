@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { DirectoryDetailSidebar } from "@/components/directory/directory-detail-sidebar";
@@ -11,15 +13,48 @@ import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchFacilityReviews } from "@/lib/api/reviews";
+import { fetchPublicSettings } from "@/lib/api/settings";
+import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
 type PharmacyDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateMetadata({
+  params,
+}: PharmacyDetailPageProps): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_pharmacies) {
+    return pageMetadata(t("pharmacies.title"));
+  }
+
+  const { slug } = await params;
+
+  try {
+    const pharmacy = await fetchPharmacy(slug);
+
+    return pageMetadata(pharmacy.name, pharmacy.city ?? t("pharmacies.description"));
+  } catch {
+    return pageMetadata(t("pharmacies.title"));
+  }
+}
+
 export default async function PharmacyDetailPage({
   params,
 }: PharmacyDetailPageProps) {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_pharmacies) {
+    return (
+      <ComingSoonShell
+        title={t("pharmacies.title")}
+        description={t("pharmacies.description")}
+      />
+    );
+  }
+
   const { slug } = await params;
 
   let pharmacy;

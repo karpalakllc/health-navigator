@@ -20,6 +20,7 @@ class MyForumPostResource extends JsonResource
             'id' => $this->id,
             'body' => $this->body,
             'status' => $this->status->value,
+            'rejection_note' => $this->rejection_note,
             'topic' => [
                 'slug' => $this->topic->slug,
                 'title' => $this->topic->title,

@@ -20,6 +20,7 @@ class MyForumTopicResource extends JsonResource
             'slug' => $this->slug,
             'title' => $this->title,
             'status' => $this->status->value,
+            'rejection_note' => $this->rejection_note,
             'replies_count' => $this->replies_count,
             'last_post_at' => $this->last_post_at?->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),

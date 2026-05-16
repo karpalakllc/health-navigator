@@ -5,13 +5,31 @@ export function FacilityMapEmbed({
   latitude,
   longitude,
   name,
+  mapFallbackUrl = null,
 }: {
   latitude: number | null;
   longitude: number | null;
   name: string;
+  mapFallbackUrl?: string | null;
 }) {
   if (!hasMapCoordinates(latitude, longitude)) {
-    return null;
+    if (!mapFallbackUrl) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 text-center">
+        <p className="text-sm text-muted-foreground">{t("facilities.mapCoordinatesMissing")}</p>
+        <a
+          href={mapFallbackUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/92"
+        >
+          {t("directory.viewOnMap")} →
+        </a>
+      </div>
+    );
   }
 
   const lat = latitude as number;

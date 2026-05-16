@@ -82,7 +82,12 @@ export default async function Home() {
       {settings.public_products ? <HomeProductsRail products={catalogProducts} /> : null}
 
       <PageSection title={t("home.quickActions")}>
-        <HomeQuickActions />
+        <HomeQuickActions
+          showPharmacies={settings.public_pharmacies}
+          showProducts={settings.public_products}
+          showGuidance={settings.public_guidance}
+          showForum={settings.public_forum}
+        />
       </PageSection>
 
       {topRated.length > 0 ? (

@@ -3,6 +3,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { AccountLayout } from "@/components/account/account-layout";
 import { PageHeader } from "@/components/directory/page-header";
 import { Card } from "@/components/ui/card";
+import { ForumHubIcon, ReviewsHubIcon } from "@/components/account/account-hub-icons";
 import { HubLinkCard } from "@/components/ui/hub-link-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
@@ -55,11 +56,15 @@ export default async function AccountPage() {
             href="/account/reviews"
             title={t("nav.myReviews")}
             description={t("account.hubReviewsDesc")}
+            icon={<ReviewsHubIcon />}
+            iconClassName="bg-amber-500/15 text-amber-800 dark:text-amber-400"
           />
           <HubLinkCard
             href="/account/forum"
             title={t("nav.myForum")}
             description={t("account.hubForumDesc")}
+            icon={<ForumHubIcon />}
+            iconClassName="bg-primary/10 text-primary"
           />
         </div>
         <LogoutButton className="w-full sm:w-auto" />

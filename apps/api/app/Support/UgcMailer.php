@@ -3,6 +3,10 @@
 namespace App\Support;
 
 use App\Mail\UgcApprovedMail;
+use App\Mail\UgcRejectedMail;
+use App\Mail\UgcSubmittedMail;
+use App\Models\Doctor;
+use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -12,7 +16,54 @@ use Illuminate\Support\Facades\Mail;
 
 final class UgcMailer
 {
+    public static function notifySubmitted(Model $model): void
+    {
+        self::sendToAuthor($model, function (User $user, array $payload): void {
+            Mail::to($user)->queue(new UgcSubmittedMail(
+                recipientName: $user->name,
+                contentLabel: $payload['label'],
+                contentTitle: $payload['title'],
+                actionUrl: $payload['account_url'],
+                actionLabel: $payload['account_action_label'],
+            ));
+        });
+    }
+
     public static function notifyApproved(Model $model): void
+    {
+        self::sendToAuthor($model, function (User $user, array $payload): void {
+            if ($payload['public_url'] === null) {
+                return;
+            }
+
+            Mail::to($user)->queue(new UgcApprovedMail(
+                recipientName: $user->name,
+                contentLabel: $payload['label'],
+                contentTitle: $payload['title'],
+                actionUrl: $payload['public_url'],
+                actionLabel: $payload['public_action_label'],
+            ));
+        });
+    }
+
+    public static function notifyRejected(Model $model): void
+    {
+        self::sendToAuthor($model, function (User $user, array $payload): void {
+            Mail::to($user)->queue(new UgcRejectedMail(
+                recipientName: $user->name,
+                contentLabel: $payload['label'],
+                contentTitle: $payload['title'],
+                actionUrl: $payload['account_url'],
+                actionLabel: $payload['account_action_label'],
+                rejectionNote: $payload['rejection_note'] ?? null,
+            ));
+        });
+    }
+
+    /**
+     * @param  callable(User, array<string, mixed>): void  $send
+     */
+    private static function sendToAuthor(Model $model, callable $send): void
     {
         $user = match (true) {
             $model instanceof ForumTopic, $model instanceof ForumPost, $model instanceof Review => $model->user,
@@ -29,17 +80,19 @@ final class UgcMailer
             return;
         }
 
-        Mail::to($user)->queue(new UgcApprovedMail(
-            recipientName: $user->name,
-            contentLabel: $payload['label'],
-            contentTitle: $payload['title'],
-            actionUrl: $payload['url'],
-            actionLabel: $payload['action_label'],
-        ));
+        $send($user, $payload);
     }
 
     /**
-     * @return array{label: string, title: string, url: string, action_label: string}|null
+     * @return array{
+     *     label: string,
+     *     title: string,
+     *     account_url: string,
+     *     account_action_label: string,
+     *     public_url: string|null,
+     *     public_action_label: string,
+     *     rejection_note: string|null
+     * }|null
      */
     private static function payloadFor(Model $model): ?array
     {
@@ -49,8 +102,11 @@ final class UgcMailer
             return [
                 'label' => 'тема на форумот',
                 'title' => $model->title,
-                'url' => FrontendUrl::to("/forum/{$model->category->slug}/{$model->slug}"),
-                'action_label' => 'Види ја темата',
+                'account_url' => FrontendUrl::to('/account/forum'),
+                'account_action_label' => 'Мој форум',
+                'public_url' => FrontendUrl::to("/forum/{$model->category->slug}/{$model->slug}"),
+                'public_action_label' => 'Види ја темата',
+                'rejection_note' => $model->rejection_note,
             ];
         }
 
@@ -60,8 +116,11 @@ final class UgcMailer
             return [
                 'label' => 'одговор на форумот',
                 'title' => $model->topic->title,
-                'url' => FrontendUrl::to("/forum/{$model->topic->category->slug}/{$model->topic->slug}"),
-                'action_label' => 'Види го одговорот',
+                'account_url' => FrontendUrl::to('/account/forum'),
+                'account_action_label' => 'Мој форум',
+                'public_url' => FrontendUrl::to("/forum/{$model->topic->category->slug}/{$model->topic->slug}"),
+                'public_action_label' => 'Види го одговорот',
+                'rejection_note' => $model->rejection_note,
             ];
         }
 
@@ -73,23 +132,24 @@ final class UgcMailer
                 return null;
             }
 
-            $path = match ($reviewable::class) {
-                \App\Models\Doctor::class => "/doctors/{$reviewable->slug}",
-                \App\Models\Facility::class => "/facilities/{$reviewable->slug}",
+            $publicPath = match (true) {
+                $reviewable instanceof Doctor => "/doctors/{$reviewable->slug}",
+                $reviewable instanceof Facility => $reviewable->isPharmacy()
+                    ? "/pharmacies/{$reviewable->slug}"
+                    : "/facilities/{$reviewable->slug}",
                 default => null,
             };
-
-            if ($path === null) {
-                return null;
-            }
 
             $name = $reviewable->full_name ?? $reviewable->name ?? 'профилот';
 
             return [
                 'label' => 'рецензија',
                 'title' => $name,
-                'url' => FrontendUrl::to($path),
-                'action_label' => 'Види го профилот',
+                'account_url' => FrontendUrl::to('/account/reviews'),
+                'account_action_label' => 'Мои рецензии',
+                'public_url' => $publicPath !== null ? FrontendUrl::to($publicPath) : null,
+                'public_action_label' => 'Види го профилот',
+                'rejection_note' => $model->rejection_note,
             ];
         }
 

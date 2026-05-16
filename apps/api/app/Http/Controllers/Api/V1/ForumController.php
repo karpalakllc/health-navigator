@@ -21,6 +21,7 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Support\ForumAuthorCounts;
 use App\Support\Slug;
+use App\Support\UgcMailer;
 use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -147,6 +148,8 @@ class ForumController extends Controller
             'status' => ForumContentStatus::Pending,
         ]);
 
+        UgcMailer::notifySubmitted($topic);
+
         return ApiResponse::success([
             'slug' => $topic->slug,
             'title' => $topic->title,
@@ -177,6 +180,8 @@ class ForumController extends Controller
             'body' => $request->string('body')->toString(),
             'status' => ForumContentStatus::Pending,
         ]);
+
+        UgcMailer::notifySubmitted($post);
 
         return ApiResponse::success([
             'id' => $post->id,

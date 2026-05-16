@@ -11,9 +11,10 @@ export type MyReview = {
   rating: number;
   body: string | null;
   status: string;
+  rejection_note: string | null;
   created_at: string | null;
   reviewable: {
-    kind: "doctor" | "facility";
+    kind: "doctor" | "facility" | "pharmacy";
     slug: string;
     name: string;
   } | null;

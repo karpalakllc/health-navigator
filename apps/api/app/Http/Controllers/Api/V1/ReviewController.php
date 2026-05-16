@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
+use App\Support\UgcMailer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -142,6 +143,8 @@ class ReviewController extends Controller
                 'review' => ['Веќе сте испратиле рецензија за овој профил.'],
             ]);
         }
+
+        UgcMailer::notifySubmitted($review);
 
         return ApiResponse::success([
             'rating' => $review->rating,
