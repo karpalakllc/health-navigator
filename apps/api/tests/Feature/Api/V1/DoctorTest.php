@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\ClinicalInterest;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\Language;
+use App\Models\Procedure;
+use App\Models\Review;
 use App\Models\Specialty;
+use App\Support\Slug;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -81,6 +86,27 @@ class DoctorTest extends TestCase
             ->assertJsonPath('data.0.slug', 'ana');
     }
 
+    public function test_filters_by_name_query_latin_matches_cyrillic_stored_name(): void
+    {
+        Doctor::factory()->create(['slug' => 'ana-mk', 'full_name' => 'Д-р Ана Петровска']);
+        Doctor::factory()->create(['slug' => 'marko', 'full_name' => 'Dr Marko Stojanov']);
+
+        $this->getJson('/api/v1/doctors?q=ana')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'ana-mk');
+    }
+
+    public function test_filters_by_name_query_cyrillic_matches_latin_stored_name(): void
+    {
+        Doctor::factory()->create(['slug' => 'petar', 'full_name' => 'Dr Petar Stojanov']);
+
+        $this->getJson('/api/v1/doctors?'.http_build_query(['q' => 'петар']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'petar');
+    }
+
     public function test_shows_published_doctor_detail(): void
     {
         $specialty = Specialty::factory()->create([
@@ -125,19 +151,27 @@ class DoctorTest extends TestCase
 
     public function test_detail_includes_extended_profile_fields(): void
     {
-        Doctor::factory()->create([
+        $doctor = Doctor::factory()->create([
             'slug' => 'profile-doc',
             'subspecialty' => 'Интервенционална кардиологија',
             'years_experience' => 12,
             'education' => 'УКИМ',
-            'languages' => ['Македонски', 'Англиски'],
-            'clinical_interests' => ['Хипертензија'],
-            'procedures' => ['Ехокардиографија'],
             'consultation_fee_note' => '2.500 МКД',
             'office_hours' => ['Пон' => '08:00–14:00'],
             'accepts_new_patients' => true,
             'is_featured' => true,
         ]);
+
+        $doctor->languages()->attach([
+            Language::factory()->create(['name' => 'Македонски', 'slug' => 'makedonski'])->id,
+            Language::factory()->create(['name' => 'Англиски', 'slug' => 'angliski'])->id,
+        ]);
+        $doctor->clinicalInterests()->attach(
+            ClinicalInterest::factory()->create(['name' => 'Хипертензија', 'slug' => Slug::fromName('Хипертензија')])->id,
+        );
+        $doctor->procedures()->attach(
+            Procedure::factory()->create(['name' => 'Ехокардиографија', 'slug' => Slug::fromName('Ехокардиографија')])->id,
+        );
 
         $this->getJson('/api/v1/doctors/profile-doc')
             ->assertOk()
@@ -164,6 +198,33 @@ class DoctorTest extends TestCase
         Doctor::factory()->unpublished()->create(['slug' => 'hidden-doc']);
 
         $this->getJson('/api/v1/doctors/hidden-doc')->assertNotFound();
+    }
+
+    public function test_filters_by_min_reviews_and_sorts_by_rating(): void
+    {
+        $warm = Doctor::factory()->create(['slug' => 'warm-reviews']);
+        $cold = Doctor::factory()->create(['slug' => 'cold-reviews']);
+
+        Review::factory()->approved()->create([
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $warm->id,
+            'rating' => 5,
+        ]);
+        Review::factory()->approved()->create([
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $warm->id,
+            'rating' => 4,
+        ]);
+        Review::factory()->approved()->create([
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $cold->id,
+            'rating' => 2,
+        ]);
+
+        $this->getJson('/api/v1/doctors?min_reviews=2&sort=rating')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'warm-reviews');
     }
 
     public function test_validates_list_query_parameters(): void

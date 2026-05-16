@@ -2,12 +2,11 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { DoctorProfileHero } from "@/components/directory/doctor-profile-hero";
+import { DoctorSidebarContact } from "@/components/directory/doctor-sidebar-contact";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
 import { TagList } from "@/components/directory/tag-list";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { Card } from "@/components/ui/card";
-import { ContactBlock } from "@/components/ui/contact-block";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchDoctor } from "@/lib/api/doctors";
@@ -99,12 +98,14 @@ export default async function DoctorDetailPage({
               </PageSection>
             ) : null}
 
-            <PageSection title={t("doctors.facilities")}>
-              <EntityLinkList
-                items={facilityItems}
-                emptyMessage={t("doctors.noFacilities")}
-              />
-            </PageSection>
+            <div id="doctor-locations">
+              <PageSection title={t("doctors.facilities")}>
+                <EntityLinkList
+                  items={facilityItems}
+                  emptyMessage={t("doctors.noFacilities")}
+                />
+              </PageSection>
+            </div>
 
             <ReviewSection
               kind="doctor"
@@ -116,21 +117,7 @@ export default async function DoctorDetailPage({
         }
         sidebar={
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <Card className="space-y-4 p-6">
-              <h2 className="font-semibold">{t("doctors.bookContact")}</h2>
-              <ContactBlock phone={doctor.phone} email={doctor.email} />
-              {doctor.consultation_fee_note ? (
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {t("doctors.consultationFee")}:{" "}
-                  </span>
-                  {doctor.consultation_fee_note}
-                </p>
-              ) : null}
-            </Card>
-            <p className="rounded-xl bg-secondary/50 p-4 text-xs leading-relaxed text-muted-foreground">
-              {t("footer.informational")}
-            </p>
+            <DoctorSidebarContact doctor={doctor} />
           </aside>
         }
       />

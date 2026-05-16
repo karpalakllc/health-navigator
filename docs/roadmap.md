@@ -11,6 +11,7 @@ Canonical planning model after **domain foundations + public UX** (Phases 0–4,
 | Phase | Theme | Status |
 |-------|--------|--------|
 | **UX polish** | Web + admin UI | 🎯 **Now** — [frontend-ux-plan.md](./frontend-ux-plan.md) (local-first) |
+| **Backend depth** | Filament + API parity | 🎯 **Now** — [backend-improvement-plan.md](./backend-improvement-plan.md) (Track B, R1-safe) |
 | **R1 launch** | Beta verification + ops | ⏸ When ready — [beta-verification.md](./beta-verification.md), deploy, legal, invites |
 
 **MVP (product finalization):** ✅ **Complete** — MVP-1…MVP-5; acceptance script [mvp-acceptance.md](./mvp-acceptance.md).

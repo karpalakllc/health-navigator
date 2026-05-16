@@ -7,6 +7,7 @@ use App\Enums\ReviewStatus;
 use App\Filament\Resources\ForumPosts\ForumPostResource;
 use App\Filament\Resources\ForumTopics\ForumTopicResource;
 use App\Filament\Resources\Reviews\ReviewResource;
+use App\Filament\Support\ModerationResourceUrls;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -19,7 +20,7 @@ class PendingModerationOverview extends StatsOverviewWidget
 
     protected ?string $heading = 'Moderation queue';
 
-    protected ?string $description = 'Pending user content awaiting staff review.';
+    protected ?string $description = 'Pending user content awaiting staff review. Click a stat to open the filtered queue.';
 
     /**
      * @return array<Stat>
@@ -40,17 +41,29 @@ class PendingModerationOverview extends StatsOverviewWidget
 
         return [
             Stat::make('Pending reviews', $reviewCount)
-                ->description('Doctor & facility reviews')
+                ->description('Doctors, facilities & pharmacies')
                 ->color($reviewCount > 0 ? 'warning' : 'success')
-                ->url(ReviewResource::getUrl('index')),
+                ->url(ModerationResourceUrls::indexPending(
+                    ReviewResource::class,
+                    'status',
+                    ReviewStatus::Pending->value,
+                )),
             Stat::make('Pending topics', $topicCount)
                 ->description('New forum threads')
                 ->color($topicCount > 0 ? 'warning' : 'success')
-                ->url(ForumTopicResource::getUrl('index')),
+                ->url(ModerationResourceUrls::indexPending(
+                    ForumTopicResource::class,
+                    'status',
+                    ForumContentStatus::Pending->value,
+                )),
             Stat::make('Pending replies', $postCount)
                 ->description('Forum post replies')
                 ->color($postCount > 0 ? 'warning' : 'success')
-                ->url(ForumPostResource::getUrl('index')),
+                ->url(ModerationResourceUrls::indexPending(
+                    ForumPostResource::class,
+                    'status',
+                    ForumContentStatus::Pending->value,
+                )),
         ];
     }
 
@@ -58,6 +71,6 @@ class PendingModerationOverview extends StatsOverviewWidget
     {
         $user = auth()->user();
 
-        return $user !== null && $user->isStaff();
+        return $user !== null && $user->can('reviews.view');
     }
 }

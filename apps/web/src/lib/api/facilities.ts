@@ -5,6 +5,8 @@ export type FacilityListParams = {
   type?: string;
   city?: string;
   q?: string;
+  has_emergency?: boolean | string;
+  department?: string;
   page?: number;
   per_page?: number;
 };
@@ -13,9 +15,10 @@ function toQuery(params: FacilityListParams): string {
   const search = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
-      search.set(key, String(value));
+    if (value === undefined || value === "" || value === false) {
+      continue;
     }
+    search.set(key, String(value));
   }
 
   const query = search.toString();

@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Facilities;
 use App\Filament\Resources\Facilities\Pages\CreateFacility;
 use App\Filament\Resources\Facilities\Pages\EditFacility;
 use App\Filament\Resources\Facilities\Pages\ListFacilities;
-use App\Filament\Resources\Facilities\RelationManagers\ProductsRelationManager;
 use App\Filament\Resources\Facilities\Schemas\FacilityForm;
 use App\Filament\Resources\Facilities\Tables\FacilitiesTable;
 use App\Models\Facility;
@@ -45,9 +44,7 @@ class FacilityResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ProductsRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -59,11 +56,17 @@ class FacilityResource extends Resource
         ];
     }
 
-    public static function getRecordRouteBindingEloquentQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
-        return parent::getRecordRouteBindingEloquentQuery()
+        return parent::getEloquentQuery()
+            ->clinical()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return static::getEloquentQuery();
     }
 }

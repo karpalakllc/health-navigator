@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
+import { DoctorsFilterBar } from "@/components/directory/doctors-filter-bar";
 import { DirectoryCardGrid } from "@/components/directory/directory-card-grid";
 import { DoctorCard } from "@/components/directory/doctor-card";
 import { EmptyState } from "@/components/directory/empty-state";
@@ -26,6 +21,7 @@ type DoctorsPageProps = {
     specialty?: string;
     city?: string;
     q?: string;
+    sort?: string;
     page?: string;
   }>;
 };
@@ -33,6 +29,7 @@ type DoctorsPageProps = {
 export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const params = await searchParams;
   const page = params.page ? Number(params.page) : 1;
+  const sort = params.sort === "rating" ? "rating" : "name";
 
   const [specialties, doctors] = await Promise.all([
     fetchSpecialties(),
@@ -40,6 +37,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       specialty: params.specialty,
       city: params.city,
       q: params.q,
+      sort,
       page: Number.isFinite(page) ? page : 1,
     }),
   ]);
@@ -48,42 +46,23 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
     specialty: params.specialty,
     city: params.city,
     q: params.q,
+    ...(sort === "rating" ? { sort: "rating" } : {}),
   };
 
   return (
     <PageShell>
       <PageHeader title={t("doctors.title")} description={t("doctors.description")} />
 
-      <FilterForm searchHint={SEARCH_QUERY_HINT}>
-        <FilterField label={t("filters.specialty")}>
-          <select
-            name="specialty"
-            defaultValue={params.specialty ?? ""}
-            className={filterInputClassName}
-          >
-            <option value="">{t("doctors.allSpecialties")}</option>
-            {specialties.map((specialty) => (
-              <option key={specialty.slug} value={specialty.slug}>
-                {specialty.name}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-        <FilterField label={t("filters.city")}>
-          <input
-            name="city"
-            defaultValue={params.city ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-        <FilterField label={t("search.nameLabel")}>
-          <input
-            name="q"
-            defaultValue={params.q ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-      </FilterForm>
+      <DoctorsFilterBar
+        specialties={specialties}
+        values={{
+          specialty: params.specialty,
+          city: params.city,
+          q: params.q,
+          sort,
+        }}
+        resultsTotal={doctors.meta.total}
+      />
 
       {doctors.data.length === 0 ? (
         <EmptyState
@@ -94,10 +73,10 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
               : undefined
           }
           clearHref={
-            params.specialty || params.city || params.q ? "/doctors" : undefined
+            params.specialty || params.city || params.q || sort === "rating" ? "/doctors" : undefined
           }
           clearLabel={
-            params.specialty || params.city || params.q
+            params.specialty || params.city || params.q || sort === "rating"
               ? t("common.clearFilters")
               : undefined
           }

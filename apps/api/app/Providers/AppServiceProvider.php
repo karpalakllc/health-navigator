@@ -6,8 +6,11 @@ use App\Models\TriageFlow;
 use App\Observers\TriageFlowObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use App\Policies\RolePolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Role::class, RolePolicy::class);
+
         TriageFlow::observe(TriageFlowObserver::class);
 
         RateLimiter::for('api-login', function (Request $request) {

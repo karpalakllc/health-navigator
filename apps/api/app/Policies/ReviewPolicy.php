@@ -10,12 +10,12 @@ class ReviewPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isStaff();
+        return $user->can('reviews.view');
     }
 
     public function view(User $user, Review $review): bool
     {
-        return $user->isStaff();
+        return $user->can('reviews.view');
     }
 
     public function create(User $user): bool
@@ -25,11 +25,11 @@ class ReviewPolicy
 
     public function update(User $user, Review $review): bool
     {
-        return $user->isStaff();
+        return $user->can('reviews.update');
     }
 
     public function delete(User $user, Review $review): bool
     {
-        return false;
+        return $user->can('reviews.delete');
     }
 }

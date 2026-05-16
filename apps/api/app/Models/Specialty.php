@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\SpecialtyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,5 +48,14 @@ class Specialty extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
+    }
+
+    /**
+     * @param  Builder<Specialty>  $query
+     * @return Builder<Specialty>
+     */
+    public function scopeSearchName(Builder $query, string $term): Builder
+    {
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $term);
     }
 }

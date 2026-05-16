@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListDoctorsRequest;
 use App\Http\Resources\Api\V1\DoctorDetailResource;
@@ -18,8 +19,7 @@ class DoctorController extends Controller
 
         $query = Doctor::query()
             ->published()
-            ->with(['specialties' => fn ($relation) => $relation->published()])
-            ->orderBy('full_name');
+            ->with(['specialties' => fn ($relation) => $relation->published()]);
 
         if (! empty($validated['specialty'])) {
             $query->forSpecialtySlug($validated['specialty']);
@@ -35,6 +35,30 @@ class DoctorController extends Controller
 
         if (! empty($validated['featured'])) {
             $query->featured();
+        }
+
+        $approved = ReviewStatus::Approved->value;
+
+        if (isset($validated['min_reviews']) && $validated['min_reviews'] > 0) {
+            $min = (int) $validated['min_reviews'];
+            $query->whereRaw(
+                '(select count(*) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) >= ?',
+                [Doctor::class, $approved, $min],
+            );
+        }
+
+        if (($validated['sort'] ?? 'name') === 'rating') {
+            $query->orderByRaw(
+                '(select avg(rating) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) is null',
+                [Doctor::class, $approved],
+            );
+            $query->orderByRaw(
+                '(select avg(rating) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) desc',
+                [Doctor::class, $approved],
+            );
+            $query->orderBy('doctors.full_name');
+        } else {
+            $query->orderBy('full_name');
         }
 
         $perPage = $validated['per_page'] ?? 15;
@@ -55,6 +79,9 @@ class DoctorController extends Controller
             ->with([
                 'specialties' => fn ($relation) => $relation->published(),
                 'facilities' => fn ($relation) => $relation->published()->clinical(),
+                'languages' => fn ($relation) => $relation->published(),
+                'clinicalInterests' => fn ($relation) => $relation->published(),
+                'procedures' => fn ($relation) => $relation->published(),
             ])
             ->firstOrFail();
 

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { StarRating } from "@/components/ui/star-rating";
+import { cn } from "@/lib/cn";
 import type { DoctorListItem } from "@/lib/api/types";
 import { t, tFormat } from "@/i18n/t";
 
@@ -15,7 +17,13 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
 
   return (
     <Link href={`/doctors/${doctor.slug}`} className="block h-full">
-      <Card className="card-hover flex h-full flex-col gap-4 p-5">
+      <Card
+        className={cn(
+          "card-hover flex h-full flex-col gap-4 p-5",
+          doctor.is_featured &&
+            "border-primary/15 bg-primary/[0.02] ring-1 ring-primary/10 ring-inset",
+        )}
+      >
         <div className="flex gap-4">
           {doctor.avatar_url ? (
             <img
@@ -29,7 +37,10 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-foreground">{doctor.full_name}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="min-w-0 font-semibold text-foreground">{doctor.full_name}</h2>
+              {doctor.is_featured ? <SponsoredBadge size="sm" /> : null}
+            </div>
             {specialtyLine ? (
               <p className="mt-1 text-sm text-muted-foreground">{specialtyLine}</p>
             ) : null}
@@ -51,9 +62,6 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
           ) : null}
           {doctor.accepts_new_patients ? (
             <Badge variant="accent">{t("doctors.acceptingPatients")}</Badge>
-          ) : null}
-          {doctor.is_featured ? (
-            <Badge variant="primary">{t("doctors.featured")}</Badge>
           ) : null}
           {doctor.years_experience ? (
             <Badge variant="outline">

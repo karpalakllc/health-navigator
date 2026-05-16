@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
 use App\Enums\UserRole;
 use App\Models\Doctor;
@@ -145,6 +146,55 @@ class ReviewTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.status', 'approved')
             ->assertJsonPath('data.0.reviewable.slug', 'ana-petrovska');
+    }
+
+    public function test_pharmacy_reviews_and_summary(): void
+    {
+        $pharmacy = Facility::factory()->create([
+            'slug' => 'eurofarm',
+            'type' => FacilityType::Pharmacy,
+        ]);
+
+        Review::factory()->approved()->create([
+            'reviewable_type' => Facility::class,
+            'reviewable_id' => $pharmacy->id,
+            'rating' => 4,
+        ]);
+
+        $this->getJson('/api/v1/pharmacies/eurofarm/reviews')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->getJson('/api/v1/pharmacies/eurofarm')
+            ->assertOk()
+            ->assertJsonPath('data.review_summary.count', 1)
+            ->assertJsonPath('data.review_summary.average_rating', 4);
+    }
+
+    public function test_member_can_submit_review_for_pharmacy(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'eurofarm',
+            'type' => FacilityType::Pharmacy,
+        ]);
+        $member = User::factory()->create(['role' => UserRole::Member]);
+
+        Sanctum::actingAs($member);
+
+        $this->postJson('/api/v1/pharmacies/eurofarm/reviews', [
+            'rating' => 5,
+            'body' => 'Helpful staff and clear pricing boards.',
+        ])->assertCreated();
+    }
+
+    public function test_pharmacy_slug_returns_404_on_facility_review_routes(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'eurofarm',
+            'type' => FacilityType::Pharmacy,
+        ]);
+
+        $this->getJson('/api/v1/facilities/eurofarm/reviews')->assertNotFound();
     }
 
     public function test_facility_reviews_and_summary(): void

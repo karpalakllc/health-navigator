@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -59,13 +60,7 @@ class Product extends Model
      */
     public function scopeSearchName(Builder $query, string $term): Builder
     {
-        $like = '%'.addcslashes($term, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('name', 'ilike', $like);
-        }
-
-        return $query->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($term).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $term);
     }
 
     /**

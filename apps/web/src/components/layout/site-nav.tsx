@@ -45,8 +45,8 @@ export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNa
             href={link.href}
             onClick={onNavigate}
             className={cn(
-              "rounded-lg px-3 py-2 font-medium transition",
-              vertical && "w-full py-3",
+              "inline-flex items-center rounded-lg px-3 font-medium transition",
+              vertical ? "w-full py-3" : "h-10 justify-center",
               active
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground",

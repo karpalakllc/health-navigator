@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ForumPosts\Tables;
 
 use App\Enums\ForumContentStatus;
 use App\Filament\Support\ModerationBulkActions;
+use App\Filament\Support\ModerationTableColumns;
 use App\Models\ForumPost;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -19,11 +20,17 @@ class ForumPostsTable
     {
         return $table
             ->columns([
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('topic.title')->label('Topic')->limit(30),
-                TextColumn::make('user.name')->label('Author'),
-                TextColumn::make('body')->limit(50),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                ModerationTableColumns::forumStatus(),
+                TextColumn::make('topic.title')
+                    ->label('Topic')
+                    ->limit(36)
+                    ->wrap(),
+                TextColumn::make('user.name')
+                    ->label('Author'),
+                ModerationTableColumns::bodyExcerpt(),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->with(['user', 'topic']))

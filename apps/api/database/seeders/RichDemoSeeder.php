@@ -2,13 +2,18 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Enums\ReviewStatus;
 use App\Enums\UserRole;
+use App\Models\ClinicalInterest;
+use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\Language;
+use App\Models\Procedure;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\Slug;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -34,6 +39,10 @@ class RichDemoSeeder extends Seeder
                 continue;
             }
 
+            $this->syncDoctorProfileTaxonomies($doctor, $profile);
+
+            unset($profile['languages'], $profile['clinical_interests'], $profile['procedures']);
+
             $doctor->update($profile);
         }
 
@@ -43,6 +52,10 @@ class RichDemoSeeder extends Seeder
             if ($facility === null) {
                 continue;
             }
+
+            $this->syncFacilityProfileDepartments($facility, $profile);
+
+            unset($profile['departments']);
 
             $facility->update($profile);
         }
@@ -59,6 +72,62 @@ class RichDemoSeeder extends Seeder
         }
 
         $this->seedShowcaseReviews();
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
+    private function syncDoctorProfileTaxonomies(Doctor $doctor, array $profile): void
+    {
+        if (isset($profile['languages']) && is_array($profile['languages'])) {
+            $doctor->languages()->sync($this->taxonomyIds(Language::class, $profile['languages']));
+        }
+
+        if (isset($profile['clinical_interests']) && is_array($profile['clinical_interests'])) {
+            $doctor->clinicalInterests()->sync($this->taxonomyIds(ClinicalInterest::class, $profile['clinical_interests']));
+        }
+
+        if (isset($profile['procedures']) && is_array($profile['procedures'])) {
+            $doctor->procedures()->sync($this->taxonomyIds(Procedure::class, $profile['procedures']));
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
+    private function syncFacilityProfileDepartments(Facility $facility, array $profile): void
+    {
+        if (! isset($profile['departments']) || ! is_array($profile['departments'])) {
+            return;
+        }
+
+        $facility->departments()->sync($this->taxonomyIds(Department::class, $profile['departments']));
+    }
+
+    /**
+     * @param  class-string<Language|ClinicalInterest|Procedure|Department>  $modelClass
+     * @param  list<string>  $names
+     * @return list<int>
+     */
+    private function taxonomyIds(string $modelClass, array $names): array
+    {
+        $ids = [];
+
+        foreach ($names as $name) {
+            if (! is_string($name) || trim($name) === '') {
+                continue;
+            }
+
+            $name = trim($name);
+            $record = $modelClass::query()->firstOrCreate(
+                ['slug' => Slug::fromName($name)],
+                ['name' => $name, 'is_published' => true, 'sort_order' => 0],
+            );
+
+            $ids[] = $record->id;
+        }
+
+        return $ids;
     }
 
     private function seedShowcaseReviews(): void

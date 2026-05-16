@@ -11,6 +11,7 @@ use App\Http\Resources\Api\V1\PharmacyShelfProductResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
+use App\Support\ScriptInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 
 class PharmacyController extends Controller
@@ -57,13 +58,7 @@ class PharmacyController extends Controller
         $query = PharmacyCatalog::availableProductsRelation($pharmacy);
 
         if (! empty($validated['q'])) {
-            $term = '%'.addcslashes($validated['q'], '%_\\').'%';
-
-            if ($query->getConnection()->getDriverName() === 'pgsql') {
-                $query->where('products.name', 'ilike', $term);
-            } else {
-                $query->whereRaw('LOWER(products.name) LIKE ?', ['%'.mb_strtolower($validated['q']).'%']);
-            }
+            ScriptInsensitiveSearch::whereColumnMatches($query, 'products.name', $validated['q']);
         }
 
         if (! empty($validated['category'])) {

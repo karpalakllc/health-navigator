@@ -14,6 +14,9 @@ class SpecialtyController extends Controller
     {
         $specialties = Specialty::query()
             ->published()
+            ->withCount([
+                'doctors as doctors_count' => fn ($q) => $q->published(),
+            ])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -21,5 +24,18 @@ class SpecialtyController extends Controller
         return ApiResponse::success(
             SpecialtyResource::collection($specialties)->resolve(),
         );
+    }
+
+    public function show(string $slug): JsonResponse
+    {
+        $specialty = Specialty::query()
+            ->published()
+            ->where('slug', $slug)
+            ->withCount([
+                'doctors as doctors_count' => fn ($q) => $q->published(),
+            ])
+            ->firstOrFail();
+
+        return ApiResponse::success(new SpecialtyResource($specialty));
     }
 }

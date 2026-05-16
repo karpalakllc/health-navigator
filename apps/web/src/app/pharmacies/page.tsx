@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
 import { EmptyState } from "@/components/directory/empty-state";
 import { DirectoryCardGrid } from "@/components/directory/directory-card-grid";
 import { PageHeader } from "@/components/directory/page-header";
+import { PharmaciesFilterBar } from "@/components/directory/pharmacies-filter-bar";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pagination } from "@/components/directory/pagination";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -35,6 +32,17 @@ function hasActiveFilters(params: { city?: string; q?: string }): boolean {
 export default async function PharmaciesPage({
   searchParams,
 }: PharmaciesPageProps) {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_pharmacies) {
+    return (
+      <ComingSoonShell
+        title={t("pharmacies.title")}
+        description={t("pharmacies.description")}
+      />
+    );
+  }
+
   const params = await searchParams;
   const page = params.page ? Number(params.page) : 1;
 
@@ -50,22 +58,7 @@ export default async function PharmaciesPage({
     <PageShell>
       <PageHeader title={t("pharmacies.title")} description={t("pharmacies.description")} />
 
-      <FilterForm searchHint={SEARCH_QUERY_HINT}>
-        <FilterField label={t("filters.city")}>
-          <input
-            name="city"
-            defaultValue={params.city ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-        <FilterField label={t("search.nameLabel")}>
-          <input
-            name="q"
-            defaultValue={params.q ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-      </FilterForm>
+      <PharmaciesFilterBar values={filterParams} resultsTotal={pharmacies.meta.total} />
 
       {pharmacies.data.length === 0 ? (
         <EmptyState

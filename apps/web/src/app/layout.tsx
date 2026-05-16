@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClosedBetaBanner } from "@/components/layout/closed-beta-banner";
+import { PlausibleAnalytics } from "@/components/layout/plausible-analytics";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -35,11 +35,12 @@ export default function RootLayout({
     >
       {/* Extensions (e.g. ColorZilla) mutate <body> before hydrate — suppress only on body */}
       <body
-        className="flex min-h-full flex-col bg-background text-foreground"
+        className="relative flex min-h-full flex-col bg-background text-foreground"
         suppressHydrationWarning
       >
+        <div className="app-ambient" aria-hidden="true" />
         <SearchDialogProvider>
-          <ClosedBetaBanner />
+          <PlausibleAnalytics />
           <SiteHeader />
           <div className="flex-1">{children}</div>
           <SiteFooter />

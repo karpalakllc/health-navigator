@@ -40,14 +40,16 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | `{ "data": { "status": "ok" } }` |
-| `GET` | `/specialties` | Published specialties. `data[]`: `{ slug, name, description }` |
-| `GET` | `/doctors` | Paginated doctors. Query: `specialty`, `city`, `q` (name, **min 2 chars**), `page`, `per_page` |
-| `GET` | `/doctors` | Query also accepts `featured=1` for home highlights. List items include `review_summary`, `avatar_url`, `years_experience`, `accepts_new_patients`, `is_featured`. |
+| `GET` | `/search` | Unified discovery (R1 SQL aggregate). Query: `q` (name, min 2 chars when set; Latin/Cyrillic), `city` (doctors/facilities/pharmacies), `per_page` (max 10 per vertical, default 5). Response `data`: `{ doctors, facilities, pharmacies, products }` each `{ data[], meta }`, plus `grand_total` |
+| `GET` | `/departments` | Published departments for filters. `data[]`: `{ slug, name }` |
+| `GET` | `/specialties` | Published specialties. `data[]`: `{ slug, name, description, doctors_count }` — `doctors_count` is published doctors attached to the specialty |
+| `GET` | `/specialties/{slug}` | Published specialty detail (same fields as list item). `404` if unpublished or missing |
+| `GET` | `/doctors` | Paginated doctors. Query: `specialty`, `city`, `q` (name, **min 2 chars**; matches **Latin and Cyrillic** variants of the same substring), `featured=1`, `sort` (`name` default, `rating`), `min_reviews` (non-negative int, approved reviews only), `page`, `per_page` |
 | `GET` | `/doctors/{slug}` | Doctor detail + `specialties[]`, `facilities[]` (published clinical only), `review_summary`, profile fields (`education`, `languages[]`, `clinical_interests[]`, `procedures[]`, `office_hours`, `consultation_fee_note`, …) |
 | `GET` | `/doctors/{slug}/reviews` | Approved reviews. Item: `{ id, rating, body, author_name, published_at }` |
-| `GET` | `/facilities` | Paginated **clinical** facilities only (`clinic`, `hospital`, `laboratory`). Query: `type`, `city`, `q`, `page`, `per_page`. **`type=pharmacy` is not accepted.** |
-| `GET` | `/facilities/{slug}` | Clinical facility detail (pharmacy slugs → `404`) |
-| `GET` | `/facilities/{slug}/reviews` | Approved reviews (includes pharmacy facilities by slug) |
+| `GET` | `/facilities` | Paginated **clinical** facilities only (`clinic`, `hospital`, `laboratory`). Query: `type`, `city`, `q` (name/city: Latin/Cyrillic), `has_emergency` (boolean), `department` (published department slug), `page`, `per_page`. **`type=pharmacy` is not accepted.** |
+| `GET` | `/facilities/{slug}` | Clinical facility detail (pharmacy slugs → `404`). Includes `latitude`, `longitude`, `has_emergency_services`, `departments[]` (names), `doctors[]`, `office_hours`, contact fields, `review_summary` |
+| `GET` | `/facilities/{slug}/reviews` | Approved reviews for **clinical** facilities only (pharmacy slugs → `404`; use `/pharmacies/{slug}/reviews`) |
 
 ## Public — pharmacies & catalog
 
@@ -57,10 +59,11 @@ Pharmacies are `facilities` with `type = pharmacy`. Use `/pharmacies*` for pharm
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/pharmacies` | Paginated published pharmacies. Query: `city`, `q`, `page`, `per_page` |
-| `GET` | `/pharmacies/{slug}` | Pharmacy detail + `review_summary` |
-| `GET` | `/pharmacies/{slug}/products` | Paginated products offered at this pharmacy. Query: `q`, `category`, `page`, `per_page`. Item: `{ slug, name, category, price, currency, price_updated_at }` |
-| `GET` | `/products` | Paginated published products. Query: `q`, `category`, `pharmacy` (slug), `page`, `per_page`. Item: `{ slug, name, category, from_price }` (`from_price` = min offer among published pharmacies) |
+| `GET` | `/pharmacies` | Paginated published pharmacies. Query: `city`, `q` (name/city: Latin/Cyrillic), `page`, `per_page` |
+| `GET` | `/pharmacies/{slug}` | Pharmacy detail: contact fields, `office_hours`, `latitude`, `longitude` (nullable), `review_summary`. Clinical facility slugs → `404`. |
+| `GET` | `/pharmacies/{slug}/reviews` | Approved reviews (same item shape as doctor/facility reviews) |
+| `GET` | `/pharmacies/{slug}/products` | Paginated products offered at this pharmacy. Query: `q` (name: Latin/Cyrillic), `category`, `page`, `per_page`. Item: `{ slug, name, category, price, currency, price_updated_at }` |
+| `GET` | `/products` | Paginated published products. Query: `q` (name: Latin/Cyrillic), `category`, `pharmacy` (slug), `page`, `per_page`. Item: `{ slug, name, category, from_price }` (`from_price` = min offer among published pharmacies) |
 | `GET` | `/products/{slug}` | Product detail. `offers[]` (max 10, cheapest first): `{ pharmacy: { slug, name, city }, price, currency, price_updated_at }`, plus `offers_total`, `offers_truncated` |
 
 `review_summary`: `{ count, average_rating }`.
@@ -72,7 +75,7 @@ Moderated community discussions. **Informational only — not medical advice.** 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/forum/categories` | Published categories. `data[]`: `{ slug, name, description, topics_count? }` |
-| `GET` | `/forum/categories/{category}/topics` | Approved topics in category. Query: `q` (title, **min 2 chars**), `page`, `per_page`. Sort: pinned first, then `last_post_at` |
+| `GET` | `/forum/categories/{category}/topics` | Approved topics in category. Query: `q` (title, **min 2 chars**, Latin/Cyrillic), `page`, `per_page`. Sort: pinned first, then `last_post_at` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | Approved topic + paginated approved replies. Response: `{ data: { topic, posts }, meta }` |
 
 Topic list item: `{ slug, title, author_name, replies_count, last_post_at, is_pinned, published_at }`.  
@@ -98,7 +101,8 @@ Handoff item: `{ type: home|doctors|facilities|emergency, label?, href? }`.
 | Method | Path | Roles | Description |
 |--------|------|-------|-------------|
 | `POST` | `/doctors/{slug}/reviews` | `member` | Submit review → `pending`. **Rate limit:** `api-reviews` (10/hour, 20/day per user) |
-| `POST` | `/facilities/{slug}/reviews` | `member` | Same (use for pharmacy slugs; web pharmacy pages use this path) |
+| `POST` | `/facilities/{slug}/reviews` | `member` | Submit review for **clinical** facility → `pending` |
+| `POST` | `/pharmacies/{slug}/reviews` | `member` | Submit review for pharmacy → `pending` |
 | `GET` | `/me/reviews` | Bearer | Own reviews with `status` |
 | `POST` | `/forum/categories/{category}/topics` | `member` | Create topic → `pending`. **Rate limit:** `api-forum-topics` (**5/day** per user) |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `member` | Reply on approved, unlocked topic → `pending`. **Rate limit:** `api-forum-posts` (**30/day** per user) |
@@ -122,8 +126,9 @@ Handoff item: `{ type: home|doctors|facilities|emergency, label?, href? }`.
 
 ## Admin panel
 
-- **Facilities** — all types including pharmacy; **product offers** relation manager visible only when `type = pharmacy`
-- **Products** — catalog CRUD (`ProductResource`)
+- **Facilities** — clinical types only (`clinic`, `hospital`, `laboratory`): departments, emergency, doctors, map coordinates
+- **Pharmacies** — `PharmacyResource` (`type = pharmacy`): shelf **product offers** relation manager; map coordinates + office hours
+- **Products** — catalog CRUD; **pharmacy offers** relation manager (inverse of shelf)
 - **Reviews** — moderation queue
 - **Forum** — categories CRUD; topic/reply moderation (approve/reject, pin, lock)
 - **Symptom guidance** — flow, steps, red flags, rules, outcomes (one published flow)
@@ -139,4 +144,4 @@ Handoff item: `{ type: home|doctors|facilities|emergency, label?, href? }`.
 
 ## Not in this contract yet
 
-`POST /auth/register`, checkout/cart/orders, stock sync, external pharmacy APIs, `GET /pharmacies/{slug}/reviews`, `GET /products/{slug}/pharmacies`, product-specific reviews, member forum edit/delete, triage AI (3f-b), `GET /triage/sessions/{id}` resume, sponsorships, Meilisearch, media/photos, maps/geo, opening hours.
+`POST /auth/register`, checkout/cart/orders, stock sync, external pharmacy APIs, `GET /products/{slug}/pharmacies`, product-specific reviews, member forum edit/delete, triage AI (3f-b), `GET /triage/sessions/{id}` resume, sponsorships, Meilisearch, media/photos.

@@ -4,7 +4,7 @@ Backlog and checklists for the monorepo.
 
 **Canonical planning model:** active **MVP** (product finalization), then roadmap phases **R1–R8** and gated epic **G (3f-b AI)** — see [docs/roadmap.md](./docs/roadmap.md) for the one-page summary.
 
-**Public web — full UI target:** [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) (shell, all pages, search overlay). Incremental notes: [docs/frontend-ux-plan.md](./docs/frontend-ux-plan.md).
+**Public web — full UI target:** [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) (shell, all pages, search overlay). Incremental notes: [docs/frontend-ux-plan.md](./docs/frontend-ux-plan.md). **Next-wave discovery & search:** [docs/frontend-discovery-content-plan.md](./docs/frontend-discovery-content-plan.md). **Backend admin & API parity:** [docs/backend-improvement-plan.md](./docs/backend-improvement-plan.md). **Pre-launch full product (owner plan):** [docs/pre-launch-master-plan.md](./docs/pre-launch-master-plan.md).
 
 **Historical labels:** Phases 0–4 and domain IDs **3a–3f-a** remain in the archive below for traceability. New work is tracked under **R*** / **G**, not “Phase 3g/3h”.
 
@@ -14,8 +14,8 @@ Legend: `[ ]` open · `[x]` done
 
 ## How to use this file
 
-1. **Active work:** [Frontend UI transformation](#frontend-ui-transformation-target-experience) (target shell + pages) and [Frontend UX](#frontend-ux-active) (completed incremental pass); [Beta verification](#beta-verification-resume) / deploy when you choose. MVP product finalization is **complete** — see [MVP — Product finalization](#mvp--product-finalization-complete).
-2. **Do not** start R2+ search/sponsorships, **G (3f-b AI)**, or broad product expansions without explicit reprioritization.
+1. **Active work:** [Beta verification](#beta-verification-resume) / deploy when you choose. **Optional / post-beta web discovery:** [Frontend — discovery & content (Track W7)](#frontend--discovery--content-track-w7). Legacy: [Frontend UI transformation](#frontend-ui-transformation-target-experience) (T1–T4 **done**), [Frontend UX](#frontend-ux-active) Track W **done**. MVP product finalization is **complete** — see [MVP — Product finalization](#mvp--product-finalization-complete).
+2. **Do not** start broad R2+ search infrastructure (Meilisearch), **G (3f-b AI)**, or **R4** sponsorship campaigns without explicit reprioritization — *unless* a small R1-safe web slice is explicitly scoped in [frontend-discovery-content-plan.md](./docs/frontend-discovery-content-plan.md) (e.g. SQL-only aggregates, no new services).
 3. **One epic per PR** where possible; implement MVP chunks **MVP-1 → MVP-5** in order unless noted.
 4. Update [docs/architecture.md](./docs/architecture.md) only for binding *technical* decisions (not roadmap prose).
 5. **Do not start G (3f-b AI)** without legal sign-off and an updated [docs/triage-safety.md](./docs/triage-safety.md).
@@ -85,7 +85,7 @@ Implemented via `AdminManagesDirectoryRecords` policy trait (MVP-1).
 
 **MVP acceptance:** Team can run content + moderation internally without engineering for routine tasks. *Human sign-off table in mvp-acceptance.md is for product/ops when they run the walkthrough locally.*
 
-**Active planning focus:** [Frontend UI transformation](#frontend-ui-transformation-target-experience) — deploy/beta verification when you choose.
+**Active planning focus:** [Beta verification](#beta-verification-resume) / R1 deploy when you choose; optional next wave [Track W7 — discovery & content](#frontend--discovery--content-track-w7) per [frontend-discovery-content-plan.md](./docs/frontend-discovery-content-plan.md).
 
 ---
 
@@ -148,12 +148,109 @@ See [Admin — Track A](#admin--track-a-parallel-after-w1) below (A1–A4).
 
 ### Admin — Track A (parallel after W1)
 
-- [ ] **A1** Filament branding / primary color aligned with web tokens
-- [ ] **A2** Directory tables density & badges
-- [ ] **A3** Moderation queue / preview polish
-- [ ] **A4** Form sections & helper text consistency
+- [x] **A1** Filament branding / primary color aligned with web tokens
+- [x] **A2** Directory tables density & badges
+- [x] **A3** Moderation queue / preview polish
+- [x] **A4** Form sections & helper text consistency
 
 **Out of scope:** deploy, Meilisearch UI, maps SDK, barcode/vitamins from reference, public registration.
+
+**Cross-ref:** Filament slices also listed under [Backend — Track B](#backend--track-b-admin--api) phase **B-P3**.
+
+---
+
+## Backend — Track B (admin & API)
+
+**Plan (source of truth for intent):** [docs/backend-improvement-plan.md](./docs/backend-improvement-plan.md)
+
+**Goal:** Complete directory/catalog admin workflows, API parity with the web (pharmacy maps, reviews, offers), tests and contract docs — **R1-safe** (no Meilisearch, sponsorships, AI triage, new Composer deps without approval).
+
+**Phasing:** B-P0 → B-P1 → B-P2 required for backend completeness; B-P3 (Filament polish) parallel; B-P4 optional; B-P5 hardening.
+
+### B-P0 — Pharmacy admin blockers
+
+- [x] **B0.1** Pharmacy create/edit in Filament (`PharmacyResource`, scoped to `type = pharmacy`)
+- [x] **B0.2** Clinical-only fields on `FacilityResource`; shelf RM on pharmacy resource only
+- [x] **B0.3** Directory nav: **Facilities** (clinical) + **Pharmacies** (separate resource)
+- [x] **B0.4** Demo seed: `eurofarm-skopje` includes coordinates
+- [x] **B0.5** API tests for pharmacy routes and review separation
+
+### B-P1 — Pharmacy & catalog depth
+
+- [x] **B1.1** `PharmacyDetailResource`: `latitude`, `longitude` (+ web `PharmacyDetail` type)
+- [x] **B1.2** Pharmacy admin: map coordinates + office-hours repeater (`FacilityCommonForm`)
+- [x] **B1.3** `ProductResource`: `PharmaciesRelationManager` (inverse offers)
+- [x] **B1.4** Shelf ergonomics (`price_updated_at` on both shelf RMs — existing)
+- [x] **B1.5** Rich demo pharmacy with coordinates
+
+### B-P2 — API parity & contract
+
+- [x] **B2.1** `GET` + `POST` `/pharmacies/{slug}/reviews`
+- [x] **B2.2** Feature tests: pharmacy reviews; `/facilities/.../reviews` clinical-only
+- [x] **B2.3** `docs/api-contract.md` — pharmacy detail, reviews, admin notes
+- [ ] **B2.4** Optional: `GET /facilities` filters (`has_emergency`, `department`) if web needs
+
+### B-P3 — Filament ergonomics (see also Track A)
+
+- [x] **B3.1** Panel branding: `Zdravje360` name, primary **Blue** (matches web), collapsible sidebar
+- [x] **B3.2** Directory tables: publication badges, facility type/emergency, offer counts, shared columns
+- [x] **B3.3** Moderation: status colors, body excerpts, pharmacy review labels, dashboard deep-links to pending filter
+- [x] **B3.4** Taxonomy/specialty forms: fieldsets + helper text; shared `TaxonomyForm` / `TaxonomyTable`
+- [x] **B3.5** Taxonomy slug/name helper text (duplicate guardrails remain manual in admin)
+
+### B-P4 — Optional R1 discovery API (defer unless requested)
+
+- [x] **B4.1** `GET /api/v1/search` aggregate (capped per vertical); web unified search uses it
+- [x] **B4.2** `GET /specialties/{slug}`
+- [x] **B4.3** Facility list filters for emergency / department; web filter bar wired
+- [x] **B4.4** `GET /departments` (published slug + name)
+
+### B-P5 — Hardening
+
+- [x] **B5.1** Feature tests: search, departments, specialty show, facility filters
+- [x] **B5.2** Policy test: pharmacy `Facility` rows use `FacilityPolicy`
+- [ ] **B5.3** Triage session purge — **R2** (D7), not B unless reprioritized
+- [ ] **B5.4** Redis rate limits — **R2** (D2)
+
+**Recently shipped (do not re-open):** Doctor profile taxonomies + office-hours repeater; clinical facility departments / emergency / coordinates; Latin/Cyrillic list `q` search.
+
+---
+
+## Frontend — discovery & content (Track W7)
+
+**Plan (source of truth for intent):** [docs/frontend-discovery-content-plan.md](./docs/frontend-discovery-content-plan.md)
+
+**Goal:** Richer **home** content, **honest** ratings/specialty discovery, **unified primary search** + **advanced** modal, **modern directory filters** (doctors first). Align copy with medical trust and sponsored-placement rules.
+
+**Phasing:** See plan §7. Prefer small PRs: `W7-P0` (web-only/static), `W7-P1` (API aggregates), `W7-P2` (search IA), `W7-P3` (filter shell).
+
+### W7-P0 — Home & trust (minimal API)
+
+- [x] **H1** “Како функционира” (3–4 steps, MK, non-diagnostic) on `app/page.tsx`
+- [x] **H2** “Болници и клиники” teaser — links into `/facilities` with type-appropriate query/hash if supported by existing filters
+- [x] **H3** Optional forum/guidance teaser row (static CTA if no API slice)
+- [ ] Copy review for **homepage** blocks (sponsored vs organic separation)
+
+### W7-P1 — API-backed discovery
+
+- [x] **S1** `GET /specialties` (or resource) includes **published doctor count** for specialty explorer cards
+- [x] **S2** `GET /doctors` supports **sort** (e.g. rating) + **min_reviews** threshold for “top on platform” home section
+- [x] **S3** Tests + `docs/api-contract.md` update for new query fields
+
+### W7-P2 — Search IA
+
+- [x] **Q1** Unified results route: single `q` (+ optional `city`) shows grouped matches across directories (parallel fetches **or** new aggregate endpoint)
+- [x] **Q2** Header / hero: primary search uses unified flow; **advanced** opens modal (`SearchDialogProvider`) — label e.g. “Напредно пребарување”
+- [x] **Q3** ⌘/Ctrl+K behavior documented and implemented consistently
+- [x] **Q4** `/search` page refactored to match; remove duplicate/conflicting UX
+
+### W7-P3 — Directory filter UI
+
+- [x] **F1** `/doctors` filter/search **toolbar** + mobile UX (sheet/drawer pattern, no new deps unless approved)
+- [x] **F2** Roll shared shell to facilities / pharmacies / products lists
+- [x] **F3** Empty states + `aria-live` result counts
+
+**Note:** T1 originally shipped “search icon → **modal**”; W7-P2 **replaces** primary search behavior per product sign-off — update handoff when shipped.
 
 ---
 

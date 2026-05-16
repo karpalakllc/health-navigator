@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Doctors\Pages;
 use App\Filament\Concerns\HasPublicPreviewAction;
 use App\Filament\Resources\Doctors\Concerns\SyncsDoctorFacilities;
 use App\Filament\Resources\Doctors\Concerns\SyncsDoctorSpecialties;
+use App\Filament\Resources\Doctors\Concerns\SyncsDoctorTaxonomies;
 use App\Filament\Resources\Doctors\DoctorResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -16,6 +17,7 @@ class EditDoctor extends EditRecord
     use HasPublicPreviewAction;
     use SyncsDoctorFacilities;
     use SyncsDoctorSpecialties;
+    use SyncsDoctorTaxonomies;
 
     protected static string $resource = DoctorResource::class;
 
@@ -36,6 +38,7 @@ class EditDoctor extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data = $this->fillSpecialtyFormFields($data);
+        $data = $this->fillTaxonomyFormFields($data);
 
         return $this->fillFacilityFormFields($data);
     }
@@ -47,6 +50,7 @@ class EditDoctor extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data = $this->stripSpecialtyFormFields($data);
+        $data = $this->stripTaxonomyFormFields($data);
 
         return $this->stripFacilityFormFields($data);
     }
@@ -55,5 +59,6 @@ class EditDoctor extends EditRecord
     {
         $this->syncDoctorSpecialties();
         $this->syncDoctorFacilities();
+        $this->syncDoctorTaxonomies();
     }
 }

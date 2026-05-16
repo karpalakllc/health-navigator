@@ -1,6 +1,4 @@
-"use client";
-
-import { useSearchDialog } from "@/components/layout/search-dialog-context";
+import Link from "next/link";
 import { t } from "@/i18n/t";
 
 export function FooterSearchButton({
@@ -8,11 +6,9 @@ export function FooterSearchButton({
 }: {
   className?: string;
 }) {
-  const { openSearch } = useSearchDialog();
-
   return (
-    <button type="button" onClick={() => openSearch()} className={className}>
+    <Link href="/search" className={className}>
       {t("footer.openSearch")}
-    </button>
+    </Link>
   );
 }

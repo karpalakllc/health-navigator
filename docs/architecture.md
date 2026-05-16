@@ -237,6 +237,8 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 | Phase 4 | Sanctum `expiration` default 43200 minutes; Meilisearch still deferred |
 | R1 UI | Public web IA: directory in primary nav; **global search** as header affordance (modal / command palette) deep-linking to existing list filters — not a primary nav item; spec: [frontend-ui-transformation.md](./frontend-ui-transformation.md) |
 
+| 2026-05-16 | **Pharmacies:** separate Filament `PharmacyResource` (same `facilities` table, `type = pharmacy`); clinical CRUD in `FacilityResource` scoped to non-pharmacy types. Product offers editable from pharmacy edit or product edit (`PharmaciesRelationManager`). |
+
 Update this table when OpenAPI export or auth refinements are finalized.
 
 ---

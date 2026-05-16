@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
-import { DirectoryDetailSidebar } from "@/components/directory/directory-detail-sidebar";
-import { EntityLinkList } from "@/components/directory/entity-link-list";
+import { FacilityDoctorList } from "@/components/directory/facility-doctor-list";
+import { FacilityEmergencyBanner } from "@/components/directory/facility-emergency-banner";
 import { FacilityProfileHero } from "@/components/directory/facility-profile-hero";
+import { FacilitySidebarContact } from "@/components/directory/facility-sidebar-contact";
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
+import { TagList } from "@/components/directory/tag-list";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
@@ -33,13 +35,7 @@ export default async function FacilityDetailPage({
     notFound();
   }
 
-  const doctorItems = facility.doctors.map((doctor) => ({
-    href: `/doctors/${doctor.slug}`,
-    title: doctor.full_name,
-    subtitle: [doctor.title, doctor.is_primary ? t("facilities.primaryWorkplace") : null]
-      .filter(Boolean)
-      .join(" · "),
-  }));
+  const officeHourEntries = Object.entries(facility.office_hours ?? {});
 
   return (
     <PageShell className="gap-8">
@@ -56,14 +52,25 @@ export default async function FacilityDetailPage({
           <>
             <FacilityProfileHero facility={facility} />
 
-            {Object.keys(facility.office_hours ?? {}).length > 0 ? (
+            {facility.has_emergency_services ? <FacilityEmergencyBanner /> : null}
+
+            {facility.departments.length > 0 ? (
+              <PageSection title={t("facilities.departments")}>
+                <TagList items={facility.departments} />
+              </PageSection>
+            ) : null}
+
+            {officeHourEntries.length > 0 ? (
               <PageSection title={t("directory.officeHours")}>
-                <OfficeHoursGrid hours={facility.office_hours} />
+                <OfficeHoursGrid hours={Object.fromEntries(officeHourEntries)} />
               </PageSection>
             ) : null}
 
             <PageSection title={t("facilities.doctors")}>
-              <EntityLinkList items={doctorItems} emptyMessage={t("facilities.noDoctors")} />
+              <FacilityDoctorList
+                doctors={facility.doctors}
+                emptyMessage={t("facilities.noDoctors")}
+              />
             </PageSection>
 
             <ReviewSection
@@ -74,18 +81,7 @@ export default async function FacilityDetailPage({
             />
           </>
         }
-        sidebar={
-          <DirectoryDetailSidebar
-            phone={facility.phone}
-            email={facility.email}
-            website={facility.website}
-            mapQuery={{
-              name: facility.name,
-              address: facility.address,
-              city: facility.city,
-            }}
-          />
-        }
+        sidebar={<FacilitySidebarContact facility={facility} />}
       />
     </PageShell>
   );

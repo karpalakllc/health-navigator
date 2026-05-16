@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,9 +24,6 @@ class Doctor extends Model
         'bio',
         'years_experience',
         'education',
-        'languages',
-        'clinical_interests',
-        'procedures',
         'consultation_fee_note',
         'avatar_url',
         'office_hours',
@@ -41,9 +39,6 @@ class Doctor extends Model
     protected function casts(): array
     {
         return [
-            'languages' => 'array',
-            'clinical_interests' => 'array',
-            'procedures' => 'array',
             'office_hours' => 'array',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
@@ -61,6 +56,30 @@ class Doctor extends Model
         return $this->belongsToMany(Specialty::class)
             ->withPivot(['is_primary'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Language, $this>
+     */
+    public function languages(): BelongsToMany
+    {
+        return $this->belongsToMany(Language::class, 'doctor_language')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<ClinicalInterest, $this>
+     */
+    public function clinicalInterests(): BelongsToMany
+    {
+        return $this->belongsToMany(ClinicalInterest::class, 'doctor_clinical_interest')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Procedure, $this>
+     */
+    public function procedures(): BelongsToMany
+    {
+        return $this->belongsToMany(Procedure::class, 'doctor_procedure')->withTimestamps();
     }
 
     /**
@@ -96,13 +115,7 @@ class Doctor extends Model
      */
     public function scopeCityContains(Builder $query, string $city): Builder
     {
-        $term = '%'.addcslashes($city, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('city', 'ilike', $term);
-        }
-
-        return $query->whereRaw('LOWER(city) LIKE ?', ['%'.mb_strtolower($city).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'city', $city);
     }
 
     /**
@@ -111,13 +124,7 @@ class Doctor extends Model
      */
     public function scopeSearchName(Builder $query, string $term): Builder
     {
-        $like = '%'.addcslashes($term, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('full_name', 'ilike', $like);
-        }
-
-        return $query->whereRaw('LOWER(full_name) LIKE ?', ['%'.mb_strtolower($term).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'full_name', $term);
     }
 
     /**

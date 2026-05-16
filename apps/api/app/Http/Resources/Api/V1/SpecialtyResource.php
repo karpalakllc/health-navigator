@@ -20,6 +20,7 @@ class SpecialtyResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
+            'doctors_count' => (int) ($this->doctors_count ?? 0),
         ];
     }
 }

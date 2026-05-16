@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Database\Seeders\Concerns\SeedsLocalDemoData;
+use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -35,6 +36,7 @@ class PlatformUserSeeder extends Seeder
                 'name' => 'Platform Moderator',
                 'password' => env('PLATFORM_MODERATOR_PASSWORD', 'password'),
                 'role' => UserRole::Moderator,
+                'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
             ],
         );
@@ -45,6 +47,7 @@ class PlatformUserSeeder extends Seeder
                 'name' => 'Test Member',
                 'password' => env('PLATFORM_MEMBER_PASSWORD', 'password'),
                 'role' => UserRole::Member,
+                'user_kind' => UserKind::Client,
                 'email_verified_at' => now(),
             ],
         );

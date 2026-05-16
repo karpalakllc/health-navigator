@@ -1,0 +1,134 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { filterInputClassName } from "@/components/directory/filter-form";
+import { Button } from "@/components/ui/button";
+import { t } from "@/i18n/t";
+
+type RegisterFormProps = {
+  registrationsEnabled: boolean;
+};
+
+export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  if (!registrationsEnabled) {
+    return (
+      <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+        {t("auth.registerDisabled")}
+      </p>
+    );
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+
+    try {
+      const response = await fetch("/api/session/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setError(
+          payload.message ??
+            payload.errors?.email?.[0] ??
+            payload.errors?.password?.[0] ??
+            t("auth.registerFailed"),
+        );
+        return;
+      }
+
+      router.push("/account");
+      router.refresh();
+    } catch {
+      setError(t("auth.registerFailed"));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium text-foreground">{t("auth.registerName")}</span>
+          <input
+            type="text"
+            name="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={filterInputClassName}
+          />
+        </label>
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium text-foreground">{t("auth.email")}</span>
+          <input
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={filterInputClassName}
+          />
+        </label>
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium text-foreground">{t("auth.password")}</span>
+          <input
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={filterInputClassName}
+          />
+        </label>
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium text-foreground">
+            {t("auth.registerPasswordConfirm")}
+          </span>
+          <input
+            type="password"
+            name="password_confirmation"
+            autoComplete="new-password"
+            required
+            value={passwordConfirmation}
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            className={filterInputClassName}
+          />
+        </label>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+          {pending ? t("auth.registering") : t("auth.register")}
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          {t("auth.haveAccount")}{" "}
+          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            {t("auth.signIn")}
+          </Link>
+        </p>
+      </form>
+    </div>
+  );
+}

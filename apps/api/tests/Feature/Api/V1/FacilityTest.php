@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\FacilityType;
+use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\Facility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -124,6 +125,62 @@ class FacilityTest extends TestCase
         Facility::factory()->unpublished()->create(['slug' => 'hidden-facility']);
 
         $this->getJson('/api/v1/facilities/hidden-facility')->assertNotFound();
+    }
+
+    public function test_detail_includes_location_departments_and_emergency_flag(): void
+    {
+        $facility = Facility::factory()->create([
+            'slug' => 'regional-hospital',
+            'latitude' => 41.0314,
+            'longitude' => 21.3347,
+            'has_emergency_services' => true,
+        ]);
+
+        $facility->departments()->attach(
+            Department::factory()->create(['name' => 'Ортопедија', 'slug' => 'ortopedija'])->id,
+        );
+
+        $this->getJson('/api/v1/facilities/regional-hospital')
+            ->assertOk()
+            ->assertJsonPath('data.latitude', 41.0314)
+            ->assertJsonPath('data.longitude', 21.3347)
+            ->assertJsonPath('data.has_emergency_services', true)
+            ->assertJsonPath('data.departments.0', 'Ортопедија');
+    }
+
+    public function test_filters_by_emergency_services(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'er-hospital',
+            'has_emergency_services' => true,
+        ]);
+        Facility::factory()->create([
+            'slug' => 'no-er-clinic',
+            'has_emergency_services' => false,
+        ]);
+
+        $this->getJson('/api/v1/facilities?has_emergency=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'er-hospital');
+    }
+
+    public function test_filters_by_department_slug(): void
+    {
+        $facility = Facility::factory()->create(['slug' => 'orto-hospital']);
+        Facility::factory()->create(['slug' => 'general-clinic']);
+
+        $department = Department::factory()->create([
+            'slug' => 'ortopedija',
+            'is_published' => true,
+        ]);
+
+        $facility->departments()->attach($department->id);
+
+        $this->getJson('/api/v1/facilities?department=ortopedija')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'orto-hospital');
     }
 
     public function test_validates_list_query_parameters(): void

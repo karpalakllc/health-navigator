@@ -7,7 +7,7 @@
 
 This plan **supersedes the “good enough” bar** from the earlier incremental [frontend-ux-plan.md](./frontend-ux-plan.md) (W1–W6). Those tasks built foundation; **this document defines the target product-grade experience** you described: powerful, modern, professional, and user-friendly — informed by Lovable-style *patterns* only, not a clone.
 
----
+**Amendment (2026-05-16):** Primary **global search** may evolve from “header/⌘K → modal only” to **unified results first** with the modal reserved for **advanced / per-directory** navigation — see [frontend-discovery-content-plan.md](./frontend-discovery-content-plan.md) and **Track W7** in [TASKS.md](../TASKS.md). Implement only after product sign-off.
 
 ## 1. Goals
 

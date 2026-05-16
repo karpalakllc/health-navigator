@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,6 +27,7 @@ class UserFactory extends Factory
             'password' => 'password',
             'remember_token' => Str::random(10),
             'role' => UserRole::Member,
+            'user_kind' => UserKind::Client,
         ];
     }
 
@@ -33,6 +35,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::Admin,
+            'user_kind' => UserKind::Staff,
         ]);
     }
 
@@ -40,6 +43,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::Moderator,
+            'user_kind' => UserKind::Staff,
         ]);
     }
 

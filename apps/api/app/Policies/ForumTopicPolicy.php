@@ -10,12 +10,12 @@ class ForumTopicPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isStaff();
+        return $user->can('forum_topics.view');
     }
 
     public function view(User $user, ForumTopic $forumTopic): bool
     {
-        return $user->isStaff();
+        return $user->can('forum_topics.view');
     }
 
     public function create(User $user): bool
@@ -25,7 +25,11 @@ class ForumTopicPolicy
 
     public function update(User $user, ForumTopic $forumTopic): bool
     {
-        return $user->isStaff();
+        if ($user->can('forum.moderate') && $user->canModerateForumCategory($forumTopic->category)) {
+            return true;
+        }
+
+        return $user->can('forum_topics.update');
     }
 
     public function delete(User $user, ForumTopic $forumTopic): bool

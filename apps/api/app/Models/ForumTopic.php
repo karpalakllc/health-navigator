@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ForumContentStatus;
 use App\Models\Concerns\ModeratesForumContent;
+use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\ForumTopicFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -93,13 +94,7 @@ class ForumTopic extends Model
      */
     public function scopeSearchTitle(Builder $query, string $term): Builder
     {
-        $like = '%'.addcslashes($term, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('title', 'ilike', $like);
-        }
-
-        return $query->whereRaw('LOWER(title) LIKE ?', ['%'.mb_strtolower($term).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'title', $term);
     }
 
     public function recordApprovedReply(): void

@@ -23,6 +23,8 @@ class PharmacyDetailResource extends JsonResource
             'description' => $this->description,
             'city' => $this->city,
             'address' => $this->address,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
             'phone' => $this->phone,
             'email' => $this->email,
             'website' => $this->website,

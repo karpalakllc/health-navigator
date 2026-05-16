@@ -2,7 +2,7 @@
 
 Web-first medical platform for North Macedonia — doctor directory, healthcare facilities, pharmacy catalog, community forum, and admin-managed content. Mobile apps will consume the same API later.
 
-**Status:** **MVP product finalization** is complete ([mvp acceptance](docs/mvp-acceptance.md)). **Next:** [beta verification](docs/beta-verification.md) and R1 ops (staging deploy) before external invite-only testers — see [TASKS.md](./TASKS.md). API: [docs/api-contract.md](./docs/api-contract.md). Guidance safety: [docs/triage-safety.md](./docs/triage-safety.md).
+**Status:** **MVP product finalization** is complete ([mvp acceptance](docs/mvp-acceptance.md)). **Next:** [beta verification](docs/beta-verification.md) and R1 ops (staging deploy) before external invite-only testers — see [TASKS.md](./TASKS.md). **Planned web discovery / search evolution:** [docs/frontend-discovery-content-plan.md](docs/frontend-discovery-content-plan.md) (Track W7). **Fresh chat / handoff:** [docs/continuity-handoff.md](docs/continuity-handoff.md). API: [docs/api-contract.md](./docs/api-contract.md). Guidance safety: [docs/triage-safety.md](docs/triage-safety.md).
 
 ## Getting started
 
@@ -138,11 +138,18 @@ Open http://127.0.0.1:3000 (web) and http://127.0.0.1:8000/api/v1/health (API). 
 
 ## Phase 2 — Auth and admin (local)
 
-Seed staff users (local/testing only): `cd apps/api && php artisan db:seed` (see `PLATFORM_*` in `.env.example`).
+After pulling RBAC/settings changes, bootstrap the API database once:
+
+```bash
+cd apps/api && php artisan platform:bootstrap
+php artisan serve --port=8000
+```
+
+This runs migrations, site settings, permissions, and ensures the admin user has the **Administrator** role (`admin.access`).
 
 | | |
 |--|--|
-| Filament admin | http://127.0.0.1:8000/admin — staff login (`admin` / `moderator` roles) |
+| Filament admin | http://127.0.0.1:8000/admin — `admin@zdravje360.test` / `password` (see `PLATFORM_*` in `.env.example`) |
 | Filament user CRUD | **Admin role only** (moderators cannot manage users/roles) |
 | API login | `POST /api/v1/auth/login` → Bearer token (no web session created) |
 | Contract | [docs/api-contract.md](./docs/api-contract.md) |
@@ -160,6 +167,7 @@ On push/PR to `main`, [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) r
 | [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) | Product vision, domains, constraints, non-goals |
 | [docs/architecture.md](./docs/architecture.md) | System design, boundaries, target services |
 | [docs/frontend-ui-transformation.md](./docs/frontend-ui-transformation.md) | Target public UI/UX (shell, pages, search overlay, T1–T4) |
+| [docs/frontend-discovery-content-plan.md](./docs/frontend-discovery-content-plan.md) | Discovery & content depth, unified search vs advanced modal, directory filters (Track W7) |
 | [TASKS.md](./TASKS.md) | Backlog, beta checklist, roadmap phases R1–R8 |
 | [docs/beta-verification.md](./docs/beta-verification.md) | Pre-invite verification checklist |
 | [docs/roadmap.md](./docs/roadmap.md) | One-page roadmap summary |

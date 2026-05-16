@@ -2,19 +2,33 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\UserKind;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
+use App\Http\Requests\Api\V1\RegisterRequest;
+use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\SiteSetting;
 use App\Models\User;
+use App\Services\AnalyticsService;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly AnalyticsService $analytics,
+    ) {}
+
     public function login(LoginRequest $request): JsonResponse
     {
         $user = User::query()->where('email', $request->string('email')->toString())->first();
@@ -24,14 +38,80 @@ class AuthController extends Controller
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
+
         $tokenName = $request->string('device_name')->toString() ?: 'api';
         $token = $user->createToken($tokenName);
+
+        $this->analytics->record('user.login', $user);
 
         return ApiResponse::success([
             'user' => (new UserResource($user))->resolve($request),
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
         ]);
+    }
+
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $settings = SiteSetting::current();
+
+        $user = User::query()->create([
+            'name' => $request->string('name')->toString(),
+            'email' => $request->string('email')->toString(),
+            'password' => $request->string('password')->toString(),
+            'role' => UserRole::Member,
+            'user_kind' => UserKind::Client,
+            'email_verified_at' => $settings->require_email_verification ? null : now(),
+        ]);
+
+        $tokenName = $request->string('device_name')->toString() ?: 'api';
+        $token = $user->createToken($tokenName);
+
+        $this->analytics->record('user.registered', $user);
+
+        return ApiResponse::success([
+            'user' => (new UserResource($user))->resolve($request),
+            'token' => $token->plainTextToken,
+            'token_type' => 'Bearer',
+        ], 201);
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $status = Password::sendResetLink(
+            $request->only('email'),
+        );
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return ApiResponse::success(['message' => __($status)]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return ApiResponse::success(['message' => __($status)]);
     }
 
     public function logout(Request $request): JsonResponse
@@ -42,7 +122,6 @@ class AuthController extends Controller
             $token->delete();
         }
 
-        // Clear web session only when present (e.g. Filament); API login does not start a session.
         if ($request->hasSession()) {
             auth()->guard('web')->logout();
             $request->session()->invalidate();

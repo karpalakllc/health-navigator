@@ -33,6 +33,17 @@ class FacilityController extends Controller
             $query->searchName($validated['q']);
         }
 
+        if (array_key_exists('has_emergency', $validated) && $validated['has_emergency'] !== null) {
+            $query->where('has_emergency_services', (bool) $validated['has_emergency']);
+        }
+
+        if (! empty($validated['department'])) {
+            $query->whereHas(
+                'departments',
+                fn ($relation) => $relation->published()->where('slug', $validated['department']),
+            );
+        }
+
         $perPage = $validated['per_page'] ?? 15;
 
         $paginator = $query->paginate($perPage)->withQueryString();
@@ -49,7 +60,10 @@ class FacilityController extends Controller
             ->published()
             ->clinical()
             ->where('slug', $slug)
-            ->with(['doctors' => fn ($relation) => $relation->published()])
+            ->with([
+                'doctors' => fn ($relation) => $relation->published(),
+                'departments' => fn ($relation) => $relation->published(),
+            ])
             ->firstOrFail();
 
         return ApiResponse::success(new FacilityDetailResource($facility));

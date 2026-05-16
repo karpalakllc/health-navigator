@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
 import { ProductCard } from "@/components/catalog/product-card";
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
 import { DirectoryCardGrid } from "@/components/directory/directory-card-grid";
+import { ProductsFilterBar } from "@/components/directory/products-filter-bar";
 import { EmptyState } from "@/components/directory/empty-state";
 import { PageHeader } from "@/components/directory/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pagination } from "@/components/directory/pagination";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchProducts } from "@/lib/api/products";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -31,6 +28,17 @@ type ProductsPageProps = {
 };
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_products) {
+    return (
+      <ComingSoonShell
+        title={t("products.title")}
+        description={t("products.description")}
+      />
+    );
+  }
+
   const params = await searchParams;
   const page = params.page ? Number(params.page) : 1;
 
@@ -54,29 +62,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       <PageHeader title={t("products.title")} description={t("products.description")} />
       <PriceDisclaimer />
 
-      <FilterForm searchHint={SEARCH_QUERY_HINT}>
-        <FilterField label={t("search.nameLabel")}>
-          <input
-            name="q"
-            defaultValue={params.q ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-        <FilterField label={t("filters.category")}>
-          <input
-            name="category"
-            defaultValue={params.category ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-        <FilterField label={t("filters.pharmacy")}>
-          <input
-            name="pharmacy"
-            defaultValue={params.pharmacy ?? ""}
-            className={filterInputClassName}
-          />
-        </FilterField>
-      </FilterForm>
+      <ProductsFilterBar values={filterParams} resultsTotal={products.meta.total} />
 
       {products.data.length === 0 ? (
         <EmptyState

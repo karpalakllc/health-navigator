@@ -63,12 +63,37 @@ class PharmacyTest extends TestCase
         $this->getJson('/api/v1/pharmacies/eurofarm')
             ->assertOk()
             ->assertJsonPath('data.slug', 'eurofarm')
-            ->assertJsonStructure(['data' => ['review_summary']]);
+            ->assertJsonStructure(['data' => ['review_summary', 'latitude', 'longitude']]);
 
         $this->getJson('/api/v1/pharmacies/eurofarm/products')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.slug', 'paracetamol')
             ->assertJsonPath('data.0.price', 120);
+    }
+
+    public function test_pharmacy_detail_includes_coordinates_when_set(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'mapped-pharmacy',
+            'type' => FacilityType::Pharmacy,
+            'latitude' => 41.9965,
+            'longitude' => 21.4314,
+        ]);
+
+        $this->getJson('/api/v1/pharmacies/mapped-pharmacy')
+            ->assertOk()
+            ->assertJsonPath('data.latitude', 41.9965)
+            ->assertJsonPath('data.longitude', 21.4314);
+    }
+
+    public function test_clinical_facility_slug_returns_404_on_pharmacy_routes(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'klinika-a',
+            'type' => FacilityType::Clinic,
+        ]);
+
+        $this->getJson('/api/v1/pharmacies/klinika-a')->assertNotFound();
     }
 }

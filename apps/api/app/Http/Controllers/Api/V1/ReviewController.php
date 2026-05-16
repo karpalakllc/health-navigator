@@ -27,9 +27,24 @@ class ReviewController extends Controller
 
     public function indexForFacility(string $slug, ListReviewsRequest $request): JsonResponse
     {
-        $facility = Facility::query()->published()->where('slug', $slug)->firstOrFail();
+        $facility = Facility::query()
+            ->published()
+            ->clinical()
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         return $this->paginatedReviews($facility, $request);
+    }
+
+    public function indexForPharmacy(string $slug, ListReviewsRequest $request): JsonResponse
+    {
+        $pharmacy = Facility::query()
+            ->published()
+            ->pharmacy()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return $this->paginatedReviews($pharmacy, $request);
     }
 
     public function storeForDoctor(string $slug, StoreReviewRequest $request): JsonResponse
@@ -41,9 +56,24 @@ class ReviewController extends Controller
 
     public function storeForFacility(string $slug, StoreReviewRequest $request): JsonResponse
     {
-        $facility = Facility::query()->published()->where('slug', $slug)->firstOrFail();
+        $facility = Facility::query()
+            ->published()
+            ->clinical()
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         return $this->storeReview($facility, $request);
+    }
+
+    public function storeForPharmacy(string $slug, StoreReviewRequest $request): JsonResponse
+    {
+        $pharmacy = Facility::query()
+            ->published()
+            ->pharmacy()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return $this->storeReview($pharmacy, $request);
     }
 
     public function myReviews(ListReviewsRequest $request): JsonResponse

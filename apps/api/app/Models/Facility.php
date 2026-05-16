@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,9 @@ class Facility extends Model
         'description',
         'city',
         'address',
+        'latitude',
+        'longitude',
+        'has_emergency_services',
         'phone',
         'email',
         'website',
@@ -37,6 +41,9 @@ class Facility extends Model
         return [
             'type' => FacilityType::class,
             'office_hours' => 'array',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'has_emergency_services' => 'boolean',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
         ];
@@ -50,6 +57,19 @@ class Facility extends Model
         return $this->belongsToMany(Doctor::class)
             ->withPivot(['is_primary'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Department, $this>
+     */
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'department_facility')->withTimestamps();
+    }
+
+    public function hasMapCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     /**
@@ -117,13 +137,7 @@ class Facility extends Model
      */
     public function scopeCityContains(Builder $query, string $city): Builder
     {
-        $term = '%'.addcslashes($city, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('city', 'ilike', $term);
-        }
-
-        return $query->whereRaw('LOWER(city) LIKE ?', ['%'.mb_strtolower($city).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'city', $city);
     }
 
     /**
@@ -132,12 +146,6 @@ class Facility extends Model
      */
     public function scopeSearchName(Builder $query, string $term): Builder
     {
-        $like = '%'.addcslashes($term, '%_\\').'%';
-
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
-            return $query->where('name', 'ilike', $like);
-        }
-
-        return $query->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($term).'%']);
+        return ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $term);
     }
 }

@@ -77,7 +77,15 @@ export function LoginForm() {
         <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
           {pending ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
-        <p className="text-xs text-muted-foreground">{t("auth.inviteOnly")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("auth.noAccount")}{" "}
+          <Link
+            href="/register"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("auth.register")}
+          </Link>
+        </p>
         <p className="text-xs text-muted-foreground">
           {t("auth.termsNotice")}{" "}
           <Link href="/terms" className="font-medium text-primary underline-offset-2 hover:underline">

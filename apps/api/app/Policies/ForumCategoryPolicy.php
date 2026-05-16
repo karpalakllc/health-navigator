@@ -2,9 +2,14 @@
 
 namespace App\Policies;
 
-use App\Policies\Concerns\AdminManagesDirectoryRecords;
+use App\Policies\Concerns\ChecksResourcePermissions;
 
 class ForumCategoryPolicy
 {
-    use AdminManagesDirectoryRecords;
+    use ChecksResourcePermissions;
+
+    protected static function permissionPrefix(): string
+    {
+        return 'forum_categories';
+    }
 }

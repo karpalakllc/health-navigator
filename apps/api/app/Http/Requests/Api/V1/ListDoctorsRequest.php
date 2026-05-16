@@ -24,6 +24,8 @@ class ListDoctorsRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'q' => ['nullable', 'string', 'max:255'],
             'featured' => ['nullable', 'boolean'],
+            'sort' => ['nullable', 'string', 'in:name,rating'],
+            'min_reviews' => ['nullable', 'integer', 'min:0', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

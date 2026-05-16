@@ -1,6 +1,6 @@
 # Frontend UI/UX improvement plan
 
-> **Next step:** The **target** public-web experience (full shell, all pages, search overlay) is specified in **[frontend-ui-transformation.md](./frontend-ui-transformation.md)**. This file remains the **incremental W-track history** and technical notes from the first polish pass.
+> **Next step (discovery & search evolution):** **[frontend-discovery-content-plan.md](./frontend-discovery-content-plan.md)** (Track **W7** in [TASKS.md](../TASKS.md)) — home content sections, unified primary search + advanced modal, modern directory filters. The **target** shell + T1–T4 experience remains in **[frontend-ui-transformation.md](./frontend-ui-transformation.md)** (T1 search overlay may be **demoted** to advanced-only after product sign-off). This file remains the **incremental W-track history** (W0–W6) from the first polish pass.
 
 **Context:** Local-first until launch. MVP backend + flows work; the public web and Filament admin need a **visual and interaction upgrade** inspired by patterns in the Lovable reference (`health-navigator-mk-main` on Desktop), **not** a port of that codebase.
 

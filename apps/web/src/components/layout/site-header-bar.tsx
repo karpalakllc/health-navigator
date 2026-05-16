@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
-import { useSearchDialog } from "@/components/layout/search-dialog-context";
 import { SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { pageContainerClass } from "@/components/ui/layout";
@@ -11,7 +10,6 @@ import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
 export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
-  const { openSearch } = useSearchDialog();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -19,33 +17,38 @@ export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       <div
         className={cn(
           pageContainerClass,
-          "flex items-center justify-between gap-3 py-3",
+          "flex items-center gap-3 py-3",
+          "justify-between lg:justify-start lg:gap-4",
         )}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-4">
-          <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5 lg:gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground shadow-sm">
-              Z
-            </span>
-            <span className="truncate text-base font-bold tracking-tight lg:text-lg">
-              {t("meta.title")}
-            </span>
-          </Link>
+        <Link
+          href="/"
+          className="flex min-w-0 shrink-0 items-center gap-2.5 lg:gap-3"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground shadow-sm">
+            Z
+          </span>
+          <span className="truncate text-base font-bold tracking-tight lg:text-lg">
+            {t("meta.title")}
+          </span>
+        </Link>
+
+        <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
+          <SiteNav className="justify-center gap-0.5" />
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => openSearch()}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
+          <Link
+            href="/search"
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm",
               "hover:border-primary/40 hover:bg-primary/5 hover:text-primary",
             )}
-            aria-label={t("nav.searchOpen")}
+            aria-label={t("nav.searchPage")}
             title={t("nav.searchOpen")}
           >
             <SearchIcon className="h-5 w-5" />
-          </button>
+          </Link>
 
           {isLoggedIn ? (
             <HeaderAccountMenu />
@@ -65,10 +68,6 @@ export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
             <MenuIcon className="h-5 w-5" />
           </button>
         </div>
-      </div>
-
-      <div className={cn(pageContainerClass, "hidden pb-3 lg:block")}>
-        <SiteNav className="justify-center gap-0.5" />
       </div>
 
       {mobileOpen ? (

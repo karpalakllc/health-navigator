@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Facilities\Tables;
 
+use App\Enums\FacilityType;
+use App\Filament\Support\DirectoryTableColumns;
 use App\Filament\Tables\Filters\PublicationStatusFilter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -22,20 +24,26 @@ class FacilitiesTable
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('slug')
-                    ->searchable(),
+                DirectoryTableColumns::hiddenSlug(),
                 TextColumn::make('type')
                     ->badge()
+                    ->formatStateUsing(fn (FacilityType $state): string => ucfirst($state->value))
+                    ->color(fn (FacilityType $state): string => match ($state) {
+                        FacilityType::Hospital => 'danger',
+                        FacilityType::Clinic => 'info',
+                        FacilityType::Laboratory => 'gray',
+                        default => 'gray',
+                    })
                     ->sortable(),
                 TextColumn::make('city')
                     ->searchable()
                     ->sortable(),
-                IconColumn::make('is_published')
-                    ->boolean(),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('has_emergency_services')
+                    ->label('Emergency')
+                    ->boolean()
+                    ->sortable(),
+                DirectoryTableColumns::publicationBadge(),
+                DirectoryTableColumns::updatedAt(),
             ])
             ->defaultSort('name')
             ->filters([

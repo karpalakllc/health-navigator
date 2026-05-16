@@ -6,6 +6,8 @@ export type DoctorListParams = {
   city?: string;
   q?: string;
   featured?: boolean;
+  sort?: "name" | "rating";
+  min_reviews?: number;
   page?: number;
   per_page?: number;
 };

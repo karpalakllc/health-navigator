@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\Reviews\Schemas;
 
-use App\Models\Doctor;
+use App\Enums\ReviewStatus;
+use App\Filament\Support\ReviewableLabel;
 use App\Models\Review;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
@@ -14,7 +15,13 @@ class ReviewInfolist
         return $schema
             ->components([
                 TextEntry::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn (ReviewStatus $state): string => ucfirst($state->value))
+                    ->color(fn (ReviewStatus $state): string => match ($state) {
+                        ReviewStatus::Pending => 'warning',
+                        ReviewStatus::Approved => 'success',
+                        ReviewStatus::Rejected => 'danger',
+                    }),
                 TextEntry::make('rating'),
                 TextEntry::make('body')
                     ->columnSpanFull(),
@@ -24,17 +31,7 @@ class ReviewInfolist
                     ->label('Author email'),
                 TextEntry::make('reviewable_label')
                     ->label('Target')
-                    ->state(function (Review $record): string {
-                        $reviewable = $record->reviewable;
-
-                        if ($reviewable === null) {
-                            return '—';
-                        }
-
-                        return $record->reviewable_type === Doctor::class
-                            ? 'Doctor: '.$reviewable->full_name.' ('.$reviewable->slug.')'
-                            : 'Facility: '.$reviewable->name.' ('.$reviewable->slug.')';
-                    }),
+                    ->state(fn (Review $record): string => ReviewableLabel::forReviewDetail($record)),
                 TextEntry::make('rejection_note')
                     ->visible(fn (Review $record): bool => filled($record->rejection_note))
                     ->columnSpanFull(),

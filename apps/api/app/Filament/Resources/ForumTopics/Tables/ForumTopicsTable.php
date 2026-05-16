@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ForumTopics\Tables;
 
 use App\Enums\ForumContentStatus;
 use App\Filament\Support\ModerationBulkActions;
+use App\Filament\Support\ModerationTableColumns;
 use App\Models\ForumTopic;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -20,13 +21,25 @@ class ForumTopicsTable
     {
         return $table
             ->columns([
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('title')->searchable()->limit(40),
-                TextColumn::make('category.name')->label('Category'),
-                TextColumn::make('user.name')->label('Author'),
-                IconColumn::make('is_pinned')->boolean(),
-                IconColumn::make('is_locked')->boolean(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                ModerationTableColumns::forumStatus(),
+                TextColumn::make('title')
+                    ->searchable()
+                    ->limit(48)
+                    ->wrap(),
+                ModerationTableColumns::bodyExcerpt(),
+                TextColumn::make('category.name')
+                    ->label('Category'),
+                TextColumn::make('user.name')
+                    ->label('Author'),
+                IconColumn::make('is_pinned')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_locked')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->with(['user', 'category']))

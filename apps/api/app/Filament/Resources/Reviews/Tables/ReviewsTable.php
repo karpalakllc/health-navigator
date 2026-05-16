@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Reviews\Tables;
 
 use App\Enums\ReviewStatus;
 use App\Filament\Support\ModerationBulkActions;
-use App\Models\Doctor;
-use App\Models\Facility;
+use App\Filament\Support\ModerationTableColumns;
+use App\Filament\Support\ReviewableLabel;
 use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -21,32 +21,18 @@ class ReviewsTable
     {
         return $table
             ->columns([
-                TextColumn::make('status')
-                    ->badge()
-                    ->sortable(),
+                ModerationTableColumns::reviewStatus(),
                 TextColumn::make('rating')
-                    ->sortable(),
+                    ->sortable()
+                    ->alignCenter(),
                 TextColumn::make('reviewable_label')
                     ->label('Target')
-                    ->state(function (Review $record): string {
-                        $reviewable = $record->reviewable;
-
-                        if ($reviewable === null) {
-                            return '—';
-                        }
-
-                        return match ($record->reviewable_type) {
-                            Doctor::class => 'Doctor: '.$reviewable->full_name,
-                            Facility::class => 'Facility: '.$reviewable->name,
-                            default => '—',
-                        };
-                    }),
+                    ->state(fn (Review $record): string => ReviewableLabel::forReview($record))
+                    ->wrap(),
                 TextColumn::make('user.name')
                     ->label('Author')
                     ->searchable(),
-                TextColumn::make('body')
-                    ->limit(50)
-                    ->toggleable(),
+                ModerationTableColumns::bodyExcerpt(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),

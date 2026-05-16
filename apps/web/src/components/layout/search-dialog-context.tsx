@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-sections";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,7 @@ type Prefill = {
 };
 
 type SearchDialogContextValue = {
-  openSearch: (prefill?: Prefill) => void;
+  openAdvancedSearch: (prefill?: Prefill) => void;
 };
 
 const SearchDialogContext = createContext<SearchDialogContextValue | null>(null);
@@ -119,7 +120,7 @@ function SearchModal({
             <CloseIcon className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{t("search.description")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("search.modalSubtitle")}</p>
 
         <div className="mt-4 space-y-3">
           <div>
@@ -200,11 +201,12 @@ function CloseIcon({ className }: { className?: string }) {
 }
 
 export function SearchDialogProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
 
-  const openSearch = useCallback((p?: Prefill) => {
+  const openAdvancedSearch = useCallback((p?: Prefill) => {
     setQ(typeof p?.q === "string" ? p.q : "");
     setCity(typeof p?.city === "string" ? p.city : "");
     setOpen(true);
@@ -218,19 +220,19 @@ export function SearchDialogProvider({ children }: { children: React.ReactNode }
           return;
         }
         e.preventDefault();
-        openSearch();
+        router.push("/search");
       }
     };
 
     document.addEventListener("keydown", onKey);
 
     return () => document.removeEventListener("keydown", onKey);
-  }, [openSearch]);
+  }, [router]);
 
   const close = useCallback(() => setOpen(false), []);
 
   return (
-    <SearchDialogContext.Provider value={{ openSearch }}>
+    <SearchDialogContext.Provider value={{ openAdvancedSearch }}>
       {children}
       <SearchModal
         open={open}

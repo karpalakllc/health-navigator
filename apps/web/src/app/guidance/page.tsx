@@ -3,7 +3,9 @@ import { GuidanceWizard } from "@/components/guidance/guidance-wizard";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { PageHeader } from "@/components/directory/page-header";
 import { PageShell } from "@/components/ui/page-shell";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchGuidanceFlow } from "@/lib/api/guidance";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -13,6 +15,17 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default async function GuidancePage() {
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_guidance) {
+    return (
+      <ComingSoonShell
+        title={t("guidance.title")}
+        description={t("guidance.description")}
+      />
+    );
+  }
+
   let flow = null;
   let unavailable = false;
 

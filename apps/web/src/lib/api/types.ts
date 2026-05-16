@@ -20,6 +20,20 @@ export type Specialty = {
   slug: string;
   name: string;
   description: string | null;
+  doctors_count: number;
+};
+
+export type DepartmentListItem = {
+  slug: string;
+  name: string;
+};
+
+export type UnifiedSearchResult = {
+  doctors: PaginatedEnvelope<DoctorListItem>;
+  facilities: PaginatedEnvelope<FacilityListItem>;
+  pharmacies: PaginatedEnvelope<PharmacyListItem>;
+  products: PaginatedEnvelope<ProductListItem>;
+  grand_total: number;
 };
 
 export type DoctorListItem = {
@@ -104,6 +118,10 @@ export type FacilityDetail = {
   description: string | null;
   city: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  has_emergency_services: boolean;
+  departments: string[];
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -132,6 +150,8 @@ export type PharmacyDetail = {
   description: string | null;
   city: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   email: string | null;
   website: string | null;
