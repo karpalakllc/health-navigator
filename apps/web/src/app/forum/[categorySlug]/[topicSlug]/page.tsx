@@ -12,6 +12,7 @@ import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
+import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 
@@ -37,8 +38,12 @@ export default async function TopicDetailPage({
       topicSlug,
       Number.isFinite(page) ? page : 1,
     );
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
   }
 
   const { topic, posts, meta } = data;

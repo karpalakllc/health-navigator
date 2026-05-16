@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { ForumAuthorCard } from "@/components/forum/forum-author-card";
-import type { ForumPost } from "@/lib/api/forum";
+import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
 import { formatForumDateTime } from "@/lib/format";
 import { t } from "@/i18n/t";
 
@@ -9,7 +9,21 @@ type ForumPostCardProps = {
   isOriginalPost?: boolean;
 };
 
+function resolveAuthor(post: ForumPost): ForumAuthor {
+  return (
+    post.author ?? {
+      name: post.author_name,
+      member_since: null,
+      topics_count: 0,
+      posts_count: 0,
+      is_team_member: false,
+    }
+  );
+}
+
 export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardProps) {
+  const author = resolveAuthor(post);
+
   return (
     <Card
       className={
@@ -20,7 +34,7 @@ export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardPro
     >
       <article className="flex flex-col lg:flex-row">
         <aside className="border-b border-border/80 bg-muted/20 lg:w-52 lg:shrink-0 lg:border-b-0 lg:border-r lg:bg-muted/15 xl:w-56">
-          <ForumAuthorCard author={post.author} variant="sidebar" />
+          <ForumAuthorCard author={author} variant="sidebar" />
         </aside>
 
         <div className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">

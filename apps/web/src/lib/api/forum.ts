@@ -1,6 +1,5 @@
 import { apiGet, apiGetPaginated } from "@/lib/api/client";
-import { apiGetPaginatedServer } from "@/lib/api/server";
-import { apiUrl } from "@/lib/config";
+import { ApiRequestError, apiFetch, apiGetPaginatedServer } from "@/lib/api/server";
 import type { PaginatedEnvelope } from "@/lib/api/types";
 
 export type ForumAuthor = {
@@ -95,22 +94,27 @@ export async function fetchForumTopicPage(
   topicSlug: string,
   page = 1,
 ): Promise<ForumTopicPage> {
-  const response = await fetch(
-    apiUrl(
-      `/forum/categories/${categorySlug}/topics/${topicSlug}?page=${page}`,
-    ),
-    { cache: "no-store" },
+  const response = await apiFetch(
+    `/forum/categories/${categorySlug}/topics/${topicSlug}?page=${page}`,
   );
 
   if (!response.ok) {
-    throw new Error(`API request failed (${response.status})`);
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new ApiRequestError(
+      body?.message ?? `API request failed (${response.status})`,
+      response.status,
+      body?.message ? { message: body.message } : undefined,
+    );
   }
 
-  const body = await response.json();
+  const body = (await response.json()) as {
+    data: { topic: ForumTopicDetail; posts: ForumPost[] };
+    meta: ForumTopicPage["meta"];
+  };
 
   return {
-    topic: body.data.topic as ForumTopicDetail,
-    posts: body.data.posts as ForumPost[],
+    topic: body.data.topic,
+    posts: body.data.posts,
     meta: body.meta,
   };
 }
