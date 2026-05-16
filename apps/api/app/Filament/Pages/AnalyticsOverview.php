@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\AnalyticsActivityChart;
+use App\Filament\Widgets\AnalyticsCommunityChart;
+use App\Filament\Widgets\AnalyticsSearchInsights;
 use App\Filament\Widgets\AnalyticsSummaryStats;
 use App\Filament\Widgets\DirectoryHealthStats;
 use Filament\Pages\Page;
@@ -22,9 +24,23 @@ class AnalyticsOverview extends Page
 
     protected string $view = 'filament.pages.analytics-overview';
 
+    public int $days = 30;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->can('analytics.view') ?? false;
+    }
+
+    /**
+     * @return array<int, array{value: int, label: string}>
+     */
+    public function periodOptions(): array
+    {
+        return [
+            ['value' => 7, 'label' => 'Last 7 days'],
+            ['value' => 30, 'label' => 'Last 30 days'],
+            ['value' => 90, 'label' => 'Last 90 days'],
+        ];
     }
 
     /**
@@ -33,9 +49,9 @@ class AnalyticsOverview extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            AnalyticsSummaryStats::class,
+            AnalyticsSummaryStats::make(['days' => $this->days]),
             DirectoryHealthStats::class,
-            AnalyticsActivityChart::class,
         ];
     }
+
 }

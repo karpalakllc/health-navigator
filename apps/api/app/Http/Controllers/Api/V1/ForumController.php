@@ -19,6 +19,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Services\AnalyticsService;
 use App\Support\ForumAuthorCounts;
 use App\Support\Slug;
 use App\Support\UgcMailer;
@@ -29,6 +30,10 @@ use Illuminate\Validation\ValidationException;
 
 class ForumController extends Controller
 {
+    public function __construct(
+        private readonly AnalyticsService $analytics,
+    ) {}
+
     public function searchTopics(ListForumTopicsRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -150,6 +155,11 @@ class ForumController extends Controller
 
         UgcMailer::notifySubmitted($topic);
 
+        $this->analytics->record('forum.topic_created', $user, [
+            'category_id' => $categoryModel->id,
+            'topic_id' => $topic->id,
+        ]);
+
         return ApiResponse::success([
             'slug' => $topic->slug,
             'title' => $topic->title,
@@ -182,6 +192,11 @@ class ForumController extends Controller
         ]);
 
         UgcMailer::notifySubmitted($post);
+
+        $this->analytics->record('forum.post_created', $request->user(), [
+            'topic_id' => $topicModel->id,
+            'post_id' => $post->id,
+        ]);
 
         return ApiResponse::success([
             'id' => $post->id,

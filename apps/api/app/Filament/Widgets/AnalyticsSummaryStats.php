@@ -8,16 +8,16 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class AnalyticsSummaryStats extends StatsOverviewWidget
 {
-    protected static ?int $sort = 1;
+    public int $days = 30;
 
-    protected ?string $heading = 'Activity (30 days)';
+    protected static ?int $sort = 1;
 
     /**
      * @return array<Stat>
      */
     protected function getStats(): array
     {
-        $summary = app(AnalyticsService::class)->summaryForDays(30);
+        $summary = app(AnalyticsService::class)->summaryForDays($this->days);
 
         return [
             Stat::make('Registrations', $summary['registrations']),
@@ -27,6 +27,11 @@ class AnalyticsSummaryStats extends StatsOverviewWidget
             Stat::make('Forum replies', $summary['forum_posts']),
             Stat::make('Search queries', $summary['search_queries']),
         ];
+    }
+
+    public function getHeading(): ?string
+    {
+        return "Activity ({$this->days} days)";
     }
 
     public static function canView(): bool

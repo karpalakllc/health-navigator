@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AnalyticsEvent;
 use App\Models\User;
+use App\Support\SearchQuery;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -54,17 +55,62 @@ class AnalyticsService
     /**
      * @return Collection<int, object{day: string, total: int}>
      */
-    public function registrationsByDay(int $days = 14): Collection
+    public function eventCountByDay(string $event, int $days = 14): Collection
     {
         $since = Carbon::now()->subDays($days)->startOfDay();
 
         return AnalyticsEvent::query()
-            ->where('event', 'user.registered')
+            ->where('event', $event)
             ->where('occurred_at', '>=', $since)
             ->selectRaw('date(occurred_at) as day, count(*) as total')
             ->groupBy('day')
             ->orderBy('day')
             ->get();
+    }
+
+    /**
+     * @return Collection<int, object{day: string, total: int}>
+     */
+    public function registrationsByDay(int $days = 14): Collection
+    {
+        return $this->eventCountByDay('user.registered', $days);
+    }
+
+    /**
+     * @return list<array{query: string, total: int}>
+     */
+    public function topSearchQueries(int $days = 30, int $limit = 10): array
+    {
+        $since = Carbon::now()->subDays($days)->startOfDay();
+
+        $counts = [];
+
+        AnalyticsEvent::query()
+            ->where('event', 'search.query')
+            ->where('occurred_at', '>=', $since)
+            ->orderByDesc('occurred_at')
+            ->lazy()
+            ->each(function (AnalyticsEvent $event) use (&$counts): void {
+                $raw = is_array($event->properties) ? ($event->properties['q'] ?? null) : null;
+                $normalized = SearchQuery::normalize(is_string($raw) ? $raw : null);
+
+                if ($normalized === null) {
+                    return;
+                }
+
+                $key = mb_strtolower($normalized);
+                $counts[$key] = ($counts[$key] ?? 0) + 1;
+            });
+
+        arsort($counts);
+
+        $result = [];
+
+        foreach (array_slice($counts, 0, $limit, true) as $query => $total) {
+            $result[] = ['query' => $query, 'total' => $total];
+        }
+
+        return $result;
     }
 
     public function countDirectoryPublished(): array

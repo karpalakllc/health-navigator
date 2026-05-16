@@ -7,9 +7,9 @@ use Filament\Widgets\ChartWidget;
 
 class AnalyticsActivityChart extends ChartWidget
 {
-    protected static ?int $sort = 3;
+    public int $days = 30;
 
-    protected ?string $heading = 'Registrations (14 days)';
+    protected static ?int $sort = 3;
 
     protected ?string $maxHeight = '280px';
 
@@ -23,7 +23,7 @@ class AnalyticsActivityChart extends ChartWidget
      */
     protected function getData(): array
     {
-        $rows = app(AnalyticsService::class)->registrationsByDay(14);
+        $rows = app(AnalyticsService::class)->registrationsByDay($this->days);
 
         return [
             'datasets' => [
@@ -34,6 +34,11 @@ class AnalyticsActivityChart extends ChartWidget
             ],
             'labels' => $rows->pluck('day')->all(),
         ];
+    }
+
+    public function getHeading(): ?string
+    {
+        return "Registrations ({$this->days} days)";
     }
 
     public static function canView(): bool

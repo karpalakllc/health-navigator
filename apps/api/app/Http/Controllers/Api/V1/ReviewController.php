@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
+use App\Services\AnalyticsService;
 use App\Support\UgcMailer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReviewController extends Controller
 {
+    public function __construct(
+        private readonly AnalyticsService $analytics,
+    ) {}
+
     public function indexForDoctor(string $slug, ListReviewsRequest $request): JsonResponse
     {
         $doctor = Doctor::query()->published()->where('slug', $slug)->firstOrFail();
@@ -145,6 +150,12 @@ class ReviewController extends Controller
         }
 
         UgcMailer::notifySubmitted($review);
+
+        $this->analytics->record('review.submitted', $user, [
+            'reviewable_type' => $reviewable::class,
+            'reviewable_id' => $reviewable->id,
+            'rating' => $review->rating,
+        ]);
 
         return ApiResponse::success([
             'rating' => $review->rating,
