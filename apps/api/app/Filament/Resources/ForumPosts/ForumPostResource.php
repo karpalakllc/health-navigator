@@ -7,11 +7,13 @@ use App\Filament\Resources\ForumPosts\Pages\ViewForumPost;
 use App\Filament\Resources\ForumPosts\Schemas\ForumPostInfolist;
 use App\Filament\Resources\ForumPosts\Tables\ForumPostsTable;
 use App\Models\ForumPost;
+use App\Support\ForumModerationScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ForumPostResource extends Resource
 {
@@ -28,6 +30,11 @@ class ForumPostResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return ForumModerationScope::restrictPosts(parent::getEloquentQuery());
     }
 
     public static function infolist(Schema $schema): Schema

@@ -38,7 +38,27 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->can('admin.access');
+        if ($this->can('admin.access')) {
+            return true;
+        }
+
+        return $this->can('forum.moderate')
+            && (
+                $this->can('forum_topics.view')
+                || $this->can('forum_posts.view')
+                || $this->can('forum_categories.view')
+            );
+    }
+
+    public function isCommunityModeratorOnly(): bool
+    {
+        return ! $this->can('admin.access')
+            && $this->can('forum.moderate')
+            && (
+                $this->can('forum_topics.view')
+                || $this->can('forum_posts.view')
+                || $this->can('forum_categories.view')
+            );
     }
 
     public function isAdmin(): bool

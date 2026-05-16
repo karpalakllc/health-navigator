@@ -44,7 +44,8 @@ class ForumPostsTable
             ->recordActions([
                 ViewAction::make(),
                 Action::make('approve')
-                    ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending)
+                    ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->requiresConfirmation()
                     ->action(function (ForumPost $record): void {
                         $record->approve(auth()->user());
@@ -54,7 +55,8 @@ class ForumPostsTable
                         }
                     }),
                 Action::make('reject')
-                    ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending)
+                    ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->form([
                         Textarea::make('rejection_note')->label('Rejection note (internal)')->rows(3),
                     ])

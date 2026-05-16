@@ -50,10 +50,18 @@ final class ModerationBulkActions
                     return;
                 }
 
+                if (! auth()->user()?->can('update', $record)) {
+                    return;
+                }
+
                 $record->approve(auth()->user());
             }),
             self::reject('Reject selected', function (ForumTopic $record, ?string $note): void {
                 if ($record->status !== ForumContentStatus::Pending) {
+                    return;
+                }
+
+                if (! auth()->user()?->can('update', $record)) {
                     return;
                 }
 
@@ -73,6 +81,10 @@ final class ModerationBulkActions
                     return;
                 }
 
+                if (! auth()->user()?->can('update', $record)) {
+                    return;
+                }
+
                 $record->approve(auth()->user());
                 $topic = $record->topic()->first();
 
@@ -82,6 +94,10 @@ final class ModerationBulkActions
             }),
             self::reject('Reject selected', function (ForumPost $record, ?string $note): void {
                 if ($record->status !== ForumContentStatus::Pending) {
+                    return;
+                }
+
+                if (! auth()->user()?->can('update', $record)) {
                     return;
                 }
 

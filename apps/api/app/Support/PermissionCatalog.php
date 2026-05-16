@@ -144,7 +144,6 @@ final class PermissionCatalog
     public static function forumModeratorDefaults(): array
     {
         return [
-            'admin.access',
             'forum_categories.view',
             'forum_topics.view',
             'forum_topics.update',

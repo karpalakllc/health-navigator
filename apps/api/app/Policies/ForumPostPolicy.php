@@ -15,7 +15,17 @@ class ForumPostPolicy
 
     public function view(User $user, ForumPost $forumPost): bool
     {
-        return $user->can('forum_posts.view');
+        if (! $user->can('forum_posts.view')) {
+            return false;
+        }
+
+        $category = $forumPost->topic?->category;
+
+        if ($category && $user->hasScopedForumModeration()) {
+            return $user->canModerateForumCategory($category);
+        }
+
+        return true;
     }
 
     public function create(User $user): bool

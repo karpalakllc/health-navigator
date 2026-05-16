@@ -53,11 +53,13 @@ class ForumTopicsTable
             ->recordActions([
                 ViewAction::make(),
                 Action::make('approve')
-                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Pending)
+                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->requiresConfirmation()
                     ->action(fn (ForumTopic $record) => $record->approve(auth()->user())),
                 Action::make('reject')
-                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Pending)
+                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->form([
                         Textarea::make('rejection_note')->label('Rejection note (internal)')->rows(3),
                     ])
@@ -68,11 +70,13 @@ class ForumTopicsTable
                     )),
                 Action::make('pin')
                     ->label(fn (ForumTopic $record): string => $record->is_pinned ? 'Unpin' : 'Pin')
-                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Approved)
+                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Approved
+                        && auth()->user()?->can('update', $record))
                     ->action(fn (ForumTopic $record) => $record->update(['is_pinned' => ! $record->is_pinned])),
                 Action::make('lock')
                     ->label(fn (ForumTopic $record): string => $record->is_locked ? 'Unlock' : 'Lock')
-                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Approved)
+                    ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Approved
+                        && auth()->user()?->can('update', $record))
                     ->action(fn (ForumTopic $record) => $record->update(['is_locked' => ! $record->is_locked])),
             ])
             ->toolbarActions([

@@ -12,10 +12,12 @@ function contentSecurityPolicy(): string {
   }
 
   const connectSrc = ["'self'", apiOrigin].filter(Boolean).join(" ");
+  const isDev = process.env.NODE_ENV !== "production";
+  const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(" ");
 
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://api.dicebear.com",
     "font-src 'self'",

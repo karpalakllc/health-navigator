@@ -7,11 +7,13 @@ use App\Filament\Resources\ForumTopics\Pages\ViewForumTopic;
 use App\Filament\Resources\ForumTopics\Schemas\ForumTopicInfolist;
 use App\Filament\Resources\ForumTopics\Tables\ForumTopicsTable;
 use App\Models\ForumTopic;
+use App\Support\ForumModerationScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ForumTopicResource extends Resource
 {
@@ -28,6 +30,11 @@ class ForumTopicResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return ForumModerationScope::restrictTopics(parent::getEloquentQuery());
     }
 
     public static function infolist(Schema $schema): Schema
