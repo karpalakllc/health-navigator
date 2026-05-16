@@ -5,22 +5,20 @@ namespace App\Support;
 use App\Http\Resources\Api\V1\DoctorListResource;
 use App\Http\Resources\Api\V1\FacilityListResource;
 use App\Http\Resources\Api\V1\ForumTopicSearchResource;
-use App\Http\Resources\Api\V1\PharmacyListResource;
 use App\Http\Resources\Api\V1\ProductListResource;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumTopic;
-use App\Models\Product;
 use App\Models\SiteSetting;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
-final class UnifiedSearch
+final class MeilisearchUnifiedSearch
 {
-    public const DEFAULT_PER_VERTICAL = 5;
+    public const DEFAULT_PER_VERTICAL = UnifiedSearch::DEFAULT_PER_VERTICAL;
 
-    public const MAX_PER_VERTICAL = 10;
+    public const MAX_PER_VERTICAL = UnifiedSearch::MAX_PER_VERTICAL;
 
     /**
      * @return array{
@@ -39,25 +37,25 @@ final class UnifiedSearch
         }
 
         $perPage = min(max(1, $perPage), self::MAX_PER_VERTICAL);
-
         $settings = SiteSetting::current();
+        $city = $city !== null && $city !== '' ? trim($city) : null;
 
         $doctors = $this->searchDoctors($q, $city, $perPage);
         $facilities = $this->searchFacilities($q, $city, $perPage);
         $pharmacies = $settings->public_pharmacies
-            ? $this->searchPharmacies($q, $city, $perPage)
-            : $this->emptyPaginator();
+            ? $this->emptyPaginator($perPage)
+            : $this->emptyPaginator($perPage);
         $products = $settings->public_products
-            ? $this->searchProducts($q, $perPage)
-            : $this->emptyPaginator();
+            ? $this->emptyPaginator($perPage)
+            : $this->emptyPaginator($perPage);
         $forumTopics = $settings->public_forum
             ? $this->searchForumTopics($q, $perPage)
-            : $this->emptyPaginator();
+            : $this->emptyPaginator($perPage);
 
         return [
             'doctors' => $this->section($doctors, DoctorListResource::class),
             'facilities' => $this->section($facilities, FacilityListResource::class),
-            'pharmacies' => $this->section($pharmacies, PharmacyListResource::class),
+            'pharmacies' => $this->section($pharmacies, FacilityListResource::class),
             'products' => $this->section($products, ProductListResource::class),
             'forum_topics' => $this->section($forumTopics, ForumTopicSearchResource::class),
             'grand_total' => $doctors->total()
@@ -71,109 +69,46 @@ final class UnifiedSearch
     /**
      * @return LengthAwarePaginator<Doctor>
      */
-    private function searchDoctors(?string $q, ?string $city, int $perPage): LengthAwarePaginator
+    private function searchDoctors(string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Doctor::query()
-            ->published()
-            ->with(['specialties' => fn ($relation) => $relation->published()])
-            ->orderBy('full_name');
+        return Doctor::search($q)
+            ->query(function ($builder) use ($city): void {
+                $builder->published()
+                    ->with(['specialties' => fn ($relation) => $relation->published()]);
 
-        if ($city !== null && $city !== '') {
-            $query->cityContains($city);
-        }
-
-        if ($q !== null && $q !== '') {
-            $query->searchName($q);
-        }
-
-        return $query->paginate($perPage);
+                if ($city !== null) {
+                    $builder->cityContains($city);
+                }
+            })
+            ->paginate($perPage);
     }
 
     /**
      * @return LengthAwarePaginator<Facility>
      */
-    private function searchFacilities(?string $q, ?string $city, int $perPage): LengthAwarePaginator
+    private function searchFacilities(string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Facility::query()
-            ->published()
-            ->clinical()
-            ->orderBy('name');
+        return Facility::search($q)
+            ->query(function ($builder) use ($city): void {
+                $builder->published()->clinical();
 
-        if ($city !== null && $city !== '') {
-            $query->cityContains($city);
-        }
-
-        if ($q !== null && $q !== '') {
-            $query->searchName($q);
-        }
-
-        return $query->paginate($perPage);
-    }
-
-    /**
-     * @return LengthAwarePaginator<Facility>
-     */
-    private function searchPharmacies(?string $q, ?string $city, int $perPage): LengthAwarePaginator
-    {
-        $query = Facility::query()
-            ->published()
-            ->pharmacy()
-            ->orderBy('name');
-
-        if ($city !== null && $city !== '') {
-            $query->cityContains($city);
-        }
-
-        if ($q !== null && $q !== '') {
-            $query->searchName($q);
-        }
-
-        return $query->paginate($perPage);
+                if ($city !== null) {
+                    $builder->cityContains($city);
+                }
+            })
+            ->paginate($perPage);
     }
 
     /**
      * @return LengthAwarePaginator<ForumTopic>
      */
-    private function searchForumTopics(?string $q, int $perPage): LengthAwarePaginator
+    private function searchForumTopics(string $q, int $perPage): LengthAwarePaginator
     {
-        $query = ForumTopic::query()
-            ->approved()
-            ->with(['user', 'category'])
-            ->orderByDesc('last_post_at')
-            ->orderByDesc('published_at');
-
-        if ($q !== null && $q !== '') {
-            $query->searchTitle($q);
-        }
-
-        return $query->paginate($perPage);
+        return ForumTopic::search($q)
+            ->query(fn ($builder) => $builder->approved()->with(['user', 'category']))
+            ->paginate($perPage);
     }
 
-    /**
-     * @return LengthAwarePaginator<Product>
-     */
-    private function searchProducts(?string $q, int $perPage): LengthAwarePaginator
-    {
-        $query = Product::query()
-            ->published()
-            ->orderBy('name');
-
-        if ($q !== null && $q !== '') {
-            $query->searchName($q);
-        }
-
-        return $query->paginate($perPage);
-    }
-
-    /**
-     * @return array{
-     *     doctors: array{data: array<int, mixed>, meta: array<string, int>},
-     *     facilities: array{data: array<int, mixed>, meta: array<string, int>},
-     *     pharmacies: array{data: array<int, mixed>, meta: array<string, int>},
-     *     products: array{data: array<int, mixed>, meta: array<string, int>},
-     *     grand_total: int
-     * }
-     */
     /**
      * @return LengthAwarePaginator<Model>
      */
@@ -182,6 +117,16 @@ final class UnifiedSearch
         return new Paginator([], 0, $perPage, 1);
     }
 
+    /**
+     * @return array{
+     *     doctors: array{data: array<int, mixed>, meta: array<string, int>},
+     *     facilities: array{data: array<int, mixed>, meta: array<string, int>},
+     *     pharmacies: array{data: array<int, mixed>, meta: array<string, int>},
+     *     products: array{data: array<int, mixed>, meta: array<string, int>},
+     *     forum_topics: array{data: array<int, mixed>, meta: array<string, int>},
+     *     grand_total: int
+     * }
+     */
     private function emptyResult(): array
     {
         $emptyMeta = [

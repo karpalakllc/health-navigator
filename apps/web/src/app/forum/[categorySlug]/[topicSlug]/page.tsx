@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ForumPostCard } from "@/components/forum/forum-post-card";
+import { ForumCommunityRules } from "@/components/forum/forum-community-rules";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ReplyForm } from "@/components/forum/reply-form";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
@@ -71,6 +72,7 @@ export default async function TopicDetailPage({
       </div>
 
       <ForumSafetyNotice compact />
+      <ForumCommunityRules compact />
 
       <ForumPostCard post={originalPost} isOriginalPost />
 

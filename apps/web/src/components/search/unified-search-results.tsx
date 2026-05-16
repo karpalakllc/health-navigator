@@ -4,6 +4,7 @@ import { DoctorCard } from "@/components/directory/doctor-card";
 import { FacilityCard } from "@/components/directory/facility-card";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import { ProductCard } from "@/components/catalog/product-card";
+import { ForumSearchTopicCard } from "@/components/forum/forum-search-topic-card";
 import { Button } from "@/components/ui/button";
 import { fetchUnifiedSearch } from "@/lib/api/search";
 import { directorySearchHref } from "@/lib/search";
@@ -23,7 +24,7 @@ export async function UnifiedSearchResults({ q, city }: UnifiedSearchResultsProp
     per_page: 5,
   });
 
-  const { doctors, facilities, pharmacies, products } = result;
+  const { doctors, facilities, pharmacies, products, forum_topics } = result;
 
   return (
     <div className="space-y-10">
@@ -80,6 +81,22 @@ export async function UnifiedSearchResults({ q, city }: UnifiedSearchResultsProp
               </li>
             ))}
           </DirectoryCardGrid>
+        )}
+      </SearchSection>
+
+      <SearchSection
+        title={t("search.sectionForum")}
+        total={forum_topics.meta.total}
+        viewAllHref={`/search?q=${encodeURIComponent(q)}`}
+      >
+        {forum_topics.data.length === 0 ? null : (
+          <ul className="grid gap-3">
+            {forum_topics.data.map((topic) => (
+              <li key={`${topic.category.slug}-${topic.slug}`}>
+                <ForumSearchTopicCard topic={topic} />
+              </li>
+            ))}
+          </ul>
         )}
       </SearchSection>
 

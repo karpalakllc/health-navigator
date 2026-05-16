@@ -1,6 +1,6 @@
 # Deploy runbook (R1 — PaaS-first)
 
-Simple **deploy-first** topology for closed beta. Not Kubernetes.
+Simple **deploy-first** topology for public launch. Not Kubernetes.
 
 ## Topology
 
@@ -9,13 +9,15 @@ Simple **deploy-first** topology for closed beta. Not Kubernetes.
 | **Web** (`apps/web`) | Vercel, Netlify, or similar | Set `NEXT_PUBLIC_API_URL` to public API URL |
 | **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.3+, `public/` as web root |
 | **PostgreSQL** | Managed DB from API host or Neon/DO | Same region as API when possible |
+| **Redis** | Managed Redis or same host | Cache, queues, rate limits, scheduler locks |
+| **Meilisearch** | Meilisearch Cloud or self-hosted | Unified search (doctors, facilities, forum topics) |
 | **Admin** | Same host as API | `/admin` (Filament) |
 
 ## Environments
 
 | | Staging | Production |
 |--|---------|------------|
-| Purpose | QA, beta testers | Closed beta / pre-launch |
+| Purpose | QA before release | Public launch |
 | `APP_ENV` | `staging` | `production` |
 | `APP_DEBUG` | `false` | `false` |
 | DSNs | Separate Sentry projects or environments | Separate from staging |
@@ -24,21 +26,62 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 
 ## Deploy order (API)
 
-1. Provision PostgreSQL; create database and user.
+1. Provision PostgreSQL, Redis, and Meilisearch; create database and user.
 2. Set environment variables on the API host (never commit secrets).
 3. Deploy code; `composer install --no-dev --optimize-autoloader`.
-4. `php artisan migrate --force` (no `db:seed` in production unless importing real content).
+4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Subsequent deploys: `php artisan migrate --force` only.
 5. `php artisan config:cache` and `php artisan route:cache` when stable.
-6. Verify `GET /api/v1/health` and Filament login.
+6. Start a **queue worker** (see below).
+7. Add **scheduler** cron (see below).
+8. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
+9. Verify `GET /api/v1/health` and Filament login.
 
-**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local` and `testing`**. Do not rely on them in staging/prod.
+**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local` and `testing`**. Do not rely on them in staging/prod except via intentional imports.
+
+### Queue worker
+
+Set `QUEUE_CONNECTION=redis` (recommended) or `database` if Redis is unavailable.
+
+Example Supervisor program (Forge generates similar):
+
+```ini
+[program:zdravje-worker]
+command=php /path/to/apps/api/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+user=forge
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/path/to/logs/worker.log
+```
+
+Restart workers after each deploy.
+
+### Scheduler
+
+Cron (once per minute):
+
+```cron
+* * * * * cd /path/to/apps/api && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Scheduled tasks include **triage session purge** (`triage:purge-old-sessions`, daily 03:15, 90-day retention). Requires Redis or another cache store that supports atomic locks when using `onOneServer()`.
+
+### Local Redis
+
+```bash
+docker compose -f infra/docker-compose.redis.yml up -d
+```
+
+Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_HOST=127.0.0.1`.
 
 ## Deploy order (Web)
 
-1. Set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_CLOSED_BETA=true` for closed beta.
-2. Set Sentry: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT`.
-3. Build: `npm ci && npm run build`.
-4. Verify home, `/privacy`, `/login`, `/guidance`.
+1. Set `NEXT_PUBLIC_API_URL` to the public API URL.
+2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`.
+3. Set Sentry: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT`.
+4. Build: `npm ci && npm run build`.
+5. Verify home, `/register`, `/doctors`, `/forum`, `/privacy`.
 
 ## CORS
 
@@ -52,21 +95,22 @@ Local defaults remain in `config/cors.php` (`localhost:3000`).
 
 ## TLS and secrets
 
-- TLS terminated at the PaaS edge (required for beta).
+- TLS terminated at the PaaS edge (required for production).
 - Rotate `APP_KEY` per environment; never reuse production key in staging.
-- Use strong unique passwords for staff and beta members (Filament user create).
+- Use strong unique passwords for staff accounts (Filament).
 
 ## Backups
 
 - Enable automated daily backups on managed PostgreSQL.
-- Document restore drill before inviting testers.
+- Document restore drill before launch traffic.
 
 ## Health checks
 
-- Monitor `GET {API_URL}/api/v1/health` (expect `{"data":{"status":"ok"}}`).
+- Monitor `GET {API_URL}/api/v1/health` — expect HTTP 200 and `data.status` of `ok` with `checks.database` (and `checks.redis` when Redis is configured).
+- HTTP 503 with `data.status` `degraded` indicates database or Redis failure.
 - Monitor web `/` availability.
 - Sentry alerts on new issues (staging vs production separated).
 
-## Closed beta
+## Site settings
 
-See [docs/beta-closed.md](../docs/beta-closed.md). No public registration; members provisioned in Filament.
+Module toggles (guidance, products, pharmacies) and `registrations_enabled` are managed in Filament **Site settings** or via `GET /api/v1/settings/public`. Defaults favor launch: core modules on, deferred modules off.

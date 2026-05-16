@@ -12,6 +12,8 @@ class HealthEndpointTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertExactJson(['data' => ['status' => 'ok']]);
+            ->assertJsonPath('data.status', 'ok')
+            ->assertJsonPath('data.checks.app', 'ok')
+            ->assertJsonPath('data.checks.database', 'ok');
     }
 }

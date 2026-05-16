@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -145,5 +146,33 @@ class Doctor extends Model
     public function scopeFeatured(Builder $query): Builder
     {
         return $query->where('is_featured', true);
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->is_published && ! $this->trashed();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing(['specialties' => fn ($relation) => $relation->published()]);
+
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'full_name' => $this->full_name,
+            'title' => $this->title,
+            'subspecialty' => $this->subspecialty,
+            'city' => $this->city,
+            'specialty_names' => $this->specialties->pluck('name')->all(),
+        ];
+    }
+
+    public function searchableAs(): string
+    {
+        return 'doctors';
     }
 }

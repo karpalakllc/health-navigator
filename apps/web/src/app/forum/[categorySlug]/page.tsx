@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ForumCommunityRules } from "@/components/forum/forum-community-rules";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ForumTopicCard } from "@/components/forum/forum-topic-card";
 import { TopicForm } from "@/components/forum/topic-form";
@@ -63,6 +64,7 @@ export default async function CategoryTopicsPage({
       />
       <PageHeader title={category.name} description={category.description ?? undefined} />
       <ForumSafetyNotice compact />
+      <ForumCommunityRules compact />
 
       {token ? (
         <TopicForm categorySlug={categorySlug} />

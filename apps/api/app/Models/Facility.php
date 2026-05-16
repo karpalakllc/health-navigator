@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -147,5 +148,32 @@ class Facility extends Model
     public function scopeSearchName(Builder $query, string $term): Builder
     {
         return ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $term);
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->is_published
+            && ! $this->trashed()
+            && in_array($this->type?->value, FacilityType::clinicalValues(), true);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'name' => $this->name,
+            'type' => $this->type?->value,
+            'city' => $this->city,
+            'description' => $this->description,
+        ];
+    }
+
+    public function searchableAs(): string
+    {
+        return 'facilities';
     }
 }

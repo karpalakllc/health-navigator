@@ -1,0 +1,12 @@
+# Optional local Redis for cache, queues, and rate limits.
+# Usage: docker compose -f infra/docker-compose.redis.yml up -d
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - zdravje_redis_data:/data
+
+volumes:
+  zdravje_redis_data:

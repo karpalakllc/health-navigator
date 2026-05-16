@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\SearchRequest;
 use App\Http\Responses\ApiResponse;
 use App\Services\AnalyticsService;
 use App\Support\UnifiedSearch;
+use App\Support\UnifiedSearchCoordinator;
 use Illuminate\Http\JsonResponse;
 
 class SearchController extends Controller
@@ -15,7 +16,7 @@ class SearchController extends Controller
         private readonly AnalyticsService $analytics,
     ) {}
 
-    public function __invoke(SearchRequest $request, UnifiedSearch $search): JsonResponse
+    public function __invoke(SearchRequest $request, UnifiedSearchCoordinator $search): JsonResponse
     {
         $validated = $request->validated();
 

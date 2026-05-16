@@ -33,5 +33,6 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="SANCTUM_STATEFUL_DOMAINS" value=""/>
+        <env name="SCOUT_DRIVER" value="null"/>
     </php>
 </phpunit>

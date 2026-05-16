@@ -28,11 +28,25 @@ export type DepartmentListItem = {
   name: string;
 };
 
+export type ForumTopicSearchItem = {
+  slug: string;
+  title: string;
+  author_name: string;
+  replies_count: number;
+  last_post_at: string | null;
+  published_at: string | null;
+  category: {
+    slug: string;
+    name: string;
+  };
+};
+
 export type UnifiedSearchResult = {
   doctors: PaginatedEnvelope<DoctorListItem>;
   facilities: PaginatedEnvelope<FacilityListItem>;
   pharmacies: PaginatedEnvelope<PharmacyListItem>;
   products: PaginatedEnvelope<ProductListItem>;
+  forum_topics: PaginatedEnvelope<ForumTopicSearchItem>;
   grand_total: number;
 };
 

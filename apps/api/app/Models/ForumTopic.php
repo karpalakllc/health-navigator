@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class ForumTopic extends Model
 {
     /** @use HasFactory<ForumTopicFactory> */
-    use HasFactory, ModeratesForumContent;
+    use HasFactory, ModeratesForumContent, Searchable;
 
     protected $fillable = [
         'forum_category_id',
@@ -103,5 +104,32 @@ class ForumTopic extends Model
             'replies_count' => $this->replies_count + 1,
             'last_post_at' => now(),
         ]);
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === ForumContentStatus::Approved;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing('category');
+
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'title' => $this->title,
+            'body' => $this->body,
+            'category_slug' => $this->category->slug,
+            'category_name' => $this->category->name,
+        ];
+    }
+
+    public function searchableAs(): string
+    {
+        return 'forum_topics';
     }
 }

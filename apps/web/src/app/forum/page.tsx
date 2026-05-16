@@ -1,4 +1,5 @@
 import { ForumCategoryCard } from "@/components/forum/forum-category-card";
+import { ForumCommunityRules } from "@/components/forum/forum-community-rules";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { EmptyState } from "@/components/directory/empty-state";
 import { PageHeader } from "@/components/directory/page-header";
@@ -20,6 +21,7 @@ export default async function ForumPage() {
     <PageShell>
       <PageHeader title={t("forum.title")} description={t("forum.description")} />
       <ForumSafetyNotice />
+      <ForumCommunityRules />
 
       {categories.length === 0 ? (
         <EmptyState title={t("forum.noCategories")} />

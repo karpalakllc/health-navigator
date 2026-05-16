@@ -1,0 +1,16 @@
+# Optional local Meilisearch for Scout-backed unified search.
+# Usage: docker compose -f infra/docker-compose.meilisearch.yml up -d
+# Then in apps/api/.env: SCOUT_DRIVER=meilisearch, MEILISEARCH_HOST=http://127.0.0.1:7700
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.16
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - zdravje_meilisearch_data:/meili_data
+
+volumes:
+  zdravje_meilisearch_data:
