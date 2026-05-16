@@ -17,6 +17,7 @@ export type ForumTopicListItem = {
   replies_count: number;
   last_post_at: string | null;
   is_pinned: boolean;
+  is_locked: boolean;
   published_at: string | null;
 };
 

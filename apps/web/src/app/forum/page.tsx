@@ -24,13 +24,16 @@ export default async function ForumPage() {
       {categories.length === 0 ? (
         <EmptyState title={t("forum.noCategories")} />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {categories.map((category) => (
-            <li key={category.slug}>
-              <ForumCategoryCard category={category} />
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("forum.browseCategories")}</p>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {categories.map((category) => (
+              <li key={category.slug}>
+                <ForumCategoryCard category={category} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </PageShell>
   );

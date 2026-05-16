@@ -11,12 +11,13 @@ import {
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { EmptyState } from "@/components/directory/empty-state";
 import { PageHeader } from "@/components/directory/page-header";
+import { FilterStatsRow } from "@/components/directory/filter-stats-row";
 import { Pagination } from "@/components/directory/pagination";
 import { LoginPrompt } from "@/components/ui/login-prompt";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 
 type CategoryTopicsPageProps = {
   params: Promise<{ categorySlug: string }>;
@@ -78,6 +79,11 @@ export default async function CategoryTopicsPage({
           />
         </FilterField>
       </FilterForm>
+
+      <FilterStatsRow
+        label={tFormat("forum.topicsCount", { count: String(topics.meta.total) })}
+        clearHref={query.q ? `/forum/${categorySlug}` : undefined}
+      />
 
       {topics.data.length === 0 ? (
         <EmptyState

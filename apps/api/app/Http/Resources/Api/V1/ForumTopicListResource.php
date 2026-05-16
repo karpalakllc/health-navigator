@@ -23,6 +23,7 @@ class ForumTopicListResource extends JsonResource
             'replies_count' => $this->replies_count,
             'last_post_at' => $this->last_post_at?->toIso8601String(),
             'is_pinned' => $this->is_pinned,
+            'is_locked' => $this->is_locked,
             'published_at' => $this->published_at?->toIso8601String(),
         ];
     }

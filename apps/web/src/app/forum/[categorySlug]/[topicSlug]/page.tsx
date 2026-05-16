@@ -1,16 +1,17 @@
 import { notFound } from "next/navigation";
+import { ForumPostCard } from "@/components/forum/forum-post-card";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ReplyForm } from "@/components/forum/reply-form";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { PageHeader } from "@/components/directory/page-header";
 import { Pagination } from "@/components/directory/pagination";
+import { Badge } from "@/components/ui/badge";
 import { LoginPrompt } from "@/components/ui/login-prompt";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
-import { Card } from "@/components/ui/card";
-import { StackedList } from "@/components/ui/stacked-list";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumTopicPage } from "@/lib/api/forum";
+import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 
 type TopicDetailPageProps = {
@@ -41,8 +42,15 @@ export default async function TopicDetailPage({
 
   const { topic, posts, meta } = data;
 
+  const originalPost: (typeof posts)[number] = {
+    id: 0,
+    body: topic.body,
+    author_name: topic.author_name,
+    published_at: topic.published_at,
+  };
+
   return (
-    <PageShell className="gap-6">
+    <PageShell className="gap-6 pb-16">
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },
@@ -52,29 +60,35 @@ export default async function TopicDetailPage({
         ]}
       />
 
-      <PageHeader title={topic.title} />
+      <PageHeader
+        title={topic.title}
+        description={formatForumReplyCount(topic.replies_count)}
+      />
+      <div className="flex flex-wrap gap-2">
+        {topic.is_pinned ? <Badge variant="primary">{t("forum.pinned")}</Badge> : null}
+        {topic.is_locked ? <Badge variant="secondary">{t("forum.locked")}</Badge> : null}
+      </div>
+
       <ForumSafetyNotice compact />
 
-      <Card className="space-y-3 p-5">
-        <p className="text-sm text-muted-foreground">
-          {topic.author_name}
-          {topic.is_locked ? ` ${t("forum.lockedSuffix")}` : ""}
-        </p>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{topic.body}</p>
-      </Card>
+      <PageSection title={t("forum.originalPost")}>
+        <ForumPostCard
+          post={originalPost}
+          isOriginalPost
+        />
+      </PageSection>
 
       <PageSection title={t("forum.replies")}>
         {posts.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("forum.noReplies")}</p>
         ) : (
-          <StackedList>
+          <ul className="grid gap-3">
             {posts.map((post) => (
-              <li key={post.id} className="space-y-1 p-4">
-                <p className="text-sm font-medium text-foreground">{post.author_name}</p>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{post.body}</p>
+              <li key={post.id}>
+                <ForumPostCard post={post} />
               </li>
             ))}
-          </StackedList>
+          </ul>
         )}
         <Pagination
           basePath={`/forum/${categorySlug}/${topicSlug}`}
@@ -92,6 +106,10 @@ export default async function TopicDetailPage({
       ) : (
         <LoginPrompt suffix={t("forum.loginToReply")} />
       )}
+
+      <p className="text-xs text-muted-foreground">
+        {t("forum.lastActivity")}: {formatForumLastActivity(topic.published_at)}
+      </p>
     </PageShell>
   );
 }

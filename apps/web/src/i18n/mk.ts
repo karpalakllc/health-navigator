@@ -431,6 +431,15 @@ export const mk = {
       "Објавите се модерираат и се споделуваат само за општа дискусија. Не ги заменуваат советите од лиценциран здравствен работник.",
     safetyEmergency:
       "Ако мислите дека имате медицинска итност, повикайте 194 или 112 веднаш.",
+    lastActivity: "Последна активност",
+    noActivityYet: "Нема активност",
+    activityJustNow: "што само",
+    activityMinutesAgo: "пред {count} мин.",
+    activityHoursAgo: "пред {count} ч.",
+    activityDaysAgo: "пред {count} дена",
+    topicStats: "{replies} · {activity}",
+    originalPost: "Поставување на темата",
+    browseCategories: "Изберете категорија за да започнете дискусија.",
   },
   guidance: {
     title: "Насоки за симптоми",
