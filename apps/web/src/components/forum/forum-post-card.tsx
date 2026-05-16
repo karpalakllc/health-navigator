@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
+import { ForumAuthorCard } from "@/components/forum/forum-author-card";
 import type { ForumPost } from "@/lib/api/forum";
-import { authorInitials, formatForumDateTime } from "@/lib/format";
+import { formatForumDateTime } from "@/lib/format";
+import { t } from "@/i18n/t";
 
 type ForumPostCardProps = {
   post: ForumPost;
@@ -12,29 +14,31 @@ export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardPro
     <Card
       className={
         isOriginalPost
-          ? "border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5"
-          : "p-4 sm:p-5"
+          ? "overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card"
+          : "overflow-hidden"
       }
     >
-      <div className="flex gap-3 sm:gap-4">
-        <span
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground"
-          aria-hidden
-        >
-          {authorInitials(post.author_name)}
-        </span>
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-sm font-semibold text-foreground">{post.author_name}</p>
+      <article className="flex flex-col lg:flex-row">
+        <aside className="border-b border-border/80 bg-muted/20 lg:w-52 lg:shrink-0 lg:border-b-0 lg:border-r lg:bg-muted/15 xl:w-56">
+          <ForumAuthorCard author={post.author} variant="sidebar" />
+        </aside>
+
+        <div className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">
+          <header className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {isOriginalPost ? t("forum.originalPost") : t("forum.reply")}
+            </p>
             {post.published_at ? (
               <time dateTime={post.published_at} className="text-xs text-muted-foreground">
                 {formatForumDateTime(post.published_at)}
               </time>
             ) : null}
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{post.body}</p>
+          </header>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground sm:text-base">
+            {post.body}
+          </p>
         </div>
-      </div>
+      </article>
     </Card>
   );
 }

@@ -67,6 +67,16 @@ class ForumTest extends TestCase
         $this->getJson('/api/v1/forum/categories/general/topics/help-topic')
             ->assertOk()
             ->assertJsonPath('data.topic.slug', 'help-topic')
+            ->assertJsonStructure([
+                'data' => [
+                    'topic' => [
+                        'author' => ['name', 'member_since', 'topics_count', 'posts_count'],
+                    ],
+                    'posts' => [
+                        ['author' => ['name', 'topics_count', 'posts_count']],
+                    ],
+                ],
+            ])
             ->assertJsonCount(1, 'data.posts');
     }
 

@@ -440,6 +440,11 @@ export const mk = {
     topicStats: "{replies} · {activity}",
     originalPost: "Поставување на темата",
     browseCategories: "Изберете категорија за да започнете дискусија.",
+    authorMember: "Член",
+    authorTeam: "Тим",
+    authorTopics: "Теми",
+    authorPosts: "Пораки",
+    authorMemberSince: "Член од",
   },
   guidance: {
     title: "Насоки за симптоми",

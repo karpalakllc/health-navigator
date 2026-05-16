@@ -18,6 +18,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Support\ForumAuthorCounts;
 use App\Support\Slug;
 use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
@@ -72,11 +73,14 @@ class ForumController extends Controller
         $topicModel = $this->approvedTopic($categoryModel, $topic);
         $validated = $request->validated();
 
-        $topicModel->load(['user', 'category']);
+        $topicModel->load([
+            'user' => ForumAuthorCounts::eagerLoad(),
+            'category',
+        ]);
 
         $postsQuery = $topicModel->posts()
             ->approved()
-            ->with('user')
+            ->with(['user' => ForumAuthorCounts::eagerLoad()])
             ->orderBy('published_at');
 
         $perPage = $validated['per_page'] ?? 20;

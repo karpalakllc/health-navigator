@@ -3,6 +3,14 @@ import { apiGetPaginatedServer } from "@/lib/api/server";
 import { apiUrl } from "@/lib/config";
 import type { PaginatedEnvelope } from "@/lib/api/types";
 
+export type ForumAuthor = {
+  name: string;
+  member_since: string | null;
+  topics_count: number;
+  posts_count: number;
+  is_team_member: boolean;
+};
+
 export type ForumCategory = {
   slug: string;
   name: string;
@@ -26,6 +34,7 @@ export type ForumTopicDetail = {
   title: string;
   body: string;
   author_name: string;
+  author: ForumAuthor;
   category: { slug: string; name: string };
   replies_count: number;
   is_locked: boolean;
@@ -37,6 +46,7 @@ export type ForumPost = {
   id: number;
   body: string;
   author_name: string;
+  author: ForumAuthor;
   published_at: string | null;
 };
 

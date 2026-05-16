@@ -10,7 +10,7 @@ import { LoginPrompt } from "@/components/ui/login-prompt";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
-import { fetchForumTopicPage } from "@/lib/api/forum";
+import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 
@@ -42,10 +42,11 @@ export default async function TopicDetailPage({
 
   const { topic, posts, meta } = data;
 
-  const originalPost: (typeof posts)[number] = {
+  const originalPost: ForumPost = {
     id: 0,
     body: topic.body,
     author_name: topic.author_name,
+    author: topic.author,
     published_at: topic.published_at,
   };
 
@@ -71,12 +72,7 @@ export default async function TopicDetailPage({
 
       <ForumSafetyNotice compact />
 
-      <PageSection title={t("forum.originalPost")}>
-        <ForumPostCard
-          post={originalPost}
-          isOriginalPost
-        />
-      </PageSection>
+      <ForumPostCard post={originalPost} isOriginalPost />
 
       <PageSection title={t("forum.replies")}>
         {posts.length === 0 ? (

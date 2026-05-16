@@ -100,6 +100,22 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * @return HasMany<ForumTopic, $this>
+     */
+    public function forumTopics(): HasMany
+    {
+        return $this->hasMany(ForumTopic::class);
+    }
+
+    /**
+     * @return HasMany<ForumPost, $this>
+     */
+    public function forumPosts(): HasMany
+    {
+        return $this->hasMany(ForumPost::class);
+    }
+
+    /**
      * @return BelongsToMany<ForumCategory, $this>
      */
     public function moderatedForumCategories(): BelongsToMany
