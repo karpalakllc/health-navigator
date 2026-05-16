@@ -12,6 +12,7 @@ use App\Http\Resources\Api\V1\ForumCategoryResource;
 use App\Http\Resources\Api\V1\ForumPostResource;
 use App\Http\Resources\Api\V1\ForumTopicDetailResource;
 use App\Http\Resources\Api\V1\ForumTopicListResource;
+use App\Http\Resources\Api\V1\ForumTopicSearchResource;
 use App\Http\Resources\Api\V1\MyForumPostResource;
 use App\Http\Resources\Api\V1\MyForumTopicResource;
 use App\Http\Responses\ApiResponse;
@@ -22,10 +23,34 @@ use App\Support\ForumAuthorCounts;
 use App\Support\Slug;
 use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class ForumController extends Controller
 {
+    public function searchTopics(ListForumTopicsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $perPage = $validated['per_page'] ?? 15;
+        $q = $validated['q'] ?? null;
+
+        if ($q === null || $q === '') {
+            $empty = new LengthAwarePaginator([], 0, $perPage, 1);
+
+            return ApiResponse::paginated(
+                $empty,
+                ForumTopicSearchResource::collection($empty),
+            );
+        }
+
+        $paginator = $this->forumTopicSearchPaginator($q, $perPage);
+
+        return ApiResponse::paginated(
+            $paginator,
+            ForumTopicSearchResource::collection($paginator),
+        );
+    }
+
     public function indexCategories(): JsonResponse
     {
         $categories = ForumCategory::query()
@@ -193,6 +218,26 @@ class ForumController extends Controller
             $paginator,
             MyForumPostResource::collection($paginator),
         );
+    }
+
+    /**
+     * @return LengthAwarePaginator<ForumTopic>
+     */
+    private function forumTopicSearchPaginator(string $q, int $perPage): LengthAwarePaginator
+    {
+        if (config('scout.driver') === 'meilisearch') {
+            return ForumTopic::search($q)
+                ->query(fn ($builder) => $builder->approved()->with(['user', 'category']))
+                ->paginate($perPage);
+        }
+
+        return ForumTopic::query()
+            ->approved()
+            ->with(['user', 'category'])
+            ->searchTitle($q)
+            ->orderByDesc('last_post_at')
+            ->orderByDesc('published_at')
+            ->paginate($perPage);
     }
 
     private function publishedCategory(string $slug): ForumCategory

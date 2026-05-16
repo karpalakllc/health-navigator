@@ -55,10 +55,23 @@ export type ForumTopicPage = {
   meta: PaginatedEnvelope<ForumPost>["meta"];
 };
 
+export type ForumTopicSearchItem = {
+  slug: string;
+  title: string;
+  author_name: string;
+  replies_count: number;
+  last_post_at: string | null;
+  published_at: string | null;
+  category: { slug: string; name: string };
+};
+
 export type MyForumTopic = {
   slug: string;
   title: string;
   status: string;
+  replies_count: number;
+  last_post_at: string | null;
+  published_at: string | null;
   category: { slug: string; name: string };
   created_at: string | null;
 };
@@ -73,6 +86,17 @@ export type MyForumPost = {
 
 export async function fetchForumCategories(): Promise<ForumCategory[]> {
   return apiGet<ForumCategory[]>("/forum/categories");
+}
+
+export async function fetchForumTopicSearch(params: { q?: string; page?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.page) search.set("page", String(params.page));
+  const query = search.toString();
+
+  return apiGetPaginated<ForumTopicSearchItem>(
+    `/forum/topics${query ? `?${query}` : ""}`,
+  );
 }
 
 export async function fetchForumTopics(

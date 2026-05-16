@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserKind;
 use App\Enums\UserRole;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -121,5 +122,10 @@ class User extends Authenticatable implements FilamentUser
     public function moderatedForumCategories(): BelongsToMany
     {
         return $this->belongsToMany(ForumCategory::class, 'forum_category_moderator');
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }

@@ -1,4 +1,5 @@
-import { apiGet, apiGetPaginated } from "@/lib/api/client";
+import { apiGetPaginated } from "@/lib/api/client";
+import { apiGetServer } from "@/lib/api/server";
 import type { FacilityDetail, FacilityListItem } from "@/lib/api/types";
 
 export type FacilityListParams = {
@@ -31,5 +32,5 @@ export async function fetchFacilities(params: FacilityListParams = {}) {
 }
 
 export async function fetchFacility(slug: string): Promise<FacilityDetail> {
-  return apiGet<FacilityDetail>(`/facilities/${slug}`);
+  return apiGetServer<FacilityDetail>(`/facilities/${slug}`);
 }

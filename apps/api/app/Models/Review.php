@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Support\UgcMailer;
 use Database\Factories\ReviewFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -80,6 +81,8 @@ class Review extends Model
             'moderated_at' => now(),
             'rejection_note' => null,
         ]);
+
+        UgcMailer::notifyApproved($this->fresh());
     }
 
     public function reject(User $moderator, ?string $note = null): void

@@ -62,7 +62,15 @@ export function LoginForm() {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.password")}</span>
+          <span className="flex items-center justify-between gap-2 font-medium text-foreground">
+            <span>{t("auth.password")}</span>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {t("auth.forgotPassword")}
+            </Link>
+          </span>
           <input
             type="password"
             name="password"

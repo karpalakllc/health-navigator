@@ -1,4 +1,5 @@
-import { apiGet, apiGetPaginated } from "@/lib/api/client";
+import { apiGetPaginated } from "@/lib/api/client";
+import { apiGetServer } from "@/lib/api/server";
 import type { DoctorDetail, DoctorListItem } from "@/lib/api/types";
 
 export type DoctorListParams = {
@@ -31,5 +32,5 @@ export async function fetchDoctors(params: DoctorListParams = {}) {
 }
 
 export async function fetchDoctor(slug: string): Promise<DoctorDetail> {
-  return apiGet<DoctorDetail>(`/doctors/${slug}`);
+  return apiGetServer<DoctorDetail>(`/doctors/${slug}`);
 }

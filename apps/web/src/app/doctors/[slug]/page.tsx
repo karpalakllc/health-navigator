@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { DoctorProfileHero } from "@/components/directory/doctor-profile-hero";
@@ -12,11 +13,32 @@ import { PageShell } from "@/components/ui/page-shell";
 import { fetchDoctor } from "@/lib/api/doctors";
 import { fetchDoctorReviews } from "@/lib/api/reviews";
 import { facilityPublicPath, facilityTypeLabel } from "@/lib/facility-labels";
+import { pageMetadata } from "@/lib/metadata";
+import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 
 type DoctorDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: DoctorDetailPageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  try {
+    const doctor = await fetchDoctor(slug);
+    const specialty =
+      doctor.specialties.find((s) => s.is_primary)?.name ?? doctor.specialties[0]?.name;
+    const description = [specialty, doctor.city, doctor.bio?.slice(0, 120)]
+      .filter(Boolean)
+      .join(" · ");
+
+    return pageMetadata(doctor.full_name, description || t("doctors.description"));
+  } catch {
+    return pageMetadata(t("doctors.title"));
+  }
+}
 
 export default async function DoctorDetailPage({
   params,
@@ -31,8 +53,12 @@ export default async function DoctorDetailPage({
       fetchDoctor(slug),
       fetchDoctorReviews(slug),
     ]);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
   }
 
   const facilityItems = doctor.facilities.map((facility) => ({

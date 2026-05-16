@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Enums\ForumContentStatus;
 use App\Models\User;
+use App\Support\UgcMailer;
 
 trait ModeratesForumContent
 {
@@ -16,6 +17,8 @@ trait ModeratesForumContent
             'moderated_at' => now(),
             'rejection_note' => null,
         ]);
+
+        UgcMailer::notifyApproved($this->fresh());
     }
 
     public function reject(User $moderator, ?string $note = null): void

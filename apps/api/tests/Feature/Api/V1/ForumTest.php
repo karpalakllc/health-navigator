@@ -28,6 +28,42 @@ class ForumTest extends TestCase
             ->assertJsonPath('data.0.slug', 'general');
     }
 
+    public function test_global_topic_search_returns_matching_approved_topics(): void
+    {
+        $category = ForumCategory::factory()->create(['slug' => 'nutrition', 'name' => 'Исхрана']);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'hydration-summer',
+            'title' => 'Summer hydration tips',
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'other-topic',
+            'title' => 'Other discussion',
+        ]);
+        ForumTopic::factory()->pending()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'pending-topic',
+            'title' => 'Pending hydration topic',
+        ]);
+
+        $this->getJson('/api/v1/forum/topics?q=hydration')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'hydration-summer')
+            ->assertJsonPath('data.0.category.slug', 'nutrition');
+    }
+
+    public function test_global_topic_search_requires_minimum_query_length(): void
+    {
+        ForumCategory::factory()->create();
+        ForumTopic::factory()->create(['title' => 'Visible topic']);
+
+        $this->getJson('/api/v1/forum/topics?q=a')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_lists_approved_topics_in_category(): void
     {
         $category = ForumCategory::factory()->create(['slug' => 'general']);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import type { ForumTopicSearchItem } from "@/lib/api/types";
+import type { ForumTopicSearchItem } from "@/lib/api/forum";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 

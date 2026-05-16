@@ -10,6 +10,7 @@ import { StackedList } from "@/components/ui/stacked-list";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchMyForumPosts, fetchMyForumTopics } from "@/lib/api/forum";
 import { ApiRequestError } from "@/lib/api/server";
+import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 
 type AccountForumPageProps = {
@@ -72,7 +73,18 @@ export default async function AccountForumPage({
                     </p>
                     <ModerationStatusBadge status={topic.status} />
                   </div>
-                  <p className="text-sm text-muted-foreground">{topic.category.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {topic.category.name}
+                    <span aria-hidden> · </span>
+                    {formatForumReplyCount(topic.replies_count)}
+                    {topic.last_post_at || topic.published_at ? (
+                      <>
+                        <span aria-hidden> · </span>
+                        {t("forum.lastActivity")}:{" "}
+                        {formatForumLastActivity(topic.last_post_at ?? topic.published_at)}
+                      </>
+                    ) : null}
+                  </p>
                 </li>
               ))
             )}
@@ -116,6 +128,14 @@ export default async function AccountForumPage({
               ))
             )}
           </StackedList>
+          <Pagination
+            basePath="/account/forum"
+            currentPage={posts.meta.current_page}
+            lastPage={posts.meta.last_page}
+            total={posts.meta.total}
+            searchParams={{}}
+            pageParam="posts_page"
+          />
         </PageSection>
       </AccountLayout>
     </PageShell>

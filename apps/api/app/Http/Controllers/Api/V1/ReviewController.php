@@ -124,7 +124,7 @@ class ReviewController extends Controller
                 ->exists()
         ) {
             throw ValidationException::withMessages([
-                'review' => ['You have already submitted a review for this profile.'],
+                'review' => ['Веќе сте испратиле рецензија за овој профил.'],
             ]);
         }
 
@@ -139,7 +139,7 @@ class ReviewController extends Controller
             ]);
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages([
-                'review' => ['You have already submitted a review for this profile.'],
+                'review' => ['Веќе сте испратиле рецензија за овој профил.'],
             ]);
         }
 

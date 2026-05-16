@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { FacilityDoctorList } from "@/components/directory/facility-doctor-list";
@@ -12,11 +13,30 @@ import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchFacility } from "@/lib/api/facilities";
 import { fetchFacilityReviews } from "@/lib/api/reviews";
+import { pageMetadata } from "@/lib/metadata";
+import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: FacilityDetailPageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  try {
+    const facility = await fetchFacility(slug);
+    const description = [facility.city, facility.description?.slice(0, 140)]
+      .filter(Boolean)
+      .join(" · ");
+
+    return pageMetadata(facility.name, description || t("facilities.description"));
+  } catch {
+    return pageMetadata(t("facilities.title"));
+  }
+}
 
 export default async function FacilityDetailPage({
   params,
@@ -31,8 +51,12 @@ export default async function FacilityDetailPage({
       fetchFacility(slug),
       fetchFacilityReviews(slug),
     ]);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
   }
 
   const officeHourEntries = Object.entries(facility.office_hours ?? {});

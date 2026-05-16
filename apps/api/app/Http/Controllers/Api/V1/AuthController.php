@@ -11,13 +11,16 @@ use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
+use App\Mail\WelcomeMail;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Services\AnalyticsService;
+use App\Support\FrontendUrl;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -68,6 +71,11 @@ class AuthController extends Controller
         $token = $user->createToken($tokenName);
 
         $this->analytics->record('user.registered', $user);
+
+        Mail::to($user)->queue(new WelcomeMail(
+            recipientName: $user->name,
+            loginUrl: FrontendUrl::to('/login'),
+        ));
 
         return ApiResponse::success([
             'user' => (new UserResource($user))->resolve($request),

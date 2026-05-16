@@ -41,8 +41,8 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
 
       if (!response.ok) {
         const message =
-          payload.message ??
           payload.errors?.review?.[0] ??
+          payload.message ??
           t("reviews.submitError");
         setError(message);
         return;
@@ -61,9 +61,10 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4"
+      className="grid gap-3 rounded-xl border border-border bg-card p-4"
     >
-      <p className="text-sm font-medium text-zinc-900">{t("reviews.submitTitle")}</p>
+      <p className="text-sm font-semibold text-foreground">{t("reviews.submitTitle")}</p>
+      <p className="text-xs text-muted-foreground">{t("reviews.pending")}</p>
       <StarRatingInput value={rating} onChange={setRating} disabled={pending} />
       <label className="grid gap-1 text-sm">
         <span>{t("reviews.body")}</span>
@@ -74,14 +75,16 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
           className={filterInputClassName}
         />
       </label>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? (
-        <p className="text-sm text-green-700">{t("reviews.submitSuccess")}</p>
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          {t("reviews.submitSuccess")}
+        </p>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        className="min-h-[44px] rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
       >
         {pending ? t("common.submitting") : t("reviews.submit")}
       </button>
