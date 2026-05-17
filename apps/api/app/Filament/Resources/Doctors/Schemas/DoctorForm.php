@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Doctors\Schemas;
 
 use App\Filament\Support\AdminSelect;
+use App\Filament\Support\OptimizedImageUpload;
 use App\Models\Facility;
 use App\Models\Specialty;
 use App\Support\OfficeHours;
@@ -58,11 +59,7 @@ class DoctorForm
                         Textarea::make('bio')
                             ->rows(4)
                             ->columnSpanFull(),
-                        TextInput::make('avatar_url')
-                            ->label('Avatar image URL')
-                            ->prefixIcon(Heroicon::OutlinedPhoto)
-                            ->url()
-                            ->maxLength(500)
+                        OptimizedImageUpload::avatar('avatar_url', 'doctors')
                             ->columnSpanFull(),
                     ]),
 

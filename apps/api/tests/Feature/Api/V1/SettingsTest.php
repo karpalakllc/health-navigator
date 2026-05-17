@@ -18,11 +18,18 @@ class SettingsTest extends TestCase
             'registrations_enabled' => true,
         ]);
 
+        SiteSetting::current()->update([
+            'footer_emergency_text' => 'Custom emergency text.',
+            'copyright_name' => 'Test Co',
+        ]);
+
         $response = $this->getJson('/api/v1/settings/public');
 
         $response->assertOk()
             ->assertJsonPath('data.public_products', false)
             ->assertJsonPath('data.public_pharmacies', false)
-            ->assertJsonPath('data.registrations_enabled', true);
+            ->assertJsonPath('data.registrations_enabled', true)
+            ->assertJsonPath('data.footer_emergency_text', 'Custom emergency text.')
+            ->assertJsonPath('data.copyright_name', 'Test Co');
     }
 }

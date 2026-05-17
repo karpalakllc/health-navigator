@@ -30,8 +30,8 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->brandName('Zdravje360')
             ->colors([
-                // Align with public web --color-primary (hsl 213 80% 50%)
-                'primary' => Color::Blue,
+                // Align with public web --color-primary / --color-accent
+                'primary' => Color::hex('#ff5757'),
             ])
             ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

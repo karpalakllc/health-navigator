@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Pharmacies\Schemas;
 
 use App\Filament\Support\FacilityCommonForm;
+use App\Filament\Support\OptimizedImageUpload;
 use App\Support\Slug;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -37,11 +38,7 @@ class PharmacyForm
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
-                        TextInput::make('avatar_url')
-                            ->label('Image URL')
-                            ->prefixIcon(Heroicon::OutlinedPhoto)
-                            ->url()
-                            ->maxLength(500)
+                        OptimizedImageUpload::avatar('avatar_url', 'pharmacies')
                             ->columnSpanFull(),
                         Textarea::make('description')
                             ->rows(4)

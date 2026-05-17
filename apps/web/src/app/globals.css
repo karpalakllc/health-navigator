@@ -8,18 +8,18 @@
   --color-foreground: hsl(220 25% 10%);
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: hsl(220 25% 10%);
-  --color-primary: hsl(213 80% 50%);
-  --color-primary-foreground: hsl(0 0% 100%);
+  --color-primary: #ff5757;
+  --color-primary-foreground: #ffffff;
   --color-secondary: hsl(210 18% 94%);
   --color-secondary-foreground: hsl(220 25% 20%);
   --color-muted: hsl(210 15% 93%);
   --color-muted-foreground: hsl(215 15% 47%);
-  --color-accent: hsl(160 55% 40%);
-  --color-accent-foreground: hsl(0 0% 100%);
+  --color-accent: #256c70;
+  --color-accent-foreground: #ffffff;
   --color-destructive: hsl(0 72% 51%);
   --color-warning: hsl(38 92% 50%);
   --color-border: hsl(214 20% 90%);
-  --color-ring: hsl(213 80% 50%);
+  --color-ring: #ff5757;
 
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;

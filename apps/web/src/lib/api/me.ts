@@ -1,10 +1,19 @@
 import { apiGetPaginatedServer, apiGetServer } from "@/lib/api/server";
 
+export type ProfileAvatarMeta = {
+  min_messages: number;
+  message_count: number;
+  can_change: boolean;
+};
+
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
   role: string;
+  avatar_url: string | null;
+  avatar_initials: string;
+  profile_avatar: ProfileAvatarMeta;
 };
 
 export type MyReview = {

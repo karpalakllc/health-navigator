@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import type { AuthUser } from "@/lib/api/me";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
-export function HeaderAccountMenu() {
+export function HeaderAccountMenu({ user }: { user: AuthUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -44,15 +46,20 @@ export function HeaderAccountMenu() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-sm font-bold text-primary shadow-sm",
-          "hover:border-primary/40 hover:bg-primary/5",
-          open && "border-primary/40 bg-primary/5",
+          "flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl p-0",
+          "hover:opacity-90",
+          open && "ring-2 ring-primary/40",
         )}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t("nav.account")}
       >
-        {t("nav.account").charAt(0)}
+        <UserAvatar
+          name={user.name}
+          avatarUrl={user.avatar_url}
+          initials={user.avatar_initials}
+          className="!h-10 !w-10 !rounded-xl !border-0"
+        />
       </button>
       {open ? (
         <div

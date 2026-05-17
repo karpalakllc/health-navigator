@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\ForumContentStatus;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
+use App\Support\Media\MediaUrl;
+use App\Support\Media\NameInitials;
 use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -19,7 +22,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'user_kind'])]
+#[Fillable(['name', 'email', 'password', 'role', 'user_kind', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -147,5 +150,45 @@ class User extends Authenticatable implements FilamentUser
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return MediaUrl::resolve($this->avatar_path);
+    }
+
+    public function avatarInitials(): string
+    {
+        return NameInitials::from($this->name);
+    }
+
+    public function approvedForumPostCount(): int
+    {
+        return $this->forumPosts()
+            ->where('status', ForumContentStatus::Approved)
+            ->count();
+    }
+
+    public function canChangeAvatar(): bool
+    {
+        if (! $this->isClient()) {
+            return true;
+        }
+
+        return $this->approvedForumPostCount() >= SiteSetting::current()->profile_avatar_min_messages;
+    }
+
+    /**
+     * @return array<string, int|bool>
+     */
+    public function profileAvatarMeta(): array
+    {
+        $required = SiteSetting::current()->profile_avatar_min_messages ?: 10;
+
+        return [
+            'min_messages' => $required,
+            'message_count' => $this->approvedForumPostCount(),
+            'can_change' => $this->canChangeAvatar(),
+        ];
     }
 }

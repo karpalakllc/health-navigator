@@ -27,7 +27,7 @@ class DoctorListResource extends JsonResource
             'title' => $this->title,
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,
-            'avatar_url' => $this->avatar_url,
+            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
             'years_experience' => $this->years_experience,
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,

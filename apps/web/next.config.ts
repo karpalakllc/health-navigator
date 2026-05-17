@@ -12,6 +12,7 @@ function contentSecurityPolicy(): string {
   }
 
   const connectSrc = ["'self'", apiOrigin].filter(Boolean).join(" ");
+  const imgSrc = ["'self'", "data:", "https://api.dicebear.com", apiOrigin].filter(Boolean).join(" ");
   const isDev = process.env.NODE_ENV !== "production";
   const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(" ");
 
@@ -19,7 +20,7 @@ function contentSecurityPolicy(): string {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://api.dicebear.com",
+    `img-src ${imgSrc}`,
     "font-src 'self'",
     "frame-src https://www.openstreetmap.org",
     `connect-src ${connectSrc}`,
@@ -58,6 +59,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.dicebear.com",
         pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "8000",
+        pathname: "/storage/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
+        pathname: "/storage/**",
       },
     ],
   },

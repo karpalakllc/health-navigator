@@ -2,11 +2,21 @@ import Link from "next/link";
 import { FooterSearchButton } from "@/components/layout/footer-search-button";
 import { pageContainerClass } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
-import { t } from "@/i18n/t";
+import type { PublicSettings } from "@/lib/api/settings";
+import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { t, tFormat } from "@/i18n/t";
 
 const linkClass = "text-sm text-muted-foreground transition hover:text-primary";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const settings = await fetchPublicSettingsServer();
+
+  return <SiteFooterContent settings={settings} />;
+}
+
+export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="mt-auto border-t border-border bg-muted/30">
       <div className={`${pageContainerClass} py-10`}>
@@ -90,16 +100,18 @@ export function SiteFooter() {
             "mt-10 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-center text-sm text-destructive",
           )}
         >
-          {t("footer.emergency")} <strong>194</strong> {t("footer.emergencyOr")}{" "}
-          <strong>112</strong> {t("footer.emergencyEnd")}
+          {settings.footer_emergency_text}
         </div>
 
         <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-          {t("footer.reviewsNote")}{" "}
-          <Link href="/guidance" className="underline hover:text-foreground">
-            {t("footer.guidanceLink")}
-          </Link>{" "}
-          {t("footer.guidanceNote")}
+          {settings.footer_disclaimer_text}
+        </p>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          {tFormat("footer.copyright", {
+            year,
+            name: settings.copyright_name,
+          })}
         </p>
       </div>
     </footer>

@@ -3,13 +3,23 @@
 import Link from "next/link";
 import { useState } from "react";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
+import { SiteBrandMark } from "@/components/layout/site-brand-mark";
 import { SiteNav } from "@/components/layout/site-nav";
+import type { AuthUser } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { pageContainerClass } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
-export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function SiteHeaderBar({
+  isLoggedIn,
+  logoUrl = null,
+  user = null,
+}: {
+  isLoggedIn: boolean;
+  logoUrl?: string | null;
+  user?: AuthUser | null;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -23,14 +33,10 @@ export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       >
         <Link
           href="/"
-          className="flex min-w-0 shrink-0 items-center gap-2.5 lg:gap-3"
+          className="flex min-w-0 shrink-0 items-center"
+          aria-label={t("meta.title")}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground shadow-sm">
-            Z
-          </span>
-          <span className="truncate text-base font-bold tracking-tight lg:text-lg">
-            {t("meta.title")}
-          </span>
+          <SiteBrandMark logoUrl={logoUrl} />
         </Link>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
@@ -50,8 +56,20 @@ export function SiteHeaderBar({ isLoggedIn }: { isLoggedIn: boolean }) {
             <SearchIcon className="h-5 w-5" />
           </Link>
 
-          {isLoggedIn ? (
-            <HeaderAccountMenu />
+          {isLoggedIn && user ? (
+            <HeaderAccountMenu user={user} />
+          ) : isLoggedIn ? (
+            <HeaderAccountMenu
+              user={{
+                id: 0,
+                name: t("nav.account"),
+                email: "",
+                role: "member",
+                avatar_url: null,
+                avatar_initials: t("nav.account").charAt(0),
+                profile_avatar: { min_messages: 10, message_count: 0, can_change: false },
+              }}
+            />
           ) : (
             <Button href="/login" className="hidden h-10 px-4 text-sm sm:inline-flex">
               {t("nav.login")}

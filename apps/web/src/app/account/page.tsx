@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AccountProfilePhoto } from "@/components/account/account-profile-photo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AccountLayout } from "@/components/account/account-layout";
 import { PageHeader } from "@/components/directory/page-header";
@@ -35,6 +36,9 @@ export default async function AccountPage() {
     <PageShell>
       <AccountLayout current="overview">
         <PageHeader title={t("auth.accountTitle")} description={t("auth.accountDescription")} />
+        <Card className="p-5 sm:p-6">
+          <AccountProfilePhoto user={user} />
+        </Card>
         <Card className="p-5 sm:p-6">
           <dl className="grid gap-4 text-sm">
             <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">

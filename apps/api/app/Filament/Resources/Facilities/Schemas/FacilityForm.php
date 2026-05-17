@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Facilities\Schemas;
 
 use App\Enums\FacilityType;
 use App\Filament\Support\AdminSelect;
+use App\Filament\Support\OptimizedImageUpload;
 use App\Filament\Support\FacilityCommonForm;
 use App\Models\Doctor;
 use App\Support\Slug;
@@ -52,11 +53,7 @@ class FacilityForm
                             ->required()
                             ->native(false)
                             ->prefixIcon(Heroicon::OutlinedTag),
-                        TextInput::make('avatar_url')
-                            ->label('Image URL')
-                            ->prefixIcon(Heroicon::OutlinedPhoto)
-                            ->url()
-                            ->maxLength(500)
+                        OptimizedImageUpload::avatar('avatar_url', 'facilities')
                             ->columnSpanFull(),
                         Textarea::make('description')
                             ->rows(4)

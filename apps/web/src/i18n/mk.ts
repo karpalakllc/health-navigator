@@ -49,6 +49,7 @@ export const mk = {
     privacy: "Приватност",
     terms: "Услови",
     disclaimer: "Ограничување на одговорност",
+    copyright: "© {year} {name}. Сите права задржани.",
   },
   home: {
     title: "Здравствени информации за Северна Македонија",
@@ -292,6 +293,13 @@ export const mk = {
     repliesHeading: "Одговори",
     navOverview: "Преглед",
     subNavAria: "Потнавигација на сметката",
+    profilePhoto: "Профилна слика",
+    profilePhotoUnlocked: "Прикачете JPG, PNG или WebP (се зачувува како WebP).",
+    profilePhotoChoose: "Избери слика",
+    profilePhotoUploading: "Се прикачува…",
+    profilePhotoUploadError: "Неуспешно прикачување. Обидете се повторно.",
+    profilePhotoLocked:
+      "Профилната слика е заклучена. Потребни се најмалку {required} одобрени форум пораки (имате {count}).",
   },
   doctors: {
     title: "Лекари",

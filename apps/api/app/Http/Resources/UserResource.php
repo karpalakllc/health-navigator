@@ -19,6 +19,9 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role->value,
+            'avatar_url' => $this->avatarUrl(),
+            'avatar_initials' => $this->avatarInitials(),
+            'profile_avatar' => $this->profileAvatarMeta(),
         ];
     }
 }

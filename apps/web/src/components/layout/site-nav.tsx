@@ -38,6 +38,7 @@ export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNa
           link.href === "/"
             ? pathname === "/"
             : pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const isForum = link.href === "/forum";
 
         return (
           <Link
@@ -47,9 +48,14 @@ export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNa
             className={cn(
               "inline-flex items-center rounded-lg px-3 font-medium transition",
               vertical ? "w-full py-3" : "h-10 justify-center",
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              isForum &&
+                !active &&
+                "text-primary/85 hover:bg-primary/8 hover:text-primary",
+              isForum && active && "bg-primary/12 text-primary",
+              !isForum &&
+                (active
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"),
             )}
           >
             {t(link.labelKey)}

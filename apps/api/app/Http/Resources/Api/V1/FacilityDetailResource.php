@@ -31,7 +31,7 @@ class FacilityDetailResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'website' => $this->website,
-            'avatar_url' => $this->avatar_url,
+            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
             'office_hours' => $this->office_hours ?? [],
             'doctors' => $this->doctors
                 ->sortByDesc(fn ($doctor) => $doctor->pivot->is_primary)

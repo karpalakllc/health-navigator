@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\PlatformController;
@@ -75,6 +76,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
+        Route::post('/me/avatar', [MeAvatarController::class, 'update']);
         Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
         Route::get('/me/forum/topics', [ForumController::class, 'myTopics']);
         Route::get('/me/forum/posts', [ForumController::class, 'myPosts']);

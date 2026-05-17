@@ -22,7 +22,7 @@ class FacilityListResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type->value,
             'city' => $this->city,
-            'avatar_url' => $this->avatar_url,
+            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
             'review_summary' => ReviewSummary::for($this->resource),
         ];
     }

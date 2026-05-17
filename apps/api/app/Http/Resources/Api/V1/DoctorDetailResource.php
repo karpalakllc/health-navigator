@@ -29,7 +29,7 @@ class DoctorDetailResource extends JsonResource
             'clinical_interests' => $this->clinicalInterests->pluck('name')->values()->all(),
             'procedures' => $this->procedures->pluck('name')->values()->all(),
             'consultation_fee_note' => $this->consultation_fee_note,
-            'avatar_url' => $this->avatar_url,
+            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
             'office_hours' => $this->office_hours ?? [],
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,

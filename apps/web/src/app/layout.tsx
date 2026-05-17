@@ -4,8 +4,11 @@ import { PlausibleAnalytics } from "@/components/layout/plausible-analytics";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { fetchPublicSettingsServer } from "@/lib/api/settings";
 import { mk } from "@/i18n/mk";
 import "./globals.css";
+
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,10 +20,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: mk.meta.title,
-  description: mk.meta.description,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchPublicSettingsServer();
+  const faviconCacheKey = settings.favicon_url?.split("/").pop() ?? "default";
+
+  return {
+    title: mk.meta.title,
+    description: mk.meta.description,
+    icons: settings.favicon_url
+      ? {
+          icon: `${settings.favicon_url}?v=${faviconCacheKey}`,
+          shortcut: `${settings.favicon_url}?v=${faviconCacheKey}`,
+        }
+      : undefined,
+  };
+}
 
 export default function RootLayout({
   children,
