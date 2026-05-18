@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { ForumPostCard } from "@/components/forum/forum-post-card";
-import { ForumCommunityRules } from "@/components/forum/forum-community-rules";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
+import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ReplyForm } from "@/components/forum/reply-form";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { PageHeader } from "@/components/directory/page-header";
@@ -71,13 +70,21 @@ export default async function TopicDetailPage({
         title={topic.title}
         description={formatForumReplyCount(topic.replies_count)}
       />
-      <div className="flex flex-wrap gap-2">
-        {topic.is_pinned ? <Badge variant="primary">{t("forum.pinned")}</Badge> : null}
-        {topic.is_locked ? <Badge variant="secondary">{t("forum.locked")}</Badge> : null}
-      </div>
+      {!topic.viewer?.can_moderate ? (
+        <div className="flex flex-wrap gap-2">
+          {topic.is_pinned ? <Badge variant="primary">{t("forum.pinned")}</Badge> : null}
+          {topic.is_locked ? <Badge variant="secondary">{t("forum.locked")}</Badge> : null}
+        </div>
+      ) : null}
 
-      <ForumSafetyNotice compact />
-      <ForumCommunityRules compact />
+      {topic.viewer?.can_moderate ? (
+        <ForumTopicModerationToolbar
+          categorySlug={categorySlug}
+          topicSlug={topicSlug}
+          isPinned={topic.is_pinned}
+          isLocked={topic.is_locked}
+        />
+      ) : null}
 
       <ForumPostCard post={originalPost} isOriginalPost />
 

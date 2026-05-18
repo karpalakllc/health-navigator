@@ -8,6 +8,7 @@ export type ForumAuthor = {
   topics_count: number;
   posts_count: number;
   is_team_member: boolean;
+  is_forum_moderator: boolean;
 };
 
 export type ForumCategory = {
@@ -39,6 +40,7 @@ export type ForumTopicDetail = {
   is_locked: boolean;
   is_pinned: boolean;
   published_at: string | null;
+  viewer?: { can_moderate: boolean };
 };
 
 export type ForumPost = {

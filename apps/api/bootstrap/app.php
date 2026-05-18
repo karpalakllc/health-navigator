@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\EnsureModuleEnabled;
+use App\Http\Middleware\OptionalSanctumAuth;
+use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Responses\ApiResponse;
@@ -26,6 +28,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserRole::class,
             'module' => EnsureModuleEnabled::class,
             'registrations' => EnsureRegistrationsEnabled::class,
+            'maintenance' => EnsureNotInMaintenance::class,
+            'auth.sanctum.optional' => OptionalSanctumAuth::class,
+        ]);
+
+        $middleware->api(prepend: [
+            EnsureNotInMaintenance::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {

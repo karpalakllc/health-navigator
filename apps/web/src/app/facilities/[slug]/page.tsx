@@ -8,17 +8,21 @@ import { FacilityProfileHero } from "@/components/directory/facility-profile-her
 import { FacilitySidebarContact } from "@/components/directory/facility-sidebar-contact";
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
 import { TagList } from "@/components/directory/tag-list";
+import { ProfileContentCard } from "@/components/design/profile-content-card";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchFacility } from "@/lib/api/facilities";
-import { fetchFacilityReviews } from "@/lib/api/reviews";
 import { pageMetadata } from "@/lib/metadata";
 import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    review_page?: string;
+    review_sort?: string;
+    review_rating?: string;
+  }>;
 };
 
 export async function generateMetadata({
@@ -40,17 +44,15 @@ export async function generateMetadata({
 
 export default async function FacilityDetailPage({
   params,
+  searchParams,
 }: FacilityDetailPageProps) {
   const { slug } = await params;
+  const reviewQuery = await searchParams;
 
   let facility;
-  let reviews;
 
   try {
-    [facility, reviews] = await Promise.all([
-      fetchFacility(slug),
-      fetchFacilityReviews(slug),
-    ]);
+    facility = await fetchFacility(slug);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       notFound();
@@ -62,7 +64,7 @@ export default async function FacilityDetailPage({
   const officeHourEntries = Object.entries(facility.office_hours ?? {});
 
   return (
-    <PageShell className="gap-8">
+    <PageShell gap="loose" className="pb-16 pt-[18px]">
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },
@@ -73,37 +75,37 @@ export default async function FacilityDetailPage({
 
       <DirectoryDetailLayout
         main={
-          <>
+          <div className="space-y-5">
             <FacilityProfileHero facility={facility} />
 
             {facility.has_emergency_services ? <FacilityEmergencyBanner /> : null}
 
             {facility.departments.length > 0 ? (
-              <PageSection title={t("facilities.departments")}>
+              <ProfileContentCard title={t("facilities.departments")}>
                 <TagList items={facility.departments} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
             {officeHourEntries.length > 0 ? (
-              <PageSection title={t("directory.officeHours")}>
+              <ProfileContentCard title={t("directory.officeHours")}>
                 <OfficeHoursGrid hours={Object.fromEntries(officeHourEntries)} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
-            <PageSection title={t("facilities.doctors")}>
+            <ProfileContentCard title={t("facilities.doctors")}>
               <FacilityDoctorList
                 doctors={facility.doctors}
                 emptyMessage={t("facilities.noDoctors")}
               />
-            </PageSection>
+            </ProfileContentCard>
 
             <ReviewSection
               kind="facility"
               slug={slug}
               summary={facility.review_summary}
-              reviews={reviews.data}
+              searchParams={reviewQuery}
             />
-          </>
+          </div>
         }
         sidebar={<FacilitySidebarContact facility={facility} />}
       />

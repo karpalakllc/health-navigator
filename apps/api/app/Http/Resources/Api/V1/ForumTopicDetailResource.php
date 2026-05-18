@@ -30,6 +30,12 @@ class ForumTopicDetailResource extends JsonResource
             'is_locked' => $this->is_locked,
             'is_pinned' => $this->is_pinned,
             'published_at' => $this->published_at?->toIso8601String(),
+            'viewer' => $this->when(
+                $request->user()?->canModerateForumTopic($this->resource),
+                fn (): array => [
+                    'can_moderate' => true,
+                ],
+            ),
         ];
     }
 }

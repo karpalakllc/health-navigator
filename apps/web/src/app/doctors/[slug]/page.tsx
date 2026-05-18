@@ -7,11 +7,10 @@ import { DoctorSidebarContact } from "@/components/directory/doctor-sidebar-cont
 import { EntityLinkList } from "@/components/directory/entity-link-list";
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
 import { TagList } from "@/components/directory/tag-list";
+import { ProfileContentCard } from "@/components/design/profile-content-card";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchDoctor } from "@/lib/api/doctors";
-import { fetchDoctorReviews } from "@/lib/api/reviews";
 import { facilityPublicPath, facilityTypeLabel } from "@/lib/facility-labels";
 import { pageMetadata } from "@/lib/metadata";
 import { ApiRequestError } from "@/lib/api/server";
@@ -19,6 +18,11 @@ import { t } from "@/i18n/t";
 
 type DoctorDetailPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    review_page?: string;
+    review_sort?: string;
+    review_rating?: string;
+  }>;
 };
 
 export async function generateMetadata({
@@ -42,17 +46,15 @@ export async function generateMetadata({
 
 export default async function DoctorDetailPage({
   params,
+  searchParams,
 }: DoctorDetailPageProps) {
   const { slug } = await params;
+  const reviewQuery = await searchParams;
 
   let doctor;
-  let reviews;
 
   try {
-    [doctor, reviews] = await Promise.all([
-      fetchDoctor(slug),
-      fetchDoctorReviews(slug),
-    ]);
+    doctor = await fetchDoctor(slug);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       notFound();
@@ -76,7 +78,7 @@ export default async function DoctorDetailPage({
   const officeHourEntries = Object.entries(doctor.office_hours ?? {});
 
   return (
-    <PageShell className="gap-8">
+    <PageShell gap="loose" className="pb-16 pt-[18px]">
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },
@@ -87,64 +89,53 @@ export default async function DoctorDetailPage({
 
       <DirectoryDetailLayout
         main={
-          <>
+          <div className="space-y-5">
             <DoctorProfileHero doctor={doctor} />
 
             {doctor.education ? (
-              <PageSection title={t("doctors.education")}>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {doctor.education}
-                </p>
-              </PageSection>
+              <ProfileContentCard title={t("doctors.education")}>
+                <p className="text-sm leading-relaxed text-muted-foreground">{doctor.education}</p>
+              </ProfileContentCard>
             ) : null}
 
             {doctor.languages.length > 0 ? (
-              <PageSection title={t("doctors.languages")}>
+              <ProfileContentCard title={t("doctors.languages")}>
                 <TagList items={doctor.languages} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
             {doctor.clinical_interests.length > 0 ? (
-              <PageSection title={t("doctors.clinicalInterests")}>
+              <ProfileContentCard title={t("doctors.clinicalInterests")}>
                 <TagList items={doctor.clinical_interests} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
             {doctor.procedures.length > 0 ? (
-              <PageSection title={t("doctors.procedures")}>
+              <ProfileContentCard title={t("doctors.procedures")}>
                 <TagList items={doctor.procedures} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
             {officeHourEntries.length > 0 ? (
-              <PageSection title={t("doctors.officeHours")}>
-                <OfficeHoursGrid
-                  hours={Object.fromEntries(officeHourEntries)}
-                />
-              </PageSection>
+              <ProfileContentCard title={t("doctors.officeHours")}>
+                <OfficeHoursGrid hours={Object.fromEntries(officeHourEntries)} />
+              </ProfileContentCard>
             ) : null}
 
-            <div id="doctor-locations">
-              <PageSection title={t("doctors.facilities")}>
-                <EntityLinkList
-                  items={facilityItems}
-                  emptyMessage={t("doctors.noFacilities")}
-                />
-              </PageSection>
-            </div>
+            <ProfileContentCard title={t("doctors.facilities")} id="doctor-locations">
+              <EntityLinkList items={facilityItems} emptyMessage={t("doctors.noFacilities")} />
+            </ProfileContentCard>
 
             <ReviewSection
               kind="doctor"
               slug={slug}
               summary={doctor.review_summary}
-              reviews={reviews.data}
+              searchParams={reviewQuery}
             />
-          </>
+          </div>
         }
         sidebar={
-          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <DoctorSidebarContact doctor={doctor} />
-          </aside>
+          <DoctorSidebarContact doctor={doctor} />
         }
       />
     </PageShell>

@@ -177,7 +177,11 @@ class DoctorForm
                     ->columns(2)
                     ->schema([
                         Toggle::make('is_featured')
-                            ->label('Featured on home'),
+                            ->label('Featured on homepage')
+                            ->helperText('Editorial highlight in the “Истакнати доктори” section. Not paid sponsorship.'),
+                        Toggle::make('is_sponsored')
+                            ->label('Sponsored placement')
+                            ->helperText('Paid partnership — shows “Спонзорирано” on the public profile. Independent from featured.'),
                         Toggle::make('is_published')
                             ->default(false)
                             ->helperText(function ($record): ?string {

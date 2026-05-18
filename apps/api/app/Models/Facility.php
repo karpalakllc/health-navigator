@@ -34,6 +34,7 @@ class Facility extends Model
         'avatar_url',
         'office_hours',
         'is_published',
+        'is_featured',
         'published_at',
     ];
 
@@ -46,6 +47,7 @@ class Facility extends Model
             'longitude' => 'float',
             'has_emergency_services' => 'boolean',
             'is_published' => 'boolean',
+            'is_featured' => 'boolean',
             'published_at' => 'datetime',
         ];
     }

@@ -6,7 +6,6 @@ import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
 export const SITE_NAV_LINKS = [
-  { href: "/", labelKey: "nav.home" as const },
   { href: "/doctors", labelKey: "nav.doctors" as const },
   { href: "/facilities", labelKey: "nav.facilities" as const },
   { href: "/pharmacies", labelKey: "nav.pharmacies" as const },
@@ -34,10 +33,7 @@ export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNa
       )}
     >
       {SITE_NAV_LINKS.map((link) => {
-        const active =
-          link.href === "/"
-            ? pathname === "/"
-            : pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
         const isForum = link.href === "/forum";
 
         return (

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { HeroMeshCard } from "@/components/design/hero-mesh-card";
+import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { StarRating } from "@/components/ui/star-rating";
-import { cn } from "@/lib/cn";
 import type { DoctorDetail } from "@/lib/api/types";
 import { facilityPublicPath } from "@/lib/facility-labels";
 import { t, tFormat } from "@/i18n/t";
@@ -17,45 +16,40 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
   const workplace = doctor.facilities.find((f) => f.is_primary) ?? doctor.facilities[0];
 
   return (
-    <Card
-      className={cn(
-        "relative overflow-hidden p-0 shadow-[0_24px_60px_-36px_rgb(15_23_42/0.45)]",
-        doctor.is_featured && "border-primary/20 ring-1 ring-primary/10",
-      )}
-    >
-      <div className="h-1.5 bg-gradient-to-r from-primary via-[color-mix(in_srgb,var(--color-primary)_70%,var(--color-accent))] to-accent" />
+    <HeroMeshCard variant="profile" align="start" innerClassName="w-full max-w-none">
+      <div className="grid items-center gap-5 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">
+        <DirectoryAvatar
+          kind="doctor"
+          avatarUrl={doctor.avatar_url}
+          name={doctor.full_name}
+          className="mx-auto h-[126px] w-[126px] shrink-0 rounded-full border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
+          imageClassName="h-full w-full rounded-full object-cover"
+          fallbackClassName="h-full w-full rounded-full text-4xl"
+        />
 
-      <div className="flex flex-col gap-6 p-6 sm:flex-row sm:gap-8 sm:p-8">
-        {doctor.avatar_url ? (
-          <img
-            src={doctor.avatar_url}
-            alt=""
-            className="mx-auto h-28 w-28 shrink-0 rounded-full border-4 border-card object-cover shadow-lg ring-2 ring-primary/10 sm:mx-0 sm:h-32 sm:w-32"
-          />
-        ) : (
-          <div className="mx-auto flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-card bg-gradient-to-br from-primary/15 to-accent/15 text-3xl font-bold text-primary shadow-inner ring-2 ring-primary/10 sm:mx-0 sm:h-32 sm:w-32">
-            {doctor.full_name.charAt(0)}
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
+        <div className="min-w-0 space-y-4 text-center sm:text-left">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-start">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
                 {doctor.full_name}
               </h1>
-              {doctor.is_featured ? <SponsoredBadge size="md" /> : null}
+              {doctor.is_sponsored ? <SponsoredBadge size="md" /> : null}
+              {doctor.is_featured && !doctor.is_sponsored ? (
+                <span className="rounded-full bg-[#fff1f1] px-3 py-1 text-xs font-extrabold text-primary">
+                  {t("doctors.featured")}
+                </span>
+              ) : null}
             </div>
             {specialtyLine ? (
-              <p className="text-base text-muted-foreground">{specialtyLine}</p>
+              <p className="text-base font-medium text-muted-foreground">{specialtyLine}</p>
             ) : null}
 
             {workplace ? (
               <p className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground sm:justify-start">
-                <PinGlyph className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />
+                <PinGlyph className="h-4 w-4 shrink-0 text-accent" aria-hidden />
                 <Link
                   href={facilityPublicPath(workplace.type, workplace.slug)}
-                  className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+                  className="font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
                 >
                   {workplace.name}
                   {workplace.city ? ` · ${workplace.city}` : ""}
@@ -63,7 +57,7 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
               </p>
             ) : doctor.city ? (
               <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground sm:justify-start">
-                <PinGlyph className="h-4 w-4 text-primary/80" aria-hidden />
+                <PinGlyph className="h-4 w-4 text-accent" aria-hidden />
                 {doctor.city}
               </p>
             ) : null}
@@ -71,8 +65,8 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
 
           {doctor.review_summary.count > 0 && doctor.review_summary.average_rating !== null ? (
             <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-              <StarRating value={doctor.review_summary.average_rating} size="md" tone="amber" />
-              <span className="text-lg font-semibold tabular-nums">
+              <StarRating value={doctor.review_summary.average_rating} size="md" />
+              <span className="text-lg font-extrabold tabular-nums">
                 {doctor.review_summary.average_rating}
               </span>
               <span className="text-sm text-muted-foreground">
@@ -82,21 +76,21 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+          <div className="flex flex-wrap justify-center gap-2.5 sm:justify-start">
             {doctor.accepts_new_patients ? (
-              <Badge variant="accent">{t("doctors.acceptingPatients")}</Badge>
+              <span className="directory-tag directory-tag-teal">{t("doctors.acceptingPatients")}</span>
             ) : (
-              <Badge variant="warning">{t("doctors.notAcceptingPatients")}</Badge>
+              <span className="directory-tag">{t("doctors.notAcceptingPatients")}</span>
             )}
             {doctor.years_experience ? (
-              <Badge variant="outline">
+              <span className="directory-tag">
                 {tFormat("doctors.yearsExperience", {
                   years: String(doctor.years_experience),
                 })}
-              </Badge>
+              </span>
             ) : null}
             {doctor.consultation_fee_note ? (
-              <Badge variant="secondary">{doctor.consultation_fee_note}</Badge>
+              <span className="directory-tag">{doctor.consultation_fee_note}</span>
             ) : null}
           </div>
 
@@ -107,7 +101,7 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
           ) : null}
         </div>
       </div>
-    </Card>
+    </HeroMeshCard>
   );
 }
 

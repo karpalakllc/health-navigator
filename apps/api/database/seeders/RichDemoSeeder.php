@@ -41,7 +41,12 @@ class RichDemoSeeder extends Seeder
 
             $this->syncDoctorProfileTaxonomies($doctor, $profile);
 
-            unset($profile['languages'], $profile['clinical_interests'], $profile['procedures']);
+            unset(
+                $profile['languages'],
+                $profile['clinical_interests'],
+                $profile['procedures'],
+                $profile['avatar_url'],
+            );
 
             $doctor->update($profile);
         }
@@ -55,7 +60,7 @@ class RichDemoSeeder extends Seeder
 
             $this->syncFacilityProfileDepartments($facility, $profile);
 
-            unset($profile['departments']);
+            unset($profile['departments'], $profile['avatar_url']);
 
             $facility->update($profile);
         }

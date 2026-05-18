@@ -33,6 +33,7 @@ class DoctorDetailResource extends JsonResource
             'office_hours' => $this->office_hours ?? [],
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,
+            'is_sponsored' => (bool) $this->is_sponsored,
             'city' => $this->city,
             'phone' => $this->phone,
             'email' => $this->email,

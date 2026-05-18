@@ -10,7 +10,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
-import { roleLabel } from "@/lib/roles";
+import { accountRoleLabel } from "@/lib/roles";
 import { t } from "@/i18n/t";
 
 export default async function AccountPage() {
@@ -51,7 +51,7 @@ export default async function AccountPage() {
             </div>
             <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
               <dt className="text-muted-foreground">{t("account.role")}</dt>
-              <dd className="font-medium text-foreground">{roleLabel(user.role)}</dd>
+              <dd className="font-medium text-foreground">{accountRoleLabel(user)}</dd>
             </div>
           </dl>
         </Card>

@@ -19,7 +19,10 @@ class DoctorController extends Controller
 
         $query = Doctor::query()
             ->published()
-            ->with(['specialties' => fn ($relation) => $relation->published()]);
+            ->with([
+                'specialties' => fn ($relation) => $relation->published(),
+                'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
+            ]);
 
         if (! empty($validated['specialty'])) {
             $query->forSpecialtySlug($validated['specialty']);

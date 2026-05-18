@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\PlatformUserSeeder;
@@ -36,6 +37,10 @@ class PlatformBootstrapCommand extends Command
             $this->error("No admin user at {$adminEmail}. Set PLATFORM_ADMIN_EMAIL / PLATFORM_ADMIN_PASSWORD in .env and re-run.");
 
             return self::FAILURE;
+        }
+
+        if ($admin->user_kind !== UserKind::Staff) {
+            $admin->update(['user_kind' => UserKind::Staff]);
         }
 
         if (! $admin->hasRole('Administrator')) {

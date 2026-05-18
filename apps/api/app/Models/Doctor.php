@@ -30,6 +30,7 @@ class Doctor extends Model
         'office_hours',
         'accepts_new_patients',
         'is_featured',
+        'is_sponsored',
         'city',
         'phone',
         'email',
@@ -45,6 +46,7 @@ class Doctor extends Model
             'published_at' => 'datetime',
             'accepts_new_patients' => 'boolean',
             'is_featured' => 'boolean',
+            'is_sponsored' => 'boolean',
             'years_experience' => 'integer',
         ];
     }

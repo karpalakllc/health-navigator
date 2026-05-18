@@ -8,6 +8,7 @@ export type FacilityListParams = {
   q?: string;
   has_emergency?: boolean | string;
   department?: string;
+  featured?: boolean | string;
   page?: number;
   per_page?: number;
 };
@@ -16,7 +17,14 @@ function toQuery(params: FacilityListParams): string {
   const search = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === "" || value === false) {
+    if (value === undefined || value === "") {
+      continue;
+    }
+    if (value === false) {
+      continue;
+    }
+    if (typeof value === "boolean") {
+      search.set(key, value ? "1" : "0");
       continue;
     }
     search.set(key, String(value));

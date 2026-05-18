@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import Link from "next/link";
 import type { DoctorDetail } from "@/lib/api/types";
 import { facilityPublicPath } from "@/lib/facility-labels";
 import { t } from "@/i18n/t";
@@ -9,20 +8,20 @@ export function DoctorSidebarContact({ doctor }: { doctor: DoctorDetail }) {
   const telHref = doctor.phone ? `tel:${doctor.phone.replace(/\s+/g, "")}` : null;
 
   return (
-    <Card className="glass space-y-5 border-border/70 p-6 shadow-[0_22px_56px_-30px_rgb(15_23_42/0.42)]">
-      <h2 className="text-lg font-semibold tracking-tight">{t("doctors.quickActionsTitle")}</h2>
+    <aside className="content-card rounded-[1.875rem] p-[22px] lg:sticky lg:top-28 lg:self-start">
+      <h2 className="text-[1.7rem] font-black tracking-tight text-foreground">{t("doctors.quickActionsTitle")}</h2>
 
-      <div className="flex flex-col gap-3">
+      <div className="mt-[18px] flex flex-col">
         {telHref ? (
           <a
             href={telHref}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_10px_28px_-14px_color-mix(in_srgb,var(--color-primary)_60%,transparent)] transition hover:bg-primary/92 active:scale-[0.98] motion-reduce:active:scale-100"
+            className="btn-gradient-primary inline-flex min-h-[58px] w-full items-center justify-center gap-2.5 rounded-[1.25rem] text-sm font-extrabold text-white transition hover:brightness-105"
           >
             <PhoneIcon className="h-5 w-5 shrink-0" aria-hidden />
             {t("doctors.sidebarCall")}
           </a>
         ) : (
-          <p className="rounded-xl bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-full border border-border bg-[#f7f9fa] px-4 py-3 text-sm text-muted-foreground">
             {t("doctors.sidebarNoPhone")}
           </p>
         )}
@@ -30,45 +29,47 @@ export function DoctorSidebarContact({ doctor }: { doctor: DoctorDetail }) {
         {doctor.email ? (
           <a
             href={`mailto:${doctor.email}`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background/80 text-sm font-semibold transition hover:bg-secondary"
+            className="mt-3 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full border border-border bg-white text-sm font-bold text-[#495661] transition hover:bg-[#f7f9fa]"
           >
-            <MailIcon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+            <MailIcon className="h-5 w-5 shrink-0" aria-hidden />
             {t("doctors.sidebarEmail")}
           </a>
         ) : null}
 
         {primaryFacility ? (
-          <Button
+          <Link
             href={facilityPublicPath(primaryFacility.type, primaryFacility.slug)}
-            variant="outline"
-            className="h-11 justify-center gap-2 font-semibold"
+            className="mt-3 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full border border-border bg-white text-sm font-bold text-[#495661] transition hover:bg-[#f7f9fa]"
           >
             <PinIcon className="h-5 w-5 shrink-0" aria-hidden />
             {t("doctors.sidebarPrimaryFacility")}
-          </Button>
+          </Link>
         ) : (
-          <Button href="#doctor-locations" variant="outline" className="h-11 justify-center gap-2 font-semibold">
+          <Link
+            href="#doctor-locations"
+            className="mt-3 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full border border-border bg-white text-sm font-bold text-[#495661] transition hover:bg-[#f7f9fa]"
+          >
             <PinIcon className="h-5 w-5 shrink-0" aria-hidden />
             {t("doctors.sidebarLocations")}
-          </Button>
+          </Link>
         )}
       </div>
 
       {doctor.consultation_fee_note ? (
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{t("doctors.consultationFee")}: </span>
-          {doctor.consultation_fee_note}
+        <p className="mt-[18px] text-base text-[#59656f]">
+          <span>{t("doctors.consultationFee")}: </span>
+          <strong className="text-[#39454f]">{doctor.consultation_fee_note}</strong>
         </p>
       ) : null}
 
-      <div className="rounded-xl border border-primary/15 bg-primary/[0.06] p-4 text-xs leading-relaxed text-muted-foreground">
-        <div className="mb-2 flex items-center gap-2 font-semibold text-foreground">
-          <ShieldIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <div className="mt-[18px] rounded-[1.375rem] border border-primary/15 bg-[#fff1f1] p-4">
+        <div className="mb-2.5 flex items-center gap-2.5 font-extrabold text-[#313d47]">
+          <ShieldIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
           {t("doctors.sidebarDisclaimerTitle")}
         </div>
-        {t("footer.informational")}
+        <p className="text-sm leading-relaxed text-[#63707b]">{t("footer.informational")}</p>
       </div>
-    </Card>
+    </aside>
   );
 }
 

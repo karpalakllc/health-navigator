@@ -11,18 +11,19 @@ export function ReviewSummaryBlock({ summary }: { summary: ReviewSummary }) {
   const average = summary.average_rating ?? 0;
 
   return (
-    <div className="flex flex-col gap-6 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-secondary/20 p-6 shadow-[0_16px_44px_-32px_rgb(15_23_42/0.35)] sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-5">
-        <p className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
+    <div className="content-card flex flex-col gap-5 rounded-[1.625rem] p-[22px] sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-[18px]">
+        <p className="text-5xl font-black tabular-nums tracking-tight text-foreground">
           {summary.average_rating ?? "—"}
         </p>
-        <div className="space-y-1">
-          <StarRating value={average} size="md" tone="amber" />
-          <p className="text-sm text-muted-foreground">
+        <div>
+          <StarRating value={average} size="md" />
+          <p className="mt-2 text-sm text-muted-foreground">
             {summary.count} {countLabel}
           </p>
         </div>
       </div>
+      <p className="max-w-[360px] text-sm leading-relaxed text-muted-foreground">{t("reviews.moderationNote")}</p>
     </div>
   );
 }

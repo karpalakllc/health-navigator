@@ -44,7 +44,13 @@ class FacilityController extends Controller
             );
         }
 
+        if (! empty($validated['featured'])) {
+            $query->where('is_featured', true);
+        }
+
         $perPage = $validated['per_page'] ?? 15;
+
+        $query->withCount(['departments' => fn ($relation) => $relation->published()]);
 
         $paginator = $query->paginate($perPage)->withQueryString();
 

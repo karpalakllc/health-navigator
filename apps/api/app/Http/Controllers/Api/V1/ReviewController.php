@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\ListReviewsRequest;
 use App\Http\Requests\Api\V1\StoreReviewRequest;
 use App\Http\Resources\Api\V1\MyReviewResource;
 use App\Http\Resources\Api\V1\PublicReviewResource;
+use App\Http\Resources\Api\V1\ViewerReviewResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
 use App\Models\Facility;
@@ -101,19 +102,47 @@ class ReviewController extends Controller
 
     private function paginatedReviews(Doctor|Facility $reviewable, ListReviewsRequest $request): JsonResponse
     {
-        $perPage = $request->validated()['per_page'] ?? 15;
+        $validated = $request->validated();
+        $perPage = $validated['per_page'] ?? 15;
 
-        $paginator = $reviewable->reviews()
+        $query = $reviewable->reviews()
             ->approved()
-            ->with('user')
-            ->latest('published_at')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->with('user');
 
-        return ApiResponse::paginated(
-            $paginator,
-            PublicReviewResource::collection($paginator),
-        );
+        if (! empty($validated['rating'])) {
+            $query->where('rating', (int) $validated['rating']);
+        }
+
+        match ($validated['sort'] ?? 'newest') {
+            'oldest' => $query->oldest('published_at'),
+            'rating_high' => $query->orderByDesc('rating')->latest('published_at'),
+            'rating_low' => $query->orderBy('rating')->latest('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        $meta = [
+            'current_page' => $paginator->currentPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'last_page' => $paginator->lastPage(),
+        ];
+
+        if ($request->user()) {
+            $viewerReview = $reviewable->reviews()
+                ->where('user_id', $request->user()->id)
+                ->first();
+
+            if ($viewerReview) {
+                $meta['viewer_review'] = ViewerReviewResource::make($viewerReview)->resolve();
+            }
+        }
+
+        return response()->json([
+            'data' => PublicReviewResource::collection($paginator),
+            'meta' => $meta,
+        ]);
     }
 
     private function storeReview(Doctor|Facility $reviewable, StoreReviewRequest $request): JsonResponse

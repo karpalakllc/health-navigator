@@ -1,7 +1,6 @@
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { HeroMeshCard } from "@/components/design/hero-mesh-card";
+import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { StarRating } from "@/components/ui/star-rating";
-import { cn } from "@/lib/cn";
 import type { FacilityDetail, PharmacyDetail } from "@/lib/api/types";
 import { facilityTypeLabel } from "@/lib/facility-labels";
 import { t, tFormat } from "@/i18n/t";
@@ -27,34 +26,24 @@ export function FacilityProfileHero({
   const hasEmergency = isClinicalFacility(facility) && facility.has_emergency_services;
 
   return (
-    <Card className="relative overflow-hidden p-0 shadow-[0_24px_60px_-36px_rgb(15_23_42/0.45)]">
-      <div className="h-1.5 bg-gradient-to-r from-accent via-[color-mix(in_srgb,var(--color-accent)_70%,var(--color-primary))] to-primary" />
+    <HeroMeshCard variant="profile" align="start" innerClassName="w-full max-w-none">
+      <div className="grid items-center gap-5 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">
+        <DirectoryAvatar
+          kind={isClinicalFacility(facility) ? "facility" : "pharmacy"}
+          avatarUrl={facility.avatar_url}
+          name={facility.name}
+          className="mx-auto h-[126px] w-[126px] shrink-0 rounded-[1.375rem] border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
+          imageClassName="h-full w-full rounded-[1.375rem] object-cover"
+          fallbackClassName="h-full w-full rounded-[1.375rem] text-4xl"
+        />
 
-      <div className="flex flex-col gap-6 p-6 sm:flex-row sm:gap-8 sm:p-8">
-        {facility.avatar_url ? (
-          <img
-            src={facility.avatar_url}
-            alt=""
-            className="mx-auto h-28 w-28 shrink-0 rounded-2xl border-4 border-card object-cover shadow-lg ring-2 ring-accent/15 sm:mx-0 sm:h-32 sm:w-32"
-          />
-        ) : (
-          <div
-            className={cn(
-              "mx-auto flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl border-4 border-card text-3xl font-bold shadow-inner ring-2 sm:mx-0 sm:h-32 sm:w-32",
-              "bg-gradient-to-br from-accent/15 to-primary/15 text-accent ring-accent/15",
-            )}
-          >
-            {facility.name.charAt(0)}
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
+        <div className="min-w-0 space-y-4 text-center sm:text-left">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
               {facility.name}
             </h1>
             <p className="flex flex-wrap items-center justify-center gap-2 text-base text-muted-foreground sm:justify-start">
-              <PinGlyph className="h-4 w-4 shrink-0 text-accent/90" aria-hidden />
+              <PinGlyph className="h-4 w-4 shrink-0 text-accent" aria-hidden />
               {[label, facility.city].filter(Boolean).join(" · ")}
             </p>
             {facility.address ? (
@@ -64,34 +53,37 @@ export function FacilityProfileHero({
 
           {facility.review_summary.count > 0 && facility.review_summary.average_rating !== null ? (
             <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-              <StarRating value={facility.review_summary.average_rating} size="md" tone="amber" />
-              <span className="text-lg font-semibold tabular-nums">
+              <StarRating value={facility.review_summary.average_rating} size="md" />
+              <span className="text-lg font-extrabold tabular-nums">
                 {facility.review_summary.average_rating}
               </span>
               <span className="text-sm text-muted-foreground">
-                ({facility.review_summary.count})
+                ({facility.review_summary.count}{" "}
+                {facility.review_summary.count === 1 ? t("reviews.countOne") : t("reviews.count")})
               </span>
+            </div>
+          ) : null}
+
+          {isClinicalFacility(facility) ? (
+            <div className="flex flex-wrap justify-center gap-2.5 sm:justify-start">
+              {hasEmergency ? (
+                <span className="directory-tag bg-amber-500/15 text-amber-900">
+                  {t("facilities.emergencyAvailable")}
+                </span>
+              ) : (
+                <span className="directory-tag">{t("facilities.emergencyNotAvailable")}</span>
+              )}
+              {departments.length > 0 ? (
+                <span className="directory-tag directory-tag-teal">
+                  {tFormat("facilities.departmentCount", { count: String(departments.length) })}
+                </span>
+              ) : null}
             </div>
           ) : (
             <div className="flex justify-center sm:justify-start">
-              <Badge variant="outline">{label}</Badge>
+              <span className="directory-tag directory-tag-teal">{label}</span>
             </div>
           )}
-
-          {isClinicalFacility(facility) ? (
-            <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-              {hasEmergency ? (
-                <Badge variant="warning">{t("facilities.emergencyAvailable")}</Badge>
-              ) : (
-                <Badge variant="secondary">{t("facilities.emergencyNotAvailable")}</Badge>
-              )}
-              {departments.length > 0 ? (
-                <Badge variant="accent">
-                  {tFormat("facilities.departmentCount", { count: String(departments.length) })}
-                </Badge>
-              ) : null}
-            </div>
-          ) : null}
 
           {facility.description ? (
             <p className="border-t border-border/60 pt-4 text-sm leading-relaxed text-muted-foreground">
@@ -100,7 +92,7 @@ export function FacilityProfileHero({
           ) : null}
         </div>
       </div>
-    </Card>
+    </HeroMeshCard>
   );
 }
 

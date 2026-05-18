@@ -7,7 +7,7 @@ import { StarRatingInput } from "@/components/reviews/star-rating-input";
 import { t } from "@/i18n/t";
 
 type ReviewFormProps = {
-  kind: "doctor" | "facility";
+  kind: "doctor" | "facility" | "pharmacy";
   slug: string;
 };
 

@@ -27,6 +27,7 @@ class DoctorsTable
                     ->searchable()
                     ->sortable(),
                 DirectoryTableColumns::featuredIcon(),
+                DirectoryTableColumns::sponsoredIcon(),
                 DirectoryTableColumns::acceptsPatientsIcon(),
                 DirectoryTableColumns::publicationBadge(),
                 DirectoryTableColumns::updatedAt(),

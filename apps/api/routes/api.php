@@ -47,7 +47,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/forum/categories', [ForumController::class, 'indexCategories']);
         Route::get('/forum/topics', [ForumController::class, 'searchTopics']);
         Route::get('/forum/categories/{category}/topics', [ForumController::class, 'indexTopics']);
-        Route::get('/forum/categories/{category}/topics/{topic}', [ForumController::class, 'showTopic']);
+        Route::get('/forum/categories/{category}/topics/{topic}', [ForumController::class, 'showTopic'])
+            ->middleware('auth.sanctum.optional');
     });
 
     Route::prefix('triage')->middleware('module:guidance')->group(function (): void {
@@ -84,6 +85,8 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['module:forum', 'role:member', 'throttle:api-forum-topics']);
         Route::post('/forum/categories/{category}/topics/{topic}/posts', [ForumController::class, 'storePost'])
             ->middleware(['module:forum', 'role:member', 'throttle:api-forum-posts']);
+        Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
+            ->middleware(['module:forum', 'role:member']);
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
             ->middleware(['role:member', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])

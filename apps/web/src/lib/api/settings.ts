@@ -8,13 +8,21 @@ export type PublicSettings = {
   public_forum: boolean;
   registrations_enabled: boolean;
   maintenance_mode: boolean;
+  maintenance_message: string | null;
   require_email_verification: boolean;
   logo_url: string | null;
   favicon_url: string | null;
+  placeholder_doctor_url: string | null;
+  placeholder_facility_url: string | null;
+  placeholder_pharmacy_url: string | null;
   footer_emergency_text: string;
   footer_disclaimer_text: string;
   copyright_name: string;
   profile_avatar_min_messages: number;
+  site_font_family: "geist" | "inter" | "system";
+  forum_rules_enabled: boolean;
+  forum_rules_title: string | null;
+  forum_rules_body: string | null;
 };
 
 export const publicSettingsDefaults: PublicSettings = {
@@ -24,9 +32,17 @@ export const publicSettingsDefaults: PublicSettings = {
   public_forum: true,
   registrations_enabled: true,
   maintenance_mode: false,
+  maintenance_message: null,
   require_email_verification: false,
   logo_url: null,
   favicon_url: null,
+  placeholder_doctor_url: null,
+  placeholder_facility_url: null,
+  placeholder_pharmacy_url: null,
+  site_font_family: "geist",
+  forum_rules_enabled: true,
+  forum_rules_title: null,
+  forum_rules_body: null,
   footer_emergency_text:
     "При медицинска итност повикайте 194 или 112 веднаш.",
   footer_disclaimer_text:

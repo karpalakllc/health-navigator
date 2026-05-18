@@ -97,6 +97,9 @@ final class FacilityCommonForm
     {
         return Fieldset::make('Publishing')
             ->schema([
+                Toggle::make('is_featured')
+                    ->label('Featured on homepage')
+                    ->helperText('Distinct from sponsorship. Highlights the profile in curated homepage sections.'),
                 Toggle::make('is_published')
                     ->default(false)
                     ->helperText(function ($record): ?string {

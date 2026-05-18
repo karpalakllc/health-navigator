@@ -66,6 +66,10 @@ export function ForumAuthorCard({ author, variant = "sidebar" }: ForumAuthorCard
               <Badge variant="primary" className="text-[10px]">
                 {t("forum.authorTeam")}
               </Badge>
+            ) : author.is_forum_moderator === true ? (
+              <Badge variant="primary" className="text-[10px]">
+                {t("forum.authorForumModerator")}
+              </Badge>
             ) : (
               <Badge variant="outline" className="text-[10px]">
                 {t("forum.authorMember")}

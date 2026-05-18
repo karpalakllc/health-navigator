@@ -16,16 +16,26 @@ class SiteSetting extends Model
         'registrations_enabled',
         'require_email_verification',
         'maintenance_mode',
+        'maintenance_message',
         'public_guidance',
         'public_products',
         'public_pharmacies',
         'public_forum',
         'logo_path',
         'favicon_path',
+        'placeholder_doctor_path',
+        'placeholder_facility_path',
+        'placeholder_pharmacy_path',
         'footer_emergency_text',
         'footer_disclaimer_text',
         'copyright_name',
         'profile_avatar_min_messages',
+        'site_font_family',
+        'forum_rules_enabled',
+        'forum_rules_title',
+        'forum_rules_body',
+        'forum_topics_require_moderation',
+        'forum_posts_require_moderation',
     ];
 
     protected function casts(): array
@@ -39,6 +49,9 @@ class SiteSetting extends Model
             'public_pharmacies' => 'boolean',
             'public_forum' => 'boolean',
             'profile_avatar_min_messages' => 'integer',
+            'forum_rules_enabled' => 'boolean',
+            'forum_topics_require_moderation' => 'boolean',
+            'forum_posts_require_moderation' => 'boolean',
         ];
     }
 
@@ -56,6 +69,8 @@ class SiteSetting extends Model
             'footer_disclaimer_text' => self::DEFAULT_FOOTER_DISCLAIMER,
             'copyright_name' => 'Zdravje360',
             'profile_avatar_min_messages' => 10,
+            'forum_topics_require_moderation' => true,
+            'forum_posts_require_moderation' => true,
         ];
 
         $testingDefaults = [
@@ -94,10 +109,18 @@ class SiteSetting extends Model
         return [
             'logo_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->logo_path)),
             'favicon_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->favicon_path)),
+            'placeholder_doctor_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_doctor_path)),
+            'placeholder_facility_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_facility_path)),
+            'placeholder_pharmacy_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_pharmacy_path)),
             'footer_emergency_text' => $this->footer_emergency_text ?: self::DEFAULT_FOOTER_EMERGENCY,
             'footer_disclaimer_text' => $this->footer_disclaimer_text ?: self::DEFAULT_FOOTER_DISCLAIMER,
             'copyright_name' => $this->copyright_name ?: 'Zdravje360',
             'profile_avatar_min_messages' => $this->profile_avatar_min_messages ?: 10,
+            'maintenance_message' => $this->maintenance_message,
+            'site_font_family' => $this->site_font_family ?: 'geist',
+            'forum_rules_enabled' => (bool) $this->forum_rules_enabled,
+            'forum_rules_title' => $this->forum_rules_title,
+            'forum_rules_body' => $this->forum_rules_body,
         ];
     }
 }

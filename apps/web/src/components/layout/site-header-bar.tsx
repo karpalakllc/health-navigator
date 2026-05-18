@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
+import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { SiteBrandMark } from "@/components/layout/site-brand-mark";
 import { SiteNav } from "@/components/layout/site-nav";
 import type { AuthUser } from "@/lib/api/me";
@@ -24,13 +25,7 @@ export function SiteHeaderBar({
 
   return (
     <>
-      <div
-        className={cn(
-          pageContainerClass,
-          "flex items-center gap-3 py-3",
-          "justify-between lg:justify-start lg:gap-4",
-        )}
-      >
+      <div className={cn(pageContainerClass, "flex items-center gap-3 py-3", "justify-between lg:justify-start lg:gap-4")}>
         <Link
           href="/"
           className="flex min-w-0 shrink-0 items-center"
@@ -68,6 +63,7 @@ export function SiteHeaderBar({
                 avatar_url: null,
                 avatar_initials: t("nav.account").charAt(0),
                 profile_avatar: { min_messages: 10, message_count: 0, can_change: false },
+                community_roles: [],
               }}
             />
           ) : (
@@ -88,43 +84,11 @@ export function SiteHeaderBar({
         </div>
       </div>
 
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-[90] lg:hidden" role="presentation">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            aria-label={t("search.close")}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="absolute right-0 top-0 flex h-full w-[min(100vw-3rem,20rem)] flex-col border-l border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="font-semibold text-foreground">{t("nav.menu")}</span>
-              <button
-                type="button"
-                className="rounded-lg p-2 text-muted-foreground hover:bg-secondary"
-                onClick={() => setMobileOpen(false)}
-                aria-label={t("search.close")}
-              >
-                <CloseIcon className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              <SiteNav
-                layout="vertical"
-                className="gap-0.5"
-                onNavigate={() => setMobileOpen(false)}
-              />
-            </div>
-            {!isLoggedIn ? (
-              <div className="border-t border-border p-4">
-                <Button href="/login" className="w-full justify-center">
-                  {t("nav.login")}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <MobileNavDrawer
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        isLoggedIn={isLoggedIn}
+      />
     </>
   );
 }
@@ -145,14 +109,6 @@ function MenuIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
 }

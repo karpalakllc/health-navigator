@@ -179,7 +179,22 @@ class DoctorTest extends TestCase
             ->assertJsonPath('data.years_experience', 12)
             ->assertJsonPath('data.languages.0', 'Македонски')
             ->assertJsonPath('data.office_hours.Пон', '08:00–14:00')
-            ->assertJsonPath('data.is_featured', true);
+            ->assertJsonPath('data.is_featured', true)
+            ->assertJsonPath('data.is_sponsored', false);
+    }
+
+    public function test_doctor_detail_exposes_sponsored_flag(): void
+    {
+        Doctor::factory()->create([
+            'slug' => 'sponsored-doc',
+            'is_sponsored' => true,
+            'is_featured' => false,
+        ]);
+
+        $this->getJson('/api/v1/doctors/sponsored-doc')
+            ->assertOk()
+            ->assertJsonPath('data.is_sponsored', true)
+            ->assertJsonPath('data.is_featured', false);
     }
 
     public function test_filters_featured_doctors(): void

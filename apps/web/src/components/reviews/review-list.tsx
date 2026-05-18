@@ -7,16 +7,16 @@ export function ReviewList({ reviews }: { reviews: PublicReview[] }) {
   }
 
   return (
-    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+    <ul className="grid list-none gap-3.5 p-0">
       {reviews.map((review) => (
-        <li key={review.id ?? `${review.author_name}-${review.published_at}`} className="space-y-2 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <StarRating value={review.rating} />
-            <span className="text-sm font-medium text-zinc-900">{review.author_name}</span>
-          </div>
-          {review.body ? (
-            <p className="text-sm text-zinc-700">{review.body}</p>
-          ) : null}
+        <li key={review.id ?? `${review.author_name}-${review.published_at}`}>
+          <article className="content-card rounded-[1.625rem] p-5 transition-shadow hover:shadow-[0_22px_56px_rgb(16_30_36_/_0.1)]">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <StarRating value={review.rating} />
+              <span className="text-base font-bold text-foreground">{review.author_name}</span>
+            </div>
+            {review.body ? <p className="text-sm leading-relaxed text-[#4b5864]">{review.body}</p> : null}
+          </article>
         </li>
       ))}
     </ul>

@@ -4,21 +4,25 @@ import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
-import { DirectoryDetailSidebar } from "@/components/directory/directory-detail-sidebar";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
 import { FacilityProfileHero } from "@/components/directory/facility-profile-hero";
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
+import { PharmacySidebarContact } from "@/components/directory/pharmacy-sidebar-contact";
+import { ProfileContentCard } from "@/components/design/profile-content-card";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
-import { fetchFacilityReviews } from "@/lib/api/reviews";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
 type PharmacyDetailPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    review_page?: string;
+    review_sort?: string;
+    review_rating?: string;
+  }>;
 };
 
 export async function generateMetadata({
@@ -43,6 +47,7 @@ export async function generateMetadata({
 
 export default async function PharmacyDetailPage({
   params,
+  searchParams,
 }: PharmacyDetailPageProps) {
   const settings = await fetchPublicSettings();
 
@@ -56,17 +61,13 @@ export default async function PharmacyDetailPage({
   }
 
   const { slug } = await params;
+  const reviewQuery = await searchParams;
 
   let pharmacy;
   let products;
-  let reviews;
 
   try {
-    [pharmacy, products, reviews] = await Promise.all([
-      fetchPharmacy(slug),
-      fetchPharmacyProducts(slug),
-      fetchFacilityReviews(slug),
-    ]);
+    [pharmacy, products] = await Promise.all([fetchPharmacy(slug), fetchPharmacyProducts(slug)]);
   } catch {
     notFound();
   }
@@ -80,7 +81,7 @@ export default async function PharmacyDetailPage({
   }));
 
   return (
-    <PageShell className="gap-8">
+    <PageShell gap="loose" className="pb-16 pt-[18px]">
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },
@@ -91,44 +92,30 @@ export default async function PharmacyDetailPage({
 
       <DirectoryDetailLayout
         main={
-          <>
-            <FacilityProfileHero
-              facility={pharmacy}
-              typeLabel={t("nav.pharmacies")}
-            />
+          <div className="space-y-5">
+            <FacilityProfileHero facility={pharmacy} typeLabel={t("nav.pharmacies")} />
 
             <PriceDisclaimer />
 
             {Object.keys(pharmacy.office_hours ?? {}).length > 0 ? (
-              <PageSection title={t("directory.officeHours")}>
+              <ProfileContentCard title={t("directory.officeHours")}>
                 <OfficeHoursGrid hours={pharmacy.office_hours} />
-              </PageSection>
+              </ProfileContentCard>
             ) : null}
 
-            <PageSection title={t("pharmacies.products")}>
+            <ProfileContentCard title={t("pharmacies.products")}>
               <EntityLinkList items={productItems} emptyMessage={t("pharmacies.noProducts")} />
-            </PageSection>
+            </ProfileContentCard>
 
             <ReviewSection
-              kind="facility"
+              kind="pharmacy"
               slug={slug}
               summary={pharmacy.review_summary}
-              reviews={reviews.data}
+              searchParams={reviewQuery}
             />
-          </>
+          </div>
         }
-        sidebar={
-          <DirectoryDetailSidebar
-            phone={pharmacy.phone}
-            email={pharmacy.email}
-            website={pharmacy.website}
-            mapQuery={{
-              name: pharmacy.name,
-              address: pharmacy.address,
-              city: pharmacy.city,
-            }}
-          />
-        }
+        sidebar={<PharmacySidebarContact pharmacy={pharmacy} />}
       />
     </PageShell>
   );

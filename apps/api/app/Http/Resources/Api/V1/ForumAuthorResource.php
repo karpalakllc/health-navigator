@@ -22,6 +22,7 @@ class ForumAuthorResource extends JsonResource
             'topics_count' => (int) ($this->forum_topics_count ?? 0),
             'posts_count' => (int) ($this->forum_posts_count ?? 0),
             'is_team_member' => $this->isStaff(),
+            'is_forum_moderator' => $this->isForumModerator(),
         ];
     }
 }

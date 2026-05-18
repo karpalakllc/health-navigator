@@ -81,6 +81,26 @@ class User extends Authenticatable implements FilamentUser
         return $this->user_kind === UserKind::Client;
     }
 
+    public function isForumModerator(): bool
+    {
+        return $this->hasRole('Forum Moderator');
+    }
+
+    public function canModerateForumTopic(ForumTopic $topic): bool
+    {
+        $category = $topic->category;
+
+        if ($category === null) {
+            return false;
+        }
+
+        if ($this->can('forum.moderate') && $this->canModerateForumCategory($category)) {
+            return true;
+        }
+
+        return $this->can('forum_topics.update');
+    }
+
     public function canModerateForumCategory(ForumCategory $category): bool
     {
         if ($this->can('forum.moderate') && ! $this->hasScopedForumModeration()) {

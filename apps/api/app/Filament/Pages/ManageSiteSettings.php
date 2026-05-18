@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Support\OptimizedImageUpload;
 use App\Models\SiteSetting;
 use App\Support\Media\BrandingUploadPath;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -49,12 +50,22 @@ class ManageSiteSettings extends Page implements HasSchemas
             'registrations_enabled' => $settings->registrations_enabled,
             'require_email_verification' => $settings->require_email_verification,
             'maintenance_mode' => $settings->maintenance_mode,
+            'maintenance_message' => $settings->maintenance_message,
             'public_guidance' => $settings->public_guidance,
             'public_products' => $settings->public_products,
             'public_pharmacies' => $settings->public_pharmacies,
             'public_forum' => $settings->public_forum,
             'logo_path' => self::brandingStateFromPath($settings->logo_path),
             'favicon_path' => self::brandingStateFromPath($settings->favicon_path),
+            'placeholder_doctor_path' => self::brandingStateFromPath($settings->placeholder_doctor_path),
+            'placeholder_facility_path' => self::brandingStateFromPath($settings->placeholder_facility_path),
+            'placeholder_pharmacy_path' => self::brandingStateFromPath($settings->placeholder_pharmacy_path),
+            'site_font_family' => $settings->site_font_family ?: 'geist',
+            'forum_rules_enabled' => $settings->forum_rules_enabled,
+            'forum_rules_title' => $settings->forum_rules_title,
+            'forum_rules_body' => $settings->forum_rules_body,
+            'forum_topics_require_moderation' => $settings->forum_topics_require_moderation,
+            'forum_posts_require_moderation' => $settings->forum_posts_require_moderation,
             'footer_emergency_text' => $settings->footer_emergency_text,
             'footer_disclaimer_text' => $settings->footer_disclaimer_text,
             'copyright_name' => $settings->copyright_name,
@@ -74,6 +85,23 @@ class ManageSiteSettings extends Page implements HasSchemas
                             ->label('Website logo'),
                         OptimizedImageUpload::siteBranding('favicon_path', 'site/favicon')
                             ->label('Favicon'),
+                        OptimizedImageUpload::siteBranding('placeholder_doctor_path', 'site/placeholders')
+                            ->label('Doctor placeholder'),
+                        OptimizedImageUpload::siteBranding('placeholder_facility_path', 'site/placeholders')
+                            ->label('Facility placeholder'),
+                        OptimizedImageUpload::siteBranding('placeholder_pharmacy_path', 'site/placeholders')
+                            ->label('Pharmacy placeholder'),
+                    ]),
+                Section::make('Typography')
+                    ->schema([
+                        Select::make('site_font_family')
+                            ->label('Site font')
+                            ->options([
+                                'geist' => 'Geist (default)',
+                                'inter' => 'Inter',
+                                'system' => 'System UI',
+                            ])
+                            ->required(),
                     ]),
                 Section::make('Footer copy')
                     ->schema([
@@ -107,6 +135,28 @@ class ManageSiteSettings extends Page implements HasSchemas
                             ->label('Require email verification'),
                         Toggle::make('maintenance_mode')
                             ->label('Maintenance mode'),
+                        Textarea::make('maintenance_message')
+                            ->label('Maintenance page message')
+                            ->rows(4)
+                            ->columnSpanFull(),
+                    ]),
+                Section::make('Forum community')
+                    ->schema([
+                        Toggle::make('forum_rules_enabled')
+                            ->label('Show community rules on forum'),
+                        TextInput::make('forum_rules_title')
+                            ->label('Rules section title')
+                            ->maxLength(255),
+                        Textarea::make('forum_rules_body')
+                            ->label('Rules body (one rule per line)')
+                            ->rows(8)
+                            ->columnSpanFull(),
+                        Toggle::make('forum_topics_require_moderation')
+                            ->label('Require admin approval for new topics')
+                            ->helperText('When off, member topics publish immediately. Forum moderators always publish immediately.'),
+                        Toggle::make('forum_posts_require_moderation')
+                            ->label('Require admin approval for new replies')
+                            ->helperText('When off, member replies publish immediately. Forum moderators always publish immediately.'),
                     ]),
                 Section::make('Public modules')
                     ->description('When disabled, the API returns “coming soon” and the web shows a blurred placeholder.')
@@ -126,7 +176,13 @@ class ManageSiteSettings extends Page implements HasSchemas
 
         $persist = $data;
 
-        foreach (['logo_path', 'favicon_path'] as $field) {
+        foreach ([
+            'logo_path',
+            'favicon_path',
+            'placeholder_doctor_path',
+            'placeholder_facility_path',
+            'placeholder_pharmacy_path',
+        ] as $field) {
             $normalized = BrandingUploadPath::normalize($data[$field] ?? null);
 
             if ($normalized !== null) {
@@ -144,6 +200,9 @@ class ManageSiteSettings extends Page implements HasSchemas
             ...$data,
             'logo_path' => self::brandingStateFromPath($persist['logo_path'] ?? null),
             'favicon_path' => self::brandingStateFromPath($persist['favicon_path'] ?? null),
+            'placeholder_doctor_path' => self::brandingStateFromPath($persist['placeholder_doctor_path'] ?? null),
+            'placeholder_facility_path' => self::brandingStateFromPath($persist['placeholder_facility_path'] ?? null),
+            'placeholder_pharmacy_path' => self::brandingStateFromPath($persist['placeholder_pharmacy_path'] ?? null),
         ];
 
         Notification::make()

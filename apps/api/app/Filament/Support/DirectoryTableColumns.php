@@ -25,6 +25,14 @@ final class DirectoryTableColumns
             ->toggleable(isToggledHiddenByDefault: true);
     }
 
+    public static function sponsoredIcon(): IconColumn
+    {
+        return IconColumn::make('is_sponsored')
+            ->label('Sponsored')
+            ->boolean()
+            ->toggleable(isToggledHiddenByDefault: true);
+    }
+
     public static function hiddenSlug(): TextColumn
     {
         return TextColumn::make('slug')

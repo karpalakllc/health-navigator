@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { t } from "@/i18n/t";
 
 const steps = [
@@ -10,16 +9,16 @@ const steps = [
 
 export function HomeHowItWorks() {
   return (
-    <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <ul className="grid gap-[18px] md:grid-cols-2 xl:grid-cols-4">
       {steps.map((step, i) => (
         <li key={step.titleKey}>
-          <Card className="h-full border-border/80 bg-card/80 p-5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+          <article className="h-full rounded-3xl border border-border/60 bg-white/50 p-[22px]">
+            <span className="step-no-gradient mb-3.5 inline-flex h-[42px] w-[42px] items-center justify-center rounded-2xl text-sm font-black text-white">
               {i + 1}
             </span>
-            <h3 className="mt-2 font-semibold text-foreground">{t(step.titleKey)}</h3>
+            <h3 className="text-[1.08rem] font-extrabold tracking-tight text-foreground">{t(step.titleKey)}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(step.bodyKey)}</p>
-          </Card>
+          </article>
         </li>
       ))}
     </ul>

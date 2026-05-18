@@ -11,6 +11,7 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
+  community_roles: string[];
   avatar_url: string | null;
   avatar_initials: string;
   profile_avatar: ProfileAvatarMeta;

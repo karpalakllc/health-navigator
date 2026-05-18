@@ -1,20 +1,15 @@
 import { ForumCategoryCard } from "@/components/forum/forum-category-card";
 import { ForumCommunityRules } from "@/components/forum/forum-community-rules";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ForumSearchTopicCard } from "@/components/forum/forum-search-topic-card";
 import { EmptyState } from "@/components/directory/empty-state";
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
+import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { FilterStatsRow } from "@/components/directory/filter-stats-row";
 import { Pagination } from "@/components/directory/pagination";
 import { PageHeader } from "@/components/directory/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { pageMetadata } from "@/lib/metadata";
 import { fetchForumCategories, fetchForumTopicSearch } from "@/lib/api/forum";
+import { fetchPublicSettingsServer } from "@/lib/api/settings";
 import { t, tFormat } from "@/i18n/t";
 import type { Metadata } from "next";
 
@@ -31,7 +26,10 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
   const query = await searchParams;
   const page = query.page ? Number(query.page) : 1;
   const searchQuery = query.q?.trim() ?? "";
-  const categories = await fetchForumCategories();
+  const [categories, settings] = await Promise.all([
+    fetchForumCategories(),
+    fetchPublicSettingsServer(),
+  ]);
   const showSearch = searchQuery.length >= 2;
   const topics = showSearch
     ? await fetchForumTopicSearch({
@@ -43,14 +41,9 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
   return (
     <PageShell>
       <PageHeader title={t("forum.title")} description={t("forum.description")} />
-      <ForumSafetyNotice />
-      <ForumCommunityRules />
+      <ForumCommunityRules settings={settings} />
 
-      <FilterForm searchHint={SEARCH_QUERY_HINT}>
-        <FilterField label={t("forum.searchTopics")}>
-          <input name="q" defaultValue={searchQuery} className={filterInputClassName} />
-        </FilterField>
-      </FilterForm>
+      <ForumTopicSearch defaultQuery={searchQuery} action="/forum" />
 
       {showSearch && topics ? (
         <div className="space-y-6">

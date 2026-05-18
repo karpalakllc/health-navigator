@@ -10,14 +10,14 @@ export function OfficeHoursGrid({
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+    <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map(([day, time]) => (
         <div
           key={day}
-          className="rounded-xl border border-border/60 bg-secondary/40 px-3 py-3 text-sm shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--color-card)_70%,transparent)]"
+          className="flex min-h-[92px] flex-col justify-center rounded-[1.375rem] border border-border bg-gradient-to-b from-[#fbfcfc] to-[#f8fafb] px-4 py-4"
         >
-          <p className="font-semibold">{day}</p>
-          <p className="text-muted-foreground">{time}</p>
+          <p className="text-base font-extrabold text-foreground">{day}</p>
+          <p className="mt-2 text-base text-muted-foreground">{time}</p>
         </div>
       ))}
     </div>

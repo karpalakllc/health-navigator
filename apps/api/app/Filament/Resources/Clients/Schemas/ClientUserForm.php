@@ -6,8 +6,6 @@ use App\Models\ForumCategory;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use Spatie\Permission\Models\Role;
-
 class ClientUserForm
 {
     public static function configure(Schema $schema): Schema
@@ -16,16 +14,15 @@ class ClientUserForm
             TextInput::make('name')->required(),
             TextInput::make('email')->email()->required()->disabledOn('edit'),
             Select::make('roles')
-                ->relationship('roles', 'name')
+                ->relationship(
+                    name: 'roles',
+                    titleAttribute: 'name',
+                    modifyQueryUsing: fn ($query) => $query->where('name', 'Forum Moderator'),
+                )
                 ->multiple()
                 ->preload()
-                ->options(
-                    Role::query()
-                        ->whereIn('name', ['Forum Moderator'])
-                        ->orderBy('name')
-                        ->pluck('name', 'id'),
-                )
                 ->label('Community roles')
+                ->helperText('Grants forum moderation in Filament (pin, lock, approve) without staff admin access.')
                 ->visible(fn (): bool => auth()->user()?->can('clients.assign_roles') ?? false),
             Select::make('moderatedForumCategories')
                 ->relationship('moderatedForumCategories', 'name')

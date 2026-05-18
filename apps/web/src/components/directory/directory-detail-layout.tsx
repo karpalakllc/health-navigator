@@ -10,8 +10,8 @@ type DirectoryDetailLayoutProps = {
  */
 export function DirectoryDetailLayout({ main, sidebar }: DirectoryDetailLayoutProps) {
   return (
-    <div className="grid gap-8 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">{main}</div>
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_350px]">
+      <div className="space-y-5">{main}</div>
       {sidebar}
     </div>
   );

@@ -17,9 +17,14 @@ function toQuery(params: DoctorListParams): string {
   const search = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
-      search.set(key, String(value));
+    if (value === undefined || value === "") {
+      continue;
     }
+    if (typeof value === "boolean") {
+      search.set(key, value ? "1" : "0");
+      continue;
+    }
+    search.set(key, String(value));
   }
 
   const query = search.toString();

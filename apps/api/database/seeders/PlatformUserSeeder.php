@@ -26,6 +26,7 @@ class PlatformUserSeeder extends Seeder
                 'name' => 'Platform Admin',
                 'password' => env('PLATFORM_ADMIN_PASSWORD', 'password'),
                 'role' => UserRole::Admin,
+                'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
             ],
         );

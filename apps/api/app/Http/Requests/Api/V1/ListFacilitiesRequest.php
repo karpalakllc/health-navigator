@@ -27,6 +27,7 @@ class ListFacilitiesRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:255'],
             'has_emergency' => ['nullable', 'boolean'],
             'department' => ['nullable', 'string', 'max:255'],
+            'featured' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

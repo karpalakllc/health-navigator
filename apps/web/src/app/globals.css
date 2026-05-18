@@ -4,7 +4,8 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --color-background: hsl(210 20% 98%);
+  --color-background: #f7f6f3;
+  --color-surface: rgb(255 255 255 / 0.86);
   --color-foreground: hsl(220 25% 10%);
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: hsl(220 25% 10%);
@@ -101,7 +102,189 @@ body {
   }
 }
 
+@keyframes mesh-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(18px, -14px);
+  }
+}
+
+@keyframes mesh-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-16px, 16px);
+  }
+}
+
 @layer utilities {
+  .surface-glass {
+    background: rgb(255 255 255 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.84);
+    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+  }
+
+  .surface-glass-strong {
+    background: rgb(255 255 255 / 0.92);
+    border: 1px solid rgb(255 255 255 / 0.88);
+    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
+  }
+
+  /** How-it-works panel — same glass look, tighter shadow so it does not bleed into sections below. */
+  .how-card {
+    background: rgb(255 255 255 / 0.92);
+    border: 1px solid rgb(255 255 255 / 0.88);
+    box-shadow: 0 12px 32px rgb(16 30 36 / 0.06);
+  }
+
+  .directory-hero-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 34px;
+    background: rgb(255 255 255 / 0.78);
+    border: 1px solid rgb(255 255 255 / 0.84);
+    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
+  }
+
+  .profile-hero-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 32px;
+    background: rgb(255 255 255 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.84);
+    box-shadow: 0 22px 56px rgb(16 30 36 / 0.09);
+  }
+
+  .filters-card {
+    position: relative;
+    border-radius: 28px;
+    background: rgb(255 255 255 / 0.88);
+    border: 1px solid rgb(255 255 255 / 0.86);
+    box-shadow: 0 18px 48px rgb(16 30 36 / 0.08);
+  }
+
+  /** Nested inside directory hero — no extra shadow (parent carries depth). */
+  .filters-card-nested {
+    box-shadow: none;
+  }
+
+  .directory-card {
+    background: rgb(255 255 255 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.84);
+    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+  }
+
+  .directory-card.card-lift:hover {
+    box-shadow: 0 22px 56px rgb(16 30 36 / 0.1);
+  }
+
+  .content-card {
+    background: rgb(255 255 255 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.84);
+    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+  }
+
+  .trust-badge-compact {
+    min-height: 58px;
+    border-radius: 20px;
+    background: rgb(255 255 255 / 0.82);
+    border: 1px solid rgb(255 255 255 / 0.88);
+    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+  }
+
+  .directory-tag {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    border-radius: 999px;
+    background: #f1f4f6;
+    padding: 0 13px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #5d6771;
+  }
+
+  .directory-tag-teal {
+    background: #eef8f8;
+    color: var(--color-accent);
+  }
+
+  .hero-mesh-grid {
+    background-image:
+      linear-gradient(rgb(37 108 112 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(37 108 112 / 0.055) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.5), transparent 75%);
+  }
+
+  .rail-scroll-x {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .rail-scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-blob-red {
+    background: linear-gradient(180deg, #ffd6d6, var(--color-primary));
+    animation: mesh-float-a 12s ease-in-out infinite;
+  }
+
+  .hero-blob-teal {
+    background: linear-gradient(180deg, #b7d9db, var(--color-accent));
+    animation: mesh-float-b 13s ease-in-out infinite;
+  }
+
+  .icon-soft-red {
+    background: #fff1f1;
+    color: var(--color-primary);
+  }
+
+  .icon-soft-teal {
+    background: #eef8f8;
+    color: var(--color-accent);
+  }
+
+  .btn-gradient-primary {
+    background: linear-gradient(180deg, #ff7b7b, #ef4b4b);
+    color: #ffffff;
+    box-shadow: 0 14px 28px rgb(255 87 87 / 0.24);
+  }
+
+  .btn-gradient-teal {
+    background: linear-gradient(180deg, #317d82, var(--color-accent));
+    color: #ffffff;
+    box-shadow: 0 14px 28px rgb(37 108 112 / 0.18);
+  }
+
+  .card-lift {
+    transition:
+      box-shadow 0.28s ease,
+      transform 0.28s ease;
+  }
+
+  .card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
+  }
+
+  .forum-band-gradient {
+    background: linear-gradient(180deg, #2f7d81, var(--color-accent));
+    box-shadow: 0 12px 32px rgb(16 30 36 / 0.08);
+  }
+
+  .step-no-gradient {
+    background: linear-gradient(180deg, #ff7d7d, var(--color-primary));
+  }
+
   .glass {
     background-color: color-mix(in srgb, var(--color-card) 85%, transparent);
     backdrop-filter: blur(12px);
@@ -116,9 +299,8 @@ body {
   }
 
   .card-hover:hover {
-    box-shadow:
-      0 14px 36px -16px color-mix(in srgb, var(--color-primary) 22%, rgb(0 0 0 / 0.12));
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
     border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
   }
 
@@ -157,8 +339,14 @@ body {
     filter: none;
   }
 
-  .card-hover:hover {
+  .card-hover:hover,
+  .card-lift:hover {
     transform: none;
+  }
+
+  .hero-blob-red,
+  .hero-blob-teal {
+    animation: none !important;
   }
 
   .animate-fade-up,

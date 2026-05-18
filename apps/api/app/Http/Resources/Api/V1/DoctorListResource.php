@@ -21,6 +21,10 @@ class DoctorListResource extends JsonResource
             fn ($specialty) => $specialty->pivot->is_primary,
         );
 
+        $primaryFacility = $this->facilities->first(
+            fn ($facility) => $facility->pivot->is_primary,
+        ) ?? $this->facilities->first();
+
         return [
             'slug' => $this->slug,
             'full_name' => $this->full_name,
@@ -31,6 +35,7 @@ class DoctorListResource extends JsonResource
             'years_experience' => $this->years_experience,
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,
+            'is_sponsored' => (bool) $this->is_sponsored,
             'primary_specialty' => $primary
                 ? [
                     'slug' => $primary->slug,
@@ -38,6 +43,12 @@ class DoctorListResource extends JsonResource
                 ]
                 : null,
             'review_summary' => ReviewSummary::for($this->resource),
+            'primary_facility' => $primaryFacility
+                ? [
+                    'name' => $primaryFacility->name,
+                    'city' => $primaryFacility->city,
+                ]
+                : null,
         ];
     }
 }

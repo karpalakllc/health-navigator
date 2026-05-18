@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\ListForumPostsRequest;
 use App\Http\Requests\Api\V1\ListForumTopicsRequest;
 use App\Http\Requests\Api\V1\StoreForumPostRequest;
 use App\Http\Requests\Api\V1\StoreForumTopicRequest;
+use App\Http\Requests\Api\V1\UpdateForumTopicModerationRequest;
 use App\Http\Resources\Api\V1\ForumCategoryResource;
 use App\Http\Resources\Api\V1\ForumPostResource;
 use App\Http\Resources\Api\V1\ForumTopicDetailResource;
@@ -20,6 +21,7 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Services\AnalyticsService;
+use App\Support\Forum\ForumContentModeration;
 use App\Support\ForumAuthorCounts;
 use App\Support\Slug;
 use App\Support\UgcMailer;
@@ -144,16 +146,20 @@ class ForumController extends Controller
             $baseSlug,
         );
 
+        $status = ForumContentModeration::initialTopicStatus($user);
+
         $topic = ForumTopic::query()->create([
             'forum_category_id' => $categoryModel->id,
             'user_id' => $user->id,
             'slug' => $slug,
             'title' => $request->string('title')->toString(),
             'body' => $request->string('body')->toString(),
-            'status' => ForumContentStatus::Pending,
+            'status' => $status,
         ]);
 
-        UgcMailer::notifySubmitted($topic);
+        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+            UgcMailer::notifySubmitted($topic);
+        }
 
         $this->analytics->record('forum.topic_created', $user, [
             'category_id' => $categoryModel->id,
@@ -184,14 +190,19 @@ class ForumController extends Controller
             ]);
         }
 
+        $user = $request->user();
+        $status = ForumContentModeration::initialPostStatus($user);
+
         $post = ForumPost::query()->create([
             'forum_topic_id' => $topicModel->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'body' => $request->string('body')->toString(),
-            'status' => ForumContentStatus::Pending,
+            'status' => $status,
         ]);
 
-        UgcMailer::notifySubmitted($post);
+        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+            UgcMailer::notifySubmitted($post);
+        }
 
         $this->analytics->record('forum.post_created', $request->user(), [
             'topic_id' => $topicModel->id,
@@ -204,6 +215,35 @@ class ForumController extends Controller
             'status' => $post->status->value,
             'created_at' => $post->created_at?->toIso8601String(),
         ], 201);
+    }
+
+    public function updateTopicModeration(
+        string $category,
+        string $topic,
+        UpdateForumTopicModerationRequest $request,
+    ): JsonResponse {
+        $categoryModel = $this->publishedCategory($category);
+        $topicModel = $this->approvedTopic($categoryModel, $topic);
+
+        $this->authorize('update', $topicModel);
+
+        $updates = [];
+
+        if ($request->has('is_pinned')) {
+            $updates['is_pinned'] = $request->boolean('is_pinned');
+        }
+
+        if ($request->has('is_locked')) {
+            $updates['is_locked'] = $request->boolean('is_locked');
+        }
+
+        $topicModel->update($updates);
+
+        return ApiResponse::success([
+            'slug' => $topicModel->slug,
+            'is_pinned' => $topicModel->is_pinned,
+            'is_locked' => $topicModel->is_locked,
+        ]);
     }
 
     public function myTopics(ListForumTopicsRequest $request): JsonResponse

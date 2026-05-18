@@ -6,6 +6,7 @@ use App\Support\PermissionCatalog;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Spatie\Permission\Models\Permission;
 
 class RoleForm
 {
@@ -16,9 +17,10 @@ class RoleForm
             CheckboxList::make('permissions')
                 ->relationship('permissions', 'name')
                 ->options(
-                    collect(PermissionCatalog::all())
-                        ->sort()
-                        ->mapWithKeys(fn (string $name) => [$name => $name])
+                    Permission::query()
+                        ->whereIn('name', PermissionCatalog::all())
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
                         ->all(),
                 )
                 ->columns(2)

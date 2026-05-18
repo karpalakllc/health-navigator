@@ -9,7 +9,17 @@ export type PaginatedEnvelope<T> = {
     per_page: number;
     total: number;
     last_page: number;
+    viewer_review?: ViewerReview | null;
   };
+};
+
+export type ViewerReview = {
+  id: number;
+  rating: number;
+  body: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string | null;
+  published_at: string | null;
 };
 
 export type ApiHealthData = {
@@ -60,9 +70,14 @@ export type DoctorListItem = {
   years_experience: number | null;
   accepts_new_patients: boolean;
   is_featured: boolean;
+  is_sponsored: boolean;
   primary_specialty: {
     slug: string;
     name: string;
+  } | null;
+  primary_facility: {
+    name: string;
+    city: string | null;
   } | null;
   review_summary: ReviewSummary;
 };
@@ -96,6 +111,7 @@ export type DoctorDetail = {
   office_hours: Record<string, string>;
   accepts_new_patients: boolean;
   is_featured: boolean;
+  is_sponsored: boolean;
   city: string | null;
   phone: string | null;
   email: string | null;
@@ -122,6 +138,9 @@ export type FacilityListItem = {
   type: FacilityType;
   city: string | null;
   avatar_url: string | null;
+  has_emergency_services: boolean;
+  is_featured: boolean;
+  departments_count: number;
   review_summary: ReviewSummary;
 };
 

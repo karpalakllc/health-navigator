@@ -29,6 +29,7 @@ class DoctorFactory extends Factory
             'published_at' => now(),
             'accepts_new_patients' => true,
             'is_featured' => false,
+            'is_sponsored' => false,
         ];
     }
 
