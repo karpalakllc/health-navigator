@@ -31,18 +31,20 @@ export function DirectoryAvatar({
 
   if (src) {
     return (
-      <img
-        src={src}
-        alt=""
-        className={cn("object-cover", imageClassName, className)}
-      />
+      <div className={cn("relative shrink-0 overflow-hidden bg-[#eef2f4]", className)}>
+        <img
+          src={src}
+          alt=""
+          className={cn("h-full w-full object-cover object-center", imageClassName)}
+        />
+      </div>
     );
   }
 
   return (
     <div
       className={cn(
-        "flex items-center justify-center font-bold",
+        "flex shrink-0 items-center justify-center font-bold",
         kind === "doctor" && "bg-primary/10 text-primary",
         kind === "facility" && "bg-accent/10 text-accent",
         kind === "pharmacy" && "bg-teal-500/10 text-teal-700",

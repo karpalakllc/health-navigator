@@ -22,9 +22,8 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
           kind="doctor"
           avatarUrl={doctor.avatar_url}
           name={doctor.full_name}
-          className="mx-auto h-[126px] w-[126px] shrink-0 rounded-full border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
-          imageClassName="h-full w-full rounded-full object-cover"
-          fallbackClassName="h-full w-full rounded-full text-4xl"
+          className="mx-auto h-[126px] w-[126px] rounded-[1.375rem] border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
+          fallbackClassName="text-4xl"
         />
 
         <div className="min-w-0 space-y-4 text-center sm:text-left">

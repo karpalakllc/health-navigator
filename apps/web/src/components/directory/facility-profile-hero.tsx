@@ -32,9 +32,8 @@ export function FacilityProfileHero({
           kind={isClinicalFacility(facility) ? "facility" : "pharmacy"}
           avatarUrl={facility.avatar_url}
           name={facility.name}
-          className="mx-auto h-[126px] w-[126px] shrink-0 rounded-[1.375rem] border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
-          imageClassName="h-full w-full rounded-[1.375rem] object-cover"
-          fallbackClassName="h-full w-full rounded-[1.375rem] text-4xl"
+          className="mx-auto h-[126px] w-[126px] rounded-[1.375rem] border border-white/90 shadow-[0_18px_44px_rgb(16_30_36_/_0.12)] sm:mx-0"
+          fallbackClassName="text-4xl"
         />
 
         <div className="min-w-0 space-y-4 text-center sm:text-left">
