@@ -2,18 +2,32 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AuthFormCard } from "@/components/auth/auth-form-card";
+import { PasswordInput } from "@/components/auth/password-input";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
+import { safeRedirectTarget } from "@/lib/auth/login-href";
 import { t } from "@/i18n/t";
+
+const REMEMBER_EMAIL_KEY = "zdravje360.rememberEmail";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(REMEMBER_EMAIL_KEY);
+    if (stored) {
+      setEmail(stored);
+      setRemember(true);
+    }
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -36,7 +50,13 @@ export function LoginForm() {
         return;
       }
 
-      const redirect = searchParams.get("redirect") ?? "/account";
+      if (remember) {
+        localStorage.setItem(REMEMBER_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+
+      const redirect = safeRedirectTarget(searchParams.get("redirect"), "/");
       router.push(redirect);
       router.refresh();
     } catch {
@@ -47,10 +67,10 @@ export function LoginForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.email")}</span>
+          <span className="font-semibold text-foreground">{t("auth.email")}</span>
           <input
             type="email"
             name="email"
@@ -62,24 +82,32 @@ export function LoginForm() {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="flex items-center justify-between gap-2 font-medium text-foreground">
+          <span className="flex items-center justify-between gap-2 font-semibold text-foreground">
             <span>{t("auth.password")}</span>
             <Link
               href="/forgot-password"
-              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+              className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
             >
               {t("auth.forgotPassword")}
             </Link>
           </span>
-          <input
-            type="password"
+          <PasswordInput
+            id="login-password"
             name="password"
             autoComplete="current-password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={filterInputClassName}
+            onChange={setPassword}
           />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
+            className="h-4 w-4 rounded border-border text-primary"
+          />
+          {t("auth.rememberMe")}
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
@@ -89,7 +117,7 @@ export function LoginForm() {
           {t("auth.noAccount")}{" "}
           <Link
             href="/register"
-            className="font-medium text-primary underline-offset-4 hover:underline"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
           >
             {t("auth.register")}
           </Link>
@@ -109,6 +137,6 @@ export function LoginForm() {
           .
         </p>
       </form>
-    </div>
+    </AuthFormCard>
   );
 }

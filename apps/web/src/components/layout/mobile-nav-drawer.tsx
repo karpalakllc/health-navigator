@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { SiteNav } from "@/components/layout/site-nav";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { loginHref } from "@/lib/auth/login-href";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
@@ -14,6 +16,8 @@ type MobileNavDrawerProps = {
 };
 
 export function MobileNavDrawer({ open, onClose, isLoggedIn }: MobileNavDrawerProps) {
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!open) {
       return;
@@ -71,7 +75,7 @@ export function MobileNavDrawer({ open, onClose, isLoggedIn }: MobileNavDrawerPr
         {!isLoggedIn ? (
           <div className="border-t border-border p-4">
             <Link
-              href="/login"
+              href={loginHref(pathname)}
               onClick={onClose}
               className={cn(
                 "inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90",

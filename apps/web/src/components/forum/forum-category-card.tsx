@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import type { ForumCategory } from "@/lib/api/forum";
 import { authorInitials } from "@/lib/format";
 import { t, tFormat } from "@/i18n/t";
@@ -9,7 +8,7 @@ export function ForumCategoryCard({ category }: { category: ForumCategory }) {
 
   return (
     <Link href={`/forum/${category.slug}`} className="group block h-full">
-      <Card className="card-hover flex h-full flex-col gap-4 p-5 transition-shadow">
+      <article className="directory-card card-lift flex h-full flex-col gap-4 rounded-[1.375rem] p-5">
         <div className="flex items-start gap-4">
           <span
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-accent/20 text-sm font-bold text-primary ring-1 ring-primary/10"
@@ -29,7 +28,7 @@ export function ForumCategoryCard({ category }: { category: ForumCategory }) {
             ? tFormat("forum.topicsCount", { count: String(category.topics_count) })
             : t("forum.topics")}
         </p>
-      </Card>
+      </article>
     </Link>
   );
 }

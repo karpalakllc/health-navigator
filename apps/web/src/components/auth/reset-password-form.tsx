@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AuthFormCard } from "@/components/auth/auth-form-card";
+import { PasswordInput } from "@/components/auth/password-input";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -55,7 +57,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium text-foreground">{t("auth.email")}</span>
@@ -70,26 +72,24 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
         </label>
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium text-foreground">{t("auth.password")}</span>
-          <input
-            type="password"
+          <PasswordInput
+            id="reset-password"
             name="password"
             autoComplete="new-password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={filterInputClassName}
+            onChange={setPassword}
           />
         </label>
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium text-foreground">{t("auth.registerPasswordConfirm")}</span>
-          <input
-            type="password"
+          <PasswordInput
+            id="reset-password-confirm"
             name="password_confirmation"
             autoComplete="new-password"
             required
             value={passwordConfirmation}
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            className={filterInputClassName}
+            onChange={setPasswordConfirmation}
           />
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -102,6 +102,6 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
           {t("auth.backToLogin")}
         </Link>
       </p>
-    </div>
+    </AuthFormCard>
   );
 }

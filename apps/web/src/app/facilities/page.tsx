@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/directory/empty-state";
 import { FacilitiesFilterBar } from "@/components/directory/facilities-filter-bar";
 import { FacilitiesResultsSection } from "@/components/directory/facilities-results-section";
 import { PageShell } from "@/components/ui/page-shell";
-import { pageEdgeBleedClass } from "@/components/ui/layout";
+import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { Pagination } from "@/components/directory/pagination";
 import { fetchDepartments } from "@/lib/api/departments";
 import { fetchFacilities } from "@/lib/api/facilities";
@@ -69,7 +69,7 @@ export default async function FacilitiesPage({
 
   return (
     <>
-      <div className={`${pageEdgeBleedClass} flex flex-col gap-6 pb-2 pt-[18px]`}>
+      <PageHeroBleed>
       <DirectoryHero
         badge={
           <>
@@ -111,7 +111,7 @@ export default async function FacilitiesPage({
           },
         ]}
       />
-      </div>
+      </PageHeroBleed>
 
       <PageShell gap="loose" className="pb-16 pt-6">
       {facilities.data.length === 0 ? (

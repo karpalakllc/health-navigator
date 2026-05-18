@@ -82,6 +82,7 @@ class MvpAcceptanceFlowTest extends TestCase
         $this->postJson('/api/v1/forum/categories/mvp-accept-cat/topics', [
             'title' => 'MVP acceptance forum topic',
             'body' => 'Opening post body with sufficient length for validation rules.',
+            'accepted_community_rules' => true,
         ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending');

@@ -24,7 +24,7 @@ export function AccountSubNav({ current, className }: AccountSubNavProps) {
     <nav
       aria-label={t("account.subNavAria")}
       className={cn(
-        "flex flex-row gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1 lg:flex-col lg:overflow-visible",
+        "content-card flex flex-row gap-1 overflow-x-auto rounded-[1.25rem] p-1 lg:flex-col lg:overflow-visible",
         className,
       )}
     >

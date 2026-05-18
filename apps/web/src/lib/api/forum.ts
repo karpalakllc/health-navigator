@@ -21,6 +21,7 @@ export type ForumCategory = {
 export type ForumTopicListItem = {
   slug: string;
   title: string;
+  excerpt?: string;
   author_name: string;
   replies_count: number;
   last_post_at: string | null;
@@ -54,12 +55,14 @@ export type ForumPost = {
 export type ForumTopicPage = {
   topic: ForumTopicDetail;
   posts: ForumPost[];
+  related_topics?: ForumTopicListItem[];
   meta: PaginatedEnvelope<ForumPost>["meta"];
 };
 
 export type ForumTopicSearchItem = {
   slug: string;
   title: string;
+  excerpt?: string;
   author_name: string;
   replies_count: number;
   last_post_at: string | null;
@@ -92,9 +95,12 @@ export async function fetchForumCategories(): Promise<ForumCategory[]> {
   return apiGet<ForumCategory[]>("/forum/categories");
 }
 
-export async function fetchForumTopicSearch(params: { q?: string; page?: number } = {}) {
+export async function fetchForumTopicSearch(
+  params: { q?: string; category?: string; page?: number } = {},
+) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
+  if (params.category) search.set("category", params.category);
   if (params.page) search.set("page", String(params.page));
   const query = search.toString();
 
@@ -103,12 +109,17 @@ export async function fetchForumTopicSearch(params: { q?: string; page?: number 
   );
 }
 
+export async function fetchForumRecentTopics(perPage = 8) {
+  return apiGetPaginated<ForumTopicSearchItem>(`/forum/topics/recent?per_page=${perPage}`);
+}
+
 export async function fetchForumTopics(
   categorySlug: string,
-  params: { q?: string; page?: number } = {},
+  params: { q?: string; sort?: "latest" | "active"; page?: number } = {},
 ) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
+  if (params.sort && params.sort !== "latest") search.set("sort", params.sort);
   if (params.page) search.set("page", String(params.page));
   const query = search.toString();
 
@@ -136,13 +147,18 @@ export async function fetchForumTopicPage(
   }
 
   const body = (await response.json()) as {
-    data: { topic: ForumTopicDetail; posts: ForumPost[] };
+    data: {
+      topic: ForumTopicDetail;
+      posts: ForumPost[];
+      related_topics?: ForumTopicListItem[];
+    };
     meta: ForumTopicPage["meta"];
   };
 
   return {
     topic: body.data.topic,
     posts: body.data.posts,
+    related_topics: body.data.related_topics ?? [],
     meta: body.meta,
   };
 }

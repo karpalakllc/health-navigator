@@ -45,6 +45,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('module:forum')->group(function (): void {
         Route::get('/forum/categories', [ForumController::class, 'indexCategories']);
+        Route::get('/forum/topics/recent', [ForumController::class, 'recentTopics']);
         Route::get('/forum/topics', [ForumController::class, 'searchTopics']);
         Route::get('/forum/categories/{category}/topics', [ForumController::class, 'indexTopics']);
         Route::get('/forum/categories/{category}/topics/{topic}', [ForumController::class, 'showTopic'])

@@ -36,6 +36,24 @@ class ForumController extends Controller
         private readonly AnalyticsService $analytics,
     ) {}
 
+    public function recentTopics(ListForumTopicsRequest $request): JsonResponse
+    {
+        $perPage = min($request->validated()['per_page'] ?? 8, 20);
+
+        $paginator = ForumTopic::query()
+            ->approved()
+            ->with(['user', 'category'])
+            ->orderByDesc('last_post_at')
+            ->orderByDesc('published_at')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return ApiResponse::paginated(
+            $paginator,
+            ForumTopicSearchResource::collection($paginator),
+        );
+    }
+
     public function searchTopics(ListForumTopicsRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -51,7 +69,11 @@ class ForumController extends Controller
             );
         }
 
-        $paginator = $this->forumTopicSearchPaginator($q, $perPage);
+        $paginator = $this->forumTopicSearchPaginator(
+            $q,
+            $perPage,
+            $validated['category'] ?? null,
+        );
 
         return ApiResponse::paginated(
             $paginator,
@@ -79,10 +101,19 @@ class ForumController extends Controller
         $query = ForumTopic::query()
             ->where('forum_category_id', $categoryModel->id)
             ->approved()
-            ->with('user')
-            ->orderByDesc('is_pinned')
-            ->orderByDesc('last_post_at')
-            ->orderByDesc('published_at');
+            ->with('user');
+
+        if (($validated['sort'] ?? 'latest') === 'active') {
+            $query
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('replies_count')
+                ->orderByDesc('last_post_at');
+        } else {
+            $query
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('last_post_at')
+                ->orderByDesc('published_at');
+        }
 
         if (! empty($validated['q'])) {
             $query->searchTitle($validated['q']);
@@ -119,10 +150,20 @@ class ForumController extends Controller
         $perPage = $validated['per_page'] ?? 20;
         $paginator = $postsQuery->paginate($perPage)->withQueryString();
 
+        $related = ForumTopic::query()
+            ->where('forum_category_id', $categoryModel->id)
+            ->approved()
+            ->whereKeyNot($topicModel->id)
+            ->with('user')
+            ->orderByDesc('last_post_at')
+            ->limit(3)
+            ->get();
+
         return response()->json([
             'data' => [
                 'topic' => (new ForumTopicDetailResource($topicModel))->resolve($request),
                 'posts' => ForumPostResource::collection($paginator)->resolve(),
+                'related_topics' => ForumTopicListResource::collection($related)->resolve(),
             ],
             'meta' => [
                 'current_page' => $paginator->currentPage(),
@@ -283,18 +324,46 @@ class ForumController extends Controller
     /**
      * @return LengthAwarePaginator<ForumTopic>
      */
-    private function forumTopicSearchPaginator(string $q, int $perPage): LengthAwarePaginator
-    {
+    private function forumTopicSearchPaginator(
+        string $q,
+        int $perPage,
+        ?string $categorySlug = null,
+    ): LengthAwarePaginator {
+        $categoryId = null;
+
+        if ($categorySlug !== null && $categorySlug !== '') {
+            $categoryId = ForumCategory::query()
+                ->published()
+                ->where('slug', $categorySlug)
+                ->value('id');
+
+            if ($categoryId === null) {
+                return new LengthAwarePaginator([], 0, $perPage, 1);
+            }
+        }
+
         if (config('scout.driver') === 'meilisearch') {
             return ForumTopic::search($q)
-                ->query(fn ($builder) => $builder->approved()->with(['user', 'category']))
+                ->query(function ($builder) use ($categoryId) {
+                    $builder->approved()->with(['user', 'category']);
+
+                    if ($categoryId !== null) {
+                        $builder->where('forum_category_id', $categoryId);
+                    }
+                })
                 ->paginate($perPage);
         }
 
-        return ForumTopic::query()
+        $query = ForumTopic::query()
             ->approved()
             ->with(['user', 'category'])
-            ->searchTitle($q)
+            ->searchTitle($q);
+
+        if ($categoryId !== null) {
+            $query->where('forum_category_id', $categoryId);
+        }
+
+        return $query
             ->orderByDesc('last_post_at')
             ->orderByDesc('published_at')
             ->paginate($perPage);

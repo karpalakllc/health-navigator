@@ -129,6 +129,7 @@ class ForumTest extends TestCase
         $this->postJson('/api/v1/forum/categories/general/topics', [
             'title' => 'New discussion topic',
             'body' => 'This is the opening post body with enough length.',
+            'accepted_community_rules' => true,
         ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending');
@@ -153,6 +154,7 @@ class ForumTest extends TestCase
         $this->postJson('/api/v1/forum/categories/general/topics', [
             'title' => 'Moderator announcement',
             'body' => 'This topic should be visible without staff approval.',
+            'accepted_community_rules' => true,
         ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'approved');
@@ -169,6 +171,7 @@ class ForumTest extends TestCase
         $this->postJson('/api/v1/forum/categories/general/topics', [
             'title' => 'Instant topic',
             'body' => 'This topic should publish without staff approval.',
+            'accepted_community_rules' => true,
         ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'approved');
@@ -282,6 +285,109 @@ class ForumTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_recent_topics_returns_latest_approved(): void
+    {
+        $category = ForumCategory::factory()->create(['slug' => 'general']);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'older-topic',
+            'title' => 'Older topic',
+            'last_post_at' => now()->subDay(),
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'newer-topic',
+            'title' => 'Newer topic',
+            'last_post_at' => now(),
+        ]);
+        ForumTopic::factory()->pending()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'pending-topic',
+            'title' => 'Pending topic',
+        ]);
+
+        $this->getJson('/api/v1/forum/topics/recent')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.slug', 'newer-topic')
+            ->assertJsonPath('data.0.excerpt', fn ($value) => is_string($value));
+    }
+
+    public function test_global_topic_search_can_filter_by_category(): void
+    {
+        $nutrition = ForumCategory::factory()->create(['slug' => 'nutrition']);
+        $general = ForumCategory::factory()->create(['slug' => 'general']);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $nutrition->id,
+            'slug' => 'hydration-tips',
+            'title' => 'Hydration tips in nutrition',
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $general->id,
+            'slug' => 'hydration-general',
+            'title' => 'Hydration tips in general',
+        ]);
+
+        $this->getJson('/api/v1/forum/topics?q=hydration&category=nutrition')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'hydration-tips');
+    }
+
+    public function test_category_topics_can_sort_by_active(): void
+    {
+        $category = ForumCategory::factory()->create(['slug' => 'general']);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'quiet-topic',
+            'title' => 'Quiet topic',
+            'replies_count' => 1,
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'busy-topic',
+            'title' => 'Busy topic',
+            'replies_count' => 12,
+        ]);
+
+        $this->getJson('/api/v1/forum/categories/general/topics?sort=active')
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'busy-topic');
+    }
+
+    public function test_topic_detail_includes_related_topics(): void
+    {
+        $category = ForumCategory::factory()->create(['slug' => 'general']);
+        $topic = ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'main-topic',
+            'title' => 'Main topic',
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'slug' => 'related-one',
+            'title' => 'Related one',
+        ]);
+
+        $this->getJson('/api/v1/forum/categories/general/topics/main-topic')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.related_topics')
+            ->assertJsonPath('data.related_topics.0.slug', 'related-one');
+    }
+
+    public function test_topic_creation_requires_accepted_community_rules(): void
+    {
+        ForumCategory::factory()->create(['slug' => 'general']);
+        $member = User::factory()->create(['role' => UserRole::Member]);
+
+        Sanctum::actingAs($member);
+
+        $this->postJson('/api/v1/forum/categories/general/topics', [
+            'title' => 'Rules not accepted',
+            'body' => 'Opening body with sufficient length for validation.',
+        ])->assertUnprocessable();
+    }
+
     public function test_my_forum_endpoints_require_auth(): void
     {
         $this->getJson('/api/v1/me/forum/topics')->assertUnauthorized();
@@ -301,12 +407,14 @@ class ForumTest extends TestCase
             $this->postJson('/api/v1/forum/categories/general/topics', [
                 'title' => "Topic number {$i} for testing",
                 'body' => 'Opening body with sufficient length for validation.',
+                'accepted_community_rules' => true,
             ])->assertCreated();
         }
 
         $this->postJson('/api/v1/forum/categories/general/topics', [
             'title' => 'One topic too many',
             'body' => 'Opening body with sufficient length for validation.',
+            'accepted_community_rules' => true,
         ])
             ->assertStatus(429)
             ->assertJsonPath('message', 'Too many requests.');

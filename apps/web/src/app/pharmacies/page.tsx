@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/directory/empty-state";
 import { PharmaciesFilterBar } from "@/components/directory/pharmacies-filter-bar";
 import { PharmaciesResultsSection } from "@/components/directory/pharmacies-results-section";
 import { PageShell } from "@/components/ui/page-shell";
-import { pageEdgeBleedClass } from "@/components/ui/layout";
+import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { Pagination } from "@/components/directory/pagination";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
@@ -38,6 +38,7 @@ export default async function PharmaciesPage({
   if (!settings.public_pharmacies) {
     return (
       <ComingSoonShell
+        module="pharmacies"
         title={t("pharmacies.title")}
         description={t("pharmacies.description")}
       />
@@ -65,7 +66,7 @@ export default async function PharmaciesPage({
 
   return (
     <>
-      <div className={`${pageEdgeBleedClass} flex flex-col gap-6 pb-2 pt-[18px]`}>
+      <PageHeroBleed>
       <DirectoryHero
         badge={
           <>
@@ -105,7 +106,7 @@ export default async function PharmaciesPage({
           },
         ]}
       />
-      </div>
+      </PageHeroBleed>
 
       <PageShell gap="loose" className="pb-16 pt-6">
       {pharmacies.data.length === 0 ? (

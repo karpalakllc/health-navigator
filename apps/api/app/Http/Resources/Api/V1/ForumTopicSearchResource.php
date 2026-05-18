@@ -19,6 +19,7 @@ class ForumTopicSearchResource extends JsonResource
         return [
             'slug' => $this->slug,
             'title' => $this->title,
+            'excerpt' => $this->excerpt(),
             'author_name' => $this->user->name,
             'replies_count' => $this->replies_count,
             'last_post_at' => $this->last_post_at?->toIso8601String(),

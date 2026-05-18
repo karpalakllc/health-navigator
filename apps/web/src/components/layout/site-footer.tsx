@@ -56,6 +56,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
             <p className="text-sm font-semibold text-foreground">{t("footer.resources")}</p>
             <ul className="flex flex-col gap-2">
               <li>
+                <Link href="/about" className={linkClass}>
+                  {t("footer.about")}
+                </Link>
+              </li>
+              <li>
                 <Link href="/guidance" className={linkClass}>
                   {t("nav.guidance")}
                 </Link>

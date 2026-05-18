@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -43,7 +44,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <AuthFormCard>
       {success ? (
         <p className="text-sm text-muted-foreground">{t("auth.forgotPasswordSuccess")}</p>
       ) : (
@@ -71,6 +72,6 @@ export function ForgotPasswordForm() {
           {t("auth.backToLogin")}
         </Link>
       </p>
-    </div>
+    </AuthFormCard>
   );
 }

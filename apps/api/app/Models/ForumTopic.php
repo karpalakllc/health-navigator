@@ -132,4 +132,19 @@ class ForumTopic extends Model
     {
         return 'forum_topics';
     }
+
+    public function excerpt(int $length = 160): string
+    {
+        $plain = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $this->body)) ?? '');
+
+        if ($plain === '') {
+            return '';
+        }
+
+        if (mb_strlen($plain) <= $length) {
+            return $plain;
+        }
+
+        return mb_substr($plain, 0, $length - 1).'…';
+    }
 }

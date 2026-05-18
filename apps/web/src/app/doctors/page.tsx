@@ -5,7 +5,7 @@ import { DoctorsFilterBar } from "@/components/directory/doctors-filter-bar";
 import { DoctorsResultsSection } from "@/components/directory/doctors-results-section";
 import { EmptyState } from "@/components/directory/empty-state";
 import { PageShell } from "@/components/ui/page-shell";
-import { pageEdgeBleedClass } from "@/components/ui/layout";
+import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { Pagination } from "@/components/directory/pagination";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchSpecialties } from "@/lib/api/specialties";
@@ -52,7 +52,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
 
   return (
     <>
-      <div className={`${pageEdgeBleedClass} flex flex-col gap-6 pb-2 pt-[18px]`}>
+      <PageHeroBleed>
       <DirectoryHero
         badge={
           <>
@@ -102,7 +102,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
           },
         ]}
       />
-      </div>
+      </PageHeroBleed>
 
       <PageShell gap="loose" className="pb-16 pt-6">
       {doctors.data.length === 0 ? (

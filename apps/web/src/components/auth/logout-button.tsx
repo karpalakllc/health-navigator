@@ -1,9 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
+
+const PROTECTED_PREFIXES = ["/account"];
+
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 export function LogoutButton({
   className,
@@ -13,15 +21,26 @@ export function LogoutButton({
   onLoggedOut?: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, setPending] = useState(false);
 
   async function handleLogout() {
     setPending(true);
     try {
-      await fetch("/api/session/logout", { method: "POST" });
+      const response = await fetch("/api/session/logout", { method: "POST" });
+
+      if (!response.ok) {
+        return;
+      }
+
       onLoggedOut?.();
-      router.push("/");
-      router.refresh();
+
+      if (isProtectedPath(pathname)) {
+        router.push("/");
+        router.refresh();
+      } else {
+        router.refresh();
+      }
     } finally {
       setPending(false);
     }

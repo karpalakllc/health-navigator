@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
@@ -9,6 +10,7 @@ import { SiteNav } from "@/components/layout/site-nav";
 import type { AuthUser } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { pageContainerClass } from "@/components/ui/layout";
+import { loginHref } from "@/lib/auth/login-href";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
@@ -22,6 +24,7 @@ export function SiteHeaderBar({
   user?: AuthUser | null;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <>
@@ -67,7 +70,7 @@ export function SiteHeaderBar({
               }}
             />
           ) : (
-            <Button href="/login" className="hidden h-10 px-4 text-sm sm:inline-flex">
+            <Button href={loginHref(pathname)} className="hidden h-10 px-4 text-sm sm:inline-flex">
               {t("nav.login")}
             </Button>
           )}

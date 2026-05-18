@@ -6,7 +6,7 @@ type DirectoryHeroProps = {
   title: string;
   description: string;
   stat?: ReactNode;
-  filters: ReactNode;
+  filters?: ReactNode;
 };
 
 export function DirectoryHero({ badge, title, description, stat, filters }: DirectoryHeroProps) {
@@ -24,7 +24,7 @@ export function DirectoryHero({ badge, title, description, stat, filters }: Dire
         </div>
         {stat ? <div className="shrink-0">{stat}</div> : null}
       </div>
-      {filters}
+      {filters ?? null}
     </HeroMeshCard>
   );
 }

@@ -6,6 +6,7 @@ type TopicPayload = {
   categorySlug?: string;
   title?: string;
   body?: string;
+  accepted_community_rules?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         title: body.title,
         body: body.body,
+        accepted_community_rules: body.accepted_community_rules ?? false,
       }),
     },
   );

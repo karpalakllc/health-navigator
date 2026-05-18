@@ -1,53 +1,16 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { DirectoryHero } from "@/components/design/directory-hero";
+import { ProfileContentCard } from "@/components/design/profile-content-card";
+import { TrustRibbon } from "@/components/design/trust-ribbon";
 import { PageShell } from "@/components/ui/page-shell";
+import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = pageMetadata(t("about.title"), t("about.description"));
 
 export default function AboutPage() {
-  return (
-    <PageShell className="gap-12 py-10">
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/8 via-accent/5 to-transparent px-8 py-14 text-center">
-        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-2xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-accent/10 blur-2xl" aria-hidden />
-        <p className="text-sm font-medium uppercase tracking-wider text-primary">{t("about.title")}</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{t("about.missionTitle")}</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-pretty text-lg text-muted-foreground">
-          {t("about.missionBody")}
-        </p>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <ValueCard title={t("about.goalTitle")} body={t("about.goalBody")} accent="primary" />
-        <ValueCard title={t("about.valuesTitle")} body="" accent="accent" list />
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">{t("about.goalBody")}</p>
-        <Link
-          href="/disclaimer"
-          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground"
-        >
-          {t("legal.disclaimerTitle")}
-        </Link>
-      </section>
-    </PageShell>
-  );
-}
-
-function ValueCard({
-  title,
-  body,
-  accent,
-  list = false,
-}: {
-  title: string;
-  body: string;
-  accent: "primary" | "accent";
-  list?: boolean;
-}) {
   const values = [
     t("about.valueTrust"),
     t("about.valueClarity"),
@@ -56,26 +19,87 @@ function ValueCard({
   ];
 
   return (
-    <article
-      className={`rounded-2xl border p-6 shadow-sm ${
-        accent === "primary" ? "border-primary/20 bg-primary/5" : "border-accent/20 bg-accent/5"
-      }`}
-    >
-      <h2 className="text-xl font-semibold">{title}</h2>
-      {list ? (
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {values.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="text-primary" aria-hidden>
-                ✓
-              </span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
-      )}
-    </article>
+    <>
+      <PageHeroBleed>
+        <DirectoryHero
+          badge={t("about.title")}
+          title={t("about.missionTitle")}
+          description={t("about.missionBody")}
+        />
+        <TrustRibbon
+          variant="compact"
+          columns={3}
+          items={[
+            { text: t("home.trustModerated"), icon: <ShieldIcon />, tone: "teal" },
+            { text: t("home.trustInformational"), icon: <InfoIcon />, tone: "red" },
+            { text: t("home.trustLocal"), icon: <MapIcon />, tone: "teal" },
+          ]}
+        />
+      </PageHeroBleed>
+
+      <PageShell className="gap-8 pb-16">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ProfileContentCard title={t("about.goalTitle")}>
+            <p className="text-sm leading-relaxed text-muted-foreground">{t("about.goalBody")}</p>
+          </ProfileContentCard>
+          <ProfileContentCard title={t("about.valuesTitle")}>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {values.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="font-bold text-primary" aria-hidden>
+                    ✓
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </ProfileContentCard>
+        </div>
+
+        <ProfileContentCard title={t("about.howTitle")}>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t("about.howBody")}</p>
+        </ProfileContentCard>
+
+        <ProfileContentCard title={t("about.teamTitle")}>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t("about.teamBody")}</p>
+        </ProfileContentCard>
+
+        <ProfileContentCard title={t("about.ctaTitle")}>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t("about.ctaBody")}</p>
+          <Link
+            href="/disclaimer"
+            className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-6 text-sm font-extrabold text-primary-foreground hover:bg-primary/90"
+          >
+            {t("legal.disclaimerTitle")}
+          </Link>
+        </ProfileContentCard>
+      </PageShell>
+    </>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MapIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
   );
 }

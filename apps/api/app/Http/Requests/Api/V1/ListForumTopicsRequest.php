@@ -21,6 +21,8 @@ class ListForumTopicsRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'sort' => ['nullable', 'string', 'in:latest,active'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

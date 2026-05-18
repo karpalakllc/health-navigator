@@ -54,6 +54,7 @@ export default async function PharmacyDetailPage({
   if (!settings.public_pharmacies) {
     return (
       <ComingSoonShell
+        module="pharmacies"
         title={t("pharmacies.title")}
         description={t("pharmacies.description")}
       />

@@ -19,6 +19,7 @@ class StoreForumTopicRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'min:5', 'max:255'],
             'body' => ['required', 'string', 'min:20', 'max:10000'],
+            'accepted_community_rules' => ['required', 'accepted'],
         ];
     }
 }
