@@ -60,7 +60,11 @@ export async function startGuidanceSession(
 ): Promise<string> {
   const response = await fetch(apiUrl("/triage/sessions"), {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "Accept-Language": "mk",
+    },
     body: JSON.stringify({ accepted_terms: acceptedTerms }),
   });
 
@@ -75,7 +79,11 @@ export async function saveGuidanceAnswers(
 ): Promise<{ emergency_stopped: boolean }> {
   const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/answers`), {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "Accept-Language": "mk",
+    },
     body: JSON.stringify({ answers }),
   });
 
@@ -87,7 +95,7 @@ export async function completeGuidanceEmergency(
 ): Promise<GuidanceOutcome> {
   const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/emergency`), {
     method: "POST",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", "Accept-Language": "mk" },
   });
 
   const data = await parseJson<{ outcome: GuidanceOutcome }>(response);
@@ -100,7 +108,7 @@ export async function completeGuidanceSession(
 ): Promise<GuidanceOutcome> {
   const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/complete`), {
     method: "POST",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", "Accept-Language": "mk" },
   });
 
   const data = await parseJson<{ outcome: GuidanceOutcome }>(response);

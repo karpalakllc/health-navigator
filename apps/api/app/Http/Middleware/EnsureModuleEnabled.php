@@ -26,7 +26,7 @@ class EnsureModuleEnabled
         };
 
         if (! $enabled) {
-            return ApiResponse::error('This module is not available yet.', 503);
+            return ApiResponse::errorCode('module.unavailable', 503);
         }
 
         return $next($request);

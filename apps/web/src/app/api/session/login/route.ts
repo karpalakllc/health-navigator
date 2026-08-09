@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
+import { t } from "@/i18n/t";
 
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "Accept-Language": "mk",
     },
     body: JSON.stringify({
       email: body.email,
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
 
   if (!token) {
     return NextResponse.json(
-      { message: "Login response did not include a token." },
+      { message: t("errors.missingToken") },
       { status: 502 },
     );
   }

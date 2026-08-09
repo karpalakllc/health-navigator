@@ -17,11 +17,11 @@ class EnsureUserRole
         $user = $request->user();
 
         if ($user === null) {
-            return ApiResponse::error('Unauthenticated.', 401);
+            return ApiResponse::errorCode('errors.unauthenticated', 401);
         }
 
         if (! in_array($user->role->value, $roles, true)) {
-            return ApiResponse::error('Forbidden.', 403);
+            return ApiResponse::errorCode('errors.forbidden', 403);
         }
 
         return $next($request);

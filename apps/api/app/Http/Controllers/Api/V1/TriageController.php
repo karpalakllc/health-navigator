@@ -26,7 +26,7 @@ class TriageController extends Controller
         try {
             $flow = $this->sessions->publishedFlow();
         } catch (ValidationException) {
-            return ApiResponse::error('Symptom guidance is not available.', 404);
+            return ApiResponse::errorCode('guidance.unavailable', 404);
         }
 
         return ApiResponse::success(new TriageFlowResource($flow));
@@ -111,7 +111,7 @@ class TriageController extends Controller
 
         if ($session->isCompleted()) {
             throw ValidationException::withMessages([
-                'session' => ['This guidance session is already complete.'],
+                'session' => [__('api.guidance.session_complete')],
             ]);
         }
 

@@ -198,6 +198,16 @@ export const mk = {
     description: "Обидете се повторно или вратете се на почетната страница.",
     retry: "Обиди повторно",
     home: "Почетна",
+    // Returned by the route handlers in src/app/api/** before a request reaches
+    // the Laravel API. These never passed through the API's lang files, so they
+    // were the last English strings a Macedonian user could see.
+    unauthenticated: "Не сте најавени.",
+    uploadFailed: "Прикачувањето не успеа.",
+    invalidReviewTarget: "Невалиден профил за рецензија.",
+    topicRequired: "Темата е задолжителна.",
+    categoryRequired: "Категоријата е задолжителна.",
+    missingToken: "Серверот не врати сесија. Обидете се повторно.",
+    loggedOut: "Одјавени сте.",
   },
   notFound: {
     title: "Страницата не е пронајдена",

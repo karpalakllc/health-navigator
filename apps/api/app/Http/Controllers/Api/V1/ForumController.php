@@ -227,7 +227,7 @@ class ForumController extends Controller
 
         if ($topicModel->is_locked) {
             throw ValidationException::withMessages([
-                'topic' => ['This topic is locked and does not accept new replies.'],
+                'topic' => [__('api.forum.topic_locked')],
             ]);
         }
 

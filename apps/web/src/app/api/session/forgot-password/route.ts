@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "Accept-Language": "mk",
     },
     body: JSON.stringify({ email: body.email }),
   });

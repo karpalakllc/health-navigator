@@ -38,7 +38,7 @@ class AuthController extends Controller
 
         if ($user === null || ! Hash::check($request->string('password')->toString(), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [__('api.auth.invalid_credentials')],
             ]);
         }
 
@@ -136,6 +136,6 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
         }
 
-        return ApiResponse::success(['message' => 'Logged out.']);
+        return ApiResponse::success(['message' => __('api.auth.logged_out')]);
     }
 }

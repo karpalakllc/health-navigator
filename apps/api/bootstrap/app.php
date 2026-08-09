@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Middleware\EnsureModuleEnabled;
-use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\OptionalSanctumAuth;
+use App\Http\Middleware\SetApiLocale;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -41,7 +42,10 @@ return Application::configure(basePath: dirname(__DIR__))
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
 
+        // Locale negotiation runs before anything that can emit a message, and is
+        // scoped to the API so the Filament admin stays in config('app.locale').
         $middleware->api(prepend: [
+            SetApiLocale::class,
             EnsureNotInMaintenance::class,
         ]);
 
@@ -59,31 +63,33 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
-                return ApiResponse::error('Unauthenticated.', 401);
+                return ApiResponse::errorCode('errors.unauthenticated', 401);
             }
         });
 
         $exceptions->render(function (AuthorizationException $e, Request $request) {
             if ($request->is('api/*')) {
-                return ApiResponse::error($e->getMessage() ?: 'Forbidden.', 403);
+                return $e->getMessage() !== ''
+                    ? ApiResponse::error($e->getMessage(), 403, code: 'errors.forbidden')
+                    : ApiResponse::errorCode('errors.forbidden', 403);
             }
         });
 
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
-                return ApiResponse::error('Not found.', 404);
+                return ApiResponse::errorCode('errors.not_found', 404);
             }
         });
 
         $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             if ($request->is('api/*')) {
-                return ApiResponse::error('Too many requests.', 429);
+                return ApiResponse::errorCode('errors.too_many_requests', 429);
             }
         });
 
         $exceptions->render(function (HttpException $e, Request $request) {
             if ($request->is('api/*') && $e->getStatusCode() === 401) {
-                return ApiResponse::error('Unauthenticated.', 401);
+                return ApiResponse::errorCode('errors.unauthenticated', 401);
             }
         });
     })->create();

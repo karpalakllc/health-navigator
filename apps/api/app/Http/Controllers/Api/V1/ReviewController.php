@@ -159,7 +159,7 @@ class ReviewController extends Controller
                 ->exists()
         ) {
             throw ValidationException::withMessages([
-                'review' => ['Веќе сте испратиле рецензија за овој профил.'],
+                'review' => [__('api.review.duplicate')],
             ]);
         }
 
@@ -174,7 +174,7 @@ class ReviewController extends Controller
             ]);
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages([
-                'review' => ['Веќе сте испратиле рецензија за овој профил.'],
+                'review' => [__('api.review.duplicate')],
             ]);
         }
 

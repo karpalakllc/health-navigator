@@ -25,7 +25,7 @@ class TriageSessionService
 
         if ($flow === null) {
             throw ValidationException::withMessages([
-                'flow' => ['No symptom guidance flow is published.'],
+                'flow' => [__('api.guidance.no_flow')],
             ]);
         }
 
@@ -36,7 +36,7 @@ class TriageSessionService
     {
         if (! $acceptedTerms) {
             throw ValidationException::withMessages([
-                'accepted_terms' => ['You must accept the guidance terms before continuing.'],
+                'accepted_terms' => [__('api.guidance.terms_required')],
             ]);
         }
 
@@ -113,13 +113,13 @@ class TriageSessionService
     {
         if ($session->triage_flow_id !== $flow->id) {
             throw ValidationException::withMessages([
-                'session' => ['Session does not belong to the current flow.'],
+                'session' => [__('api.guidance.session_mismatch')],
             ]);
         }
 
         if ($session->isCompleted()) {
             throw ValidationException::withMessages([
-                'session' => ['This guidance session is already complete.'],
+                'session' => [__('api.guidance.session_complete')],
             ]);
         }
     }
@@ -148,13 +148,13 @@ class TriageSessionService
 
         if ($step === null) {
             throw ValidationException::withMessages([
-                "answers.{$stepKey}" => ['Unknown step.'],
+                "answers.{$stepKey}" => [__('api.guidance.unknown_step')],
             ]);
         }
 
         if (! $step->allowsValues($values)) {
             throw ValidationException::withMessages([
-                "answers.{$stepKey}" => ['Invalid option selected.'],
+                "answers.{$stepKey}" => [__('api.guidance.invalid_option')],
             ]);
         }
 
@@ -174,7 +174,7 @@ class TriageSessionService
         foreach ($values as $value) {
             if (! in_array($value, $allowed, true)) {
                 throw ValidationException::withMessages([
-                    'answers.red_flags' => ['Invalid red-flag code.'],
+                    'answers.red_flags' => [__('api.guidance.invalid_red_flag')],
                 ]);
             }
         }
@@ -202,7 +202,7 @@ class TriageSessionService
 
             if (! in_array($step->step_key, $answeredKeys, true)) {
                 throw ValidationException::withMessages([
-                    'session' => ["Please answer: {$step->label}"],
+                    'session' => [__('api.guidance.answer_required', ['step' => $step->label])],
                 ]);
             }
         }
@@ -216,11 +216,11 @@ class TriageSessionService
         if ($outcome === null) {
             return [
                 'outcome_code' => $outcomeCode,
-                'title' => 'General information',
-                'body' => 'We could not load detailed guidance. If you are worried about your health, contact a healthcare professional or emergency services (194 / 112).',
+                'title' => __('api.guidance.fallback.title'),
+                'body' => __('api.guidance.fallback.body'),
                 'handoffs' => [
-                    ['type' => 'home', 'label' => 'Home', 'href' => '/'],
-                    ['type' => 'emergency', 'label' => 'Emergency numbers', 'href' => null],
+                    ['type' => 'home', 'label' => __('api.guidance.fallback.home'), 'href' => '/'],
+                    ['type' => 'emergency', 'label' => __('api.guidance.fallback.emergency'), 'href' => null],
                 ],
             ];
         }
