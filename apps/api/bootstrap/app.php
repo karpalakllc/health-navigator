@@ -32,9 +32,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.sanctum.optional' => OptionalSanctumAuth::class,
         ]);
 
+        // The API runs behind a PaaS edge (see infra/deploy.md), so the socket IP is
+        // the load balancer's. Without this every $request->ip() rate limiter keys on
+        // one shared value and a handful of failed logins locks out every user.
+        // Proxy list is config-driven (config/trustedproxy.php) so it survives config:cache.
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO);
+
         $middleware->api(prepend: [
             EnsureNotInMaintenance::class,
         ]);
+
+        // Baseline limit for every v1 route; the named limiters stay layered on top.
+        $middleware->throttleApi('api');
 
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {

@@ -4,12 +4,13 @@ namespace App\Providers;
 
 use App\Models\TriageFlow;
 use App\Observers\TriageFlowObserver;
+use App\Policies\RolePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use App\Policies\RolePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,21 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
+
+        // Applies to registration and password reset. The breach check is production-only:
+        // it calls the Have I Been Pwned range API, fails open on network error, and we do
+        // not want an outbound dependency in local dev or the test suite.
+        Password::defaults(function () {
+            $rule = Password::min(10)->letters()->numbers();
+
+            return app()->isProduction() ? $rule->uncompromised() : $rule;
+        });
+
+        // Baseline for every v1 route. Keyed on the user first so that authenticated
+        // traffic is not penalised for sharing a NAT/carrier IP with other clients.
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
 
         RateLimiter::for('api-login', function (Request $request) {
             $email = (string) $request->input('email');

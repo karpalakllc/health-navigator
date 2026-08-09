@@ -29,14 +29,16 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 1. Provision PostgreSQL, Redis, and Meilisearch; create database and user.
 2. Set environment variables on the API host (never commit secrets).
 3. Deploy code; `composer install --no-dev --optimize-autoloader`.
-4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Subsequent deploys: `php artisan migrate --force` only.
+4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
 5. `php artisan config:cache` and `php artisan route:cache` when stable.
 6. Start a **queue worker** (see below).
 7. Add **scheduler** cron (see below).
 8. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
 9. Verify `GET /api/v1/health` and Filament login.
 
-**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local` and `testing`**. Do not rely on them in staging/prod except via intentional imports.
+**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
+
+**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). Skipping it silently breaks every IP-based rate limit — they all collapse into a single shared bucket behind the edge.
 
 ### Queue worker
 
@@ -108,6 +110,7 @@ Local defaults remain in `config/cors.php` (`localhost:3000`).
 
 - Monitor `GET {API_URL}/api/v1/health` — expect HTTP 200 and `data.status` of `ok` with `checks.database` (and `checks.redis` when Redis is configured).
 - HTTP 503 with `data.status` `degraded` indicates database or Redis failure.
+- The health route (and `/api/v1/settings/public`) are **exempt from maintenance mode**, so a 503 there always means real degradation, never planned maintenance. Maintenance-mode 503s on other routes return `{"message": ...}` with no `data` key.
 - Monitor web `/` availability.
 - Sentry alerts on new issues (staging vs production separated).
 
