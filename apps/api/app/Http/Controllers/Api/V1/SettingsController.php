@@ -15,7 +15,6 @@ class SettingsController extends Controller
 
         return ApiResponse::success([
             ...$settings->publicFlags(),
-            'require_email_verification' => $settings->require_email_verification,
             ...$settings->publicBranding(),
         ]);
     }

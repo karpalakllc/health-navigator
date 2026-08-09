@@ -12,8 +12,8 @@ use App\Models\User;
 use App\Services\Triage\TriageSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class TriageController extends Controller
 {
@@ -40,7 +40,7 @@ class TriageController extends Controller
         $session = $this->sessions->startSession(
             $flow,
             (bool) $validated['accepted_terms'],
-            $this->optionalUser($request),
+            $this->currentUser(),
         );
 
         return ApiResponse::success([
@@ -102,6 +102,14 @@ class TriageController extends Controller
             abort(404);
         }
 
+        // Anonymous sessions stay reachable by their UUID — that is the design,
+        // guidance does not require an account. A session that *does* belong to
+        // someone is only reachable by them. 404 rather than 403 so the endpoint
+        // does not confirm that a given session id exists.
+        if ($session->user_id !== null && $session->user_id !== $this->currentUser()?->id) {
+            abort(404);
+        }
+
         return $session;
     }
 
@@ -118,16 +126,15 @@ class TriageController extends Controller
         return $session;
     }
 
-    private function optionalUser(Request $request): ?User
+    /**
+     * Resolve the caller through the Sanctum guard, which — unlike
+     * PersonalAccessToken::findToken() — enforces token expiry and provider
+     * validity. Guidance is usable anonymously, so a missing token is not an error.
+     */
+    private function currentUser(): ?User
     {
-        $token = $request->bearerToken();
+        $user = Auth::guard('sanctum')->user();
 
-        if ($token === null) {
-            return null;
-        }
-
-        $accessToken = PersonalAccessToken::findToken($token);
-
-        return $accessToken?->tokenable;
+        return $user instanceof User ? $user : null;
     }
 }

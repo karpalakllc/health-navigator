@@ -48,7 +48,6 @@ class ManageSiteSettings extends Page implements HasSchemas
         $settings = SiteSetting::current();
         $this->data = [
             'registrations_enabled' => $settings->registrations_enabled,
-            'require_email_verification' => $settings->require_email_verification,
             'maintenance_mode' => $settings->maintenance_mode,
             'maintenance_message' => $settings->maintenance_message,
             'public_guidance' => $settings->public_guidance,
@@ -131,8 +130,6 @@ class ManageSiteSettings extends Page implements HasSchemas
                     ->schema([
                         Toggle::make('registrations_enabled')
                             ->label('Public registration enabled'),
-                        Toggle::make('require_email_verification')
-                            ->label('Require email verification'),
                         Toggle::make('maintenance_mode')
                             ->label('Maintenance mode'),
                         Textarea::make('maintenance_message')

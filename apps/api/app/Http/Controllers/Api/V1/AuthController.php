@@ -12,7 +12,6 @@ use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Mail\WelcomeMail;
-use App\Models\SiteSetting;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
@@ -25,6 +24,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
+use RuntimeException;
 
 class AuthController extends Controller
 {
@@ -56,15 +56,15 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $settings = SiteSetting::current();
-
         $user = User::query()->create([
             'name' => $request->string('name')->toString(),
             'email' => $request->string('email')->toString(),
             'password' => $request->string('password')->toString(),
             'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
-            'email_verified_at' => $settings->require_email_verification ? null : now(),
+            // Verification is not implemented; recording an honest timestamp rather
+            // than a null that nothing would ever clear. See docs/roadmap.md.
+            'email_verified_at' => now(),
         ]);
 
         $tokenName = $request->string('device_name')->toString() ?: 'api';
@@ -90,13 +90,15 @@ class AuthController extends Controller
             $request->only('email'),
         );
 
-        if ($status !== Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages([
-                'email' => [__($status)],
-            ]);
+        // Always answer identically. Reporting "we can't find that email" turned
+        // this into an unauthenticated oracle for whether a given person has an
+        // account on a health platform. Genuine failures are still reported to
+        // the error tracker rather than to the caller.
+        if (! in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER, Password::RESET_THROTTLED], true)) {
+            report(new RuntimeException("Password reset link failed with status [{$status}]."));
         }
 
-        return ApiResponse::success(['message' => __($status)]);
+        return ApiResponse::success(['message' => __(Password::RESET_LINK_SENT)]);
     }
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse

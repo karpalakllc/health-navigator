@@ -15,7 +15,6 @@ class SiteSetting extends Model
 
     protected $fillable = [
         'registrations_enabled',
-        'require_email_verification',
         'maintenance_mode',
         'maintenance_message',
         'public_guidance',
@@ -43,7 +42,6 @@ class SiteSetting extends Model
     {
         return [
             'registrations_enabled' => 'boolean',
-            'require_email_verification' => 'boolean',
             'maintenance_mode' => 'boolean',
             'public_guidance' => 'boolean',
             'public_products' => 'boolean',
@@ -125,7 +123,6 @@ class SiteSetting extends Model
     {
         $launchDefaults = [
             'registrations_enabled' => true,
-            'require_email_verification' => false,
             'maintenance_mode' => false,
             'public_guidance' => false,
             'public_products' => false,

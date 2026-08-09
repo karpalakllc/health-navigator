@@ -10,7 +10,6 @@ export type PublicSettings = {
   registrations_enabled: boolean;
   maintenance_mode: boolean;
   maintenance_message: string | null;
-  require_email_verification: boolean;
   logo_url: string | null;
   favicon_url: string | null;
   placeholder_doctor_url: string | null;
@@ -34,7 +33,6 @@ export const publicSettingsDefaults: PublicSettings = {
   registrations_enabled: true,
   maintenance_mode: false,
   maintenance_message: null,
-  require_email_verification: false,
   logo_url: null,
   favicon_url: null,
   placeholder_doctor_url: null,

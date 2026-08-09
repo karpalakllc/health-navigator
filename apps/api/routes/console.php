@@ -7,6 +7,11 @@ Schedule::command('triage:purge-old-sessions')
     ->onOneServer()
     ->withoutOverlapping();
 
+Schedule::command('analytics:purge-old-events')
+    ->dailyAt('03:45')
+    ->onOneServer()
+    ->withoutOverlapping();
+
 Schedule::command('moderation:send-digest')
     ->dailyAt('07:00')
     ->onOneServer()

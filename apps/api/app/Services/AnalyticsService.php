@@ -79,38 +79,42 @@ class AnalyticsService
     /**
      * @return list<array{query: string, total: int}>
      */
+    /**
+     * Aggregated in SQL rather than by walking every matching row into PHP, which
+     * is what the admin dashboard used to do on each page load.
+     *
+     * Note the engine difference this exposes: SQLite's lower() is ASCII-only
+     * while PostgreSQL's is locale-aware, so Cyrillic queries case-fold in
+     * production but not in local SQLite. Do not "fix" that by moving the folding
+     * back into PHP — it would reintroduce the full-table scan.
+     */
     public function topSearchQueries(int $days = 30, int $limit = 10): array
     {
         $since = Carbon::now()->subDays($days)->startOfDay();
+        $connection = DB::connection();
 
-        $counts = [];
+        $extract = $connection->getDriverName() === 'pgsql'
+            ? "properties->>'q'"
+            : "json_extract(properties, '$.q')";
 
-        AnalyticsEvent::query()
+        $normalized = "lower(trim({$extract}))";
+
+        return $connection->table('analytics_events')
             ->where('event', 'search.query')
             ->where('occurred_at', '>=', $since)
-            ->orderByDesc('occurred_at')
-            ->lazy()
-            ->each(function (AnalyticsEvent $event) use (&$counts): void {
-                $raw = is_array($event->properties) ? ($event->properties['q'] ?? null) : null;
-                $normalized = SearchQuery::normalize(is_string($raw) ? $raw : null);
-
-                if ($normalized === null) {
-                    return;
-                }
-
-                $key = mb_strtolower($normalized);
-                $counts[$key] = ($counts[$key] ?? 0) + 1;
-            });
-
-        arsort($counts);
-
-        $result = [];
-
-        foreach (array_slice($counts, 0, $limit, true) as $query => $total) {
-            $result[] = ['query' => $query, 'total' => $total];
-        }
-
-        return $result;
+            ->whereRaw("{$extract} is not null")
+            ->whereRaw("length(trim({$extract})) >= ?", [SearchQuery::MIN_LENGTH])
+            ->selectRaw("{$normalized} as query, count(*) as total")
+            ->groupByRaw($normalized)
+            ->orderByDesc('total')
+            ->orderBy('query')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row): array => [
+                'query' => (string) $row->query,
+                'total' => (int) $row->total,
+            ])
+            ->all();
     }
 
     public function countDirectoryPublished(): array

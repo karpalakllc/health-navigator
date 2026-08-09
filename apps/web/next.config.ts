@@ -1,36 +1,12 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-function contentSecurityPolicy(): string {
-  let apiOrigin = "";
 
-  try {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
-    }
-  } catch {
-    apiOrigin = "";
-  }
-
-  const connectSrc = ["'self'", apiOrigin].filter(Boolean).join(" ");
-  const imgSrc = ["'self'", "data:", "https://api.dicebear.com", apiOrigin].filter(Boolean).join(" ");
-  const isDev = process.env.NODE_ENV !== "production";
-  const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(" ");
-
-  return [
-    "default-src 'self'",
-    `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline'",
-    `img-src ${imgSrc}`,
-    "font-src 'self'",
-    "frame-src https://www.openstreetmap.org",
-    `connect-src ${connectSrc}`,
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-  ].join("; ");
-}
-
+/*
+ * Content-Security-Policy is NOT set here. It is minted per request in
+ * src/proxy.ts so each response can carry a fresh script nonce; a static header
+ * would shadow that and force `unsafe-inline` back in.
+ */
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -38,10 +14,6 @@ const securityHeaders = [
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
-  },
-  {
-    key: "Content-Security-Policy",
-    value: contentSecurityPolicy(),
   },
 ];
 
