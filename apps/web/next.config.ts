@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 function contentSecurityPolicy(): string {
   let apiOrigin = "";
@@ -76,4 +77,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/*
+ * withSentryConfig uploads source maps at build time, so production stack traces
+ * resolve to real files instead of minified bundles. It is a no-op without the
+ * SENTRY_* build credentials, which keeps local builds and CI unaffected.
+ */
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  disableLogger: true,
+  telemetry: false,
+});

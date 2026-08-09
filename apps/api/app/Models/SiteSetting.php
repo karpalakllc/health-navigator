@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Media\BrandingUploadPath;
 use App\Support\Media\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SiteSetting extends Model
 {
@@ -55,7 +56,72 @@ class SiteSetting extends Model
         ];
     }
 
+    public const CACHE_KEY = 'site-settings:current';
+
+    /**
+     * Container key for the per-request memo. Deliberately not a class static:
+     * the container is rebuilt per request (and per test), so the memo cannot
+     * outlive the request that populated it.
+     */
+    private const MEMO_KEY = 'site-settings.memo';
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => static::flushCache());
+        static::deleted(static fn () => static::flushCache());
+    }
+
+    public static function flushCache(): void
+    {
+        app()->forgetInstance(self::MEMO_KEY);
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Read on every API request by EnsureNotInMaintenance, then again by the
+     * module gate, moderation defaults, unified search and UserResource — 13 call
+     * sites in all, which used to mean up to 5 identical queries per request.
+     *
+     * The attribute array is cached rather than the model, so a fresh instance is
+     * returned each time and ->update() still fires the events that bust the cache.
+     */
     public static function current(): self
+    {
+        $container = app();
+
+        if ($container->bound(self::MEMO_KEY)) {
+            return $container->make(self::MEMO_KEY);
+        }
+
+        $attributes = Cache::remember(
+            self::CACHE_KEY,
+            now()->addSeconds(60),
+            static fn (): array => static::resolveRow()->fresh()->getRawOriginal(),
+        );
+
+        $settings = (new static)->newFromBuilder($attributes);
+        $container->instance(self::MEMO_KEY, $settings);
+
+        return $settings;
+    }
+
+    private static function resolveRow(): self
+    {
+        if ($existing = static::query()->orderBy('id')->first()) {
+            return $existing;
+        }
+
+        // firstOrCreate([]) with no match attributes could race two singleton rows
+        // into existence on a cold database; serialise the create instead.
+        return Cache::lock(self::CACHE_KEY.':create', 10)->block(5, static function (): self {
+            return static::query()->orderBy('id')->first() ?? static::query()->create(static::defaults());
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function defaults(): array
     {
         $launchDefaults = [
             'registrations_enabled' => true,
@@ -80,10 +146,7 @@ class SiteSetting extends Model
             'public_pharmacies' => true,
         ];
 
-        return static::query()->firstOrCreate(
-            [],
-            app()->environment('testing') ? $testingDefaults : $launchDefaults,
-        );
+        return app()->environment('testing') ? $testingDefaults : $launchDefaults;
     }
 
     /**

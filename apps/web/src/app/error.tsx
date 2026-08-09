@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
@@ -13,6 +14,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Without this the boundary swallows the error: nothing else reports
+    // render failures that reach it.
+    Sentry.captureException(error);
     console.error(error);
   }, [error]);
 

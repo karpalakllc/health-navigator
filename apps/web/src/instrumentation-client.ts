@@ -1,3 +1,9 @@
+/*
+ * Next 16 loads browser instrumentation from `instrumentation-client.ts`.
+ * This lived in `sentry.client.config.ts`, which nothing imported — so
+ * client-side errors were never reported and the Sentry dashboard looked
+ * quiet because nothing was being sent, not because nothing was breaking.
+ */
 import * as Sentry from "@sentry/nextjs";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;

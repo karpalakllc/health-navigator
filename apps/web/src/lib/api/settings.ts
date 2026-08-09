@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { apiGet } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 
@@ -51,18 +52,31 @@ export const publicSettingsDefaults: PublicSettings = {
   profile_avatar_min_messages: 10,
 };
 
-export async function fetchPublicSettings(): Promise<PublicSettings> {
-  try {
-    return await apiGet<PublicSettings>("/settings/public");
-  } catch {
-    return publicSettingsDefaults;
-  }
-}
+/*
+ * Both fetchers are wrapped in React's cache() so the five-plus call sites in a
+ * single render (generateMetadata, the layout, the maintenance gate, the header
+ * and the footer, plus any page-level call) collapse to one fetch per request.
+ *
+ * They stay as two separate memo cells on purpose: the *Server variant carries
+ * the session bearer token and the plain one does not, so sharing a cell would
+ * mix an authenticated and an anonymous response.
+ */
+export const fetchPublicSettings = cache(
+  async function fetchPublicSettings(): Promise<PublicSettings> {
+    try {
+      return await apiGet<PublicSettings>("/settings/public");
+    } catch {
+      return publicSettingsDefaults;
+    }
+  },
+);
 
-export async function fetchPublicSettingsServer(): Promise<PublicSettings> {
-  try {
-    return await apiGetServer<PublicSettings>("/settings/public");
-  } catch {
-    return publicSettingsDefaults;
-  }
-}
+export const fetchPublicSettingsServer = cache(
+  async function fetchPublicSettingsServer(): Promise<PublicSettings> {
+    try {
+      return await apiGetServer<PublicSettings>("/settings/public");
+    } catch {
+      return publicSettingsDefaults;
+    }
+  },
+);

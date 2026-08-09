@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\DoctorDetailResource;
 use App\Http\Resources\Api\V1\DoctorListResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
+use App\Support\ReviewSummary;
 use Illuminate\Http\JsonResponse;
 
 class DoctorController extends Controller
@@ -17,7 +18,7 @@ class DoctorController extends Controller
     {
         $validated = $request->validated();
 
-        $query = Doctor::query()
+        $query = ReviewSummary::eagerLoad(Doctor::query())
             ->published()
             ->with([
                 'specialties' => fn ($relation) => $relation->published(),
@@ -76,7 +77,7 @@ class DoctorController extends Controller
 
     public function show(string $slug): JsonResponse
     {
-        $doctor = Doctor::query()
+        $doctor = ReviewSummary::eagerLoad(Doctor::query())
             ->published()
             ->where('slug', $slug)
             ->with([

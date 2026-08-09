@@ -8,6 +8,7 @@ use App\Http\Resources\Api\V1\FacilityDetailResource;
 use App\Http\Resources\Api\V1\FacilityListResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
+use App\Support\ReviewSummary;
 use Illuminate\Http\JsonResponse;
 
 class FacilityController extends Controller
@@ -16,7 +17,7 @@ class FacilityController extends Controller
     {
         $validated = $request->validated();
 
-        $query = Facility::query()
+        $query = ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->clinical()
             ->orderBy('name');
@@ -62,7 +63,7 @@ class FacilityController extends Controller
 
     public function show(string $slug): JsonResponse
     {
-        $facility = Facility::query()
+        $facility = ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->clinical()
             ->where('slug', $slug)
