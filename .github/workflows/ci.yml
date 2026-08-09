@@ -6,9 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# A newer push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   api:
-    name: Laravel API
+    name: Laravel API (SQLite)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,7 +25,57 @@ jobs:
           php-version: "8.3"
           coverage: none
       - run: composer install --no-interaction --prefer-dist
-      - run: php artisan test
+      - name: Code style
+        run: ./vendor/bin/pint --test
+      - name: Tests
+        run: php artisan test
+
+  api-postgres:
+    # The suite runs on SQLite for speed, but production is PostgreSQL and the
+    # code branches on the driver: ILIKE vs LIKE in ScriptInsensitiveSearch,
+    # raw date() in AnalyticsService, json_extract vs ->> in the search
+    # aggregation, and NULL ordering — which is exactly inverted between the two
+    # engines (SQLite sorts NULLs last under DESC, PostgreSQL sorts them first).
+    # Without this job those paths are never executed before deploy.
+    name: Laravel API (PostgreSQL)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: zdravje_test
+          POSTGRES_USER: zdravje
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          # Not in the default extension set — the job fails confusingly without it.
+          extensions: pdo_pgsql, pgsql
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Tests
+        # Shell environment wins over phpunit.xml's <env> entries (they are not
+        # forced), so no separate phpunit config is needed.
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: zdravje_test
+          DB_USERNAME: zdravje
+          DB_PASSWORD: secret
 
   web:
     name: Next.js Web
@@ -36,7 +91,13 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm run test
+      - name: Build
+        run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
