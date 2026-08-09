@@ -15,7 +15,7 @@ class StaffUserForm
     {
         return $schema->components([
             TextInput::make('name')->required(),
-            TextInput::make('email')->email()->required(),
+            TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
             Select::make('role')
                 ->options(collect(UserRole::cases())
                     ->filter(fn (UserRole $role) => $role->isStaff())

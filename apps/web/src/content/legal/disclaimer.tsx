@@ -17,7 +17,7 @@ export function DisclaimerContent() {
       </p>
       <h2 className="mt-6 text-lg font-semibold">Итна помош</h2>
       <p className="mt-2">
-        При медицинска итност повикайте <strong>194</strong> или <strong>112</strong>{" "}
+        При медицинска итност повикајте <strong>194</strong> или <strong>112</strong>{" "}
         веднаш. Насоките за симптоми не испраќаат итна помош и не треба да ја одложуваат.
       </p>
       <h2 className="mt-6 text-lg font-semibold">Насоки за симптоми</h2>

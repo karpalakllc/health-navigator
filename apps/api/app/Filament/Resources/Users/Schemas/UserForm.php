@@ -18,7 +18,8 @@ class UserForm
                 TextInput::make('email')
                     ->label('Email address')
                     ->email()
-                    ->required(),
+                    ->required()
+                    ->unique(ignoreRecord: true),
                 Select::make('role')
                     ->options(collect(UserRole::cases())->mapWithKeys(
                         fn (UserRole $role) => [$role->value => ucfirst($role->value)]

@@ -198,7 +198,7 @@ class ForumController extends Controller
             'status' => $status,
         ]);
 
-        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+        if (ForumContentModeration::shouldNotifyAuthor($user, $status)) {
             UgcMailer::notifySubmitted($topic);
         }
 
@@ -241,7 +241,7 @@ class ForumController extends Controller
             'status' => $status,
         ]);
 
-        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+        if (ForumContentModeration::shouldNotifyAuthor($user, $status)) {
             UgcMailer::notifySubmitted($post);
         }
 

@@ -86,6 +86,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole('Forum Moderator');
     }
 
+    /**
+     * Drives the `viewer.can_moderate` flag on the topic payload. Must stay in
+     * lockstep with ForumTopicPolicy::update, or the UI offers a moderation
+     * toolbar that the endpoint then rejects.
+     */
     public function canModerateForumTopic(ForumTopic $topic): bool
     {
         $category = $topic->category;
@@ -94,11 +99,12 @@ class User extends Authenticatable implements FilamentUser
             return false;
         }
 
-        if ($this->can('forum.moderate') && $this->canModerateForumCategory($category)) {
-            return true;
+        if ($this->hasScopedForumModeration()) {
+            return $this->canModerateForumCategory($category);
         }
 
-        return $this->can('forum_topics.update');
+        return ($this->can('forum.moderate') && $this->canModerateForumCategory($category))
+            || $this->can('forum_topics.update');
     }
 
     public function canModerateForumCategory(ForumCategory $category): bool

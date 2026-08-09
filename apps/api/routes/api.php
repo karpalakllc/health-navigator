@@ -86,8 +86,12 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['module:forum', 'role:member', 'throttle:api-forum-topics']);
         Route::post('/forum/categories/{category}/topics/{topic}/posts', [ForumController::class, 'storePost'])
             ->middleware(['module:forum', 'role:member', 'throttle:api-forum-posts']);
+        // Authorization is ForumTopicPolicy::update, which understands both staff
+        // permissions and category-scoped community moderation. A `role:member`
+        // gate here would 403 staff moderators while the UI still offered them
+        // the toolbar, because the toolbar is driven by the policy.
         Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
-            ->middleware(['module:forum', 'role:member']);
+            ->middleware(['module:forum']);
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
             ->middleware(['role:member', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])

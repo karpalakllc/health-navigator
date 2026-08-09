@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SiteSetting extends Model
 {
-    public const DEFAULT_FOOTER_EMERGENCY = 'При медицинска итност повикайте 194 или 112 веднаш.';
+    public const DEFAULT_FOOTER_EMERGENCY = 'При медицинска итност повикајте 194 или 112 веднаш.';
 
     public const DEFAULT_FOOTER_DISCLAIMER = 'Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.';
 

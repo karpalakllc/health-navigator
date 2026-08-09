@@ -98,12 +98,26 @@ class ForumTopic extends Model
         return ScriptInsensitiveSearch::whereColumnMatches($query, 'title', $term);
     }
 
+    /**
+     * Atomic so concurrent approvals cannot lose an increment. This is a hot path
+     * now that auto-approved replies also land here, not just moderator actions.
+     */
     public function recordApprovedReply(): void
     {
-        $this->update([
-            'replies_count' => $this->replies_count + 1,
-            'last_post_at' => now(),
-        ]);
+        $this->increment('replies_count', 1, ['last_post_at' => now()]);
+    }
+
+    /**
+     * A topic with no replies still has activity: its own publication. Seeding
+     * last_post_at here keeps the column non-null for every approved topic, which
+     * matters because "ORDER BY last_post_at DESC" sorts NULLs *first* on
+     * PostgreSQL and last on SQLite — so reply-less topics would otherwise pin
+     * themselves to the top of every listing in production and to the bottom in tests.
+     */
+    protected function markPublicationTimestamps(): void
+    {
+        $this->published_at ??= now();
+        $this->last_post_at ??= $this->published_at;
     }
 
     public function shouldBeSearchable(): bool

@@ -44,7 +44,7 @@ export const publicSettingsDefaults: PublicSettings = {
   forum_rules_title: null,
   forum_rules_body: null,
   footer_emergency_text:
-    "При медицинска итност повикайте 194 или 112 веднаш.",
+    "При медицинска итност повикајте 194 или 112 веднаш.",
   footer_disclaimer_text:
     "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.",
   copyright_name: "Zdravje360",

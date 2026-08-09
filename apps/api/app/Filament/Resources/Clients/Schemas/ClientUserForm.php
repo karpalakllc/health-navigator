@@ -12,7 +12,7 @@ class ClientUserForm
     {
         return $schema->components([
             TextInput::make('name')->required(),
-            TextInput::make('email')->email()->required()->disabledOn('edit'),
+            TextInput::make('email')->email()->required()->unique(ignoreRecord: true)->disabledOn('edit'),
             Select::make('roles')
                 ->relationship(
                     name: 'roles',
