@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
 import { filterInputClassName } from "@/components/directory/filter-form";
@@ -10,24 +10,13 @@ import { Button } from "@/components/ui/button";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
 import { t } from "@/i18n/t";
 
-const REMEMBER_EMAIL_KEY = "zdravje360.rememberEmail";
-
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(REMEMBER_EMAIL_KEY);
-    if (stored) {
-      setEmail(stored);
-      setRemember(true);
-    }
-  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,12 +37,6 @@ export function LoginForm() {
           payload.message ?? payload.errors?.email?.[0] ?? t("auth.loginFailed"),
         );
         return;
-      }
-
-      if (remember) {
-        localStorage.setItem(REMEMBER_EMAIL_KEY, email);
-      } else {
-        localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
 
       const redirect = safeRedirectTarget(searchParams.get("redirect"), "/");
@@ -99,15 +82,6 @@ export function LoginForm() {
             value={password}
             onChange={setPassword}
           />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(event) => setRemember(event.target.checked)}
-            className="h-4 w-4 rounded border-border text-primary"
-          />
-          {t("auth.rememberMe")}
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">

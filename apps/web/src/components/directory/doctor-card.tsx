@@ -80,6 +80,9 @@ function DoctorCardBody({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3.5">
           {avatarSrc ? (
+            // Remote admin-uploaded avatar; next/image would 400 in production because
+            // images.remotePatterns cannot read NEXT_PUBLIC_API_URL. See next.config.ts.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarSrc}
               alt=""

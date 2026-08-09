@@ -59,7 +59,7 @@ export function ComingSoonShell({ title, description, module = "products" }: Com
   );
 }
 
-function QuickLink({ href, children }: { href: string; children: React.ReactNode }) {
+function QuickLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}

@@ -56,14 +56,6 @@ export default async function PharmaciesPage({
 
   const filterParams = { city: params.city, q: params.q };
 
-  const resultsLabels = {
-    resultsTitle: t("pharmacies.resultsTitle"),
-    resultsCount: tFormat("pharmacies.resultsCount", { count: String(pharmacies.meta.total) }),
-    viewModeAria: t("pharmacies.viewModeAria"),
-    viewGrid: t("pharmacies.viewGrid"),
-    viewList: t("pharmacies.viewList"),
-  };
-
   return (
     <>
       <PageHeroBleed>

@@ -29,6 +29,9 @@ export function HomeFacilityCard({
           )}
         >
           {avatarSrc ? (
+            // Remote admin-uploaded avatar; next/image would 400 in production because
+            // images.remotePatterns cannot read NEXT_PUBLIC_API_URL. See next.config.ts.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarSrc}
               alt=""
