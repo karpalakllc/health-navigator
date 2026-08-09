@@ -78,7 +78,7 @@ class PlatformBootstrapCommand extends Command
 
         $this->newLine();
         $this->components->info('Filament admin is ready.');
-        $this->line("  URL:   <href=http://127.0.0.1:8000/admin>http://127.0.0.1:8000/admin</>");
+        $this->line('  URL:   <href=http://127.0.0.1:8000/admin>http://127.0.0.1:8000/admin</>');
         $this->line("  Email: {$adminEmail}");
         $this->line('  Pass:  PLATFORM_ADMIN_PASSWORD from the environment');
         $this->newLine();

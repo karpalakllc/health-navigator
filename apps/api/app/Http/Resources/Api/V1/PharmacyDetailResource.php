@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Facility;
+use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,7 +29,7 @@ class PharmacyDetailResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'website' => $this->website,
-            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
+            'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'office_hours' => $this->office_hours ?? [],
             'review_summary' => ReviewSummary::for($this->resource),
         ];

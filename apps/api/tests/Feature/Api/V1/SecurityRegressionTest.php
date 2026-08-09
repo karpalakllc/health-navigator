@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\TriageSession;
 use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -57,7 +58,7 @@ class SecurityRegressionTest extends TestCase
         $this->postJson('/api/v1/auth/forgot-password', ['email' => 'real@example.com'])
             ->assertOk();
 
-        Notification::assertSentTo($user, \App\Notifications\ResetPasswordNotification::class);
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
     public function test_password_reset_sends_nothing_for_an_unknown_address(): void

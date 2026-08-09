@@ -91,9 +91,6 @@ class ImageOptimizer
         Storage::disk(config('media.disk'))->delete($pathOrUrl);
     }
 
-    /**
-     * @return \GdImage
-     */
     private function loadImage(UploadedFile $file): \GdImage
     {
         $path = $file->getRealPath();
@@ -118,9 +115,6 @@ class ImageOptimizer
         return $image;
     }
 
-    /**
-     * @return \GdImage
-     */
     private function resize(\GdImage $image, int $maxWidth, int $maxHeight): \GdImage
     {
         $width = imagesx($image);

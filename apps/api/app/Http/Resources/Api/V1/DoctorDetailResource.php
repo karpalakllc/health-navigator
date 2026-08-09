@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Doctor;
+use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -29,7 +30,7 @@ class DoctorDetailResource extends JsonResource
             'clinical_interests' => $this->clinicalInterests->pluck('name')->values()->all(),
             'procedures' => $this->procedures->pluck('name')->values()->all(),
             'consultation_fee_note' => $this->consultation_fee_note,
-            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
+            'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'office_hours' => $this->office_hours ?? [],
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,

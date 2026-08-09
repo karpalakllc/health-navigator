@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Models\Doctor;
 use App\Models\Specialty;
 use App\Support\Slug;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
 class DoctorDirectorySeeder extends Seeder

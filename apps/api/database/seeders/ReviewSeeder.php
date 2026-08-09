@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Enums\ReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
 use App\Models\User;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
 class ReviewSeeder extends Seeder

@@ -95,7 +95,7 @@ final class PermissionCatalog
     }
 
     /**
-     * @param list<string> $resources
+     * @param  list<string>  $resources
      * @return list<string>
      */
     private static function crudPermissions(array $resources): array

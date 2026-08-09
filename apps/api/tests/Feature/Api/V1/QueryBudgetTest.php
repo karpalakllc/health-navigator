@@ -90,7 +90,7 @@ class QueryBudgetTest extends TestCase
         $this->assertLessThanOrEqual(
             10,
             count($queries),
-            "Doctor listing ran ".count($queries)." queries:\n".implode("\n", $queries),
+            'Doctor listing ran '.count($queries)." queries:\n".implode("\n", $queries),
         );
     }
 

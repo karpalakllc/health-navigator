@@ -3,6 +3,10 @@
 namespace App\Services;
 
 use App\Models\AnalyticsEvent;
+use App\Models\Doctor;
+use App\Models\Facility;
+use App\Models\ForumTopic;
+use App\Models\Review;
 use App\Models\User;
 use App\Support\SearchQuery;
 use Carbon\Carbon;
@@ -120,10 +124,10 @@ class AnalyticsService
     public function countDirectoryPublished(): array
     {
         return [
-            'doctors' => \App\Models\Doctor::query()->published()->count(),
-            'facilities' => \App\Models\Facility::query()->clinical()->published()->count(),
-            'reviews_pending' => \App\Models\Review::query()->where('status', 'pending')->count(),
-            'forum_topics_pending' => \App\Models\ForumTopic::query()->where('status', 'pending')->count(),
+            'doctors' => Doctor::query()->published()->count(),
+            'facilities' => Facility::query()->clinical()->published()->count(),
+            'reviews_pending' => Review::query()->where('status', 'pending')->count(),
+            'forum_topics_pending' => ForumTopic::query()->where('status', 'pending')->count(),
         ];
     }
 }

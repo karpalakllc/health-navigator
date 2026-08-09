@@ -11,8 +11,8 @@ use App\Http\Resources\Api\V1\PharmacyShelfProductResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
-use App\Support\ScriptInsensitiveSearch;
 use App\Support\ReviewSummary;
+use App\Support\ScriptInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 
 class PharmacyController extends Controller

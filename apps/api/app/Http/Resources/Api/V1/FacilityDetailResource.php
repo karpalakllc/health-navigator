@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Facility;
+use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,7 +32,7 @@ class FacilityDetailResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'website' => $this->website,
-            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
+            'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'office_hours' => $this->office_hours ?? [],
             'doctors' => $this->doctors
                 ->sortByDesc(fn ($doctor) => $doctor->pivot->is_primary)

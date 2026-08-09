@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\ForumContentStatus;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\ForumCategory;

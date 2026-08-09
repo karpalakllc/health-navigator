@@ -12,7 +12,6 @@ use App\Models\Facility;
 use App\Models\ForumTopic;
 use App\Models\Product;
 use App\Models\SiteSetting;
-use App\Support\ReviewSummary;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;

@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Facilities\Schemas;
 
 use App\Enums\FacilityType;
 use App\Filament\Support\AdminSelect;
-use App\Filament\Support\OptimizedImageUpload;
 use App\Filament\Support\FacilityCommonForm;
+use App\Filament\Support\OptimizedImageUpload;
 use App\Models\Doctor;
 use App\Support\Slug;
 use Filament\Forms\Components\Select;

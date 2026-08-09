@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Enums\ForumContentStatus;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\User;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
 class ForumSeeder extends Seeder

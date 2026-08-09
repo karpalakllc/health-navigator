@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Facility;
+use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,7 +23,7 @@ class FacilityListResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type->value,
             'city' => $this->city,
-            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
+            'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'has_emergency_services' => (bool) $this->has_emergency_services,
             'is_featured' => (bool) $this->is_featured,
             'departments_count' => (int) ($this->departments_count ?? 0),

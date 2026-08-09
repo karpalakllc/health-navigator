@@ -6,6 +6,7 @@ use App\Models\ForumCategory;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+
 class ClientUserForm
 {
     public static function configure(Schema $schema): Schema

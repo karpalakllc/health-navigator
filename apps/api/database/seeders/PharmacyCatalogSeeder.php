@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Enums\FacilityType;
 use App\Models\Facility;
 use App\Models\Product;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
 class PharmacyCatalogSeeder extends Seeder
