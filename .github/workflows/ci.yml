@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: "8.5"
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - name: Prepare environment
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: "8.5"
           # Not in the default extension set — the job fails confusingly without it.
           extensions: pdo_pgsql, pgsql
           coverage: none
