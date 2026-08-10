@@ -25,6 +25,15 @@ jobs:
           php-version: "8.4"
           coverage: none
       - run: composer install --no-interaction --prefer-dist
+      - name: Prepare environment
+        # The suite boots the full framework, so it needs an APP_KEY and a .env.
+        # Without them every framework-dependent test fails on
+        # MissingAppKeyException (and password reset on a null hash key).
+        # phpunit.xml's <env> block still wins over these values — Laravel loads
+        # .env immutably, so APP_ENV stays "testing" and the DB stays SQLite.
+        run: |
+          cp .env.example .env
+          php artisan key:generate
       - name: Code style
         run: ./vendor/bin/pint --test
       - name: Tests
@@ -65,6 +74,15 @@ jobs:
           extensions: pdo_pgsql, pgsql
           coverage: none
       - run: composer install --no-interaction --prefer-dist
+      - name: Prepare environment
+        # The suite boots the full framework, so it needs an APP_KEY and a .env.
+        # Without them every framework-dependent test fails on
+        # MissingAppKeyException (and password reset on a null hash key).
+        # phpunit.xml's <env> block still wins over these values — Laravel loads
+        # .env immutably, so APP_ENV stays "testing" and the DB stays SQLite.
+        run: |
+          cp .env.example .env
+          php artisan key:generate
       - name: Tests
         # Shell environment wins over phpunit.xml's <env> entries (they are not
         # forced), so no separate phpunit config is needed.
