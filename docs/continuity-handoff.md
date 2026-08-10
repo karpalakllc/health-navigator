@@ -2,7 +2,28 @@
 
 **Purpose:** Reload context after clearing a long chat. Read this first, then [TASKS.md](../TASKS.md) and [pre-launch-master-plan.md](./pre-launch-master-plan.md) for detail.
 
-**Last updated:** 2026-05-16 (post **P7b / P7c / P8.4**, CSP dev fix, commit `c278815` on `main`).
+**Last updated:** 2026-08-10 (post **Part I audit remediation**, branch `fix/audit-part-1`).
+
+> ### Audit remediation — read this before picking up R1
+>
+> A full codebase audit produced 42 findings; all of Part I is fixed on
+> `fix/audit-part-1` across nine commits. What changed that affects how you work:
+>
+> - **Authorization**: Spatie permissions are the single source of truth.
+>   `users.role` is a coarse account type. Category-scoped forum moderators were
+>   able to moderate *every* category — that is fixed and covered by tests.
+> - **API messages** now live in `apps/api/lang/{mk,en}` with a stable `code`
+>   in the error envelope. Do not add hardcoded user-facing strings.
+>   **The Macedonian strings added there have not had a native review** — two
+>   Bulgarian spellings (`повикайте`, `Добре дојдовте`) had already reached
+>   production copy, so this needs a native pass before launch.
+> - **CI** now has four gates: SQLite tests, PostgreSQL tests, Pint, and
+>   tsc/Vitest on the web. Both engines must stay green.
+> - **`require_email_verification` was removed** — it enforced nothing.
+> - **Deployment**: `TRUSTED_PROXIES`, `MEDIA_DISK` and the `MAIL_*` block are
+>   now required in production. See `infra/deploy.md`.
+> - Still open: Part II of the audit (testing/observability/mobile-readiness
+>   workstreams) and a native Macedonian copy review.
 
 ---
 

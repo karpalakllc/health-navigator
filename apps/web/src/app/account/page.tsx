@@ -13,6 +13,9 @@ import { fetchMe } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
 import { accountRoleLabel } from "@/lib/roles";
 import { t } from "@/i18n/t";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata(t("nav.account"), undefined, { noIndex: true });
 
 export default async function AccountPage() {
   const token = await getSessionToken();

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { DoctorProfileHero } from "@/components/directory/doctor-profile-hero";
 import { DoctorSidebarContact } from "@/components/directory/doctor-sidebar-contact";
@@ -13,6 +14,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { fetchDoctor } from "@/lib/api/doctors";
 import { facilityPublicPath, facilityTypeLabel } from "@/lib/facility-labels";
 import { pageMetadata } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/site-url";
 import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 
@@ -38,7 +40,9 @@ export async function generateMetadata({
       .filter(Boolean)
       .join(" · ");
 
-    return pageMetadata(doctor.full_name, description || t("doctors.description"));
+    return pageMetadata(doctor.full_name, description || t("doctors.description"), {
+      path: `/doctors/${slug}`,
+    });
   } catch {
     return pageMetadata(t("doctors.title"));
   }
@@ -77,8 +81,28 @@ export default async function DoctorDetailPage({
 
   const officeHourEntries = Object.entries(doctor.office_hours ?? {});
 
+  const primarySpecialty =
+    doctor.specialties.find((s) => s.is_primary)?.name ?? doctor.specialties[0]?.name;
+
   return (
     <PageShell gap="loose" className="pb-16 pt-[18px]">
+      {/*
+        Only facts the database actually holds — no credentials, ratings or
+        affiliations we cannot substantiate. Overstating a clinician's
+        qualifications in structured data is a trust and regulatory problem,
+        not just an SEO one.
+      */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Physician",
+          name: doctor.full_name,
+          url: absoluteUrl(`/doctors/${doctor.slug}`),
+          ...(primarySpecialty ? { medicalSpecialty: primarySpecialty } : {}),
+          ...(doctor.city ? { address: { "@type": "PostalAddress", addressLocality: doctor.city } } : {}),
+          ...(doctor.phone ? { telephone: doctor.phone } : {}),
+        }}
+      />
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },

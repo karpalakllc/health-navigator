@@ -12,6 +12,9 @@ import { fetchMyForumPosts, fetchMyForumTopics } from "@/lib/api/forum";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata(t("account.forumActivity"), undefined, { noIndex: true });
 
 type AccountForumPageProps = {
   searchParams: Promise<{ topics_page?: string; posts_page?: string }>;

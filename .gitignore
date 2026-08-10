@@ -25,9 +25,6 @@ pnpm-debug.log*
 
 # PHP / Laravel (apps/api)
 apps/api/vendor/
-apps/api/node_modules/
-apps/api/public/build/
-apps/api/public/hot
 apps/api/public/storage
 apps/api/storage/*.key
 apps/api/.phpunit.cache

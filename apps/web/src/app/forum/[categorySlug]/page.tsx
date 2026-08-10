@@ -12,12 +12,35 @@ import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
+import { pageMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 import { t, tFormat } from "@/i18n/t";
 
 type CategoryTopicsPageProps = {
   params: Promise<{ categorySlug: string }>;
   searchParams: Promise<{ q?: string; sort?: string; page?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: CategoryTopicsPageProps): Promise<Metadata> {
+  const { categorySlug } = await params;
+
+  try {
+    const categories = await fetchForumCategories();
+    const category = categories.find((item) => item.slug === categorySlug);
+
+    if (category) {
+      return pageMetadata(category.name, category.description ?? undefined, {
+        path: `/forum/${categorySlug}`,
+      });
+    }
+  } catch {
+    // Fall through to the generic forum title.
+  }
+
+  return pageMetadata(t("forum.title"), undefined, { path: `/forum/${categorySlug}` });
+}
 
 export default async function CategoryTopicsPage({
   params,

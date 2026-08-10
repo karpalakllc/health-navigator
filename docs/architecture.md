@@ -233,6 +233,14 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 | Phase 2 | `PlatformUserSeeder` runs in `local` / `testing` only |
 | Phase 4 | Web auth: httpOnly cookie bridge via Next Route Handlers (not localStorage Bearer) |
 | R1 | Closed beta: Path B invite-only; MK UI via `apps/web/src/i18n/mk.ts` (no next-intl); static legal pages; Sentry; CORS via `CORS_ALLOWED_ORIGINS`; deploy runbook in `infra/deploy.md` |
+| R1 audit | Spatie permissions are the single authorization source; `users.role` is a coarse account type only. Category-scoped forum moderation is enforced on writes, not just on queries |
+| R1 audit | API error envelope gains a stable `code` alongside `message`; user-facing strings live in `apps/api/lang/{mk,en}` and are negotiated per request via `Accept-Language` (API group only — the admin panel stays English) |
+| R1 audit | `require_email_verification` removed: it enforced nothing. Real verification is a registration-contract change and is deferred |
+| R1 audit | Trusted proxies are mandatory in any hosted environment (`TRUSTED_PROXIES`); without them every IP rate limit collapses into one bucket |
+| R1 audit | Baseline `throttle:api` (120/min) on the whole v1 group |
+| R1 audit | Media URLs resolve through `Storage::disk()->url()`, so `MEDIA_DISK` may point at object storage |
+| R1 audit | CSP is minted per request in `apps/web/src/proxy.ts` with a script nonce; no `unsafe-inline` for scripts in production |
+| R1 audit | CI runs the API suite against both SQLite (fast) and PostgreSQL (fidelity); the two engines order NULLs oppositely, which SQLite-only testing could not surface |
 | Phase 4 | Rate limits: `api-login` (5/min per IP + email), `api-reviews` (10/hour, 20/day per user) |
 | Phase 4 | Sanctum `expiration` default 43200 minutes; Meilisearch still deferred |
 | R1 UI | Public web IA: directory in primary nav; **global search** as header affordance (modal / command palette) deep-linking to existing list filters — not a primary nav item; spec: [frontend-ui-transformation.md](./frontend-ui-transformation.md) |

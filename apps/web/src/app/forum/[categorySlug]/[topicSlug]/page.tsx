@@ -15,12 +15,32 @@ import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
 import { fetchPublicSettingsServer } from "@/lib/api/settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
+import { pageMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 import { t } from "@/i18n/t";
 
 type TopicDetailPageProps = {
   params: Promise<{ categorySlug: string; topicSlug: string }>;
   searchParams: Promise<{ page?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: TopicDetailPageProps): Promise<Metadata> {
+  const { categorySlug, topicSlug } = await params;
+
+  try {
+    const { topic } = await fetchForumTopicPage(categorySlug, topicSlug);
+
+    return pageMetadata(topic.title, topic.body.slice(0, 160), {
+      path: `/forum/${categorySlug}/${topicSlug}`,
+    });
+  } catch {
+    return pageMetadata(t("forum.title"), undefined, {
+      path: `/forum/${categorySlug}/${topicSlug}`,
+    });
+  }
+}
 
 export default async function TopicDetailPage({
   params,

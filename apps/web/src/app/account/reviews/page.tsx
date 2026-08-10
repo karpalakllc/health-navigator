@@ -12,6 +12,9 @@ import { getSessionToken } from "@/lib/auth/session";
 import { fetchMyReviews } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata(t("auth.reviewsTitle"), undefined, { noIndex: true });
 
 type AccountReviewsPageProps = {
   searchParams: Promise<{ page?: string }>;

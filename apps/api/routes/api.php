@@ -98,6 +98,10 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['role:member', 'throttle:api-reviews']);
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
             ->middleware(['role:member', 'throttle:api-reviews']);
+        // Intentional: these two stubs are the only coverage of the `role`
+        // middleware's allow/deny matrix (PlatformRoutesTest), and that middleware
+        // guards real endpoints. Do not delete them without first moving those
+        // assertions onto another role-gated route.
         Route::get('/platform/staff', [PlatformController::class, 'staff'])
             ->middleware('role:admin,moderator');
         Route::get('/platform/admin', [PlatformController::class, 'admin'])

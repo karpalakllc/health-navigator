@@ -95,6 +95,21 @@ CORS_ALLOWED_ORIGINS=https://staging.example.com,https://www.example.com
 
 Local defaults remain in `config/cors.php` (`localhost:3000`).
 
+## Transactional email
+
+Every transactional message — password reset, welcome, and the UGC
+submitted/approved/rejected lifecycle — is a **queued** mailable. That means a
+missing or misconfigured transport does not surface as a request error: the job
+lands in `failed_jobs` and the user simply never receives anything.
+
+Before launch:
+
+1. Set the `MAIL_*` variables (see [env.production.example](./env.production.example)).
+2. Publish **SPF**, **DKIM** and **DMARC** records for the sending domain. Without
+   them, password-reset mail lands in spam, which is an account-loss event.
+3. Monitor `failed_jobs` and alert on it — this is the only signal that mail is broken.
+4. Verify end to end on staging: request a password reset and complete it.
+
 ## TLS and secrets
 
 - TLS terminated at the PaaS edge (required for production).
