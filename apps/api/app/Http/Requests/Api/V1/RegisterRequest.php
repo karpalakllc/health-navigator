@@ -19,7 +19,10 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            // Deliberately NOT unique: rejecting a duplicate here tells an anonymous
+            // caller that the address is registered. The controller handles the
+            // collision and answers identically either way.
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'device_name' => ['sometimes', 'string', 'max:255'],
         ];

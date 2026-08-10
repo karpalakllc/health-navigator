@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -14,13 +13,13 @@ type RegisterFormProps = {
 };
 
 export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   if (!registrationsEnabled) {
     return (
@@ -59,13 +58,33 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
         return;
       }
 
-      router.push("/account");
-      router.refresh();
+      // No session yet: the account is not usable until the address is verified,
+      // and the API deliberately does not say whether it was already registered.
+      setSubmitted(true);
     } catch {
       setError(t("auth.registerFailed"));
     } finally {
       setPending(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <AuthFormCard>
+        <div className="grid gap-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("auth.verifyCheckInbox")}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t("auth.verifyCheckInboxBody")}</p>
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {t("auth.signIn")}
+          </Link>
+        </div>
+      </AuthFormCard>
+    );
   }
 
   return (

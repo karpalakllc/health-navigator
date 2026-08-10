@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
@@ -31,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'registrations' => EnsureRegistrationsEnabled::class,
             'maintenance' => EnsureNotInMaintenance::class,
             'auth.sanctum.optional' => OptionalSanctumAuth::class,
+            // Overrides the framework alias so refusals use this API's envelope.
+            'verified' => EnsureEmailIsVerified::class,
         ]);
 
         // The API runs behind a PaaS edge (see infra/deploy.md), so the socket IP is

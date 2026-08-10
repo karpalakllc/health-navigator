@@ -243,6 +243,22 @@ export const mk = {
     ratingOutOf: "/ 5",
   },
   auth: {
+    // Verify-then-activate registration (audit M1): signup does not create a
+    // session, so the UI has to explain the inbox step.
+    verifyCheckInbox: "Проверете го вашето сандаче",
+    verifyCheckInboxBody:
+      "Ако е-адресата може да се користи, испративме порака со линк за потврда. Отворете го линкот за да ја активирате сметката.",
+    verifyResend: "Испрати го линкот повторно",
+    verifyResendSent: "Ако е-адресата чека потврда, испративме нов линк.",
+    verifyUnverified:
+      "Вашата е-адреса сè уште не е потврдена. Проверете го сандачето или побарајте нов линк.",
+    verifiedTitle: "Е-адресата е потврдена",
+    verifiedBody: "Сметката е активна. Сега можете да се најавите.",
+    verifiedAlreadyTitle: "Веќе е потврдена",
+    verifiedAlreadyBody: "Оваа е-адреса е веќе потврдена. Најавете се за да продолжите.",
+    verifiedInvalidTitle: "Линкот не е валиден",
+    verifiedInvalidBody:
+      "Линкот за потврда е неважечки или истечен. Побарајте нов подолу.",
     loginTitle: "Најава",
     loginDescription:
       "Најавете се за рецензии и форум. Немате сметка? Регистрирајте се.",

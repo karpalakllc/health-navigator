@@ -69,6 +69,11 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:api-login');
         Route::post('/register', [AuthController::class, 'register'])
             ->middleware(['registrations', 'throttle:api-login']);
+        Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+            ->middleware(['signed', 'throttle:api-login'])
+            ->name('verification.verify');
+        Route::post('/email/resend', [AuthController::class, 'resendVerification'])
+            ->middleware(['registrations', 'throttle:api-login']);
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->middleware('throttle:api-login');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])
@@ -78,14 +83,14 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
-        Route::post('/me/avatar', [MeAvatarController::class, 'update']);
+        Route::post('/me/avatar', [MeAvatarController::class, 'update'])->middleware('verified');
         Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
         Route::get('/me/forum/topics', [ForumController::class, 'myTopics']);
         Route::get('/me/forum/posts', [ForumController::class, 'myPosts']);
         Route::post('/forum/categories/{category}/topics', [ForumController::class, 'storeTopic'])
-            ->middleware(['module:forum', 'role:member', 'throttle:api-forum-topics']);
+            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-topics']);
         Route::post('/forum/categories/{category}/topics/{topic}/posts', [ForumController::class, 'storePost'])
-            ->middleware(['module:forum', 'role:member', 'throttle:api-forum-posts']);
+            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-posts']);
         // Authorization is ForumTopicPolicy::update, which understands both staff
         // permissions and category-scoped community moderation. A `role:member`
         // gate here would 403 staff moderators while the UI still offered them
@@ -93,11 +98,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
             ->middleware(['module:forum']);
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         // Intentional: these two stubs are the only coverage of the `role`
         // middleware's allow/deny matrix (PlatformRoutesTest), and that middleware
         // guards real endpoints. Do not delete them without first moving those

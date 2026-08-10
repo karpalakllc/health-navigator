@@ -22,6 +22,8 @@ return [
     'auth' => [
         'invalid_credentials' => 'The provided credentials are incorrect.',
         'logged_out' => 'Logged out.',
+        'registration_pending' => 'If that address can be used, we have sent a message with the next step. Please check your inbox.',
+        'email_unverified' => 'Please confirm your email address before continuing. Check your inbox or request a new link.',
     ],
 
     'registration' => [

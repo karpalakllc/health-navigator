@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
+import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
@@ -16,6 +17,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [unverified, setUnverified] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -33,6 +35,14 @@ export function LoginForm() {
       const payload = await response.json();
 
       if (!response.ok) {
+        // The account exists and the password was right — it just is not
+        // activated yet, so offer the resend rather than a dead end.
+        if (payload.code === "auth.email_unverified") {
+          setUnverified(true);
+          setError(null);
+          return;
+        }
+
         setError(
           payload.message ?? payload.errors?.email?.[0] ?? t("auth.loginFailed"),
         );
@@ -47,6 +57,20 @@ export function LoginForm() {
     } finally {
       setPending(false);
     }
+  }
+
+  if (unverified) {
+    return (
+      <AuthFormCard>
+        <div className="grid gap-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("auth.verifyCheckInbox")}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t("auth.verifyUnverified")}</p>
+          <ResendVerificationForm defaultEmail={email} />
+        </div>
+      </AuthFormCard>
+    );
   }
 
   return (

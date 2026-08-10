@@ -49,6 +49,21 @@ mechanism for the Next.js web client and future mobile clients.
 
 - **Public registration is enabled**, gated by the `registrations_enabled`
   site setting (`403`, code `registration.disabled`, when off).
+- **Registration is verify-then-activate and deliberately non-committal.**
+  `POST /auth/register` always answers **`202`** with the same body, whether or
+  not the address is already registered, and **never returns a token**. Which
+  email the address owner receives is the only thing that differs (verification
+  link vs. "you already have an account"). This is what stops signup being
+  usable to discover who has an account.
+- `GET /auth/email/verify/{id}/{hash}` is a **signed** link from that email. It
+  redirects to `{FRONTEND_URL}/verify-email?status=verified|already|invalid`;
+  an unsigned or expired link is `403`.
+- `POST /auth/email/resend` re-sends the link and is equally non-committal (202).
+- **Login requires a verified address**: correct credentials on an unverified
+  account return `403` with code `auth.email_unverified`. This is not an oracle —
+  it is only reachable by someone who already knows the password.
+- Contributing endpoints (reviews, forum topics and replies, avatar upload)
+  carry the `verified` guard and return the same `403` / `auth.email_unverified`.
 - **Token expiration:** `SANCTUM_TOKEN_EXPIRATION_MINUTES`, default **43200**
   (30 days). Expired tokens are rejected — including on optional-auth routes.
 - `POST /auth/forgot-password` always returns the same success payload,
@@ -82,6 +97,8 @@ tighter named limiters are layered on top:
 
 | Method | Path | Guards |
 |--------|------|--------|
+| `POST` | `/auth/email/resend` | `registrations` |
+| `GET` | `/auth/email/verify/{id}/{hash}` | `ValidateSignature` |
 | `POST` | `/auth/forgot-password` | — |
 | `POST` | `/auth/login` | — |
 | `POST` | `/auth/logout` | `auth:sanctum` |
@@ -91,22 +108,22 @@ tighter named limiters are layered on top:
 | `GET` | `/doctors` | — |
 | `GET` | `/doctors/{slug}` | — |
 | `GET` | `/doctors/{slug}/reviews` | — |
-| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member` |
+| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
 | `GET` | `/facilities` | — |
 | `GET` | `/facilities/{slug}` | — |
 | `GET` | `/facilities/{slug}/reviews` | — |
-| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member` |
+| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
 | `GET` | `/forum/categories` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
-| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member` |
+| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `EnsureEmailIsVerified` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `optional-auth` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
-| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `EnsureEmailIsVerified` |
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
 | `GET` | `/me` | `auth:sanctum` |
-| `POST` | `/me/avatar` | `auth:sanctum` |
+| `POST` | `/me/avatar` | `auth:sanctum`, `EnsureEmailIsVerified` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
@@ -114,7 +131,7 @@ tighter named limiters are layered on top:
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
 | `GET` | `/platform/admin` | `auth:sanctum`, `role:admin` |
 | `GET` | `/platform/staff` | `auth:sanctum`, `role:admin,moderator` |
 | `GET` | `/products` | `module:products` |
