@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -56,18 +57,38 @@ class LoginThrottleTest extends TestCase
         $this->tryLogin('victim@example.com', 'sufficiently1long', '198.51.100.7')->assertOk();
     }
 
-    public function test_repeated_failures_on_one_account_are_stopped_across_addresses(): void
+    /**
+     * Deliberate trade, stated explicitly: spraying one account from many distinct
+     * addresses is NOT stopped by the per-account counter, because a counter that
+     * did stop it would equally let an attacker lock the owner out. What bounds
+     * this is volume per source — asserted below — plus the audit trail.
+     */
+    public function test_failures_from_distinct_addresses_are_bounded_by_volume_not_by_account(): void
     {
         $this->makeUser('target@example.com');
 
-        foreach (range(1, 5) as $i) {
+        foreach (range(1, 8) as $i) {
             $this->tryLogin('target@example.com', 'wrong-password-here', "203.0.113.{$i}")
                 ->assertStatus(422);
         }
 
-        // Distinct address each time, so only an account-keyed limit catches this.
-        $this->tryLogin('target@example.com', 'wrong-password-here', '203.0.113.99')
-            ->assertStatus(429);
+        // The owner is never collateral damage.
+        $this->tryLogin('target@example.com', 'sufficiently1long', '198.51.100.7')->assertOk();
+    }
+
+    public function test_volume_from_a_single_source_is_capped(): void
+    {
+        $this->makeUser('target@example.com');
+
+        // The api-login limiter allows 40/min per address; past that, 429 regardless
+        // of which account is being probed.
+        $statuses = [];
+        foreach (range(1, 45) as $i) {
+            $statuses[] = $this->tryLogin("probe{$i}@example.com", 'wrong-password-here', '203.0.113.5')
+                ->status();
+        }
+
+        $this->assertContains(429, $statuses, 'A single source should hit the volume ceiling.');
     }
 
     /**
@@ -115,7 +136,8 @@ class LoginThrottleTest extends TestCase
 
         $user = User::query()->where('email', 'target@example.com')->sole();
 
-        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 3);
+        // One per minute per address, whichever endpoint asked.
+        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
     }
 
     public function test_the_cooldown_spans_register_and_resend_together(): void
@@ -136,7 +158,99 @@ class LoginThrottleTest extends TestCase
 
         $user = User::query()->where('email', 'mixed@example.com')->sole();
 
-        // One from registration plus two more before the address hits its ceiling.
-        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 3);
+        // The cooldown belongs to the address, so five resends straight after a
+        // registration add nothing — the endpoint chosen makes no difference.
+        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
+    }
+
+    /**
+     * R1. The lockout must cost the attacker, not the owner. Keying on the address
+     * alone means five wrong passwords a minute from anywhere refuse the owner's
+     * correct one — counting failures rather than requests does not help, because
+     * the owner never gets far enough to succeed.
+     */
+    public function test_an_attacker_cannot_lock_the_owner_out_from_another_address(): void
+    {
+        $this->makeUser('owner@example.com');
+
+        // Attacker exhausts their own budget from one address.
+        foreach (range(1, 6) as $_) {
+            $this->tryLogin('owner@example.com', 'wrong-password-here', '203.0.113.9');
+        }
+        $this->tryLogin('owner@example.com', 'wrong-password-here', '203.0.113.9')
+            ->assertStatus(429);
+
+        // The owner, elsewhere, is unaffected.
+        $this->tryLogin('owner@example.com', 'sufficiently1long', '198.51.100.7')->assertOk();
+    }
+
+    public function test_the_lockout_survives_into_the_next_window_for_the_attacker(): void
+    {
+        $this->makeUser('owner@example.com');
+
+        foreach (range(1, 5) as $_) {
+            $this->tryLogin('owner@example.com', 'wrong-password-here', '203.0.113.9')
+                ->assertStatus(422);
+        }
+
+        $this->tryLogin('owner@example.com', 'sufficiently1long', '203.0.113.9')
+            ->assertStatus(429);
+
+        // ...and the owner is still fine from their own address, in the same window.
+        $this->tryLogin('owner@example.com', 'sufficiently1long', '198.51.100.7')->assertOk();
+    }
+
+    /**
+     * R2. AccountExistsMail is triggerable by anyone typing someone else's address
+     * into the sign-up form. It used to be capped only incidentally, by a login
+     * limiter that was later removed — twelve registrations delivered twelve mails.
+     */
+    public function test_repeated_signups_for_an_existing_account_cannot_flood_the_owner(): void
+    {
+        Mail::fake();
+
+        $this->makeUser('taken@example.com');
+
+        foreach (range(1, 12) as $_) {
+            $this->postJson('/api/v1/auth/register', [
+                'name' => 'Someone',
+                'email' => 'taken@example.com',
+                'password' => 'sufficiently1long',
+                'password_confirmation' => 'sufficiently1long',
+            ])->assertStatus(202);
+        }
+
+        Mail::assertQueuedCount(1);
+    }
+
+    /**
+     * A stranger triggering the cooldown must not silently block a real user's
+     * activation. The window is a minute, not an hour, for exactly this reason.
+     */
+    public function test_the_cooldown_expires_quickly_enough_not_to_strand_a_new_user(): void
+    {
+        Notification::fake();
+
+        $this->postJson('/api/v1/auth/register', [
+            'name' => 'Someone',
+            'email' => 'fresh@example.com',
+            'password' => 'sufficiently1long',
+            'password_confirmation' => 'sufficiently1long',
+        ])->assertStatus(202);
+
+        $user = User::query()->where('email', 'fresh@example.com')->sole();
+        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
+
+        // Immediately after, suppressed.
+        $this->postJson('/api/v1/auth/email/resend', ['email' => 'fresh@example.com'])
+            ->assertStatus(202);
+        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
+
+        // A minute later the owner can ask again and actually get one.
+        $this->travel(61)->seconds();
+
+        $this->postJson('/api/v1/auth/email/resend', ['email' => 'fresh@example.com'])
+            ->assertStatus(202);
+        Notification::assertSentToTimes($user, VerifyEmailNotification::class, 2);
     }
 }

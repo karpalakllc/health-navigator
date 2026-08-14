@@ -6,53 +6,59 @@
  * so `Limit::perMinute(…)->by($request->ip())` meters everybody into a single
  * bucket.
  *
- * Which header to believe depends on the edge, and getting it wrong is
- * exploitable in one direction:
+ * Which header to believe is a deployment fact, not something this code can
+ * infer, and guessing wrong is exploitable: any header the edge does not
+ * overwrite is just caller-supplied input. `x-real-ip` and `cf-connecting-ip`
+ * are only trustworthy behind an edge that writes them — behind one that does
+ * not, a client can send either and pick its own rate-limit bucket.
  *
- *  - `x-real-ip` and `cf-connecting-ip` are single values written by the edge
- *    itself, so a client cannot contribute to them. Preferred.
- *  - `x-forwarded-for` is a chain each hop *appends* to. On an appending edge
- *    (nginx, Cloudflare) a client-supplied header ends up on the **left**, so
- *    taking the leftmost entry lets a caller rotate a value and reset its own
- *    bucket. The rightmost entry is the address the last hop actually saw, which
- *    is the one we can rely on with a single trusted edge — and on an
- *    overwriting edge (Vercel) the chain has one entry, so rightmost is the same
- *    value the leftmost would have been.
+ * So the header is configured, not sniffed:
+ *
+ *   CLIENT_IP_HEADER unset  → x-forwarded-for, rightmost entry. The chain is
+ *                             appended to by each hop, so the rightmost value is
+ *                             the address the last hop actually saw; a
+ *                             caller-supplied entry lands on the left and is
+ *                             ignored. Correct on both appending edges (nginx,
+ *                             Cloudflare) and overwriting ones (Vercel, where
+ *                             the chain has a single entry).
+ *   CLIENT_IP_HEADER=<name> → that header verbatim. Use only for a header your
+ *                             edge is known to overwrite, e.g. cf-connecting-ip.
  *
  * Where no edge is present (local `next start`) there is nothing to forward and
- * the API falls back to the socket address, which is correct for that case.
+ * the API falls back to the socket address, which is right for that case.
  *
- * The API only honours this from addresses listed in TRUSTED_PROXIES, which must
- * therefore include the web tier as well as the edge — see infra/deploy.md.
+ * The API only honours this from addresses in TRUSTED_PROXIES, which must
+ * include the web tier as well as the edge — see infra/deploy.md.
  */
 export function forwardedForHeaders(request: Request): Record<string, string> {
-  const client = edgeAssignedIp(request) ?? nearestForwardedFor(request);
+  const client = configuredHeader(request) ?? nearestForwardedFor(request);
 
   return client ? { "X-Forwarded-For": client } : {};
 }
 
-/** Single-value headers written by the edge; a client cannot influence these. */
-function edgeAssignedIp(request: Request): string | undefined {
-  for (const header of ["cf-connecting-ip", "x-real-ip"]) {
-    const value = request.headers.get(header)?.trim();
+function configuredHeader(request: Request): string | undefined {
+  const name = process.env.CLIENT_IP_HEADER?.trim().toLowerCase();
 
-    if (value) {
-      return value;
-    }
+  if (!name) {
+    return undefined;
   }
 
-  return undefined;
+  // A configured header may still carry a chain (some edges set x-forwarded-for
+  // by name); take its last entry for the same reason as below.
+  return lastEntry(request.headers.get(name));
 }
 
 /** The address the last hop saw — the rightmost entry of the chain. */
 function nearestForwardedFor(request: Request): string | undefined {
-  const chain = request.headers.get("x-forwarded-for");
+  return lastEntry(request.headers.get("x-forwarded-for"));
+}
 
-  if (!chain) {
+function lastEntry(value: string | null): string | undefined {
+  if (!value) {
     return undefined;
   }
 
-  const entries = chain
+  const entries = value
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);

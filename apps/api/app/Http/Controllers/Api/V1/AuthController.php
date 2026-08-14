@@ -11,7 +11,6 @@ use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
-use App\Mail\AccountExistsMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
 use App\Services\AnalyticsService;
@@ -45,11 +44,19 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        // Counts failures, not requests. A throttle keyed on the submitted email in
-        // middleware would let anyone who knows an address keep that account locked
-        // out indefinitely just by sending requests — the owner's correct password
-        // would be met with 429. Hit on failure, clear on success.
-        $throttleKey = 'login:'.sha1(mb_strtolower(trim($request->string('email')->toString())));
+        // Counts failures, not requests — and keys on address *and* caller.
+        //
+        // Counting requests lets anyone who knows an address hold the owner out by
+        // sending traffic. Keying on the address alone has the same effect one step
+        // removed: five wrong passwords a minute from anywhere refuse the owner's
+        // correct one, indefinitely. Pairing the address with the caller means an
+        // attacker only ever locks out themselves, which is the trade Fortify makes.
+        //
+        // Volume from one source is bounded separately by the api-login limiter, and
+        // spraying one account from many addresses is what the audit log is for.
+        $throttleKey = 'login:'.sha1(
+            mb_strtolower(trim($request->string('email')->toString())).'|'.$request->ip()
+        );
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_ATTEMPTS)) {
             return ApiResponse::errorCode('errors.too_many_requests', 429, errors: [
@@ -140,7 +147,7 @@ class AuthController extends Controller
             return $this->registrationAccepted();
         }
 
-        VerificationMailer::send($user);
+        VerificationMailer::sendVerificationLink($user);
 
         $this->analytics->record('user.registration_started', $user);
 
@@ -187,7 +194,7 @@ class AuthController extends Controller
         $user = User::query()->where('email', $request->string('email')->toString())->first();
 
         if ($user !== null) {
-            VerificationMailer::send($user);
+            VerificationMailer::sendVerificationLink($user);
         }
 
         return $this->registrationAccepted();
@@ -198,16 +205,16 @@ class AuthController extends Controller
         // Unverified accounts get another verification link rather than a
         // "you already have an account" message they cannot act on.
         if (! $user->hasVerifiedEmail()) {
-            VerificationMailer::send($user);
+            VerificationMailer::sendVerificationLink($user);
 
             return;
         }
 
-        Mail::to($user)->queue(new AccountExistsMail(
-            recipientName: $user->name,
-            loginUrl: FrontendUrl::to('/login'),
-            resetUrl: FrontendUrl::to('/forgot-password'),
-        ));
+        // Through the same gate as the verification link: this is triggerable by
+        // anyone typing someone else's address into the sign-up form, so it has to
+        // be metered per address rather than relying on whatever limit happens to
+        // sit on the route.
+        VerificationMailer::sendAccountExistsNotice($user);
     }
 
     private function registrationAccepted(): JsonResponse

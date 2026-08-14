@@ -38,6 +38,14 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
 
+**Client addresses:** the web tier forwards the visitor's address as
+`X-Forwarded-For`, taking the **rightmost** entry of the incoming chain — correct
+whether the edge appends or overwrites. If your edge writes a single-value header
+instead (`cf-connecting-ip` on Cloudflare), set `CLIENT_IP_HEADER` to its name on
+the web app. Do not set it to a header your edge does not overwrite: anything the
+edge leaves alone is caller-supplied, and a caller that picks its own address
+picks its own rate-limit bucket.
+
 **Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). It must list **the edge *and* the web tier** — sign-in and every other browser write is relayed to the API by a Next route handler, which forwards the visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header is ignored and every login on the platform shares one rate-limit bucket. There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
 
 ### Queue worker
@@ -110,6 +118,9 @@ lands in `failed_jobs` and the user simply never receives anything.
 Before launch:
 
 1. Set the `MAIL_*` variables (see [env.production.example](./env.production.example)).
+   Sign-up mail is rate limited per address (one per minute, six per hour) across
+   every path that can trigger it, so a stranger cannot flood someone's inbox by
+   repeatedly submitting their address.
 2. Publish **SPF**, **DKIM** and **DMARC** records for the sending domain. Without
    them, password-reset mail lands in spam, which is an account-loss event.
 3. Monitor `failed_jobs` and alert on it — this is the only signal that mail is broken.
@@ -121,6 +132,11 @@ to mint verification links on an attacker's domain. It makes **`APP_URL` a
 required, correct value** — if it is wrong, legitimate requests are refused.
 Asset and signed-link generation still follow the (now validated) request host,
 so serving the admin on a different port in development continues to work.
+
+> A wrong `APP_URL` in production therefore rejects **every** request with a 400,
+> not just signed links — loud rather than subtle, but check it first if a fresh
+> deploy answers nothing. The rule is off in `local` and in tests, so this only
+> bites in staging and production.
 
 ## Pre-deploy data checks
 
