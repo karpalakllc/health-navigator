@@ -15,7 +15,10 @@ type UnifiedSearchResultsProps = {
   city?: string;
 };
 
-export async function UnifiedSearchResults({ q, city }: UnifiedSearchResultsProps) {
+export async function UnifiedSearchResults({
+  q,
+  city,
+}: UnifiedSearchResultsProps) {
   const cityParam = city?.trim() || undefined;
 
   const result = await fetchUnifiedSearch({
@@ -143,7 +146,11 @@ function SearchSection({
             {tFormat("search.resultsTotalLine", { total: String(total) })}
           </p>
         </div>
-        <Button href={viewAllHref} variant="outline" className="shrink-0 text-sm">
+        <Button
+          href={viewAllHref}
+          variant="outline"
+          className="shrink-0 text-sm"
+        >
           {t("search.viewAllInSection")}
         </Button>
       </div>

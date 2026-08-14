@@ -20,7 +20,11 @@ type SiteNavProps = {
   layout?: "horizontal" | "vertical";
 };
 
-export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNavProps) {
+export function SiteNav({
+  className,
+  onNavigate,
+  layout = "horizontal",
+}: SiteNavProps) {
   const pathname = usePathname();
   const vertical = layout === "vertical";
 
@@ -33,7 +37,8 @@ export function SiteNav({ className, onNavigate, layout = "horizontal" }: SiteNa
       )}
     >
       {SITE_NAV_LINKS.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active =
+          pathname === link.href || pathname.startsWith(`${link.href}/`);
         const isForum = link.href === "/forum";
 
         return (

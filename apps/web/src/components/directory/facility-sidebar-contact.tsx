@@ -3,8 +3,14 @@ import type { FacilityDetail } from "@/lib/api/types";
 import { addressMapUrl } from "@/lib/maps";
 import { t } from "@/i18n/t";
 
-export function FacilitySidebarContact({ facility }: { facility: FacilityDetail }) {
-  const telHref = facility.phone ? `tel:${facility.phone.replace(/\s+/g, "")}` : null;
+export function FacilitySidebarContact({
+  facility,
+}: {
+  facility: FacilityDetail;
+}) {
+  const telHref = facility.phone
+    ? `tel:${facility.phone.replace(/\s+/g, "")}`
+    : null;
   const mapFallback = addressMapUrl({
     name: facility.name,
     address: facility.address,
@@ -80,7 +86,9 @@ export function FacilitySidebarContact({ facility }: { facility: FacilityDetail 
             <ShieldIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
             {t("facilities.sidebarDisclaimerTitle")}
           </div>
-          <p className="text-sm leading-relaxed text-[#63707b]">{t("footer.informational")}</p>
+          <p className="text-sm leading-relaxed text-[#63707b]">
+            {t("footer.informational")}
+          </p>
         </div>
       </div>
 
@@ -98,7 +106,13 @@ export function FacilitySidebarContact({ facility }: { facility: FacilityDetail 
 
 function PhoneIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path
         d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 10.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"
         strokeLinecap="round"
@@ -110,8 +124,18 @@ function PhoneIcon({ className }: { className?: string }) {
 
 function MailIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path d="m22 6-10 7L2 6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -119,7 +143,13 @@ function MailIcon({ className }: { className?: string }) {
 
 function GlobeIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="12" cy="12" r="10" />
       <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
     </svg>
@@ -128,8 +158,18 @@ function GlobeIcon({ className }: { className?: string }) {
 
 function PinIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );
@@ -137,8 +177,18 @@ function PinIcon({ className }: { className?: string }) {
 
 function ShieldIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

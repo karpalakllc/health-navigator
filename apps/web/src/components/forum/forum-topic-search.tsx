@@ -9,7 +9,11 @@ export function ForumTopicSearch({
   action?: string;
 }) {
   return (
-    <form action={action} method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <form
+      action={action}
+      method="get"
+      className="flex flex-col gap-2 sm:flex-row sm:items-center"
+    >
       <input
         name="q"
         type="search"

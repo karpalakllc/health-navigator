@@ -30,8 +30,12 @@ export default async function RegisterPage() {
       <PageShell className="pb-16">
         <AuthSplitLayout aside={<AuthTrustAside />}>
           <div className="hidden lg:block">
-            <h1 className="text-3xl font-black tracking-tight text-foreground">{t("auth.registerTitle")}</h1>
-            <p className="mt-2 text-muted-foreground">{t("auth.registerDescription")}</p>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              {t("auth.registerTitle")}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {t("auth.registerDescription")}
+            </p>
           </div>
           <RegisterForm registrationsEnabled={settings.registrations_enabled} />
         </AuthSplitLayout>

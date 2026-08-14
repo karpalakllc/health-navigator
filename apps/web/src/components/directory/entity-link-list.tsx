@@ -28,9 +28,13 @@ export function EntityLinkList({ items, emptyMessage }: EntityLinkListProps) {
               <BuildingIcon className="h-5 w-5" aria-hidden />
             </span>
             <span className="min-w-0">
-              <strong className="block text-base text-foreground">{item.title}</strong>
+              <strong className="block text-base text-foreground">
+                {item.title}
+              </strong>
               {item.subtitle ? (
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.subtitle}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {item.subtitle}
+                </p>
               ) : null}
             </span>
           </Link>
@@ -42,8 +46,18 @@ export function EntityLinkList({ items, emptyMessage }: EntityLinkListProps) {
 
 function BuildingIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18M6 12H4M10 12H8M14 12h-2M18 12h-2M10 16H8M14 16h-2M6 20h12" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18M6 12H4M10 12H8M14 12h-2M18 12h-2M10 16H8M14 16h-2M6 20h12"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

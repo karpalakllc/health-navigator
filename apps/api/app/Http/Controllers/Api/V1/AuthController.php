@@ -16,6 +16,7 @@ use App\Mail\WelcomeMail;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
+use App\Support\VerificationMailer;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -25,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -36,15 +38,38 @@ class AuthController extends Controller
         private readonly AnalyticsService $analytics,
     ) {}
 
+    /** Failed sign-ins tolerated per account before it is briefly locked. */
+    private const LOGIN_ATTEMPTS = 5;
+
+    private const LOGIN_DECAY_SECONDS = 60;
+
     public function login(LoginRequest $request): JsonResponse
     {
+        // Counts failures, not requests. A throttle keyed on the submitted email in
+        // middleware would let anyone who knows an address keep that account locked
+        // out indefinitely just by sending requests — the owner's correct password
+        // would be met with 429. Hit on failure, clear on success.
+        $throttleKey = 'login:'.sha1(mb_strtolower(trim($request->string('email')->toString())));
+
+        if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_ATTEMPTS)) {
+            return ApiResponse::errorCode('errors.too_many_requests', 429, errors: [
+                'email' => [__('api.auth.throttled', [
+                    'seconds' => RateLimiter::availableIn($throttleKey),
+                ])],
+            ]);
+        }
+
         $user = User::query()->where('email', $request->string('email')->toString())->first();
 
         if ($user === null || ! Hash::check($request->string('password')->toString(), $user->password)) {
+            RateLimiter::hit($throttleKey, self::LOGIN_DECAY_SECONDS);
+
             throw ValidationException::withMessages([
                 'email' => [__('api.auth.invalid_credentials')],
             ]);
         }
+
+        RateLimiter::clear($throttleKey);
 
         // Only reachable with correct credentials, so this cannot be used to probe
         // which addresses exist — the caller already proved they own the account.
@@ -115,7 +140,7 @@ class AuthController extends Controller
             return $this->registrationAccepted();
         }
 
-        $user->sendEmailVerificationNotification();
+        VerificationMailer::send($user);
 
         $this->analytics->record('user.registration_started', $user);
 
@@ -161,8 +186,8 @@ class AuthController extends Controller
     {
         $user = User::query()->where('email', $request->string('email')->toString())->first();
 
-        if ($user !== null && ! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
+        if ($user !== null) {
+            VerificationMailer::send($user);
         }
 
         return $this->registrationAccepted();
@@ -173,7 +198,7 @@ class AuthController extends Controller
         // Unverified accounts get another verification link rather than a
         // "you already have an account" message they cannot act on.
         if (! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
+            VerificationMailer::send($user);
 
             return;
         }

@@ -53,7 +53,10 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       })
     : null;
 
-  const totalTopics = categories.reduce((sum, item) => sum + (item.topics_count ?? 0), 0);
+  const totalTopics = categories.reduce(
+    (sum, item) => sum + (item.topics_count ?? 0),
+    0,
+  );
 
   return (
     <>
@@ -85,9 +88,21 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         />
         <TrustRibbon
           items={[
-            { text: t("home.trustModerated"), icon: <ShieldIcon />, tone: "teal" },
-            { text: t("forum.rulesNoDiagnosis"), icon: <InfoIcon />, tone: "red" },
-            { text: t("home.trustEmergency"), icon: <AlertIcon />, tone: "red" },
+            {
+              text: t("home.trustModerated"),
+              icon: <ShieldIcon />,
+              tone: "teal",
+            },
+            {
+              text: t("forum.rulesNoDiagnosis"),
+              icon: <InfoIcon />,
+              tone: "red",
+            },
+            {
+              text: t("home.trustEmergency"),
+              icon: <AlertIcon />,
+              tone: "red",
+            },
           ]}
         />
       </PageHeroBleed>
@@ -98,7 +113,9 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         {showSearch && topics ? (
           <section className="space-y-6">
             <FilterStatsRow
-              label={tFormat("forum.topicsCount", { count: String(topics.meta.total) })}
+              label={tFormat("forum.topicsCount", {
+                count: String(topics.meta.total),
+              })}
               clearHref={searchQuery ? "/forum" : undefined}
             />
             {topics.data.length === 0 ? (
@@ -173,23 +190,50 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
 
 function ForumIcon() {
   return (
-    <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z" strokeLinejoin="round" />
+    <svg
+      className="h-4 w-4 text-primary"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function ShieldIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" strokeLinejoin="round" />
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function InfoIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
     </svg>
@@ -198,7 +242,14 @@ function InfoIcon() {
 
 function AlertIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
       <path d="M10.3 4.3h3.4L20 18H4L10.3 4.3z" strokeLinejoin="round" />
     </svg>

@@ -7,7 +7,10 @@ type BackLinkProps = {
 
 export function BackLink({ href, label }: BackLinkProps) {
   return (
-    <Link href={href} className="inline-flex text-sm text-zinc-500 hover:text-zinc-900">
+    <Link
+      href={href}
+      className="inline-flex text-sm text-zinc-500 hover:text-zinc-900"
+    >
       <span aria-hidden="true">← </span>
       {label}
     </Link>

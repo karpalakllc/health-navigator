@@ -42,7 +42,9 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
 
       if (!response.ok) {
         setError(
-          payload.message ?? payload.errors?.email?.[0] ?? t("auth.resetPasswordFailed"),
+          payload.message ??
+            payload.errors?.email?.[0] ??
+            t("auth.resetPasswordFailed"),
         );
         return;
       }
@@ -71,7 +73,9 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.password")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.password")}
+          </span>
           <PasswordInput
             id="reset-password"
             name="password"
@@ -82,7 +86,9 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.registerPasswordConfirm")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.registerPasswordConfirm")}
+          </span>
           <PasswordInput
             id="reset-password-confirm"
             name="password_confirmation"
@@ -93,12 +99,21 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
           />
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
-          {pending ? t("auth.resetPasswordSaving") : t("auth.resetPasswordSubmit")}
+        <Button
+          type="submit"
+          disabled={pending}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
+          {pending
+            ? t("auth.resetPasswordSaving")
+            : t("auth.resetPasswordSubmit")}
         </Button>
       </form>
       <p className="mt-4 text-sm text-muted-foreground">
-        <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/login"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
           {t("auth.backToLogin")}
         </Link>
       </p>

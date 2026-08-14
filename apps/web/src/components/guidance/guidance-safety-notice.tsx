@@ -1,11 +1,13 @@
 import { t } from "@/i18n/t";
 
-export function GuidanceSafetyNotice({ compact = false }: { compact?: boolean }) {
+export function GuidanceSafetyNotice({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   if (compact) {
     return (
-      <p className="text-xs text-zinc-500">
-        {t("forum.safetyEmergency")}
-      </p>
+      <p className="text-xs text-zinc-500">{t("forum.safetyEmergency")}</p>
     );
   }
 

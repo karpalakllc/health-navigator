@@ -19,7 +19,8 @@ export function AdvancedSearchTrigger({
     primary:
       "bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent",
     outline: "border border-border bg-card hover:bg-secondary",
-    ghost: "text-primary underline-offset-4 hover:underline border-0 bg-transparent",
+    ghost:
+      "text-primary underline-offset-4 hover:underline border-0 bg-transparent",
   } as const;
 
   return (
@@ -33,7 +34,9 @@ export function AdvancedSearchTrigger({
       )}
     >
       <span>{t("search.advancedButton")}</span>
-      <span className="text-xs font-normal text-muted-foreground">{t("search.advancedShortHint")}</span>
+      <span className="text-xs font-normal text-muted-foreground">
+        {t("search.advancedShortHint")}
+      </span>
     </button>
   );
 }

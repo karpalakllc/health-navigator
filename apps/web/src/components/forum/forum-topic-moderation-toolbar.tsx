@@ -50,20 +50,45 @@ function ModerationIconButton({
 
 function PinIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 17v5M9 3h6l1 7h-4l1 7H9l1-7H7L9 3z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 17v5M9 3h6l1 7h-4l1 7H9l1-7H7L9 3z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function LockIcon({ locked }: { locked: boolean }) {
   return locked ? (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
     </svg>
   ) : (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 7.5-1" strokeLinecap="round" />
     </svg>
@@ -82,7 +107,10 @@ export function ForumTopicModerationToolbar({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function updateModeration(patch: { is_pinned?: boolean; is_locked?: boolean }) {
+  async function updateModeration(patch: {
+    is_pinned?: boolean;
+    is_locked?: boolean;
+  }) {
     setError(null);
     setPending(true);
 
@@ -145,8 +173,12 @@ export function ForumTopicModerationToolbar({
       </div>
       {(isPinned || isLocked) && (
         <div className="flex flex-wrap gap-2">
-          {isPinned ? <Badge variant="primary">{t("forum.pinned")}</Badge> : null}
-          {isLocked ? <Badge variant="secondary">{t("forum.locked")}</Badge> : null}
+          {isPinned ? (
+            <Badge variant="primary">{t("forum.pinned")}</Badge>
+          ) : null}
+          {isLocked ? (
+            <Badge variant="secondary">{t("forum.locked")}</Badge>
+          ) : null}
         </div>
       )}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

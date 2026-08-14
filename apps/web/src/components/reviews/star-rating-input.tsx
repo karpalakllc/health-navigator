@@ -8,9 +8,17 @@ type StarRatingInputProps = {
   disabled?: boolean;
 };
 
-export function StarRatingInput({ value, onChange, disabled }: StarRatingInputProps) {
+export function StarRatingInput({
+  value,
+  onChange,
+  disabled,
+}: StarRatingInputProps) {
   return (
-    <div className="flex flex-col gap-2" role="group" aria-label={t("reviews.rating")}>
+    <div
+      className="flex flex-col gap-2"
+      role="group"
+      aria-label={t("reviews.rating")}
+    >
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -19,7 +27,9 @@ export function StarRatingInput({ value, onChange, disabled }: StarRatingInputPr
             disabled={disabled}
             onClick={() => onChange(star)}
             className={`rounded px-1 text-2xl leading-none transition ${
-              star <= value ? "text-amber-500" : "text-zinc-300 hover:text-amber-300"
+              star <= value
+                ? "text-amber-500"
+                : "text-zinc-300 hover:text-amber-300"
             } disabled:cursor-not-allowed disabled:opacity-60`}
             aria-label={`${star}${t("common.ratingOutOf")}`}
             aria-pressed={star === value}

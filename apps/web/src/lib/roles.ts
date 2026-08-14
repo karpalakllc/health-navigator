@@ -14,7 +14,10 @@ export function roleLabel(role: string): string {
   return labels[role] ?? role;
 }
 
-export function accountRoleLabel(user: { role: string; community_roles?: string[] }): string {
+export function accountRoleLabel(user: {
+  role: string;
+  community_roles?: string[];
+}): string {
   const community = user.community_roles ?? [];
 
   for (const name of community) {

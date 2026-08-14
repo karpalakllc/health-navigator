@@ -13,27 +13,66 @@ function requestWith(headers: Record<string, string>): Request {
 
 describe("forwardedForHeaders", () => {
   it("forwards the visitor's address so the API can meter per client", () => {
-    expect(forwardedForHeaders(requestWith({ "x-forwarded-for": "203.0.113.7" }))).toEqual({
+    expect(
+      forwardedForHeaders(requestWith({ "x-forwarded-for": "203.0.113.7" })),
+    ).toEqual({
       "X-Forwarded-For": "203.0.113.7",
     });
   });
 
-  it("takes the original client from a proxy chain, not the nearest hop", () => {
+  it("takes the address the last hop saw, not a client-supplied one", () => {
+    // X-Forwarded-For is appended to by each hop, so on an appending edge a
+    // caller's own header lands on the LEFT. Trusting the leftmost entry would
+    // let anyone rotate a value and reset their own rate-limit bucket.
     expect(
       forwardedForHeaders(
-        requestWith({ "x-forwarded-for": "203.0.113.7, 70.41.3.18, 150.172.238.178" }),
+        requestWith({ "x-forwarded-for": "1.2.3.4, 203.0.113.7" }),
       ),
     ).toEqual({ "X-Forwarded-For": "203.0.113.7" });
   });
 
+  it("prefers the single-value headers an edge writes itself", () => {
+    // A client can contribute to x-forwarded-for; it cannot to these.
+    expect(
+      forwardedForHeaders(
+        requestWith({
+          "x-forwarded-for": "1.2.3.4",
+          "x-real-ip": "203.0.113.7",
+        }),
+      ),
+    ).toEqual({ "X-Forwarded-For": "203.0.113.7" });
+
+    expect(
+      forwardedForHeaders(
+        requestWith({
+          "x-forwarded-for": "1.2.3.4",
+          "cf-connecting-ip": "203.0.113.9",
+          "x-real-ip": "198.51.100.1",
+        }),
+      ),
+    ).toEqual({ "X-Forwarded-For": "203.0.113.9" });
+  });
+
+  it("behaves identically on an overwriting edge, where the chain is one entry", () => {
+    expect(
+      forwardedForHeaders(requestWith({ "x-forwarded-for": "203.0.113.7" })),
+    ).toEqual({
+      "X-Forwarded-For": "203.0.113.7",
+    });
+  });
+
   it("tolerates the whitespace real proxies emit", () => {
     expect(
-      forwardedForHeaders(requestWith({ "x-forwarded-for": "  203.0.113.7 , 70.41.3.18" })),
+      forwardedForHeaders(
+        requestWith({ "x-forwarded-for": "  1.2.3.4 , 203.0.113.7  " }),
+      ),
     ).toEqual({ "X-Forwarded-For": "203.0.113.7" });
   });
 
   it("falls back to x-real-ip when no chain is present", () => {
-    expect(forwardedForHeaders(requestWith({ "x-real-ip": "198.51.100.4" }))).toEqual({
+    expect(
+      forwardedForHeaders(requestWith({ "x-real-ip": "198.51.100.4" })),
+    ).toEqual({
       "X-Forwarded-For": "198.51.100.4",
     });
   });
@@ -42,7 +81,11 @@ describe("forwardedForHeaders", () => {
     // Local `next start` has no edge. Forwarding an empty or invented value would
     // be worse than letting the API fall back to the socket address.
     expect(forwardedForHeaders(requestWith({}))).toEqual({});
-    expect(forwardedForHeaders(requestWith({ "x-forwarded-for": "" }))).toEqual({});
-    expect(forwardedForHeaders(requestWith({ "x-forwarded-for": "  " }))).toEqual({});
+    expect(forwardedForHeaders(requestWith({ "x-forwarded-for": "" }))).toEqual(
+      {},
+    );
+    expect(
+      forwardedForHeaders(requestWith({ "x-forwarded-for": "  " })),
+    ).toEqual({});
   });
 });

@@ -10,11 +10,15 @@ export function AuthTrustAside() {
 
   return (
     <HeroMeshCard variant="profile" align="start" className="h-auto">
-      <p className="text-sm font-extrabold text-[#43515d]">{t("auth.loginAsideTitle")}</p>
+      <p className="text-sm font-extrabold text-[#43515d]">
+        {t("auth.loginAsideTitle")}
+      </p>
       <h2 className="mt-3 text-2xl font-black tracking-tight text-foreground">
         {t("auth.asideHeadline")}
       </h2>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("auth.asideBody")}</p>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        {t("auth.asideBody")}
+      </p>
       <ul className="mt-6 space-y-3">
         {items.map((item) => (
           <li
@@ -28,7 +32,9 @@ export function AuthTrustAside() {
             >
               {item.tone === "teal" ? <ShieldIcon /> : <InfoIcon />}
             </span>
-            <span className="text-sm font-semibold leading-snug text-[#586570]">{item.text}</span>
+            <span className="text-sm font-semibold leading-snug text-[#586570]">
+              {item.text}
+            </span>
           </li>
         ))}
       </ul>
@@ -38,15 +44,32 @@ export function AuthTrustAside() {
 
 function ShieldIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" strokeLinejoin="round" />
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function InfoIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
     </svg>

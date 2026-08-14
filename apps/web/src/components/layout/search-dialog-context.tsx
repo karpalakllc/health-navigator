@@ -14,7 +14,10 @@ import { useRouter } from "next/navigation";
 import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-sections";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SEARCH_QUERY_HINT, filterInputClassName } from "@/components/directory/filter-form";
+import {
+  SEARCH_QUERY_HINT,
+  filterInputClassName,
+} from "@/components/directory/filter-form";
 import { directorySearchHref } from "@/lib/search";
 import { cn } from "@/lib/cn";
 import { t, tFormat } from "@/i18n/t";
@@ -28,7 +31,9 @@ type SearchDialogContextValue = {
   openAdvancedSearch: (prefill?: Prefill) => void;
 };
 
-const SearchDialogContext = createContext<SearchDialogContextValue | null>(null);
+const SearchDialogContext = createContext<SearchDialogContextValue | null>(
+  null,
+);
 
 export function useSearchDialog(): SearchDialogContextValue {
   const ctx = useContext(SearchDialogContext);
@@ -120,11 +125,16 @@ function SearchModal({
             <CloseIcon className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">{t("search.modalSubtitle")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("search.modalSubtitle")}
+        </p>
 
         <div className="mt-4 space-y-3">
           <div>
-            <label htmlFor="site-search-q" className="mb-1 block text-sm font-medium text-foreground">
+            <label
+              htmlFor="site-search-q"
+              className="mb-1 block text-sm font-medium text-foreground"
+            >
               {t("search.nameLabel")}
             </label>
             <input
@@ -137,7 +147,10 @@ function SearchModal({
             />
           </div>
           <div>
-            <label htmlFor="site-search-city" className="mb-1 block text-sm font-medium text-foreground">
+            <label
+              htmlFor="site-search-city"
+              className="mb-1 block text-sm font-medium text-foreground"
+            >
               {t("search.cityLabel")}
             </label>
             <input
@@ -152,7 +165,9 @@ function SearchModal({
         </div>
 
         <div className="mt-6 space-y-3">
-          <p className="text-sm font-medium text-foreground">{t("search.openInSection")}</p>
+          <p className="text-sm font-medium text-foreground">
+            {t("search.openInSection")}
+          </p>
           <ul className="space-y-2">
             {SEARCH_DIRECTORY_SECTIONS.map((section) => (
               <li key={section.basePath}>
@@ -162,7 +177,9 @@ function SearchModal({
                   className="block"
                 >
                   <Card className="card-hover border-border p-4 transition-colors hover:border-primary/30">
-                    <span className="font-medium text-foreground">{t(section.titleKey)}</span>
+                    <span className="font-medium text-foreground">
+                      {t(section.titleKey)}
+                    </span>
                     <span className="mt-1 block text-sm text-muted-foreground">
                       {tFormat("search.sectionBlurb", {
                         section: t(section.titleKey),
@@ -176,7 +193,12 @@ function SearchModal({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" className="text-sm" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            className="text-sm"
+            onClick={onClose}
+          >
             {t("common.cancel")}
           </Button>
           <Link
@@ -194,13 +216,28 @@ function SearchModal({
 
 function CloseIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
     </svg>
   );
 }
 
-export function SearchDialogProvider({ children }: { children: React.ReactNode }) {
+export function SearchDialogProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -216,7 +253,9 @@ export function SearchDialogProvider({ children }: { children: React.ReactNode }
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         const target = e.target as HTMLElement | null;
-        if (target?.closest("input, textarea, select, [contenteditable=true]")) {
+        if (
+          target?.closest("input, textarea, select, [contenteditable=true]")
+        ) {
           return;
         }
         e.preventDefault();

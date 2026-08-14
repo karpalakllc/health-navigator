@@ -7,7 +7,11 @@ type PageShellProps = {
   gap?: "default" | "loose";
 };
 
-export function PageShell({ children, className = "", gap = "default" }: PageShellProps) {
+export function PageShell({
+  children,
+  className = "",
+  gap = "default",
+}: PageShellProps) {
   const gapClass = gap === "loose" ? "gap-10" : "gap-8";
 
   return (

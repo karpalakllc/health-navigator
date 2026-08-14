@@ -30,7 +30,10 @@ export async function generateMetadata({
   try {
     const product = await fetchProduct(slug);
 
-    return pageMetadata(product.name, product.category ?? t("products.description"));
+    return pageMetadata(
+      product.name,
+      product.category ?? t("products.description"),
+    );
   } catch {
     return pageMetadata(t("products.title"));
   }
@@ -82,7 +85,9 @@ export default async function ProductDetailPage({
       <PriceDisclaimer />
 
       {product.description ? (
-        <p className="leading-relaxed text-muted-foreground">{product.description}</p>
+        <p className="leading-relaxed text-muted-foreground">
+          {product.description}
+        </p>
       ) : null}
 
       <PageSection title={t("products.pharmacyOffers")}>

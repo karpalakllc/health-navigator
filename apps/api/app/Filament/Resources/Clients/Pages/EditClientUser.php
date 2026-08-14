@@ -26,5 +26,9 @@ class EditClientUser extends EditRecord
     protected function afterSave(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        // Scoped-category assignment may have just changed; drop the memo so any
+        // authorization check later in this request sees the new scope.
+        $this->record->forgetForumModerationScope();
     }
 }

@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-
 /*
  * Content-Security-Policy is NOT set here. It is minted per request in
  * src/proxy.ts so each response can carry a fresh script nonce; a static header

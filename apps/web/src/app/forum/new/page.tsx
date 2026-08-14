@@ -20,7 +20,9 @@ type NewTopicPageProps = {
   searchParams: Promise<{ category?: string }>;
 };
 
-export default async function NewTopicPage({ searchParams }: NewTopicPageProps) {
+export default async function NewTopicPage({
+  searchParams,
+}: NewTopicPageProps) {
   const token = await getSessionToken();
 
   if (!token) {
@@ -77,7 +79,14 @@ export default async function NewTopicPage({ searchParams }: NewTopicPageProps) 
 
 function PlusIcon() {
   return (
-    <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+    <svg
+      className="h-4 w-4 text-primary"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      aria-hidden
+    >
       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
     </svg>
   );

@@ -1,4 +1,9 @@
-import { googleMapsDirectionsUrl, googleMapsSearchUrl, hasMapCoordinates, openStreetMapEmbedUrl } from "@/lib/maps";
+import {
+  googleMapsDirectionsUrl,
+  googleMapsSearchUrl,
+  hasMapCoordinates,
+  openStreetMapEmbedUrl,
+} from "@/lib/maps";
 import { t, tFormat } from "@/i18n/t";
 
 export function FacilityMapEmbed({
@@ -19,7 +24,9 @@ export function FacilityMapEmbed({
 
     return (
       <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 text-center">
-        <p className="text-sm text-muted-foreground">{t("facilities.mapCoordinatesMissing")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("facilities.mapCoordinatesMissing")}
+        </p>
         <a
           href={mapFallbackUrl}
           target="_blank"

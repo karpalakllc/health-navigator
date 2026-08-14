@@ -1,5 +1,9 @@
 import { apiGet, apiGetPaginated } from "@/lib/api/client";
-import type { PharmacyDetail, PharmacyListItem, PharmacyShelfProduct } from "@/lib/api/types";
+import type {
+  PharmacyDetail,
+  PharmacyListItem,
+  PharmacyShelfProduct,
+} from "@/lib/api/types";
 
 export type PharmacyListParams = {
   city?: string;

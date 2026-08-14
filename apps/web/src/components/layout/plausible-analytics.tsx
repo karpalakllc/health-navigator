@@ -8,7 +8,8 @@ export function PlausibleAnalytics() {
   }
 
   const scriptUrl =
-    process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL ?? "https://plausible.io/js/script.js";
+    process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL ??
+    "https://plausible.io/js/script.js";
 
   return (
     <Script

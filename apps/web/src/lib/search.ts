@@ -1,6 +1,8 @@
 export const SEARCH_MIN_LENGTH = 2;
 
-export function normalizeSearchQuery(value: string | undefined): string | undefined {
+export function normalizeSearchQuery(
+  value: string | undefined,
+): string | undefined {
   if (!value) {
     return undefined;
   }

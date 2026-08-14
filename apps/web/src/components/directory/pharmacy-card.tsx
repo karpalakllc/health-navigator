@@ -62,9 +62,13 @@ function PharmacyCardBody({
           fallbackClassName="h-full w-full rounded-[1.25rem] text-lg"
         />
         <div className="min-w-0">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">{pharmacy.name}</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+            {pharmacy.name}
+          </h2>
           {pharmacy.city ? (
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{pharmacy.city}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              {pharmacy.city}
+            </p>
           ) : null}
         </div>
       </div>
@@ -77,15 +81,19 @@ function PharmacyCardBody({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        {pharmacy.review_summary.count > 0 && pharmacy.review_summary.average_rating !== null ? (
+        {pharmacy.review_summary.count > 0 &&
+        pharmacy.review_summary.average_rating !== null ? (
           <>
             <StarRating value={pharmacy.review_summary.average_rating} />
             <span className="text-sm font-bold text-[#485460]">
-              {pharmacy.review_summary.average_rating} ({pharmacy.review_summary.count})
+              {pharmacy.review_summary.average_rating} (
+              {pharmacy.review_summary.count})
             </span>
           </>
         ) : (
-          <span className="directory-tag directory-tag-teal">{t("nav.pharmacies")}</span>
+          <span className="directory-tag directory-tag-teal">
+            {t("nav.pharmacies")}
+          </span>
         )}
       </div>
     </div>
@@ -94,8 +102,17 @@ function PharmacyCardBody({
 
 function PinIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );

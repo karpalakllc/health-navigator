@@ -22,12 +22,18 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
       <div className={`${pageContainerClass} py-10`}>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">{t("meta.title")}</p>
-            <p className="text-sm leading-relaxed text-muted-foreground">{t("footer.informational")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("meta.title")}
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("footer.informational")}
+            </p>
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">{t("footer.directory")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("footer.directory")}
+            </p>
             <ul className="flex flex-col gap-2">
               <li>
                 <Link href="/doctors" className={linkClass}>
@@ -53,7 +59,9 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">{t("footer.resources")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("footer.resources")}
+            </p>
             <ul className="flex flex-col gap-2">
               <li>
                 <Link href="/about" className={linkClass}>
@@ -72,14 +80,19 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
               </li>
               <li>
                 <FooterSearchButton
-                  className={cn(linkClass, "inline-block text-left font-[inherit]")}
+                  className={cn(
+                    linkClass,
+                    "inline-block text-left font-[inherit]",
+                  )}
                 />
               </li>
             </ul>
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">{t("footer.legal")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("footer.legal")}
+            </p>
             <ul className="flex flex-col gap-2">
               <li>
                 <Link href="/privacy" className={linkClass}>

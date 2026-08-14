@@ -14,7 +14,9 @@ export function ProductCard({ product }: { product: ProductListItem }) {
         <div>
           <h2 className="font-semibold text-foreground">{product.name}</h2>
           {product.category ? (
-            <p className="mt-1 text-sm text-muted-foreground">{product.category}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {product.category}
+            </p>
           ) : null}
         </div>
         <div className="mt-auto flex flex-wrap items-center gap-2">
@@ -29,7 +31,9 @@ export function ProductCard({ product }: { product: ProductListItem }) {
           )}
           {product.offer_count > 0 ? (
             <span className="text-xs text-muted-foreground">
-              {tFormat("products.offerCount", { count: String(product.offer_count) })}
+              {tFormat("products.offerCount", {
+                count: String(product.offer_count),
+              })}
             </span>
           ) : null}
         </div>

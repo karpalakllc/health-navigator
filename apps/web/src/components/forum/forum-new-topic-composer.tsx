@@ -27,9 +27,10 @@ export function ForumNewTopicComposer({
 }: ForumNewTopicComposerProps) {
   const router = useRouter();
   const [categorySlug, setCategorySlug] = useState(
-    defaultCategorySlug && categories.some((c) => c.slug === defaultCategorySlug)
+    defaultCategorySlug &&
+      categories.some((c) => c.slug === defaultCategorySlug)
       ? defaultCategorySlug
-      : categories[0]?.slug ?? "",
+      : (categories[0]?.slug ?? ""),
   );
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -45,7 +46,9 @@ export function ForumNewTopicComposer({
   const previewBody = useMemo(
     () => (
       <article className="prose prose-sm max-w-none text-foreground">
-        <h3 className="text-xl font-bold">{title || t("forum.previewTitlePlaceholder")}</h3>
+        <h3 className="text-xl font-bold">
+          {title || t("forum.previewTitlePlaceholder")}
+        </h3>
         <p className="whitespace-pre-wrap text-muted-foreground">
           {body || t("forum.previewBodyPlaceholder")}
         </p>
@@ -97,7 +100,9 @@ export function ForumNewTopicComposer({
       <AuthFormCard>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">{t("forum.categories")}</span>
+            <span className="font-semibold text-foreground">
+              {t("forum.categories")}
+            </span>
             <select
               value={categorySlug}
               onChange={(event) => setCategorySlug(event.target.value)}
@@ -112,7 +117,9 @@ export function ForumNewTopicComposer({
             </select>
           </label>
           <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">{t("common.title")}</span>
+            <span className="font-semibold text-foreground">
+              {t("common.title")}
+            </span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -122,7 +129,9 @@ export function ForumNewTopicComposer({
             />
           </label>
           <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">{t("common.message")}</span>
+            <span className="font-semibold text-foreground">
+              {t("common.message")}
+            </span>
             <textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
@@ -134,7 +143,9 @@ export function ForumNewTopicComposer({
           </label>
 
           <fieldset className="grid gap-2 rounded-xl border border-border bg-muted/20 p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">{t("forum.consentLegend")}</legend>
+            <legend className="px-1 text-sm font-semibold text-foreground">
+              {t("forum.consentLegend")}
+            </legend>
             <ConsentCheckbox
               checked={acceptedRules}
               onChange={setAcceptedRules}
@@ -169,7 +180,9 @@ export function ForumNewTopicComposer({
               disabled={pending || !canSubmit}
               className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
-              {pending ? t("common.submitting") : t("forum.topicSubmitModeration")}
+              {pending
+                ? t("common.submitting")
+                : t("forum.topicSubmitModeration")}
             </button>
             <Link
               href={categorySlug ? `/forum/${categorySlug}` : "/forum"}
@@ -183,7 +196,9 @@ export function ForumNewTopicComposer({
 
       <aside className="space-y-6">
         <ProfileContentCard title={t("forum.newTopicGuidelinesTitle")}>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("forum.newTopicGuidelinesBody")}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t("forum.newTopicGuidelinesBody")}
+          </p>
         </ProfileContentCard>
         <ForumRulesBand settings={settings} />
       </aside>

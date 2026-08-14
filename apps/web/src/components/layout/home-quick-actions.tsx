@@ -44,8 +44,14 @@ const items = [
   },
 ] as const;
 
-export function HomeQuickActions({ showForum = true }: { showForum?: boolean }) {
-  const visible = showForum ? items : items.filter((item) => item.href !== "/forum");
+export function HomeQuickActions({
+  showForum = true,
+}: {
+  showForum?: boolean;
+}) {
+  const visible = showForum
+    ? items
+    : items.filter((item) => item.href !== "/forum");
 
   return (
     <ul className="grid gap-[18px] md:grid-cols-3 md:items-stretch">
@@ -59,12 +65,23 @@ export function HomeQuickActions({ showForum = true }: { showForum?: boolean }) 
                   item.iconWrap,
                 )}
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  aria-hidden
+                >
                   {item.icon}
                 </svg>
               </span>
-              <h3 className="text-[1.08rem] font-extrabold tracking-tight text-foreground">{t(item.titleKey)}</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{t(item.descKey)}</p>
+              <h3 className="text-[1.08rem] font-extrabold tracking-tight text-foreground">
+                {t(item.titleKey)}
+              </h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                {t(item.descKey)}
+              </p>
             </article>
           </Link>
         </li>

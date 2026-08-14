@@ -28,7 +28,13 @@ export function SiteHeaderBar({
 
   return (
     <>
-      <div className={cn(pageContainerClass, "flex items-center gap-3 py-3", "justify-between lg:justify-start lg:gap-4")}>
+      <div
+        className={cn(
+          pageContainerClass,
+          "flex items-center gap-3 py-3",
+          "justify-between lg:justify-start lg:gap-4",
+        )}
+      >
         <Link
           href="/"
           className="flex min-w-0 shrink-0 items-center"
@@ -65,12 +71,19 @@ export function SiteHeaderBar({
                 role: "member",
                 avatar_url: null,
                 avatar_initials: t("nav.account").charAt(0),
-                profile_avatar: { min_messages: 10, message_count: 0, can_change: false },
+                profile_avatar: {
+                  min_messages: 10,
+                  message_count: 0,
+                  can_change: false,
+                },
                 community_roles: [],
               }}
             />
           ) : (
-            <Button href={loginHref(pathname)} className="hidden h-10 px-4 text-sm sm:inline-flex">
+            <Button
+              href={loginHref(pathname)}
+              className="hidden h-10 px-4 text-sm sm:inline-flex"
+            >
               {t("nav.login")}
             </Button>
           )}
@@ -98,7 +111,14 @@ export function SiteHeaderBar({
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -110,8 +130,19 @@ function SearchIcon({ className }: { className?: string }) {
 
 function MenuIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 6h16M4 12h16M4 18h16"
+      />
     </svg>
   );
 }

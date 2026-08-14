@@ -52,6 +52,17 @@ return Application::configure(basePath: dirname(__DIR__))
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
 
+        // Constrain the Host header to APP_URL's domain outside local/testing.
+        // This is what stops a request claiming an arbitrary host and having
+        // URL::temporarySignedRoute() mint a verification link on it.
+        //
+        // Deliberately not URL::forceRootUrl(): pinning the root globally also
+        // pins Filament's asset URLs, so an admin served on any host or port other
+        // than APP_URL loads assets from the wrong origin, and a signed link built
+        // on APP_URL fails validation anywhere else. Validating the incoming host
+        // solves the same problem without either side effect.
+        $middleware->trustHosts();
+
         // Locale negotiation runs before anything that can emit a message, and is
         // scoped to the API so the Filament admin stays in config('app.locale').
         $middleware->api(prepend: [

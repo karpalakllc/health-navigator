@@ -57,9 +57,13 @@ export function ReplyForm({
       onSubmit={handleSubmit}
       className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4"
     >
-      <p className="text-sm font-semibold text-foreground">{t("forum.reply")}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {t("forum.reply")}
+      </p>
       <label className="grid gap-1.5 text-sm">
-        <span className="font-medium text-foreground">{t("common.message")}</span>
+        <span className="font-medium text-foreground">
+          {t("common.message")}
+        </span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -71,7 +75,9 @@ export function ReplyForm({
       </label>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? (
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t("forum.replySuccess")}</p>
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          {t("forum.replySuccess")}
+        </p>
       ) : null}
       <button
         type="submit"

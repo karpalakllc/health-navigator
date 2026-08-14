@@ -50,7 +50,9 @@ export function ForumTopicSidebar({
 
       {!isLoggedIn ? (
         <ProfileContentCard title={t("forum.loginCtaTitle")}>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("forum.loginCtaBody")}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t("forum.loginCtaBody")}
+          </p>
           <Link
             href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
             className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:bg-primary/90"

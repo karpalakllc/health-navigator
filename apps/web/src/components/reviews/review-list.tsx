@@ -13,9 +13,15 @@ export function ReviewList({ reviews }: { reviews: PublicReview[] }) {
           <article className="content-card rounded-[1.625rem] p-5 transition-shadow hover:shadow-[0_22px_56px_rgb(16_30_36_/_0.1)]">
             <div className="mb-3 flex items-center justify-between gap-3">
               <StarRating value={review.rating} />
-              <span className="text-base font-bold text-foreground">{review.author_name}</span>
+              <span className="text-base font-bold text-foreground">
+                {review.author_name}
+              </span>
             </div>
-            {review.body ? <p className="text-sm leading-relaxed text-[#4b5864]">{review.body}</p> : null}
+            {review.body ? (
+              <p className="text-sm leading-relaxed text-[#4b5864]">
+                {review.body}
+              </p>
+            ) : null}
           </article>
         </li>
       ))}

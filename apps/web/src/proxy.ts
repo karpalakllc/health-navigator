@@ -46,13 +46,17 @@ export function proxy(request: NextRequest) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    ["img-src 'self'", "data:", "https://api.dicebear.com", apiOrigin].filter(Boolean).join(" "),
+    ["img-src 'self'", "data:", "https://api.dicebear.com", apiOrigin]
+      .filter(Boolean)
+      .join(" "),
     // Report violations so a future tightening does not fail silently the way
     // the missing ingest origin did.
     "report-uri /api/csp-report",
     "font-src 'self'",
     "frame-src https://www.openstreetmap.org",
-    ["connect-src 'self'", apiOrigin, sentryOrigin, plausibleOrigin].filter(Boolean).join(" "),
+    ["connect-src 'self'", apiOrigin, sentryOrigin, plausibleOrigin]
+      .filter(Boolean)
+      .join(" "),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

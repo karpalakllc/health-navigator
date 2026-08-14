@@ -15,10 +15,16 @@ export function ForumHubSearch({
   categories,
 }: ForumHubSearchProps) {
   return (
-    <form action="/forum" method="get" className="filters-card filters-card-nested p-4 sm:p-5">
+    <form
+      action="/forum"
+      method="get"
+      className="filters-card filters-card-nested p-4 sm:p-5"
+    >
       <div className="grid gap-3 sm:grid-cols-[1fr_minmax(140px,200px)_auto] sm:items-end">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-semibold text-foreground">{t("forum.searchTopics")}</span>
+          <span className="font-semibold text-foreground">
+            {t("forum.searchTopics")}
+          </span>
           <input
             name="q"
             type="search"
@@ -30,8 +36,14 @@ export function ForumHubSearch({
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-semibold text-foreground">{t("forum.categories")}</span>
-          <select name="category" defaultValue={defaultCategory} className={filterInputClassName}>
+          <span className="font-semibold text-foreground">
+            {t("forum.categories")}
+          </span>
+          <select
+            name="category"
+            defaultValue={defaultCategory}
+            className={filterInputClassName}
+          >
             <option value="">{t("forum.allCategories")}</option>
             {categories.map((category) => (
               <option key={category.slug} value={category.slug}>
@@ -49,7 +61,10 @@ export function ForumHubSearch({
       </div>
       {defaultQuery.length >= 2 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          <Link href="/forum" className="font-semibold text-primary hover:underline">
+          <Link
+            href="/forum"
+            className="font-semibold text-primary hover:underline"
+          >
             {t("common.clearFilters")}
           </Link>
         </p>

@@ -18,7 +18,9 @@ type ResetPasswordPageProps = {
   searchParams: Promise<{ token?: string; email?: string }>;
 };
 
-export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+export default async function ResetPasswordPage({
+  searchParams,
+}: ResetPasswordPageProps) {
   const params = await searchParams;
   const token = params.token?.trim();
   const email = params.email?.trim();
@@ -43,7 +45,9 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
             <h1 className="text-3xl font-black tracking-tight text-foreground">
               {t("auth.resetPasswordTitle")}
             </h1>
-            <p className="mt-2 text-muted-foreground">{t("auth.resetPasswordDescription")}</p>
+            <p className="mt-2 text-muted-foreground">
+              {t("auth.resetPasswordDescription")}
+            </p>
           </div>
           <ResetPasswordForm email={email} token={token} />
         </AuthSplitLayout>

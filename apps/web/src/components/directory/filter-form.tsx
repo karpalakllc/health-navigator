@@ -32,7 +32,9 @@ export function FilterForm({
           aria-expanded={open}
         >
           {t("common.filter")}
-          <ChevronIcon className={cn("h-4 w-4 transition", open && "rotate-180")} />
+          <ChevronIcon
+            className={cn("h-4 w-4 transition", open && "rotate-180")}
+          />
         </button>
         <button
           type="submit"
@@ -48,10 +50,17 @@ export function FilterForm({
           !open && "hidden lg:block",
         )}
       >
-        <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-3", fieldsClassName)}>
+        <div
+          className={cn(
+            "grid gap-3 sm:grid-cols-2 xl:grid-cols-3",
+            fieldsClassName,
+          )}
+        >
           {children}
         </div>
-        {searchHint ? <p className="mt-3 text-xs text-muted-foreground">{searchHint}</p> : null}
+        {searchHint ? (
+          <p className="mt-3 text-xs text-muted-foreground">{searchHint}</p>
+        ) : null}
         <button
           type="submit"
           className="mt-4 hidden min-h-[44px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground sm:w-auto lg:inline-flex"
@@ -65,7 +74,12 @@ export function FilterForm({
 
 function ChevronIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden
+    >
       <path
         fillRule="evenodd"
         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
@@ -89,7 +103,9 @@ export function FilterField({
     <div className="flex flex-col text-sm">
       <span className="mb-2 font-bold text-[#36414b]">{label}</span>
       {children}
-      <p className="mt-2 min-h-[1.25rem] text-xs leading-snug text-[#7b8791]">{hint ?? "\u00a0"}</p>
+      <p className="mt-2 min-h-[1.25rem] text-xs leading-snug text-[#7b8791]">
+        {hint ?? "\u00a0"}
+      </p>
     </div>
   );
 }

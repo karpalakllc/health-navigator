@@ -1,6 +1,10 @@
 import { getSessionToken } from "@/lib/auth/session";
 import type { ReviewSummary } from "@/lib/api/types";
-import { fetchDoctorReviews, fetchFacilityReviews, fetchPharmacyReviews } from "@/lib/api/reviews";
+import {
+  fetchDoctorReviews,
+  fetchFacilityReviews,
+  fetchPharmacyReviews,
+} from "@/lib/api/reviews";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ReviewSummaryBlock } from "@/components/reviews/review-summary";
 import { t } from "@/i18n/t";
@@ -23,7 +27,8 @@ export async function ReviewSection({
   searchParams = {},
 }: ReviewSectionProps) {
   const token = await getSessionToken();
-  const page = Number(searchParams.review_page) > 0 ? Number(searchParams.review_page) : 1;
+  const page =
+    Number(searchParams.review_page) > 0 ? Number(searchParams.review_page) : 1;
   const sort = searchParams.review_sort ?? "newest";
   const rating = searchParams.review_rating ?? "";
 
@@ -42,7 +47,9 @@ export async function ReviewSection({
 
   return (
     <section className="scroll-mt-24 space-y-4">
-      <h2 className="text-[1.45rem] font-black tracking-tight text-foreground">{t("reviews.summary")}</h2>
+      <h2 className="text-[1.45rem] font-black tracking-tight text-foreground">
+        {t("reviews.summary")}
+      </h2>
       <ReviewSummaryBlock summary={summary} />
       <ReviewsPanel
         kind={kind}

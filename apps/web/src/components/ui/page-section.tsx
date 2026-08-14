@@ -52,7 +52,9 @@ export function PageSection({
                   )}
                 </h2>
               ) : null}
-              {description != null ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+              {description != null ? (
+                <p className="text-sm text-muted-foreground">{description}</p>
+              ) : null}
             </div>
           ) : null}
           {actions != null ? <div className="shrink-0">{actions}</div> : null}

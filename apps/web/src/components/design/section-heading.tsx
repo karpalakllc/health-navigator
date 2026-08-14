@@ -32,7 +32,12 @@ export function SectionHeading({
   const useIconRow = eyebrowVariant === "plain-with-icon" && icon;
 
   return (
-    <div className={cn("mb-7 flex flex-wrap items-end justify-between gap-4", className)}>
+    <div
+      className={cn(
+        "mb-7 flex flex-wrap items-end justify-between gap-4",
+        className,
+      )}
+    >
       <div className="max-w-3xl space-y-3">
         {showEyebrow ? (
           <div className={cn("flex items-center", useIconRow ? "gap-2.5" : "")}>
@@ -50,17 +55,23 @@ export function SectionHeading({
               className={cn(
                 eyebrowVariant === "pill" &&
                   "inline-flex min-h-[34px] items-center rounded-full bg-[#fff1f1] px-3 text-[0.84rem] font-extrabold text-primary",
-                eyebrowVariant === "plain" && "text-sm font-extrabold text-[#43515d]",
-                eyebrowVariant === "plain-with-icon" && "text-sm font-extrabold text-[#43515d]",
+                eyebrowVariant === "plain" &&
+                  "text-sm font-extrabold text-[#43515d]",
+                eyebrowVariant === "plain-with-icon" &&
+                  "text-sm font-extrabold text-[#43515d]",
               )}
             >
               {eyebrow}
             </span>
           </div>
         ) : null}
-        <h2 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">{title}</h2>
+        <h2 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+          {title}
+        </h2>
         {description ? (
-          <p className="text-base leading-relaxed text-muted-foreground">{description}</p>
+          <p className="text-base leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         ) : null}
       </div>
       {href && linkLabel ? (
@@ -69,8 +80,19 @@ export function SectionHeading({
           className="inline-flex shrink-0 items-center gap-2 text-sm font-extrabold text-primary hover:underline"
         >
           {linkLabel}
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <path
+              d="M5 12h14M13 6l6 6-6 6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </Link>
       ) : null}

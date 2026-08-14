@@ -9,7 +9,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
@@ -23,13 +22,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Signed URLs (email verification) must be minted on the canonical host,
-        // never on whatever the request claims — otherwise a forwarded-host header
-        // turns a legitimate verification mail into a phishing link.
-        if (is_string($appUrl = config('app.url')) && $appUrl !== '') {
-            URL::forceRootUrl($appUrl);
-        }
-
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
@@ -62,32 +54,25 @@ class AppServiceProvider extends ServiceProvider
                 : Limit::perMinute(1200)->by('ip:'.$request->ip());
         });
 
-        // The per-address limit is the credential-stuffing control and depends on
-        // $request->ip() being the visitor. Sign-in reaches us through the web tier's
-        // route handlers, which forward X-Forwarded-For — but only addresses listed
-        // in TRUSTED_PROXIES are believed, so a misconfigured deployment silently
-        // funnels every login into one bucket. The per-address limit is therefore
-        // deliberately looser than the per-account one: wrong, it throttles a shared
-        // origin rather than locking the platform out, and the per-account limit
-        // still stops credential stuffing on its own.
+        // Address-level backstop only. The per-account control lives in
+        // AuthController because it must count *failures*, not requests: a
+        // middleware limit keyed on the submitted email lets anyone who knows an
+        // address hold that account in permanent lockout by sending requests.
+        //
+        // This is deliberately loose. It depends on $request->ip() being the
+        // visitor, which depends on the web tier forwarding an address and on that
+        // tier being trusted — so if a deployment gets that wrong, this throttles a
+        // shared origin instead of locking the platform out.
         RateLimiter::for('api-login', function (Request $request) {
-            $email = mb_strtolower(trim((string) $request->input('email')));
-
-            return [
-                Limit::perMinute(5)->by('login-account:'.($email !== '' ? $email : $request->ip())),
-                Limit::perMinute(40)->by('login-ip:'.$request->ip()),
-            ];
+            return Limit::perMinute(40)->by('login-ip:'.$request->ip());
         });
 
-        // Resend is unauthenticated and takes an arbitrary address, so without a
-        // per-address cooldown it can be used to repeatedly mail one person.
+        // Address-level cooldown lives in VerificationMailer, so it applies to every
+        // path that can send a link rather than just this route — /auth/register
+        // used to walk straight past a route-level limit. What remains here is the
+        // per-caller ceiling on hammering the endpoint itself.
         RateLimiter::for('api-verification-resend', function (Request $request) {
-            $email = mb_strtolower(trim((string) $request->input('email')));
-
-            return [
-                Limit::perHour(3)->by('resend-account:'.($email !== '' ? $email : $request->ip())),
-                Limit::perMinute(10)->by('resend-ip:'.$request->ip()),
-            ];
+            return Limit::perMinute(10)->by('resend-ip:'.$request->ip());
         });
 
         RateLimiter::for('api-reviews', function (Request $request) {

@@ -9,14 +9,22 @@ import { t, tFormat } from "@/i18n/t";
 
 export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
   const primarySpecialty =
-    doctor.specialties.find((s) => s.is_primary)?.name ?? doctor.specialties[0]?.name;
+    doctor.specialties.find((s) => s.is_primary)?.name ??
+    doctor.specialties[0]?.name;
 
-  const specialtyLine = [primarySpecialty, doctor.subspecialty].filter(Boolean).join(" · ");
+  const specialtyLine = [primarySpecialty, doctor.subspecialty]
+    .filter(Boolean)
+    .join(" · ");
 
-  const workplace = doctor.facilities.find((f) => f.is_primary) ?? doctor.facilities[0];
+  const workplace =
+    doctor.facilities.find((f) => f.is_primary) ?? doctor.facilities[0];
 
   return (
-    <HeroMeshCard variant="profile" align="start" innerClassName="w-full max-w-none">
+    <HeroMeshCard
+      variant="profile"
+      align="start"
+      innerClassName="w-full max-w-none"
+    >
       <div className="grid items-center gap-5 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">
         <DirectoryAvatar
           kind="doctor"
@@ -40,12 +48,17 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
               ) : null}
             </div>
             {specialtyLine ? (
-              <p className="text-base font-medium text-muted-foreground">{specialtyLine}</p>
+              <p className="text-base font-medium text-muted-foreground">
+                {specialtyLine}
+              </p>
             ) : null}
 
             {workplace ? (
               <p className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground sm:justify-start">
-                <PinGlyph className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+                <PinGlyph
+                  className="h-4 w-4 shrink-0 text-accent"
+                  aria-hidden
+                />
                 <Link
                   href={facilityPublicPath(workplace.type, workplace.slug)}
                   className="font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
@@ -62,24 +75,35 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
             ) : null}
           </div>
 
-          {doctor.review_summary.count > 0 && doctor.review_summary.average_rating !== null ? (
+          {doctor.review_summary.count > 0 &&
+          doctor.review_summary.average_rating !== null ? (
             <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-              <StarRating value={doctor.review_summary.average_rating} size="md" />
+              <StarRating
+                value={doctor.review_summary.average_rating}
+                size="md"
+              />
               <span className="text-lg font-extrabold tabular-nums">
                 {doctor.review_summary.average_rating}
               </span>
               <span className="text-sm text-muted-foreground">
                 ({doctor.review_summary.count}{" "}
-                {doctor.review_summary.count === 1 ? t("reviews.countOne") : t("reviews.count")})
+                {doctor.review_summary.count === 1
+                  ? t("reviews.countOne")
+                  : t("reviews.count")}
+                )
               </span>
             </div>
           ) : null}
 
           <div className="flex flex-wrap justify-center gap-2.5 sm:justify-start">
             {doctor.accepts_new_patients ? (
-              <span className="directory-tag directory-tag-teal">{t("doctors.acceptingPatients")}</span>
+              <span className="directory-tag directory-tag-teal">
+                {t("doctors.acceptingPatients")}
+              </span>
             ) : (
-              <span className="directory-tag">{t("doctors.notAcceptingPatients")}</span>
+              <span className="directory-tag">
+                {t("doctors.notAcceptingPatients")}
+              </span>
             )}
             {doctor.years_experience ? (
               <span className="directory-tag">
@@ -89,7 +113,9 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
               </span>
             ) : null}
             {doctor.consultation_fee_note ? (
-              <span className="directory-tag">{doctor.consultation_fee_note}</span>
+              <span className="directory-tag">
+                {doctor.consultation_fee_note}
+              </span>
             ) : null}
           </div>
 
@@ -106,8 +132,18 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
 
 function PinGlyph({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );

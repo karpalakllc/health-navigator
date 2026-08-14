@@ -115,6 +115,13 @@ Before launch:
 3. Monitor `failed_jobs` and alert on it — this is the only signal that mail is broken.
 4. Verify end to end on staging: request a password reset and complete it.
 
+**Trusted hosts:** outside `local`, the app rejects requests whose `Host` is not
+`APP_URL`'s domain (or a subdomain). This is what stops a forged host being used
+to mint verification links on an attacker's domain. It makes **`APP_URL` a
+required, correct value** — if it is wrong, legitimate requests are refused.
+Asset and signed-link generation still follow the (now validated) request host,
+so serving the admin on a different port in development continues to work.
+
 ## Pre-deploy data checks
 
 Two one-off checks before the first deploy of the Part I remediation:

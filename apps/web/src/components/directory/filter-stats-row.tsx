@@ -9,7 +9,11 @@ type FilterStatsRowProps = {
   className?: string;
 };
 
-export function FilterStatsRow({ label, clearHref, className }: FilterStatsRowProps) {
+export function FilterStatsRow({
+  label,
+  clearHref,
+  className,
+}: FilterStatsRowProps) {
   return (
     <div
       className={cn(
@@ -17,7 +21,10 @@ export function FilterStatsRow({ label, clearHref, className }: FilterStatsRowPr
         className,
       )}
     >
-      <p className="text-sm tabular-nums text-muted-foreground" aria-live="polite">
+      <p
+        className="text-sm tabular-nums text-muted-foreground"
+        aria-live="polite"
+      >
         {label}
       </p>
       {clearHref ? (

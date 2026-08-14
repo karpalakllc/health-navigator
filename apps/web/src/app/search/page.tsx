@@ -49,7 +49,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           />
         </PageHeroBleed>
 
-      <PageShell className="gap-8 pb-16">
+        <PageShell className="gap-8 pb-16">
           <div className="flex flex-wrap items-center gap-3">
             <AdvancedSearchTrigger />
           </div>
@@ -68,37 +68,49 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           description={t("search.hubIntro")}
           filters={
             <div className="filters-card filters-card-nested p-4 sm:p-5">
-            <FilterForm
-              searchHint={SEARCH_QUERY_HINT}
-              action="/search"
-              method="get"
-              fieldsClassName="sm:grid-cols-2"
-            >
-              <FilterField label={t("search.nameLabel")}>
-                <input
-                  name="q"
-                  defaultValue={params.q ?? ""}
-                  className={filterInputClassName}
-                  autoComplete="off"
-                />
-              </FilterField>
-              <FilterField label={t("search.cityLabel")}>
-                <input
-                  name="city"
-                  defaultValue={params.city ?? ""}
-                  className={filterInputClassName}
-                  autoComplete="off"
-                />
-              </FilterField>
-            </FilterForm>
+              <FilterForm
+                searchHint={SEARCH_QUERY_HINT}
+                action="/search"
+                method="get"
+                fieldsClassName="sm:grid-cols-2"
+              >
+                <FilterField label={t("search.nameLabel")}>
+                  <input
+                    name="q"
+                    defaultValue={params.q ?? ""}
+                    className={filterInputClassName}
+                    autoComplete="off"
+                  />
+                </FilterField>
+                <FilterField label={t("search.cityLabel")}>
+                  <input
+                    name="city"
+                    defaultValue={params.city ?? ""}
+                    className={filterInputClassName}
+                    autoComplete="off"
+                  />
+                </FilterField>
+              </FilterForm>
             </div>
           }
         />
         <TrustRibbon
           items={[
-            { text: t("search.trustUnified"), icon: <SearchIcon />, tone: "teal" },
-            { text: t("search.trustFilters"), icon: <GridIcon />, tone: "teal" },
-            { text: t("search.trustInformational"), icon: <InfoIcon />, tone: "red" },
+            {
+              text: t("search.trustUnified"),
+              icon: <SearchIcon />,
+              tone: "teal",
+            },
+            {
+              text: t("search.trustFilters"),
+              icon: <GridIcon />,
+              tone: "teal",
+            },
+            {
+              text: t("search.trustInformational"),
+              icon: <InfoIcon />,
+              tone: "red",
+            },
           ]}
         />
       </PageHeroBleed>
@@ -112,7 +124,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           {sections.map((section) => (
             <li key={section.basePath}>
               <HubLinkCard
-                href={directorySearchHref(section.basePath, params.q, params.city)}
+                href={directorySearchHref(
+                  section.basePath,
+                  params.q,
+                  params.city,
+                )}
                 title={t(section.titleKey)}
                 description={`${t("search.viewMatching")} ${t(section.titleKey).toLowerCase()} ${t("search.matching")}`}
               />
@@ -126,7 +142,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
 function SearchIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-3-3" strokeLinecap="round" />
     </svg>
@@ -135,7 +158,14 @@ function SearchIcon() {
 
 function GridIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
     </svg>
   );
@@ -143,7 +173,14 @@ function GridIcon() {
 
 function InfoIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
     </svg>

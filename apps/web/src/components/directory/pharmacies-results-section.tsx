@@ -19,16 +19,30 @@ export function PharmaciesResultsSection({
     <section className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-foreground">{t("pharmacies.resultsTitle")}</h2>
+          <h2 className="text-2xl font-black tracking-tight text-foreground">
+            {t("pharmacies.resultsTitle")}
+          </h2>
           <p className="mt-1 text-muted-foreground">
             {tFormat("pharmacies.resultsCount", { count: String(total) })}
           </p>
         </div>
-        <div className="flex gap-2" role="group" aria-label={t("pharmacies.viewModeAria")}>
-          <ViewButton active={view === "grid"} onClick={() => setView("grid")} label={t("pharmacies.viewGrid")}>
+        <div
+          className="flex gap-2"
+          role="group"
+          aria-label={t("pharmacies.viewModeAria")}
+        >
+          <ViewButton
+            active={view === "grid"}
+            onClick={() => setView("grid")}
+            label={t("pharmacies.viewGrid")}
+          >
             <GridIcon className="h-5 w-5" aria-hidden />
           </ViewButton>
-          <ViewButton active={view === "list"} onClick={() => setView("list")} label={t("pharmacies.viewList")}>
+          <ViewButton
+            active={view === "list"}
+            onClick={() => setView("list")}
+            label={t("pharmacies.viewList")}
+          >
             <ListIcon className="h-5 w-5" aria-hidden />
           </ViewButton>
         </div>
@@ -37,7 +51,9 @@ export function PharmaciesResultsSection({
       <ul
         className={cn(
           "grid list-none gap-[18px] p-0",
-          view === "list" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+          view === "list"
+            ? "grid-cols-1"
+            : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
         )}
       >
         {pharmacies.map((pharmacy) => (
@@ -81,7 +97,13 @@ function ViewButton({
 
 function GridIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <rect x="3" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -92,8 +114,17 @@ function GridIcon({ className }: { className?: string }) {
 
 function ListIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

@@ -12,7 +12,10 @@ type Props = {
 export function LegalPage({ titleKey, lastUpdated, children }: Props) {
   return (
     <PageShell>
-      <PageHeader title={t(titleKey)} description={`${t("legal.lastUpdated")}: ${lastUpdated}`} />
+      <PageHeader
+        title={t(titleKey)}
+        description={`${t("legal.lastUpdated")}: ${lastUpdated}`}
+      />
       <article className="prose prose-zinc max-w-none space-y-4 text-sm text-zinc-700">
         {children}
       </article>

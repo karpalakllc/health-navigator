@@ -126,10 +126,23 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      * Memoised: this is consulted at the top of both forum policies, again inside
      * canModerateForumCategory(), and once per query in ForumModerationScope — so an
      * un-cached ->exists() turns every authorization check into extra round trips.
+     *
+     * The memo lasts as long as the model instance. Anything that changes the
+     * assignment within one request (the Filament client form) must call
+     * forgetForumModerationScope(), or authorization decisions later in that
+     * request are made against the previous assignment.
      */
     public function hasScopedForumModeration(): bool
     {
         return $this->hasScopedForumModeration ??= $this->moderatedForumCategories()->exists();
+    }
+
+    public function forgetForumModerationScope(): static
+    {
+        $this->hasScopedForumModeration = null;
+        $this->unsetRelation('moderatedForumCategories');
+
+        return $this;
     }
 
     /**
