@@ -3,6 +3,15 @@
 **Please read this and tell me what to change.** You can reply in any form: mark up
 this file, send me a list, or just say "row 12 in section A should be X".
 
+## Round 1 feedback is applied
+
+Three corrections landed: `не се точни` → `се неточни` (login error, in two
+places that had drifted apart), and `Прикачувањето не успеа` →
+`Прикачувањето е неуспешно`. The hedged confirmations were also shortened — the
+screens now say what happened in one line, with a separate muted footnote
+explaining that addresses are hidden deliberately. Rows below show the current
+wording.
+
 ## Why this exists
 
 The audit found the emergency-call instruction written with a Bulgarian spelling —
@@ -46,9 +55,9 @@ Errors and notices the site shows in the page or as a message under a form.
 | 2 | Немате дозвола за оваа акција. | Forbidden. | Action the signed-in user is not allowed to take |
 | 3 | Не е пронајдено. | Not found. | Unknown doctor, facility, topic, etc. |
 | 4 | Премногу барања. Обидете се повторно подоцна. | Too many requests. | Rate limit hit (e.g. repeated login attempts) |
-| 5 | Внесените податоци за најава не се точни. | The provided credentials are incorrect. | Wrong email or password on the login form |
+| 5 | Внесените податоци за најава се неточни. | The provided credentials are incorrect. | Wrong email or password on the login form |
 | 6 | Одјавени сте. | Logged out. | After signing out |
-| 7 | Ако е-адресата може да се користи, испративме порака со следниот чекор. Проверете го вашето сандаче. | If that address can be used, we have sent a message with the next step. Please check your inbox. | **After submitting the signup form.** Worded to reveal nothing about whether the address already has an account |
+| 7 | Испративме порака со линк за потврда. | If that address can be used, we have sent a message with the next step. Please check your inbox. | **After submitting the signup form.** Worded to reveal nothing about whether the address already has an account |
 | 8 | Потврдете ја вашата е-адреса пред да продолжите. Проверете го сандачето или побарајте нов линк. | Please confirm your email address before continuing. Check your inbox or request a new link. | Login with correct password but unconfirmed address; also when trying to post before confirming |
 | 9 | Регистрацијата е привремено оневозможена. | Registration is currently disabled. | Signup form when registration is switched off in admin |
 | 10 | Овој дел сè уште не е достапен. | This module is not available yet. | Visiting Pharmacies/Products/Forum/Guidance while that section is switched off |
@@ -76,7 +85,7 @@ Shown on the login form.
 
 | # | Macedonian | Intended meaning | Where it appears |
 |---|------------|------------------|------------------|
-| 1 | Внесените податоци за најава не се точни. |  | Login form, wrong credentials (framework key) |
+| 1 | Внесените податоци за најава се неточни. |  | Login form, wrong credentials (framework key) |
 | 2 | Внесената лозинка е неточна. |  | Wrong current password |
 | 3 | Премногу обиди за најава. Обидете се повторно за :seconds секунди. |  | Too many login attempts. `:seconds` is a number |
 
@@ -87,10 +96,10 @@ Shown on the forgot/reset password screens and in that email.
 | # | Macedonian | Intended meaning | Where it appears |
 |---|------------|------------------|------------------|
 | 1 | Вашата лозинка е успешно променета. |  | After successfully setting a new password |
-| 2 | Ако постои сметка со таа е-адреса, испративме линк за промена на лозинката. |  | **After requesting a password reset.** Worded to reveal nothing about whether the address exists |
+| 2 | Испративме линк за промена на лозинката. |  | **After requesting a password reset.** Worded to reveal nothing about whether the address exists |
 | 3 | Ве молиме почекајте пред да се обидете повторно. |  | Requesting password resets too quickly |
 | 4 | Линкот за промена на лозинката е невалиден или истечен. |  | Password-reset link expired or already used |
-| 5 | Ако постои сметка со таа е-адреса, испративме линк за промена на лозинката. |  | Same wording as `sent`, deliberately — see above |
+| 5 | Испративме линк за промена на лозинката. |  | Same wording as `sent`, deliberately — see above |
 
 ## D. Form validation messages
 
@@ -145,18 +154,18 @@ Shown directly in the page rather than as an error.
 | # | Macedonian | Intended meaning | Where it appears |
 |---|------------|------------------|------------------|
 | 1 | Проверете го вашето сандаче | Check your inbox | Heading after signing up |
-| 2 | Ако е-адресата може да се користи, испративме порака со линк за потврда. Отворете го линкот за да ја активирате сметката. | If the address can be used, we sent a message with a confirmation link. Open it to activate the account. | Body of that screen. **Deliberately vague** — it must not confirm whether the address was already registered |
+| 2 | Испративме порака со линк за потврда. | If the address can be used, we sent a message with a confirmation link. Open it to activate the account. | Body of that screen. **Deliberately vague** — it must not confirm whether the address was already registered |
 | 3 | Испрати го линкот повторно | Send the link again | Button, when a confirmation link expired |
-| 4 | Ако е-адресата чека потврда, испративме нов линк. | If the address is awaiting confirmation, we sent a new link. | After pressing that button |
-| 5 | Вашата е-адреса сè уште не е потврдена. Проверете го сандачето или побарајте нов линк. | Your address is not confirmed yet. Check your inbox or request a new link. | Login, when the account exists but is unconfirmed |
+| 4 | Испративме нов линк. | If the address is awaiting confirmation, we sent a new link. | After pressing that button |
+| 5 | Вашата е-адреса сè уште не е потврдена. | Your address is not confirmed yet. Check your inbox or request a new link. | Login, when the account exists but is unconfirmed |
 | 6 | Е-адресата е потврдена | Address confirmed | Heading after clicking the confirmation link |
 | 7 | Сметката е активна. Сега можете да се најавите. | The account is active. You can sign in now. | Body of that screen |
 | 8 | Веќе е потврдена | Already confirmed | If the link is clicked twice |
 | 9 | Оваа е-адреса е веќе потврдена. Најавете се за да продолжите. | This address is already confirmed. Sign in to continue. | Body of that screen |
 | 10 | Линкот не е валиден | The link is not valid | Expired or tampered confirmation link |
-| 11 | Линкот за потврда е неважечки или истечен. Побарајте нов подолу. | The confirmation link is invalid or expired. Request a new one below. | Body of that screen |
+| 11 | Линкот е неважечки или истечен. Побарајте нов подолу. | The confirmation link is invalid or expired. Request a new one below. | Body of that screen |
 | 12 | Не сте најавени. | You are not signed in. | Acting without a session |
-| 13 | Прикачувањето не успеа. | The upload failed. | Profile photo upload error |
+| 13 | Прикачувањето е неуспешно. | The upload failed. | Profile photo upload error |
 | 14 | Невалиден профил за рецензија. | Invalid review target. | Malformed review submission |
 | 15 | Темата е задолжителна. | The topic is required. | Malformed forum reply |
 | 16 | Категоријата е задолжителна. | The category is required. | Malformed new topic |
