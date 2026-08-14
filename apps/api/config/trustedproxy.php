@@ -22,6 +22,12 @@ return [
     |
     */
 
-    'proxies' => env('TRUSTED_PROXIES', '*'),
+    // No default on purpose. "*" trusts whoever is talking to us, which is correct
+    // behind an edge that is the only route in — and actively harmful if the origin
+    // is directly reachable, because then any client can set X-Forwarded-For and mint
+    // itself a fresh bucket for every IP-keyed limiter, including the 5/min on login.
+    // Leaving this unset degrades to the pre-C1 behaviour (limits collapse onto the
+    // edge address) rather than to a bypass, so unset fails safe.
+    'proxies' => env('TRUSTED_PROXIES'),
 
 ];

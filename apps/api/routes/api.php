@@ -72,8 +72,11 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
             ->middleware(['signed', 'throttle:api-login'])
             ->name('verification.verify');
+        // Deliberately NOT behind `registrations`: this is a recovery action for an
+        // account that already exists. Gating it means that turning signups off
+        // strands anyone mid-verification — they can neither log in nor get a new link.
         Route::post('/email/resend', [AuthController::class, 'resendVerification'])
-            ->middleware(['registrations', 'throttle:api-login']);
+            ->middleware('throttle:api-login');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->middleware('throttle:api-login');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])

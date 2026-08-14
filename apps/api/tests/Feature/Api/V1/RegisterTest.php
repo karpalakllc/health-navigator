@@ -177,9 +177,9 @@ class RegisterTest extends TestCase
     {
         $user = User::factory()->create(['email_verified_at' => null]);
 
-        // No signature at all.
+        // No signature at all — sent to the resend screen, not a raw 403 page.
         $this->get("/api/v1/auth/email/verify/{$user->id}/".sha1($user->email))
-            ->assertForbidden();
+            ->assertRedirectContains('/verify-email?status=invalid');
 
         // Valid signature, wrong hash — someone else's address.
         $tampered = URL::temporarySignedRoute('verification.verify', now()->addHour(), [
@@ -191,7 +191,12 @@ class RegisterTest extends TestCase
         $this->assertNull($user->fresh()->email_verified_at);
     }
 
-    public function test_an_expired_link_is_rejected(): void
+    /**
+     * Expiry is the *ordinary* failure here — the link is opened from a mail client,
+     * often well after the 60 minutes the email itself advertises. It must land on
+     * the screen that offers a fresh link, not on the framework's raw 403 page.
+     */
+    public function test_an_expired_link_sends_the_user_somewhere_useful(): void
     {
         $user = User::factory()->create(['email_verified_at' => null]);
 
@@ -200,7 +205,7 @@ class RegisterTest extends TestCase
             'hash' => sha1($user->getEmailForVerification()),
         ]);
 
-        $this->get($expired)->assertForbidden();
+        $this->get($expired)->assertRedirectContains('/verify-email?status=invalid');
         $this->assertNull($user->fresh()->email_verified_at);
     }
 
@@ -302,6 +307,24 @@ class RegisterTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('data.token_type', 'Bearer');
+    }
+
+    public function test_resend_still_works_when_registration_is_disabled(): void
+    {
+        Notification::fake();
+
+        $pending = User::factory()->create([
+            'email' => 'stranded@example.com',
+            'email_verified_at' => null,
+        ]);
+        SiteSetting::current()->update(['registrations_enabled' => false]);
+
+        // Otherwise this account is stranded: it cannot log in (unverified) and
+        // cannot get a new link (registration closed).
+        $this->postJson('/api/v1/auth/email/resend', ['email' => 'stranded@example.com'])
+            ->assertStatus(202);
+
+        Notification::assertSentTo($pending, VerifyEmailNotification::class);
     }
 
     public function test_registration_is_blocked_when_disabled(): void

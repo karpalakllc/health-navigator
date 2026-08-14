@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
 use App\Http\Responses\ApiResponse;
+use App\Support\FrontendUrl;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -15,6 +16,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -87,6 +89,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::errorCode('errors.too_many_requests', 429);
+            }
+        });
+
+        // A verification link is opened from a mail client, long after it was sent, so
+        // the ordinary case is an expired signature. ValidateSignature aborts before
+        // the controller runs, which would otherwise hand the user Laravel's raw 403
+        // page instead of the /verify-email screen that offers them a fresh link.
+        $exceptions->render(function (InvalidSignatureException $e, Request $request) {
+            if ($request->routeIs('verification.verify')) {
+                return redirect()->away(FrontendUrl::to('/verify-email?status=invalid'));
+            }
+
+            if ($request->is('api/*')) {
+                return ApiResponse::errorCode('errors.forbidden', 403);
             }
         });
 

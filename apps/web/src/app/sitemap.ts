@@ -11,6 +11,14 @@ import { absoluteUrl } from "@/lib/site-url";
  */
 export const revalidate = 3600;
 
+/**
+ * Every fetch below opts into the same window. Without this they inherit
+ * `cache: "no-store"`, which silently opts the whole route out of caching and
+ * makes the export above a no-op — meaning a full re-crawl of the API on every
+ * crawler hit.
+ */
+const CACHE = { revalidate } as const;
+
 /** The list endpoints cap per_page at 50; this bounds a runaway crawl. */
 const PER_PAGE = 50;
 const MAX_PAGES = 40;
@@ -43,7 +51,7 @@ async function collectSlugs(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const settings = await fetchPublicSettings();
+  const settings = await fetchPublicSettings(CACHE);
 
   const staticPaths = [
     "/",
@@ -68,8 +76,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const [doctorSlugs, facilitySlugs] = await Promise.all([
-    collectSlugs((page) => fetchDoctors({ page, per_page: PER_PAGE })),
-    collectSlugs((page) => fetchFacilities({ page, per_page: PER_PAGE })),
+    collectSlugs((page) => fetchDoctors({ page, per_page: PER_PAGE }, CACHE)),
+    collectSlugs((page) => fetchFacilities({ page, per_page: PER_PAGE }, CACHE)),
   ]);
 
   entries.push(
@@ -87,7 +95,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (settings.public_forum) {
     try {
-      const categories = await fetchForumCategories();
+      const categories = await fetchForumCategories(CACHE);
 
       entries.push(
         ...categories.map((category) => ({
@@ -98,16 +106,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
 
       for (const category of categories) {
-        const topics = await fetchForumTopicSearch({ category: category.slug });
+        // Paginated like doctors and facilities — a single unpaginated call
+        // silently dropped every topic past the first page.
+        for (let page = 1; page <= MAX_PAGES; page += 1) {
+          const topics = await fetchForumTopicSearch(
+            { category: category.slug, page, per_page: PER_PAGE },
+            CACHE,
+          );
 
-        entries.push(
-          ...topics.data.map((topic) => ({
-            url: absoluteUrl(`/forum/${category.slug}/${topic.slug}`),
-            lastModified: topic.last_post_at ?? topic.published_at ?? undefined,
-            changeFrequency: "weekly" as const,
-            priority: 0.5,
-          })),
-        );
+          entries.push(
+            ...topics.data.map((topic) => ({
+              url: absoluteUrl(`/forum/${category.slug}/${topic.slug}`),
+              lastModified: topic.last_post_at ?? topic.published_at ?? undefined,
+              changeFrequency: "weekly" as const,
+              priority: 0.5,
+            })),
+          );
+
+          if (page >= topics.meta.last_page) {
+            break;
+          }
+        }
       }
     } catch {
       // Forum entries are optional; never fail the whole sitemap for them.

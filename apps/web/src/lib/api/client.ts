@@ -8,9 +8,22 @@ import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
  */
 export const API_LANGUAGE_HEADER = { "Accept-Language": "mk" } as const;
 
-export async function apiGet<T>(path: string): Promise<T> {
+/**
+ * Per-call caching. Pages want fresh data ("no-store"); the sitemap wants its own
+ * route-level revalidation to actually apply, and a fetch that forces "no-store"
+ * silently opts the whole route out of caching regardless of what it exported.
+ */
+export type ApiCacheOptions = { revalidate?: number };
+
+function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
+  return revalidate === undefined
+    ? { cache: "no-store" }
+    : { next: { revalidate } };
+}
+
+export async function apiGet<T>(path: string, options?: ApiCacheOptions): Promise<T> {
   const response = await fetch(apiUrl(path), {
-    cache: "no-store",
+    ...cacheInit(options),
     headers: { ...API_LANGUAGE_HEADER },
   });
 
@@ -25,9 +38,10 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 export async function apiGetPaginated<T>(
   path: string,
+  options?: ApiCacheOptions,
 ): Promise<PaginatedEnvelope<T>> {
   const response = await fetch(apiUrl(path), {
-    cache: "no-store",
+    ...cacheInit(options),
     headers: { ...API_LANGUAGE_HEADER },
   });
 

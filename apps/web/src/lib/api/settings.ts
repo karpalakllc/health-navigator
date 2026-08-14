@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { apiGet } from "@/lib/api/client";
+import { apiGet, type ApiCacheOptions } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 
 export type PublicSettings = {
@@ -60,9 +60,9 @@ export const publicSettingsDefaults: PublicSettings = {
  * mix an authenticated and an anonymous response.
  */
 export const fetchPublicSettings = cache(
-  async function fetchPublicSettings(): Promise<PublicSettings> {
+  async function fetchPublicSettings(options?: ApiCacheOptions): Promise<PublicSettings> {
     try {
-      return await apiGet<PublicSettings>("/settings/public");
+      return await apiGet<PublicSettings>("/settings/public", options);
     } catch {
       return publicSettingsDefaults;
     }

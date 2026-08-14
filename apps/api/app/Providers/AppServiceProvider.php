@@ -35,10 +35,23 @@ class AppServiceProvider extends ServiceProvider
             return app()->isProduction() ? $rule->uncompromised() : $rule;
         });
 
-        // Baseline for every v1 route. Keyed on the user first so that authenticated
-        // traffic is not penalised for sharing a NAT/carrier IP with other clients.
+        // Baseline abuse ceiling for every v1 route.
+        //
+        // Authenticated callers are keyed per user: Laravel's middleware priority puts
+        // AuthenticatesRequests ahead of ThrottleRequests, so the guard has already run
+        // by the time this closure is invoked on an auth: route.
+        //
+        // Anonymous callers key on IP, and that IP is frequently *not* an end user:
+        // the Next.js server renders every public page server-side, so all of that
+        // traffic reaches us from one origin address with no per-visitor identity.
+        // The ceiling therefore has to accommodate aggregate server-side rendering
+        // for the whole site, which is why it is high — treat it as a runaway guard,
+        // not as a per-visitor control. The per-visitor controls are the named
+        // limiters below, which sit on the endpoints a browser calls directly.
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+            return $request->user()
+                ? Limit::perMinute(300)->by('user:'.$request->user()->id)
+                : Limit::perMinute(1200)->by('ip:'.$request->ip());
         });
 
         RateLimiter::for('api-login', function (Request $request) {

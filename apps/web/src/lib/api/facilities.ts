@@ -1,4 +1,4 @@
-import { apiGetPaginated } from "@/lib/api/client";
+import { apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 import type { FacilityDetail, FacilityListItem } from "@/lib/api/types";
 
@@ -35,8 +35,11 @@ function toQuery(params: FacilityListParams): string {
   return query ? `?${query}` : "";
 }
 
-export async function fetchFacilities(params: FacilityListParams = {}) {
-  return apiGetPaginated<FacilityListItem>(`/facilities${toQuery(params)}`);
+export async function fetchFacilities(
+  params: FacilityListParams = {},
+  options?: ApiCacheOptions,
+) {
+  return apiGetPaginated<FacilityListItem>(`/facilities${toQuery(params)}`, options);
 }
 
 export async function fetchFacility(slug: string): Promise<FacilityDetail> {

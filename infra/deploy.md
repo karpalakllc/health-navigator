@@ -38,7 +38,7 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
 
-**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). Skipping it silently breaks every IP-based rate limit — they all collapse into a single shared bucket behind the edge.
+**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
 
 ### Queue worker
 
