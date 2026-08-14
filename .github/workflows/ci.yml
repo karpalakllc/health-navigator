@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, not just those targeting main. Restricting by base branch
+  # silently skips CI on stacked PRs — a dependency-upgrade PR carrying three
+  # major versions sat with no checks at all because its base was a feature branch.
   pull_request:
-    branches: [main]
 
 # A newer push supersedes an in-flight run for the same ref.
 concurrency:
