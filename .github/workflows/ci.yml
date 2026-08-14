@@ -119,3 +119,8 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+          # Required at build time — it is inlined into the bundle, and the build
+          # now refuses to proceed without it rather than baking localhost into
+          # robots.txt and every canonical URL. Any value works here; only the
+          # deployed build needs the real origin.
+          NEXT_PUBLIC_SITE_URL: https://ci.invalid
