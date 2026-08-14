@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
+import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -78,6 +79,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           <p className="text-sm text-muted-foreground">
             {t("auth.verifyCheckInboxBody")}
           </p>
+          <PrivacyNote />
           <Link
             href="/login"
             className="text-sm font-semibold text-primary underline-offset-4 hover:underline"

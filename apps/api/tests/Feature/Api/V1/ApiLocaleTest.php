@@ -82,6 +82,6 @@ class ApiLocaleTest extends TestCase
                 'password' => 'whatever-password',
             ])
             ->assertStatus(422)
-            ->assertJsonPath('errors.email.0', 'Внесените податоци за најава не се точни.');
+            ->assertJsonPath('errors.email.0', 'Внесените податоци за најава се неточни.');
     }
 }

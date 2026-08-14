@@ -213,7 +213,7 @@ export const mk = {
     // the Laravel API. These never passed through the API's lang files, so they
     // were the last English strings a Macedonian user could see.
     unauthenticated: "Не сте најавени.",
-    uploadFailed: "Прикачувањето не успеа.",
+    uploadFailed: "Прикачувањето е неуспешно.",
     invalidReviewTarget: "Невалиден профил за рецензија.",
     topicRequired: "Темата е задолжителна.",
     categoryRequired: "Категоријата е задолжителна.",
@@ -257,12 +257,14 @@ export const mk = {
     // session, so the UI has to explain the inbox step.
     loggedOut: "Одјавени сте.",
     verifyCheckInbox: "Проверете го вашето сандаче",
-    verifyCheckInboxBody:
-      "Ако е-адресата може да се користи, испративме порака со линк за потврда. Отворете го линкот за да ја активирате сметката.",
+    verifyCheckInboxBody: "Испративме порака со линк за потврда.",
+    // Shown as a small muted note under the message, not as body copy — the
+    // point is to say the hiding is deliberate, briefly.
+    privacyNote:
+      "Од безбедносни причини не откриваме дали адресата е веќе регистрирана.",
     verifyResend: "Испрати го линкот повторно",
-    verifyResendSent: "Ако е-адресата чека потврда, испративме нов линк.",
-    verifyUnverified:
-      "Вашата е-адреса сè уште не е потврдена. Проверете го сандачето или побарајте нов линк.",
+    verifyResendSent: "Испративме нов линк.",
+    verifyUnverified: "Вашата е-адреса сè уште не е потврдена.",
     verifiedTitle: "Е-адресата е потврдена",
     verifiedBody: "Сметката е активна. Сега можете да се најавите.",
     verifiedAlreadyTitle: "Веќе е потврдена",
@@ -270,7 +272,7 @@ export const mk = {
       "Оваа е-адреса е веќе потврдена. Најавете се за да продолжите.",
     verifiedInvalidTitle: "Линкот не е валиден",
     verifiedInvalidBody:
-      "Линкот за потврда е неважечки или истечен. Побарајте нов подолу.",
+      "Линкот е неважечки или истечен. Побарајте нов подолу.",
     loginTitle: "Најава",
     loginDescription:
       "Најавете се за рецензии и форум. Немате сметка? Регистрирајте се.",
@@ -290,8 +292,7 @@ export const mk = {
       "Внесете ја е-поштата за сметката. Ќе ви испратиме линк за ресетирање на лозинката.",
     forgotPasswordSubmit: "Испрати линк",
     forgotPasswordSending: "Се испраќа…",
-    forgotPasswordSuccess:
-      "Ако постои сметка со таа е-пошта, ќе добиете линк за ресетирање на лозинката.",
+    forgotPasswordSuccess: "Испративме линк за промена на лозинката.",
     forgotPasswordFailed: "Барањето не успеа. Обидете се повторно.",
     resetPasswordTitle: "Нова лозинка",
     resetPasswordDescription: "Поставете нова лозинка за вашата сметка.",

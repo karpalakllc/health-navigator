@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
+import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -48,9 +49,12 @@ export function ForgotPasswordForm() {
   return (
     <AuthFormCard>
       {success ? (
-        <p className="text-sm text-muted-foreground">
-          {t("auth.forgotPasswordSuccess")}
-        </p>
+        <div className="grid gap-2">
+          <p className="text-sm text-muted-foreground">
+            {t("auth.forgotPasswordSuccess")}
+          </p>
+          <PrivacyNote />
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="grid gap-4">
           <label className="grid gap-1.5 text-sm">

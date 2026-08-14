@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
+import { PrivacyNote } from "@/components/auth/privacy-note";
 import { t } from "@/i18n/t";
 
 /**
@@ -38,9 +39,12 @@ export function ResendVerificationForm({
 
   if (sent) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {t("auth.verifyResendSent")}
-      </p>
+      <div className="grid gap-2">
+        <p className="text-sm text-muted-foreground">
+          {t("auth.verifyResendSent")}
+        </p>
+        <PrivacyNote />
+      </div>
     );
   }
 
