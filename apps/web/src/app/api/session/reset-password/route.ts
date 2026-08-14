@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/config";
+import { forwardedForHeaders } from "@/lib/api/client-ip";
 
 type ResetPayload = {
   email?: string;
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
       Accept: "application/json",
       "Accept-Language": "mk",
+      ...forwardedForHeaders(request),
     },
     body: JSON.stringify({
       email: body.email,

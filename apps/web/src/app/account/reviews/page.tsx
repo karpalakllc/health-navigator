@@ -14,7 +14,9 @@ import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = pageMetadata(t("auth.reviewsTitle"), undefined, { noIndex: true });
+export const metadata = pageMetadata(t("auth.reviewsTitle"), undefined, {
+  noIndex: true,
+});
 
 type AccountReviewsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -77,13 +79,18 @@ export default async function AccountReviewsPage({
           <ProfileContentCard title={t("auth.reviewsTitle")}>
             <ul className="divide-y divide-border/80">
               {reviews.data.length === 0 ? (
-                <li className="py-4 text-sm text-muted-foreground">{t("account.noReviewsYet")}</li>
+                <li className="py-4 text-sm text-muted-foreground">
+                  {t("account.noReviewsYet")}
+                </li>
               ) : (
                 reviews.data.map((review, index) => {
                   const href = targetHref(review);
 
                   return (
-                    <li key={`${review.created_at}-${index}`} className="space-y-2 py-4 first:pt-0 last:pb-0">
+                    <li
+                      key={`${review.created_at}-${index}`}
+                      className="space-y-2 py-4 first:pt-0 last:pb-0"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <StarRating value={review.rating} />
                         <ModerationStatusBadge status={review.status} />
@@ -103,11 +110,15 @@ export default async function AccountReviewsPage({
                         </p>
                       ) : null}
                       {review.body ? (
-                        <p className="whitespace-pre-wrap text-sm text-foreground">{review.body}</p>
+                        <p className="whitespace-pre-wrap text-sm text-foreground">
+                          {review.body}
+                        </p>
                       ) : null}
                       {review.status === "rejected" && review.rejection_note ? (
                         <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                          <span className="font-medium text-foreground">
+                            {t("account.rejectionNote")}:{" "}
+                          </span>
                           {review.rejection_note}
                         </p>
                       ) : null}

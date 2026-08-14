@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
+import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { t } from "@/i18n/t";
 
 type ModerationPayload = {
@@ -14,13 +15,19 @@ export async function PATCH(request: Request) {
   const token = await getSessionToken();
 
   if (!token) {
-    return NextResponse.json({ message: t("errors.unauthenticated") }, { status: 401 });
+    return NextResponse.json(
+      { message: t("errors.unauthenticated") },
+      { status: 401 },
+    );
   }
 
   const body = (await request.json()) as ModerationPayload;
 
   if (!body.categorySlug || !body.topicSlug) {
-    return NextResponse.json({ message: t("errors.topicRequired") }, { status: 422 });
+    return NextResponse.json(
+      { message: t("errors.topicRequired") },
+      { status: 422 },
+    );
   }
 
   const response = await fetch(
@@ -33,7 +40,8 @@ export async function PATCH(request: Request) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/json",
-      "Accept-Language": "mk",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
       },
       body: JSON.stringify({
         is_pinned: body.is_pinned,

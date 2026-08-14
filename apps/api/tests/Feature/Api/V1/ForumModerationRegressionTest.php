@@ -11,7 +11,6 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -31,8 +30,7 @@ class ForumModerationRegressionTest extends TestCase
 
         $this->seed(RolesAndPermissionsSeeder::class);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        RateLimiter::clear('api-forum-topics');
-        RateLimiter::clear('api-forum-posts');
+        $this->forgetRateLimits();
     }
 
     private function openModeration(): void

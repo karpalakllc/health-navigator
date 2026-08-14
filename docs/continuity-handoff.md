@@ -7,7 +7,7 @@
 > ### Audit remediation — read this before picking up R1
 >
 > A full codebase audit produced 42 findings; all of Part I is fixed on
-> `fix/audit-part-1` across nine commits. What changed that affects how you work:
+> `fix/audit-part-1` (see PR #1 for the current commit list). What changed that affects how you work:
 >
 > - **Authorization**: Spatie permissions are the single source of truth.
 >   `users.role` is a coarse account type. Category-scoped forum moderators were
@@ -17,7 +17,7 @@
 >   **The Macedonian strings added there have not had a native review** — two
 >   Bulgarian spellings (`повикайте`, `Добре дојдовте`) had already reached
 >   production copy, so this needs a native pass before launch.
-> - **CI** now has four gates: SQLite tests, PostgreSQL tests, Pint, and
+> - **CI** now has six gates: SQLite tests, PostgreSQL tests, Pint, and
 >   tsc/Vitest on the web. Both engines must stay green.
 > - **`require_email_verification` was removed** — it enforced nothing.
 > - **Deployment**: `TRUSTED_PROXIES`, `MEDIA_DISK` and the `MAIL_*` block are

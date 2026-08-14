@@ -21,7 +21,10 @@ function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
     : { next: { revalidate } };
 }
 
-export async function apiGet<T>(path: string, options?: ApiCacheOptions): Promise<T> {
+export async function apiGet<T>(
+  path: string,
+  options?: ApiCacheOptions,
+): Promise<T> {
   const response = await fetch(apiUrl(path), {
     ...cacheInit(options),
     headers: { ...API_LANGUAGE_HEADER },

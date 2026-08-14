@@ -34,7 +34,6 @@ Confirm on staging with launch-intended values:
 - [ ] `public_products` — **off** at launch
 - [ ] `public_pharmacies` — **off** at launch
 - [ ] `public_forum` — **on**
-- [ ] `require_email_verification` — matches your mail setup (if on, verify flow works)
 
 ### Staging works end-to-end
 

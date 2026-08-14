@@ -80,7 +80,10 @@ class AuthController extends Controller
         $email = $request->string('email')->toString();
         $password = $request->string('password')->toString();
 
-        // Always pay the bcrypt cost, whichever branch we take.
+        // Always pay the bcrypt cost, whichever branch we take. Note this only
+        // equalises the branches when mail is queued out-of-process: under
+        // QUEUE_CONNECTION=sync the existing-address branch also sends inline.
+        // Production uses redis (infra/env.production.example).
         $hashedPassword = Hash::make($password);
 
         $existing = User::query()->where('email', $email)->first();

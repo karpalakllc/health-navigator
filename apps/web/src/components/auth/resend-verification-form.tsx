@@ -11,7 +11,11 @@ import { t } from "@/i18n/t";
  * Always reports the same thing back, matching the API — telling the visitor
  * "no such account" here would undo the reason registration is non-committal.
  */
-export function ResendVerificationForm({ defaultEmail = "" }: { defaultEmail?: string }) {
+export function ResendVerificationForm({
+  defaultEmail = "",
+}: {
+  defaultEmail?: string;
+}) {
   const [email, setEmail] = useState(defaultEmail);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -33,7 +37,11 @@ export function ResendVerificationForm({ defaultEmail = "" }: { defaultEmail?: s
   }
 
   if (sent) {
-    return <p className="text-sm text-muted-foreground">{t("auth.verifyResendSent")}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("auth.verifyResendSent")}
+      </p>
+    );
   }
 
   return (
@@ -50,7 +58,11 @@ export function ResendVerificationForm({ defaultEmail = "" }: { defaultEmail?: s
           className={filterInputClassName}
         />
       </label>
-      <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+      <Button
+        type="submit"
+        disabled={pending}
+        className="min-h-[44px] w-full sm:w-auto"
+      >
         {t("auth.verifyResend")}
       </Button>
     </form>

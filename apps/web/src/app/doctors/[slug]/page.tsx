@@ -35,14 +35,19 @@ export async function generateMetadata({
   try {
     const doctor = await fetchDoctor(slug);
     const specialty =
-      doctor.specialties.find((s) => s.is_primary)?.name ?? doctor.specialties[0]?.name;
+      doctor.specialties.find((s) => s.is_primary)?.name ??
+      doctor.specialties[0]?.name;
     const description = [specialty, doctor.city, doctor.bio?.slice(0, 120)]
       .filter(Boolean)
       .join(" · ");
 
-    return pageMetadata(doctor.full_name, description || t("doctors.description"), {
-      path: `/doctors/${slug}`,
-    });
+    return pageMetadata(
+      doctor.full_name,
+      description || t("doctors.description"),
+      {
+        path: `/doctors/${slug}`,
+      },
+    );
   } catch {
     return pageMetadata(t("doctors.title"));
   }
@@ -82,7 +87,8 @@ export default async function DoctorDetailPage({
   const officeHourEntries = Object.entries(doctor.office_hours ?? {});
 
   const primarySpecialty =
-    doctor.specialties.find((s) => s.is_primary)?.name ?? doctor.specialties[0]?.name;
+    doctor.specialties.find((s) => s.is_primary)?.name ??
+    doctor.specialties[0]?.name;
 
   return (
     <PageShell gap="loose" className="pb-16 pt-[18px]">
@@ -99,7 +105,14 @@ export default async function DoctorDetailPage({
           name: doctor.full_name,
           url: absoluteUrl(`/doctors/${doctor.slug}`),
           ...(primarySpecialty ? { medicalSpecialty: primarySpecialty } : {}),
-          ...(doctor.city ? { address: { "@type": "PostalAddress", addressLocality: doctor.city } } : {}),
+          ...(doctor.city
+            ? {
+                address: {
+                  "@type": "PostalAddress",
+                  addressLocality: doctor.city,
+                },
+              }
+            : {}),
           ...(doctor.phone ? { telephone: doctor.phone } : {}),
         }}
       />
@@ -118,7 +131,9 @@ export default async function DoctorDetailPage({
 
             {doctor.education ? (
               <ProfileContentCard title={t("doctors.education")}>
-                <p className="text-sm leading-relaxed text-muted-foreground">{doctor.education}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {doctor.education}
+                </p>
               </ProfileContentCard>
             ) : null}
 
@@ -142,12 +157,20 @@ export default async function DoctorDetailPage({
 
             {officeHourEntries.length > 0 ? (
               <ProfileContentCard title={t("doctors.officeHours")}>
-                <OfficeHoursGrid hours={Object.fromEntries(officeHourEntries)} />
+                <OfficeHoursGrid
+                  hours={Object.fromEntries(officeHourEntries)}
+                />
               </ProfileContentCard>
             ) : null}
 
-            <ProfileContentCard title={t("doctors.facilities")} id="doctor-locations">
-              <EntityLinkList items={facilityItems} emptyMessage={t("doctors.noFacilities")} />
+            <ProfileContentCard
+              title={t("doctors.facilities")}
+              id="doctor-locations"
+            >
+              <EntityLinkList
+                items={facilityItems}
+                emptyMessage={t("doctors.noFacilities")}
+              />
             </ProfileContentCard>
 
             <ReviewSection
@@ -158,9 +181,7 @@ export default async function DoctorDetailPage({
             />
           </div>
         }
-        sidebar={
-          <DoctorSidebarContact doctor={doctor} />
-        }
+        sidebar={<DoctorSidebarContact doctor={doctor} />}
       />
     </PageShell>
   );

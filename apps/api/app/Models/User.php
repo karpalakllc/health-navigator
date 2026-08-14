@@ -31,6 +31,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
+    private ?bool $hasScopedForumModeration = null;
+
     protected function casts(): array
     {
         return [
@@ -120,9 +122,14 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             ->exists();
     }
 
+    /**
+     * Memoised: this is consulted at the top of both forum policies, again inside
+     * canModerateForumCategory(), and once per query in ForumModerationScope — so an
+     * un-cached ->exists() turns every authorization check into extra round trips.
+     */
     public function hasScopedForumModeration(): bool
     {
-        return $this->moderatedForumCategories()->exists();
+        return $this->hasScopedForumModeration ??= $this->moderatedForumCategories()->exists();
     }
 
     /**

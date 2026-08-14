@@ -75,7 +75,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           <h2 className="text-lg font-semibold text-foreground">
             {t("auth.verifyCheckInbox")}
           </h2>
-          <p className="text-sm text-muted-foreground">{t("auth.verifyCheckInboxBody")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("auth.verifyCheckInboxBody")}
+          </p>
           <Link
             href="/login"
             className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
@@ -91,7 +93,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.registerName")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.registerName")}
+          </span>
           <input
             type="text"
             name="name"
@@ -114,7 +118,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.password")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.password")}
+          </span>
           <PasswordInput
             id="register-password"
             name="password"
@@ -138,12 +144,19 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           />
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           {pending ? t("auth.registering") : t("auth.register")}
         </Button>
         <p className="text-sm text-muted-foreground">
           {t("auth.haveAccount")}{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/login"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
             {t("auth.signIn")}
           </Link>
         </p>

@@ -59,78 +59,89 @@ export default async function PharmaciesPage({
   return (
     <>
       <PageHeroBleed>
-      <DirectoryHero
-        badge={
-          <>
-            <PharmacyIcon />
-            {t("pharmacies.directoryBadge")}
-          </>
-        }
-        title={t("pharmacies.title")}
-        description={t("pharmacies.description")}
-        stat={
-          <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-            <PinIcon />
-            {tFormat("pharmacies.resultsCount", { count: String(pharmacies.meta.total) })}
-          </span>
-        }
-        filters={<PharmaciesFilterBar values={filterParams} />}
-      />
+        <DirectoryHero
+          badge={
+            <>
+              <PharmacyIcon />
+              {t("pharmacies.directoryBadge")}
+            </>
+          }
+          title={t("pharmacies.title")}
+          description={t("pharmacies.description")}
+          stat={
+            <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
+              <PinIcon />
+              {tFormat("pharmacies.resultsCount", {
+                count: String(pharmacies.meta.total),
+              })}
+            </span>
+          }
+          filters={<PharmaciesFilterBar values={filterParams} />}
+        />
 
-      <TrustRibbon
-        variant="compact"
-        columns={3}
-        items={[
-          {
-            text: t("pharmacies.trustPricesInfo"),
-            tone: "teal",
-            icon: <InfoIcon />,
-          },
-          {
-            text: t("pharmacies.trustModeratedInfo"),
-            tone: "red",
-            icon: <CheckIcon />,
-          },
-          {
-            text: t("home.trustLocal"),
-            tone: "teal",
-            icon: <MapIcon />,
-          },
-        ]}
-      />
+        <TrustRibbon
+          variant="compact"
+          columns={3}
+          items={[
+            {
+              text: t("pharmacies.trustPricesInfo"),
+              tone: "teal",
+              icon: <InfoIcon />,
+            },
+            {
+              text: t("pharmacies.trustModeratedInfo"),
+              tone: "red",
+              icon: <CheckIcon />,
+            },
+            {
+              text: t("home.trustLocal"),
+              tone: "teal",
+              icon: <MapIcon />,
+            },
+          ]}
+        />
       </PageHeroBleed>
 
       <PageShell gap="loose" className="pb-16 pt-6">
-      {pharmacies.data.length === 0 ? (
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-black tracking-tight">{t("pharmacies.resultsTitle")}</h2>
-            <p className="mt-1 text-muted-foreground">
-              {tFormat("pharmacies.resultsCount", { count: String(pharmacies.meta.total) })}
-            </p>
-          </div>
-          <EmptyState
-            title={t("pharmacies.empty")}
-            description={
-              !hasActiveFilters(params) ? t("common.demoDataHint") : undefined
-            }
-            clearHref={hasActiveFilters(params) ? "/pharmacies" : undefined}
-            clearLabel={hasActiveFilters(params) ? t("common.clearFilters") : undefined}
+        {pharmacies.data.length === 0 ? (
+          <section className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight">
+                {t("pharmacies.resultsTitle")}
+              </h2>
+              <p className="mt-1 text-muted-foreground">
+                {tFormat("pharmacies.resultsCount", {
+                  count: String(pharmacies.meta.total),
+                })}
+              </p>
+            </div>
+            <EmptyState
+              title={t("pharmacies.empty")}
+              description={
+                !hasActiveFilters(params) ? t("common.demoDataHint") : undefined
+              }
+              clearHref={hasActiveFilters(params) ? "/pharmacies" : undefined}
+              clearLabel={
+                hasActiveFilters(params) ? t("common.clearFilters") : undefined
+              }
+            />
+          </section>
+        ) : (
+          <PharmaciesResultsSection
+            pharmacies={pharmacies.data}
+            total={pharmacies.meta.total}
           />
-        </section>
-      ) : (
-        <PharmaciesResultsSection pharmacies={pharmacies.data} total={pharmacies.meta.total} />
-      )}
+        )}
 
-      {pharmacies.data.length > 0 && pharmacies.meta.last_page > 1 ? (
-        <Pagination
-          basePath="/pharmacies"
-          currentPage={pharmacies.meta.current_page}
-          lastPage={pharmacies.meta.last_page}
-          total={pharmacies.meta.total}
-          searchParams={filterParams}
-        />
-      ) : null}
+        {pharmacies.data.length > 0 && pharmacies.meta.last_page > 1 ? (
+          <Pagination
+            basePath="/pharmacies"
+            currentPage={pharmacies.meta.current_page}
+            lastPage={pharmacies.meta.last_page}
+            total={pharmacies.meta.total}
+            searchParams={filterParams}
+          />
+        ) : null}
       </PageShell>
     </>
   );
@@ -138,7 +149,14 @@ export default async function PharmaciesPage({
 
 function PharmacyIcon() {
   return (
-    <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-4 w-4 text-accent"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <path d="M12 2v20M5 9h14" strokeLinecap="round" />
     </svg>
   );
@@ -146,8 +164,18 @@ function PharmacyIcon() {
 
 function PinIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 21s-7-4-7-10a7 7 0 1114 0c0 6-7 10-7 10z" strokeLinecap="round" />
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 21s-7-4-7-10a7 7 0 1114 0c0 6-7 10-7 10z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="11" r="2.5" />
     </svg>
   );
@@ -155,7 +183,14 @@ function PinIcon() {
 
 function InfoIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
     </svg>
@@ -164,16 +199,36 @@ function InfoIcon() {
 
 function CheckIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" />
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function MapIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 21s-7-4-7-10a7 7 0 1114 0c0 6-7 10-7 10z" strokeLinecap="round" />
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 21s-7-4-7-10a7 7 0 1114 0c0 6-7 10-7 10z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="11" r="2.5" />
     </svg>
   );

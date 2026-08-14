@@ -42,8 +42,7 @@ export const publicSettingsDefaults: PublicSettings = {
   forum_rules_enabled: true,
   forum_rules_title: null,
   forum_rules_body: null,
-  footer_emergency_text:
-    "При медицинска итност повикајте 194 или 112 веднаш.",
+  footer_emergency_text: "При медицинска итност повикајте 194 или 112 веднаш.",
   footer_disclaimer_text:
     "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.",
   copyright_name: "Zdravje360",
@@ -59,15 +58,15 @@ export const publicSettingsDefaults: PublicSettings = {
  * the session bearer token and the plain one does not, so sharing a cell would
  * mix an authenticated and an anonymous response.
  */
-export const fetchPublicSettings = cache(
-  async function fetchPublicSettings(options?: ApiCacheOptions): Promise<PublicSettings> {
-    try {
-      return await apiGet<PublicSettings>("/settings/public", options);
-    } catch {
-      return publicSettingsDefaults;
-    }
-  },
-);
+export const fetchPublicSettings = cache(async function fetchPublicSettings(
+  options?: ApiCacheOptions,
+): Promise<PublicSettings> {
+  try {
+    return await apiGet<PublicSettings>("/settings/public", options);
+  } catch {
+    return publicSettingsDefaults;
+  }
+});
 
 export const fetchPublicSettingsServer = cache(
   async function fetchPublicSettingsServer(): Promise<PublicSettings> {

@@ -2,14 +2,18 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\UserRole;
+use App\Models\ForumCategory;
+use App\Models\ForumTopic;
 use App\Models\TriageSession;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\RateLimiter;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /**
@@ -25,7 +29,7 @@ class SecurityRegressionTest extends TestCase
     {
         parent::setUp();
 
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
     }
 
     // ---- M1: password reset must not confirm whether an account exists ----
@@ -36,7 +40,7 @@ class SecurityRegressionTest extends TestCase
         User::factory()->create(['email' => 'known@example.com']);
 
         $known = $this->postJson('/api/v1/auth/forgot-password', ['email' => 'known@example.com']);
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
         $unknown = $this->postJson('/api/v1/auth/forgot-password', ['email' => 'nobody@example.com']);
 
         $known->assertOk();
@@ -73,21 +77,68 @@ class SecurityRegressionTest extends TestCase
 
     // ---- M2: expired tokens must not authenticate ----
 
-    public function test_expired_token_is_not_accepted_on_optional_auth_routes(): void
+    public function test_expired_token_is_rejected_on_a_guarded_route(): void
     {
         config(['sanctum.expiration' => 60]);
 
         $user = User::factory()->create();
-        $token = $user->createToken('test');
+        $token = $this->agedToken($user);
 
-        // Age the token past the configured expiry window.
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/v1/me')
+            ->assertUnauthorized();
+    }
+
+    /**
+     * The route that actually uses `auth.sanctum.optional`.
+     *
+     * The previous version of this test pointed at /me, which is `auth:sanctum` —
+     * so it proved the Sanctum guard rejects expired tokens (which was never in
+     * doubt) and nothing at all about the middleware it was named after. That
+     * middleware used to resolve tokens with PersonalAccessToken::findToken(),
+     * which skips expiry entirely; nothing here would have caught a regression.
+     */
+    public function test_expired_token_is_ignored_by_optional_auth(): void
+    {
+        config(['sanctum.expiration' => 60]);
+
+        $this->seed(RolesAndPermissionsSeeder::class);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator->assignRole('Forum Moderator');
+
+        $category = ForumCategory::factory()->create(['is_published' => true]);
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id]);
+
+        $fresh = $moderator->createToken('fresh')->plainTextToken;
+        $path = "/api/v1/forum/categories/{$category->slug}/topics/{$topic->slug}";
+
+        // A live token resolves the viewer, so the moderation flag is present.
+        $this->withHeader('Authorization', "Bearer {$fresh}")
+            ->getJson($path)
+            ->assertOk()
+            ->assertJsonPath('data.topic.viewer.can_moderate', true);
+
+        $this->app['auth']->forgetGuards();
+
+        // An expired one must be ignored entirely — the response is the anonymous one.
+        $this->withHeader('Authorization', 'Bearer '.$this->agedToken($moderator))
+            ->getJson($path)
+            ->assertOk()
+            ->assertJsonMissingPath('data.topic.viewer');
+    }
+
+    /** Issue a token already older than the configured expiry window. */
+    private function agedToken(User $user): string
+    {
+        $token = $user->createToken('aged');
+
         $token->accessToken->forceFill([
             'created_at' => Carbon::now()->subMinutes(120),
         ])->save();
 
-        $this->withHeader('Authorization', 'Bearer '.$token->plainTextToken)
-            ->getJson('/api/v1/me')
-            ->assertUnauthorized();
+        return $token->plainTextToken;
     }
 
     // ---- L4: a session that belongs to someone is only reachable by them ----

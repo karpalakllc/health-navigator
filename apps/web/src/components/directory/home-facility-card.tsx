@@ -44,9 +44,13 @@ export function HomeFacilityCard({
           )}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-5">
-          <h3 className="text-lg font-extrabold tracking-tight text-foreground">{facility.name}</h3>
+          <h3 className="text-lg font-extrabold tracking-tight text-foreground">
+            {facility.name}
+          </h3>
           <p className="text-sm text-muted-foreground">
-            {[facilityKindLabel(facility.type), facility.city].filter(Boolean).join(" · ")}
+            {[facilityKindLabel(facility.type), facility.city]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {facility.has_emergency_services ? (
@@ -77,20 +81,49 @@ function FacilityGlyph({ type }: { type: FacilityListItem["type"] }) {
   const className = "h-12 w-12";
   if (type === "hospital") {
     return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M12 7v4M10 9h4" strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        aria-hidden
+      >
+        <path
+          d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M12 7v4M10 9h4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (type === "clinic") {
     return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-        <path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2M18 12h2a2 2 0 012 2v6a2 2 0 01-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4" strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        aria-hidden
+      >
+        <path
+          d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2M18 12h2a2 2 0 012 2v6a2 2 0 01-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden
+    >
       <path d="M12 6v12M6 12h12" strokeLinecap="round" />
     </svg>
   );

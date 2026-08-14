@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -30,7 +29,7 @@ class ApiHardeningTest extends TestCase
 
     public function test_login_is_rate_limited(): void
     {
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
 
         $user = User::factory()->create([
             'email' => 'member@example.com',
@@ -55,7 +54,7 @@ class ApiHardeningTest extends TestCase
 
     public function test_review_submission_is_rate_limited(): void
     {
-        RateLimiter::clear('api-reviews');
+        $this->forgetRateLimits();
 
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
         $member = User::factory()->create(['role' => UserRole::Member]);

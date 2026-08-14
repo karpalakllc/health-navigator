@@ -85,7 +85,11 @@ export default async function TopicDetailPage({
   return (
     <>
       <PageHeroBleed>
-        <HeroMeshCard variant="profile" align="start" className="w-full max-w-none">
+        <HeroMeshCard
+          variant="profile"
+          align="start"
+          className="w-full max-w-none"
+        >
           <Breadcrumbs
             items={[
               { label: t("common.home"), href: "/" },
@@ -95,8 +99,12 @@ export default async function TopicDetailPage({
             ]}
           />
           <div className="mt-4 flex flex-wrap gap-2">
-            {topic.is_pinned ? <Badge variant="primary">{t("forum.pinned")}</Badge> : null}
-            {topic.is_locked ? <Badge variant="secondary">{t("forum.locked")}</Badge> : null}
+            {topic.is_pinned ? (
+              <Badge variant="primary">{t("forum.pinned")}</Badge>
+            ) : null}
+            {topic.is_locked ? (
+              <Badge variant="secondary">{t("forum.locked")}</Badge>
+            ) : null}
           </div>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
             {topic.title}
@@ -104,7 +112,8 @@ export default async function TopicDetailPage({
           <p className="mt-3 text-sm text-muted-foreground">
             {formatForumReplyCount(topic.replies_count)}
             <span aria-hidden> · </span>
-            {t("forum.lastActivity")}: {formatForumLastActivity(topic.published_at)}
+            {t("forum.lastActivity")}:{" "}
+            {formatForumLastActivity(topic.published_at)}
           </p>
         </HeroMeshCard>
       </PageHeroBleed>
@@ -125,7 +134,9 @@ export default async function TopicDetailPage({
 
             <PageSection title={t("forum.replies")}>
               {posts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("forum.noReplies")}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("forum.noReplies")}
+                </p>
               ) : (
                 <ul className="grid gap-3">
                   {posts.map((post) => (

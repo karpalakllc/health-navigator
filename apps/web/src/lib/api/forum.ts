@@ -1,5 +1,13 @@
-import { apiGet, apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
-import { ApiRequestError, apiFetch, apiGetPaginatedServer } from "@/lib/api/server";
+import {
+  apiGet,
+  apiGetPaginated,
+  type ApiCacheOptions,
+} from "@/lib/api/client";
+import {
+  ApiRequestError,
+  apiFetch,
+  apiGetPaginatedServer,
+} from "@/lib/api/server";
 import type { PaginatedEnvelope } from "@/lib/api/types";
 
 export type ForumAuthor = {
@@ -98,7 +106,12 @@ export async function fetchForumCategories(
 }
 
 export async function fetchForumTopicSearch(
-  params: { q?: string; category?: string; page?: number; per_page?: number } = {},
+  params: {
+    q?: string;
+    category?: string;
+    page?: number;
+    per_page?: number;
+  } = {},
   options?: ApiCacheOptions,
 ) {
   const search = new URLSearchParams();
@@ -115,7 +128,9 @@ export async function fetchForumTopicSearch(
 }
 
 export async function fetchForumRecentTopics(perPage = 8) {
-  return apiGetPaginated<ForumTopicSearchItem>(`/forum/topics/recent?per_page=${perPage}`);
+  return apiGetPaginated<ForumTopicSearchItem>(
+    `/forum/topics/recent?per_page=${perPage}`,
+  );
 }
 
 export async function fetchForumTopics(
@@ -143,7 +158,9 @@ export async function fetchForumTopicPage(
   );
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
     throw new ApiRequestError(
       body?.message ?? `API request failed (${response.status})`,
       response.status,

@@ -53,7 +53,9 @@ describe("loginHref", () => {
 
   it("encodes a safe internal redirect", () => {
     expect(loginHref("/account")).toBe("/login?redirect=%2Faccount");
-    expect(loginHref("/forum/a/b?page=2")).toBe("/login?redirect=%2Fforum%2Fa%2Fb%3Fpage%3D2");
+    expect(loginHref("/forum/a/b?page=2")).toBe(
+      "/login?redirect=%2Fforum%2Fa%2Fb%3Fpage%3D2",
+    );
   });
 
   it("drops unsafe redirect targets rather than encoding them", () => {

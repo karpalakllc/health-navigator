@@ -22,7 +22,9 @@ export default function Error({
 
   return (
     <PageShell className="py-16 text-center">
-      <h1 className="text-2xl font-semibold text-foreground">{t("errors.title")}</h1>
+      <h1 className="text-2xl font-semibold text-foreground">
+        {t("errors.title")}
+      </h1>
       <p className="mt-2 text-muted-foreground">{t("errors.description")}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button type="button" onClick={reset}>

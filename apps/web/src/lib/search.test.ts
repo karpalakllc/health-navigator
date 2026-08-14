@@ -67,8 +67,8 @@ describe("directorySearchHref", () => {
   });
 
   it("merges extra params after the search params", () => {
-    expect(directorySearchHref("/doctors", "ab", undefined, { page: "2" })).toBe(
-      "/doctors?q=ab&page=2",
-    );
+    expect(
+      directorySearchHref("/doctors", "ab", undefined, { page: "2" }),
+    ).toBe("/doctors?q=ab&page=2");
   });
 });

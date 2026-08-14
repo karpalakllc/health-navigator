@@ -18,7 +18,7 @@ final class ForumContentModeration
         return self::resolve($user, SiteSetting::current()->forum_posts_require_moderation);
     }
 
-    public static function shouldNotifyAuthor(User $user, ForumContentStatus $status): bool
+    public static function shouldNotifyAuthor(ForumContentStatus $status): bool
     {
         return $status === ForumContentStatus::Pending;
     }

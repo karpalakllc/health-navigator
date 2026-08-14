@@ -38,7 +38,7 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
 
-**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
+**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). It must list **the edge *and* the web tier** — sign-in and every other browser write is relayed to the API by a Next route handler, which forwards the visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header is ignored and every login on the platform shares one rate-limit bucket. There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
 
 ### Queue worker
 
@@ -85,6 +85,11 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 4. Build: `npm ci && npm run build`.
 5. Verify home, `/register`, `/doctors`, `/forum`, `/privacy`.
 
+> **`NEXT_PUBLIC_SITE_URL` must be set at _build_ time**, not only at runtime.
+> `NEXT_PUBLIC_*` is inlined into the bundle, so setting it afterwards leaves
+> localhost in `robots.txt`, the sitemap and every canonical URL. A production
+> build without it now fails rather than shipping that silently.
+
 ## CORS
 
 API must allow the web origin(s). In `apps/api/.env`:
@@ -109,6 +114,19 @@ Before launch:
    them, password-reset mail lands in spam, which is an account-loss event.
 3. Monitor `failed_jobs` and alert on it — this is the only signal that mail is broken.
 4. Verify end to end on staging: request a password reset and complete it.
+
+## Pre-deploy data checks
+
+Two one-off checks before the first deploy of the Part I remediation:
+
+- **Featured demo rows.** `2026_05_23_100000_mark_homepage_featured_demo` is now
+  guarded to non-production, but the guard cannot undo a database where it already
+  ran. Confirm `doctors.is_featured` / `facilities.is_featured` are not set on real
+  records that happen to share a demo slug.
+- **Unverified accounts.** Login now refuses accounts with a null
+  `email_verified_at`. `2026_08_15_100000_verify_accounts_predating_email_verification`
+  grandfathers everything that predates the deploy, and prints how many it touched
+  — read that line rather than assuming it was zero.
 
 ## TLS and secrets
 

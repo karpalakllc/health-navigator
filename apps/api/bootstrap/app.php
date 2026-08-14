@@ -42,8 +42,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // the load balancer's. Without this every $request->ip() rate limiter keys on
         // one shared value and a handful of failed logins locks out every user.
         // Proxy list is config-driven (config/trustedproxy.php) so it survives config:cache.
+        // X_FORWARDED_HOST is deliberately absent. Trusting it lets anyone whose
+        // header reaches the app change the host that URL::temporarySignedRoute()
+        // builds from — which would have the platform mail a real user a genuine,
+        // correctly-signed verification link pointing at a host they control.
+        // Nothing here needs it; the canonical host comes from config (see
+        // AppServiceProvider::boot, URL::forceRootUrl).
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
-            | Request::HEADER_X_FORWARDED_HOST
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
 

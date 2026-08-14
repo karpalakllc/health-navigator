@@ -77,7 +77,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [doctorSlugs, facilitySlugs] = await Promise.all([
     collectSlugs((page) => fetchDoctors({ page, per_page: PER_PAGE }, CACHE)),
-    collectSlugs((page) => fetchFacilities({ page, per_page: PER_PAGE }, CACHE)),
+    collectSlugs((page) =>
+      fetchFacilities({ page, per_page: PER_PAGE }, CACHE),
+    ),
   ]);
 
   entries.push(
@@ -117,7 +119,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           entries.push(
             ...topics.data.map((topic) => ({
               url: absoluteUrl(`/forum/${category.slug}/${topic.slug}`),
-              lastModified: topic.last_post_at ?? topic.published_at ?? undefined,
+              lastModified:
+                topic.last_post_at ?? topic.published_at ?? undefined,
               changeFrequency: "weekly" as const,
               priority: 0.5,
             })),

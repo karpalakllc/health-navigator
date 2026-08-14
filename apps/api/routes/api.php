@@ -26,14 +26,20 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
     Route::get('/doctors', [DoctorController::class, 'index']);
-    Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor']);
+    // Optional auth so meta.viewer_review resolves: without it a signed-in user who
+    // has already reviewed a profile is shown the submission form, then told they
+    // have already reviewed it.
+    Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor'])
+        ->middleware('auth.sanctum.optional');
     Route::get('/doctors/{slug}', [DoctorController::class, 'show']);
     Route::get('/facilities', [FacilityController::class, 'index']);
-    Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility']);
+    Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
+        ->middleware('auth.sanctum.optional');
     Route::get('/facilities/{slug}', [FacilityController::class, 'show']);
     Route::middleware('module:pharmacies')->group(function (): void {
         Route::get('/pharmacies', [PharmacyController::class, 'index']);
-        Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy']);
+        Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
+            ->middleware('auth.sanctum.optional');
         Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products']);
         Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show']);
     });
@@ -76,7 +82,7 @@ Route::prefix('v1')->group(function (): void {
         // account that already exists. Gating it means that turning signups off
         // strands anyone mid-verification — they can neither log in nor get a new link.
         Route::post('/email/resend', [AuthController::class, 'resendVerification'])
-            ->middleware('throttle:api-login');
+            ->middleware('throttle:api-verification-resend');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->middleware('throttle:api-login');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])

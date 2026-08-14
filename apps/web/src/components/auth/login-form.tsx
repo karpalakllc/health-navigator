@@ -44,7 +44,9 @@ export function LoginForm() {
         }
 
         setError(
-          payload.message ?? payload.errors?.email?.[0] ?? t("auth.loginFailed"),
+          payload.message ??
+            payload.errors?.email?.[0] ??
+            t("auth.loginFailed"),
         );
         return;
       }
@@ -66,7 +68,9 @@ export function LoginForm() {
           <h2 className="text-lg font-semibold text-foreground">
             {t("auth.verifyCheckInbox")}
           </h2>
-          <p className="text-sm text-muted-foreground">{t("auth.verifyUnverified")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("auth.verifyUnverified")}
+          </p>
           <ResendVerificationForm defaultEmail={email} />
         </div>
       </AuthFormCard>
@@ -77,7 +81,9 @@ export function LoginForm() {
     <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-semibold text-foreground">{t("auth.email")}</span>
+          <span className="font-semibold text-foreground">
+            {t("auth.email")}
+          </span>
           <input
             type="email"
             name="email"
@@ -108,7 +114,11 @@ export function LoginForm() {
           />
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           {pending ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
         <p className="text-sm text-muted-foreground">
@@ -122,7 +132,10 @@ export function LoginForm() {
         </p>
         <p className="text-xs text-muted-foreground">
           {t("auth.termsNotice")}{" "}
-          <Link href="/terms" className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link
+            href="/terms"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
             {t("auth.termsLink")}
           </Link>{" "}
           {t("auth.and")}{" "}

@@ -11,13 +11,17 @@ class ImageOptimizer
 {
     /**
      * Elements that can execute, fetch, or embed foreign content inside an SVG.
-     * `use` is included because xlink:href can reference an external document.
+     *
+     * `use` and `image` are here because their href/xlink:href can reference an
+     * external document, and `style` because CSS can pull remote resources — the
+     * comment previously claimed `use` was covered when it was not.
      *
      * @var list<string>
      */
     private const DISALLOWED_SVG_ELEMENTS = [
         'script', 'foreignObject', 'iframe', 'embed', 'object',
         'animate', 'animateTransform', 'set', 'handler',
+        'use', 'image', 'style',
     ];
 
     /**

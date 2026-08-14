@@ -39,7 +39,10 @@ export async function fetchFacilities(
   params: FacilityListParams = {},
   options?: ApiCacheOptions,
 ) {
-  return apiGetPaginated<FacilityListItem>(`/facilities${toQuery(params)}`, options);
+  return apiGetPaginated<FacilityListItem>(
+    `/facilities${toQuery(params)}`,
+    options,
+  );
 }
 
 export async function fetchFacility(slug: string): Promise<FacilityDetail> {

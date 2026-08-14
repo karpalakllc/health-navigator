@@ -13,7 +13,6 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -33,7 +32,7 @@ class RegisterTest extends TestCase
 
         $this->seed(RolesAndPermissionsSeeder::class);
         SiteSetting::current();
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
     }
 
     /**
@@ -60,7 +59,7 @@ class RegisterTest extends TestCase
         User::factory()->create(['email' => 'taken@example.com', 'email_verified_at' => now()]);
 
         $fresh = $this->postJson('/api/v1/auth/register', $this->payload(['email' => 'fresh@example.com']));
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
         $taken = $this->postJson('/api/v1/auth/register', $this->payload(['email' => 'taken@example.com']));
 
         $this->assertSame(202, $fresh->status());
@@ -231,7 +230,7 @@ class RegisterTest extends TestCase
         $unverified = User::factory()->create(['email' => 'pending@example.com', 'email_verified_at' => null]);
 
         $known = $this->postJson('/api/v1/auth/email/resend', ['email' => 'pending@example.com']);
-        RateLimiter::clear('api-login');
+        $this->forgetRateLimits();
         $unknown = $this->postJson('/api/v1/auth/email/resend', ['email' => 'ghost@example.com']);
 
         $this->assertSame($known->json(), $unknown->json());

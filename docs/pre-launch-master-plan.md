@@ -233,7 +233,6 @@ PF  Product scraper API + public catalog enablement
 
 | ID | Work |
 |----|------|
-| P3.1 | **Site settings** store (DB): `registrations_enabled`, `require_email_verification`, `maintenance_mode`, `public_guidance`, `public_products`, `public_pharmacies`, `public_forum`, etc. |
 | P3.2 | Filament **Settings** page (admin-only) |
 | P3.3 | API: `POST /auth/register`, validation, terms acceptance |
 | P3.4 | Web: `/register` page; hide CTA when `registrations_enabled = false` |

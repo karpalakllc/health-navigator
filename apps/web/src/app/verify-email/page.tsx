@@ -17,12 +17,18 @@ type VerifyEmailPageProps = {
  * signature and redirects here with the outcome, so this page only reports it —
  * it never sees the signature itself.
  */
-export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+export default async function VerifyEmailPage({
+  searchParams,
+}: VerifyEmailPageProps) {
   const { status } = await searchParams;
 
   const copy =
     status === "verified"
-      ? { title: t("auth.verifiedTitle"), body: t("auth.verifiedBody"), showResend: false }
+      ? {
+          title: t("auth.verifiedTitle"),
+          body: t("auth.verifiedBody"),
+          showResend: false,
+        }
       : status === "already"
         ? {
             title: t("auth.verifiedAlreadyTitle"),

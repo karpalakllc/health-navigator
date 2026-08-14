@@ -14,7 +14,9 @@ import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
 import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = pageMetadata(t("account.forumActivity"), undefined, { noIndex: true });
+export const metadata = pageMetadata(t("account.forumActivity"), undefined, {
+  noIndex: true,
+});
 
 type AccountForumPageProps = {
   searchParams: Promise<{ topics_page?: string; posts_page?: string }>;
@@ -37,7 +39,9 @@ export default async function AccountForumPage({
   let posts;
 
   try {
-    topics = await fetchMyForumTopics(Number.isFinite(topicsPage) ? topicsPage : 1);
+    topics = await fetchMyForumTopics(
+      Number.isFinite(topicsPage) ? topicsPage : 1,
+    );
     posts = await fetchMyForumPosts(Number.isFinite(postsPage) ? postsPage : 1);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
@@ -62,10 +66,15 @@ export default async function AccountForumPage({
           <ProfileContentCard title={t("account.topicsHeading")}>
             <ul className="divide-y divide-border/80">
               {topics.data.length === 0 ? (
-                <li className="py-4 text-sm text-muted-foreground">{t("account.noTopicsYet")}</li>
+                <li className="py-4 text-sm text-muted-foreground">
+                  {t("account.noTopicsYet")}
+                </li>
               ) : (
                 topics.data.map((topic) => (
-                  <li key={`${topic.slug}-${topic.created_at}`} className="space-y-2 py-4 first:pt-0 last:pb-0">
+                  <li
+                    key={`${topic.slug}-${topic.created_at}`}
+                    className="space-y-2 py-4 first:pt-0 last:pb-0"
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="font-semibold text-foreground">
                         {topic.status === "approved" ? (
@@ -89,13 +98,17 @@ export default async function AccountForumPage({
                         <>
                           <span aria-hidden> · </span>
                           {t("forum.lastActivity")}:{" "}
-                          {formatForumLastActivity(topic.last_post_at ?? topic.published_at)}
+                          {formatForumLastActivity(
+                            topic.last_post_at ?? topic.published_at,
+                          )}
                         </>
                       ) : null}
                     </p>
                     {topic.status === "rejected" && topic.rejection_note ? (
                       <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                        <span className="font-medium text-foreground">
+                          {t("account.rejectionNote")}:{" "}
+                        </span>
                         {topic.rejection_note}
                       </p>
                     ) : null}
@@ -116,10 +129,15 @@ export default async function AccountForumPage({
           <ProfileContentCard title={t("account.repliesHeading")}>
             <ul className="divide-y divide-border/80">
               {posts.data.length === 0 ? (
-                <li className="py-4 text-sm text-muted-foreground">{t("account.noRepliesYet")}</li>
+                <li className="py-4 text-sm text-muted-foreground">
+                  {t("account.noRepliesYet")}
+                </li>
               ) : (
                 posts.data.map((post) => (
-                  <li key={post.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
+                  <li
+                    key={post.id}
+                    className="space-y-2 py-4 first:pt-0 last:pb-0"
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="text-sm font-semibold text-foreground">
                         {post.status === "approved" ? (
@@ -136,11 +154,15 @@ export default async function AccountForumPage({
                       <ModerationStatusBadge status={post.status} />
                     </div>
                     {post.body ? (
-                      <p className="whitespace-pre-wrap text-sm text-muted-foreground">{post.body}</p>
+                      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                        {post.body}
+                      </p>
                     ) : null}
                     {post.status === "rejected" && post.rejection_note ? (
                       <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">{t("account.rejectionNote")}: </span>
+                        <span className="font-medium text-foreground">
+                          {t("account.rejectionNote")}:{" "}
+                        </span>
                         {post.rejection_note}
                       </p>
                     ) : null}

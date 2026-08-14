@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * Admin-initiated password reset for a staff or client account.
@@ -28,7 +29,10 @@ final class SetPasswordAction
                 TextInput::make('password')
                     ->password()
                     ->required()
-                    ->minLength(8)
+                    // The same rule registration and reset use. Staff-set passwords
+                    // were the weakest credentials on the platform at minLength(8)
+                    // while everything else moved to ten characters plus a breach check.
+                    ->rule(Password::defaults())
                     ->confirmed(),
                 TextInput::make('password_confirmation')
                     ->password()

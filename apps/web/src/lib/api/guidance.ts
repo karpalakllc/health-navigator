@@ -77,15 +77,18 @@ export async function saveGuidanceAnswers(
   sessionId: string,
   answers: Array<{ step_key: string; values: string[] }>,
 ): Promise<{ emergency_stopped: boolean }> {
-  const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/answers`), {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
+  const response = await fetch(
+    apiUrl(`/triage/sessions/${sessionId}/answers`),
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+      },
+      body: JSON.stringify({ answers }),
     },
-    body: JSON.stringify({ answers }),
-  });
+  );
 
   return parseJson(response);
 }
@@ -93,10 +96,13 @@ export async function saveGuidanceAnswers(
 export async function completeGuidanceEmergency(
   sessionId: string,
 ): Promise<GuidanceOutcome> {
-  const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/emergency`), {
-    method: "POST",
-    headers: { Accept: "application/json", "Accept-Language": "mk" },
-  });
+  const response = await fetch(
+    apiUrl(`/triage/sessions/${sessionId}/emergency`),
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Accept-Language": "mk" },
+    },
+  );
 
   const data = await parseJson<{ outcome: GuidanceOutcome }>(response);
 
@@ -106,10 +112,13 @@ export async function completeGuidanceEmergency(
 export async function completeGuidanceSession(
   sessionId: string,
 ): Promise<GuidanceOutcome> {
-  const response = await fetch(apiUrl(`/triage/sessions/${sessionId}/complete`), {
-    method: "POST",
-    headers: { Accept: "application/json", "Accept-Language": "mk" },
-  });
+  const response = await fetch(
+    apiUrl(`/triage/sessions/${sessionId}/complete`),
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Accept-Language": "mk" },
+    },
+  );
 
   const data = await parseJson<{ outcome: GuidanceOutcome }>(response);
 

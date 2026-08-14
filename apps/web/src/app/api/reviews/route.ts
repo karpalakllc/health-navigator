@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
+import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { t } from "@/i18n/t";
 
 type ReviewPayload = {
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
   const token = await getSessionToken();
 
   if (!token) {
-    return NextResponse.json({ message: t("errors.unauthenticated") }, { status: 401 });
+    return NextResponse.json(
+      { message: t("errors.unauthenticated") },
+      { status: 401 },
+    );
   }
 
   const body = (await request.json()) as ReviewPayload;
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
       Accept: "application/json",
       "Accept-Language": "mk",
+      ...forwardedForHeaders(request),
     },
     body: JSON.stringify({
       rating: body.rating,

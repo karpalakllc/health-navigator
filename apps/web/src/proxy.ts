@@ -23,23 +23,36 @@ export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV !== "production";
 
-  let apiOrigin = "";
-  try {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+  const originOf = (value: string | undefined): string => {
+    if (!value) return "";
+    try {
+      return new URL(value).origin;
+    } catch {
+      return "";
     }
-  } catch {
-    apiOrigin = "";
-  }
+  };
+
+  const apiOrigin = originOf(process.env.NEXT_PUBLIC_API_URL);
+
+  // Error reporting and analytics have to be allowed to send, or the CSP silently
+  // turns them off — which looks exactly like "nothing is going wrong". The Sentry
+  // ingest host lives inside the DSN; Plausible posts its beacon to its own origin.
+  const sentryOrigin = originOf(process.env.NEXT_PUBLIC_SENTRY_DSN);
+  const plausibleOrigin = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+    ? originOf(process.env.NEXT_PUBLIC_PLAUSIBLE_HOST ?? "https://plausible.io")
+    : "";
 
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     ["img-src 'self'", "data:", "https://api.dicebear.com", apiOrigin].filter(Boolean).join(" "),
+    // Report violations so a future tightening does not fail silently the way
+    // the missing ingest origin did.
+    "report-uri /api/csp-report",
     "font-src 'self'",
     "frame-src https://www.openstreetmap.org",
-    ["connect-src 'self'", apiOrigin].filter(Boolean).join(" "),
+    ["connect-src 'self'", apiOrigin, sentryOrigin, plausibleOrigin].filter(Boolean).join(" "),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

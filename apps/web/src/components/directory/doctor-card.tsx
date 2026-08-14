@@ -25,7 +25,8 @@ export function DoctorCard({
       <article
         className={cn(
           "directory-card card-lift flex h-full flex-col gap-4 rounded-[1.75rem] p-[22px] sm:flex-row sm:items-start",
-          doctor.is_featured && "border border-primary/15 shadow-[0_18px_52px_rgb(255_87_87_/_0.08)]",
+          doctor.is_featured &&
+            "border border-primary/15 shadow-[0_18px_52px_rgb(255_87_87_/_0.08)]",
         )}
       >
         <DoctorCardBody
@@ -48,11 +49,16 @@ export function DoctorCard({
     <article
       className={cn(
         "directory-card card-lift flex h-full flex-col rounded-[1.75rem] p-[22px]",
-        doctor.is_featured && "border border-primary/15 shadow-[0_18px_52px_rgb(255_87_87_/_0.08)]",
+        doctor.is_featured &&
+          "border border-primary/15 shadow-[0_18px_52px_rgb(255_87_87_/_0.08)]",
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col">
-        <DoctorCardBody doctor={doctor} avatarSrc={avatarSrc} specialtyLine={specialtyLine} />
+        <DoctorCardBody
+          doctor={doctor}
+          avatarSrc={avatarSrc}
+          specialtyLine={specialtyLine}
+        />
       </div>
       <Link
         href={`/doctors/${doctor.slug}`}
@@ -94,11 +100,17 @@ function DoctorCardBody({
             </div>
           )}
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">{doctor.full_name}</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+              {doctor.full_name}
+            </h2>
             {specialtyLine ? (
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{specialtyLine}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {specialtyLine}
+              </p>
             ) : null}
-            {doctor.city ? <p className="mt-1 text-sm text-[#7c8893]">{doctor.city}</p> : null}
+            {doctor.city ? (
+              <p className="mt-1 text-sm text-[#7c8893]">{doctor.city}</p>
+            ) : null}
           </div>
         </div>
         {doctor.is_featured ? (
@@ -116,11 +128,13 @@ function DoctorCardBody({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        {doctor.review_summary.count > 0 && doctor.review_summary.average_rating !== null ? (
+        {doctor.review_summary.count > 0 &&
+        doctor.review_summary.average_rating !== null ? (
           <>
             <StarRating value={doctor.review_summary.average_rating} />
             <span className="text-sm font-bold text-[#485460]">
-              {doctor.review_summary.average_rating} ({doctor.review_summary.count})
+              {doctor.review_summary.average_rating} (
+              {doctor.review_summary.count})
             </span>
           </>
         ) : null}
@@ -134,7 +148,9 @@ function DoctorCardBody({
       {doctor.years_experience ? (
         <div className="mt-3">
           <span className="inline-flex min-h-[34px] items-center rounded-full bg-[#f1f4f6] px-3 text-xs font-bold text-[#5d6771]">
-            {tFormat("doctors.yearsExperience", { years: String(doctor.years_experience) })}
+            {tFormat("doctors.yearsExperience", {
+              years: String(doctor.years_experience),
+            })}
           </span>
         </div>
       ) : null}
@@ -144,8 +160,17 @@ function DoctorCardBody({
 
 function PinIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );

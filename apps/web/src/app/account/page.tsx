@@ -4,7 +4,10 @@ import { AccountProfilePhoto } from "@/components/account/account-profile-photo"
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AccountLayout } from "@/components/account/account-layout";
 import { ProfileContentCard } from "@/components/design/profile-content-card";
-import { ForumHubIcon, ReviewsHubIcon } from "@/components/account/account-hub-icons";
+import {
+  ForumHubIcon,
+  ReviewsHubIcon,
+} from "@/components/account/account-hub-icons";
 import { HubLinkCard } from "@/components/ui/hub-link-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeroBleed } from "@/components/design/page-hero-bleed";
@@ -15,7 +18,9 @@ import { accountRoleLabel } from "@/lib/roles";
 import { t } from "@/i18n/t";
 import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = pageMetadata(t("nav.account"), undefined, { noIndex: true });
+export const metadata = pageMetadata(t("nav.account"), undefined, {
+  noIndex: true,
+});
 
 export default async function AccountPage() {
   const token = await getSessionToken();
@@ -59,11 +64,15 @@ export default async function AccountPage() {
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
                 <dt className="text-muted-foreground">{t("account.email")}</dt>
-                <dd className="break-all font-semibold text-foreground">{user.email}</dd>
+                <dd className="break-all font-semibold text-foreground">
+                  {user.email}
+                </dd>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
                 <dt className="text-muted-foreground">{t("account.role")}</dt>
-                <dd className="font-semibold text-foreground">{accountRoleLabel(user)}</dd>
+                <dd className="font-semibold text-foreground">
+                  {accountRoleLabel(user)}
+                </dd>
               </div>
             </dl>
           </ProfileContentCard>

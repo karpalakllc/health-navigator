@@ -31,6 +31,11 @@ apps/api/.phpunit.cache
 apps/api/.phpunit.result.cache
 apps/api/_ide_helper.php
 
+# Defensive: apps/api ships no frontend build, but keep these so an
+# accidental npm install there is never committed.
+apps/api/node_modules/
+apps/api/public/build/
+
 # Node / Next.js (apps/web)
 apps/web/node_modules/
 apps/web/.next/
