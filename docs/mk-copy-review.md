@@ -12,6 +12,14 @@ screens now say what happened in one line, with a separate muted footnote
 explaining that addresses are hidden deliberately. Rows below show the current
 wording.
 
+## What this sheet covers
+
+The ~90 strings written or changed during the audit — API messages, validation,
+emails. It does **not** cover the several hundred pre-existing interface strings
+in the web app's `mk.ts`, which have never been through a native pass. Rows
+24–28 are new: they are the password rules, which were missing entirely and were
+rendering in English until recently.
+
 ## Why this exists
 
 The audit found the emergency-call instruction written with a Bulgarian spelling —
@@ -130,6 +138,11 @@ Shown under a form field when the entry is wrong. `:attribute` is replaced by th
 | 21 | Полето :attribute мора да биде најмалку :min килобајти. |  |  |
 | 22 | Полето :attribute мора да биде најмалку :min. |  |  |
 | 23 | Полето :attribute мора да има најмалку :min знаци. |  |  |
+| 24 | Полето :attribute мора да содржи барем една буква. |  | Password rule: must contain a letter |
+| 25 | Полето :attribute мора да содржи барем една голема и една мала буква. |  | Password rule: must mix upper and lower case |
+| 26 | Полето :attribute мора да содржи барем една бројка. |  | Password rule: must contain a digit |
+| 27 | Полето :attribute мора да содржи барем еден специјален знак. |  | Password rule: must contain a symbol |
+| 28 | Оваа :attribute се појавила во протекување на податоци. Изберете друга лозинка. |  | Shown when the chosen password appears in a known breach list. Note :attribute is feminine here (*лозинка*) — check the agreement reads naturally |
 
 ## E. Field names
 
