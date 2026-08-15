@@ -15,7 +15,11 @@ export function HomeFaq() {
 
   return (
     <section>
-      <SectionHeading eyebrow={t("home.faqEyebrow")} eyebrowVariant="pill" title={t("home.faqTitle")} />
+      <SectionHeading
+        eyebrow={t("home.faqEyebrow")}
+        eyebrowVariant="pill"
+        title={t("home.faqTitle")}
+      />
       <div className="grid gap-3.5">
         {faqKeys.map((item, index) => (
           <details
@@ -35,7 +39,9 @@ export function HomeFaq() {
               {t(item.q)}
               <PlusIcon className="h-5 w-5 shrink-0 text-muted-foreground transition group-open:rotate-45" />
             </summary>
-            <p className="px-6 pb-5 text-sm leading-relaxed text-muted-foreground">{t(item.a)}</p>
+            <p className="px-6 pb-5 text-sm leading-relaxed text-muted-foreground">
+              {t(item.a)}
+            </p>
           </details>
         ))}
       </div>
@@ -45,7 +51,14 @@ export function HomeFaq() {
 
 function PlusIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
     </svg>
   );

@@ -30,7 +30,9 @@ export default function ForgotPasswordPage() {
             <h1 className="text-3xl font-black tracking-tight text-foreground">
               {t("auth.forgotPasswordTitle")}
             </h1>
-            <p className="mt-2 text-muted-foreground">{t("auth.forgotPasswordDescription")}</p>
+            <p className="mt-2 text-muted-foreground">
+              {t("auth.forgotPasswordDescription")}
+            </p>
           </div>
           <ForgotPasswordForm />
         </AuthSplitLayout>

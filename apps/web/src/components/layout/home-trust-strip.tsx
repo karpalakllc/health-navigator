@@ -23,7 +23,14 @@ export function HomeTrustStrip() {
       key: "moderated",
       text: t("home.trustModerated"),
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          aria-hidden
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -37,7 +44,14 @@ export function HomeTrustStrip() {
       key: "info",
       text: t("home.trustInformational"),
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          aria-hidden
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -51,7 +65,14 @@ export function HomeTrustStrip() {
       key: "emergency",
       text: t("home.trustEmergency"),
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          aria-hidden
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -72,7 +93,9 @@ export function HomeTrustStrip() {
         {items.map((item) => (
           <li key={item.key} className="flex gap-3">
             <IconWrap className={item.tone}>{item.icon}</IconWrap>
-            <p className="text-sm leading-snug text-muted-foreground">{item.text}</p>
+            <p className="text-sm leading-snug text-muted-foreground">
+              {item.text}
+            </p>
           </li>
         ))}
       </ul>

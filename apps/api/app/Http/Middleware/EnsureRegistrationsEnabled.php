@@ -16,7 +16,7 @@ class EnsureRegistrationsEnabled
     public function handle(Request $request, Closure $next): Response
     {
         if (! SiteSetting::current()->registrations_enabled) {
-            return ApiResponse::error('Registration is currently disabled.', 403);
+            return ApiResponse::errorCode('registration.disabled', 403);
         }
 
         return $next($request);

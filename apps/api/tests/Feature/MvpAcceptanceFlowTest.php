@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\ForumContentStatus;
-use App\Enums\ReviewStatus;
 use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\ForumCategory;

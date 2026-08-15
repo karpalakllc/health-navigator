@@ -21,6 +21,8 @@ function toQuery(params: SearchParams): string {
   return query ? `?${query}` : "";
 }
 
-export async function fetchUnifiedSearch(params: SearchParams): Promise<UnifiedSearchResult> {
+export async function fetchUnifiedSearch(
+  params: SearchParams,
+): Promise<UnifiedSearchResult> {
   return apiGet<UnifiedSearchResult>(`/search${toQuery(params)}`);
 }

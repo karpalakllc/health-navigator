@@ -2,9 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\AnalyticsActivityChart;
-use App\Filament\Widgets\AnalyticsCommunityChart;
-use App\Filament\Widgets\AnalyticsSearchInsights;
 use App\Filament\Widgets\AnalyticsSummaryStats;
 use App\Filament\Widgets\DirectoryHealthStats;
 use Filament\Pages\Page;
@@ -53,5 +50,4 @@ class AnalyticsOverview extends Page
             DirectoryHealthStats::class,
         ];
     }
-
 }

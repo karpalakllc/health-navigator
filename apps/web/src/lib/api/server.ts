@@ -29,6 +29,11 @@ export async function apiFetch(
   const token = await getSessionToken();
   const headers = new Headers(init.headers);
 
+  // Macedonian-only UI — see API_LANGUAGE_HEADER in lib/api/client.ts.
+  if (!headers.has("Accept-Language")) {
+    headers.set("Accept-Language", "mk");
+  }
+
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }

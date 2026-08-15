@@ -32,7 +32,9 @@ export function FacilityDoctorList({
                 {doctor.full_name}
               </p>
               {doctor.title ? (
-                <p className="mt-0.5 text-sm text-muted-foreground">{doctor.title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {doctor.title}
+                </p>
               ) : null}
               {doctor.is_primary ? (
                 <Badge variant="accent" className="mt-2">

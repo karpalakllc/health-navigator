@@ -9,20 +9,32 @@ type ForumAuthorCardProps = {
   variant?: "sidebar" | "inline";
 };
 
-function AuthorStats({ author, className }: { author: ForumAuthor; className?: string }) {
+function AuthorStats({
+  author,
+  className,
+}: {
+  author: ForumAuthor;
+  className?: string;
+}) {
   return (
     <dl className={className}>
       <div>
-        <dt className="font-medium text-foreground/80">{t("forum.authorTopics")}</dt>
+        <dt className="font-medium text-foreground/80">
+          {t("forum.authorTopics")}
+        </dt>
         <dd className="tabular-nums">{author.topics_count}</dd>
       </div>
       <div>
-        <dt className="font-medium text-foreground/80">{t("forum.authorPosts")}</dt>
+        <dt className="font-medium text-foreground/80">
+          {t("forum.authorPosts")}
+        </dt>
         <dd className="tabular-nums">{author.posts_count}</dd>
       </div>
       {author.member_since ? (
         <div className="col-span-2 lg:col-span-1">
-          <dt className="font-medium text-foreground/80">{t("forum.authorMemberSince")}</dt>
+          <dt className="font-medium text-foreground/80">
+            {t("forum.authorMemberSince")}
+          </dt>
           <dd>{formatForumDateTime(author.member_since)}</dd>
         </div>
       ) : null}
@@ -30,7 +42,10 @@ function AuthorStats({ author, className }: { author: ForumAuthor; className?: s
   );
 }
 
-export function ForumAuthorCard({ author, variant = "sidebar" }: ForumAuthorCardProps) {
+export function ForumAuthorCard({
+  author,
+  variant = "sidebar",
+}: ForumAuthorCardProps) {
   const isSidebar = variant === "sidebar";
 
   return (
@@ -59,7 +74,11 @@ export function ForumAuthorCard({ author, variant = "sidebar" }: ForumAuthorCard
           {authorInitials(author.name)}
         </span>
 
-        <div className={isSidebar ? "min-w-0 flex-1 space-y-2 lg:w-full" : "min-w-0 flex-1"}>
+        <div
+          className={
+            isSidebar ? "min-w-0 flex-1 space-y-2 lg:w-full" : "min-w-0 flex-1"
+          }
+        >
           <div className="space-y-1">
             <p className="font-semibold text-foreground">{author.name}</p>
             {author.is_team_member ? (

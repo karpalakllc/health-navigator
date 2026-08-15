@@ -58,7 +58,11 @@ export default async function RootLayout({
         : `${geistSans.variable} ${geistMono.variable}`;
 
   return (
-    <html lang="mk" className={cn(fontClass, "h-full antialiased")} suppressHydrationWarning>
+    <html
+      lang="mk"
+      className={cn(fontClass, "h-full antialiased")}
+      suppressHydrationWarning
+    >
       {/* Extensions (e.g. ColorZilla) mutate <body> before hydrate — suppress only on body */}
       <body
         className="relative flex min-h-full flex-col overflow-x-clip bg-background text-foreground"
@@ -67,12 +71,12 @@ export default async function RootLayout({
         <div className="app-ambient" aria-hidden="true" />
         <SiteMaintenanceGate>
           <SitePlaceholdersProvider settings={settings}>
-          <SearchDialogProvider>
-            <PlausibleAnalytics />
-            <SiteHeader />
-            <div className="flex-1">{children}</div>
-            <SiteFooter />
-          </SearchDialogProvider>
+            <SearchDialogProvider>
+              <PlausibleAnalytics />
+              <SiteHeader />
+              <div className="flex-1">{children}</div>
+              <SiteFooter />
+            </SearchDialogProvider>
           </SitePlaceholdersProvider>
         </SiteMaintenanceGate>
       </body>

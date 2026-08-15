@@ -3,7 +3,11 @@ import { HomeFacilityCard } from "@/components/directory/home-facility-card";
 import type { FacilityListItem } from "@/lib/api/types";
 import { t } from "@/i18n/t";
 
-export function HomeFacilitiesRail({ facilities }: { facilities: FacilityListItem[] }) {
+export function HomeFacilitiesRail({
+  facilities,
+}: {
+  facilities: FacilityListItem[];
+}) {
   if (facilities.length === 0) {
     return null;
   }
@@ -19,7 +23,10 @@ export function HomeFacilitiesRail({ facilities }: { facilities: FacilityListIte
       <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {facilities.map((facility, index) => (
           <li key={facility.slug}>
-            <HomeFacilityCard facility={facility} variant={index === 1 ? "teal" : "default"} />
+            <HomeFacilityCard
+              facility={facility}
+              variant={index === 1 ? "teal" : "default"}
+            />
           </li>
         ))}
       </ul>

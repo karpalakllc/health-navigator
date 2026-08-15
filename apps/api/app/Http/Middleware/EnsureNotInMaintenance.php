@@ -23,6 +23,6 @@ class EnsureNotInMaintenance
             return $next($request);
         }
 
-        return ApiResponse::error('Сервисот е привремено недостапен поради одржување.', 503);
+        return ApiResponse::errorCode('maintenance.active', 503);
     }
 }

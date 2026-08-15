@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
+import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -30,7 +31,9 @@ export function ForgotPasswordForm() {
 
       if (!response.ok) {
         setError(
-          payload.message ?? payload.errors?.email?.[0] ?? t("auth.forgotPasswordFailed"),
+          payload.message ??
+            payload.errors?.email?.[0] ??
+            t("auth.forgotPasswordFailed"),
         );
         return;
       }
@@ -46,11 +49,18 @@ export function ForgotPasswordForm() {
   return (
     <AuthFormCard>
       {success ? (
-        <p className="text-sm text-muted-foreground">{t("auth.forgotPasswordSuccess")}</p>
+        <div className="grid gap-2">
+          <p className="text-sm text-muted-foreground">
+            {t("auth.forgotPasswordSuccess")}
+          </p>
+          <PrivacyNote />
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="grid gap-4">
           <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-foreground">{t("auth.email")}</span>
+            <span className="font-medium text-foreground">
+              {t("auth.email")}
+            </span>
             <input
               type="email"
               name="email"
@@ -62,13 +72,22 @@ export function ForgotPasswordForm() {
             />
           </label>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
-            {pending ? t("auth.forgotPasswordSending") : t("auth.forgotPasswordSubmit")}
+          <Button
+            type="submit"
+            disabled={pending}
+            className="min-h-[44px] w-full sm:w-auto"
+          >
+            {pending
+              ? t("auth.forgotPasswordSending")
+              : t("auth.forgotPasswordSubmit")}
           </Button>
         </form>
       )}
       <p className="mt-4 text-sm text-muted-foreground">
-        <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/login"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
           {t("auth.backToLogin")}
         </Link>
       </p>

@@ -27,7 +27,9 @@ type ProductsPageProps = {
   }>;
 };
 
-export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
   const settings = await fetchPublicSettings();
 
   if (!settings.public_products) {
@@ -59,10 +61,16 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   return (
     <PageShell>
-      <PageHeader title={t("products.title")} description={t("products.description")} />
+      <PageHeader
+        title={t("products.title")}
+        description={t("products.description")}
+      />
       <PriceDisclaimer />
 
-      <ProductsFilterBar values={filterParams} resultsTotal={products.meta.total} />
+      <ProductsFilterBar
+        values={filterParams}
+        resultsTotal={products.meta.total}
+      />
 
       {products.data.length === 0 ? (
         <EmptyState

@@ -37,12 +37,17 @@ export default async function GuidancePage() {
 
   return (
     <PageShell>
-      <PageHeader title={t("guidance.title")} description={t("guidance.description")} />
+      <PageHeader
+        title={t("guidance.title")}
+        description={t("guidance.description")}
+      />
 
       {unavailable || !flow ? (
         <div className="space-y-4">
           <GuidanceSafetyNotice />
-          <p className="text-sm text-muted-foreground">{t("guidance.unavailable")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("guidance.unavailable")}
+          </p>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-sm md:p-8">

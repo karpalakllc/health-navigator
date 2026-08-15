@@ -11,7 +11,6 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -396,7 +395,7 @@ class ForumTest extends TestCase
 
     public function test_forum_topic_creation_is_rate_limited(): void
     {
-        RateLimiter::clear('api-forum-topics');
+        $this->forgetRateLimits();
 
         $category = ForumCategory::factory()->create(['slug' => 'general']);
         $member = User::factory()->create(['role' => UserRole::Member]);

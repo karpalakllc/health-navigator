@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SeedsLocalDemoData;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
+use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
 class PlatformUserSeeder extends Seeder

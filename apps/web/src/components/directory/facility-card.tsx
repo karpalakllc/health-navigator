@@ -17,12 +17,19 @@ export function FacilityCard({
 }) {
   const placeholders = useSitePlaceholders();
   const avatarSrc = facility.avatar_url ?? placeholders.facility;
-  const subtitle = [facilityKindLabel(facility.type), facility.city].filter(Boolean).join(" · ");
+  const subtitle = [facilityKindLabel(facility.type), facility.city]
+    .filter(Boolean)
+    .join(" · ");
 
   if (layout === "list") {
     return (
       <article className="directory-card card-lift flex h-full flex-col gap-4 rounded-[1.75rem] p-[22px] sm:flex-row sm:items-start">
-        <FacilityCardBody facility={facility} avatarSrc={avatarSrc} subtitle={subtitle} className="sm:flex-1" />
+        <FacilityCardBody
+          facility={facility}
+          avatarSrc={avatarSrc}
+          subtitle={subtitle}
+          className="sm:flex-1"
+        />
         <Link
           href={`/facilities/${facility.slug}`}
           className="btn-gradient-teal inline-flex min-h-[54px] w-full shrink-0 items-center justify-center rounded-[1.125rem] px-8 text-sm font-extrabold text-white transition hover:brightness-105 sm:w-auto sm:self-center"
@@ -36,7 +43,11 @@ export function FacilityCard({
   return (
     <article className="directory-card card-lift flex h-full flex-col rounded-[1.75rem] p-[22px]">
       <div className="flex min-h-0 flex-1 flex-col">
-        <FacilityCardBody facility={facility} avatarSrc={avatarSrc} subtitle={subtitle} />
+        <FacilityCardBody
+          facility={facility}
+          avatarSrc={avatarSrc}
+          subtitle={subtitle}
+        />
       </div>
       <Link
         href={`/facilities/${facility.slug}`}
@@ -64,6 +75,9 @@ function FacilityCardBody({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3.5">
           {avatarSrc ? (
+            // Remote admin-uploaded avatar; next/image would 400 in production because
+            // images.remotePatterns cannot read NEXT_PUBLIC_API_URL. See next.config.ts.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarSrc}
               alt=""
@@ -75,9 +89,13 @@ function FacilityCardBody({
             </div>
           )}
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">{facility.name}</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+              {facility.name}
+            </h2>
             {subtitle ? (
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {subtitle}
+              </p>
             ) : null}
           </div>
         </div>
@@ -96,15 +114,19 @@ function FacilityCardBody({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        {facility.review_summary.count > 0 && facility.review_summary.average_rating !== null ? (
+        {facility.review_summary.count > 0 &&
+        facility.review_summary.average_rating !== null ? (
           <>
             <StarRating value={facility.review_summary.average_rating} />
             <span className="text-sm font-bold text-[#485460]">
-              {facility.review_summary.average_rating} ({facility.review_summary.count})
+              {facility.review_summary.average_rating} (
+              {facility.review_summary.count})
             </span>
           </>
         ) : (
-          <span className="directory-tag">{facilityKindLabel(facility.type)}</span>
+          <span className="directory-tag">
+            {facilityKindLabel(facility.type)}
+          </span>
         )}
       </div>
     </div>
@@ -113,8 +135,17 @@ function FacilityCardBody({
 
 function PinIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );

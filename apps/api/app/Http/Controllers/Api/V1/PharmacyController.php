@@ -11,6 +11,7 @@ use App\Http\Resources\Api\V1\PharmacyShelfProductResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
+use App\Support\ReviewSummary;
 use App\Support\ScriptInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 
@@ -20,7 +21,7 @@ class PharmacyController extends Controller
     {
         $validated = $request->validated();
 
-        $query = Facility::query()
+        $query = ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->pharmacy()
             ->orderBy('name');
@@ -81,7 +82,7 @@ class PharmacyController extends Controller
 
     protected function findPublishedPharmacy(string $slug): Facility
     {
-        return Facility::query()
+        return ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->pharmacy()
             ->where('slug', $slug)

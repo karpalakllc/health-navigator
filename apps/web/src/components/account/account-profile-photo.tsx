@@ -62,10 +62,14 @@ export function AccountProfilePhoto({ user }: { user: AuthUser }) {
         size="lg"
       />
       <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-sm font-medium text-foreground">{t("account.profilePhoto")}</p>
+        <p className="text-sm font-medium text-foreground">
+          {t("account.profilePhoto")}
+        </p>
         {can_change ? (
           <>
-            <p className="text-sm text-muted-foreground">{t("account.profilePhotoUnlocked")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("account.profilePhotoUnlocked")}
+            </p>
             <input
               ref={inputRef}
               type="file"
@@ -82,7 +86,9 @@ export function AccountProfilePhoto({ user }: { user: AuthUser }) {
               disabled={pending}
               onClick={() => inputRef.current?.click()}
             >
-              {pending ? t("account.profilePhotoUploading") : t("account.profilePhotoChoose")}
+              {pending
+                ? t("account.profilePhotoUploading")
+                : t("account.profilePhotoChoose")}
             </Button>
           </>
         ) : (

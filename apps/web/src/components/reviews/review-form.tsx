@@ -63,7 +63,9 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
       onSubmit={handleSubmit}
       className="grid gap-3 rounded-xl border border-border bg-card p-4"
     >
-      <p className="text-sm font-semibold text-foreground">{t("reviews.submitTitle")}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {t("reviews.submitTitle")}
+      </p>
       <p className="text-xs text-muted-foreground">{t("reviews.pending")}</p>
       <StarRatingInput value={rating} onChange={setRating} disabled={pending} />
       <label className="grid gap-1 text-sm">

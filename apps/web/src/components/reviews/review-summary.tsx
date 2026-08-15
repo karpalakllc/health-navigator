@@ -4,10 +4,13 @@ import { t } from "@/i18n/t";
 
 export function ReviewSummaryBlock({ summary }: { summary: ReviewSummary }) {
   if (summary.count === 0) {
-    return <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>
+    );
   }
 
-  const countLabel = summary.count === 1 ? t("reviews.countOne") : t("reviews.count");
+  const countLabel =
+    summary.count === 1 ? t("reviews.countOne") : t("reviews.count");
   const average = summary.average_rating ?? 0;
 
   return (
@@ -23,7 +26,9 @@ export function ReviewSummaryBlock({ summary }: { summary: ReviewSummary }) {
           </p>
         </div>
       </div>
-      <p className="max-w-[360px] text-sm leading-relaxed text-muted-foreground">{t("reviews.moderationNote")}</p>
+      <p className="max-w-[360px] text-sm leading-relaxed text-muted-foreground">
+        {t("reviews.moderationNote")}
+      </p>
     </div>
   );
 }

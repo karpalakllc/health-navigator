@@ -2,32 +2,23 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
+import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
 import { t } from "@/i18n/t";
-
-const REMEMBER_EMAIL_KEY = "zdravje360.rememberEmail";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unverified, setUnverified] = useState(false);
   const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(REMEMBER_EMAIL_KEY);
-    if (stored) {
-      setEmail(stored);
-      setRemember(true);
-    }
-  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -44,16 +35,20 @@ export function LoginForm() {
       const payload = await response.json();
 
       if (!response.ok) {
+        // The account exists and the password was right — it just is not
+        // activated yet, so offer the resend rather than a dead end.
+        if (payload.code === "auth.email_unverified") {
+          setUnverified(true);
+          setError(null);
+          return;
+        }
+
         setError(
-          payload.message ?? payload.errors?.email?.[0] ?? t("auth.loginFailed"),
+          payload.message ??
+            payload.errors?.email?.[0] ??
+            t("auth.loginFailed"),
         );
         return;
-      }
-
-      if (remember) {
-        localStorage.setItem(REMEMBER_EMAIL_KEY, email);
-      } else {
-        localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
 
       const redirect = safeRedirectTarget(searchParams.get("redirect"), "/");
@@ -66,11 +61,29 @@ export function LoginForm() {
     }
   }
 
+  if (unverified) {
+    return (
+      <AuthFormCard>
+        <div className="grid gap-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("auth.verifyCheckInbox")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("auth.verifyUnverified")}
+          </p>
+          <ResendVerificationForm defaultEmail={email} />
+        </div>
+      </AuthFormCard>
+    );
+  }
+
   return (
     <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-semibold text-foreground">{t("auth.email")}</span>
+          <span className="font-semibold text-foreground">
+            {t("auth.email")}
+          </span>
           <input
             type="email"
             name="email"
@@ -100,17 +113,12 @@ export function LoginForm() {
             onChange={setPassword}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(event) => setRemember(event.target.checked)}
-            className="h-4 w-4 rounded border-border text-primary"
-          />
-          {t("auth.rememberMe")}
-        </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           {pending ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
         <p className="text-sm text-muted-foreground">
@@ -124,7 +132,10 @@ export function LoginForm() {
         </p>
         <p className="text-xs text-muted-foreground">
           {t("auth.termsNotice")}{" "}
-          <Link href="/terms" className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link
+            href="/terms"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
             {t("auth.termsLink")}
           </Link>{" "}
           {t("auth.and")}{" "}

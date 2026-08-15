@@ -10,6 +10,7 @@ use App\Models\Facility;
 use App\Models\Language;
 use App\Models\Procedure;
 use App\Models\Specialty;
+use App\Support\ScriptInsensitiveSearch;
 use App\Support\Slug;
 use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Model;
@@ -153,7 +154,10 @@ final class AdminSelect
         if (filled($search) && method_exists($modelClass, 'scopeSearchName')) {
             $query->searchName($search);
         } elseif (filled($search)) {
-            $query->where('name', 'like', '%'.addcslashes($search, '%_\\').'%');
+            // A bare LIKE is case-sensitive on PostgreSQL, so admin pickers would not
+            // match "кардио" against "Кардиологија" in production while working fine
+            // against SQLite locally. Route through the same helper the model scopes use.
+            ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $search);
         }
 
         return $query->pluck('name', 'id')->all();

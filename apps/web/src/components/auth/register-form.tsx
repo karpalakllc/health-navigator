@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
+import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
@@ -14,13 +14,13 @@ type RegisterFormProps = {
 };
 
 export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   if (!registrationsEnabled) {
     return (
@@ -59,8 +59,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
         return;
       }
 
-      router.push("/account");
-      router.refresh();
+      // No session yet: the account is not usable until the address is verified,
+      // and the API deliberately does not say whether it was already registered.
+      setSubmitted(true);
     } catch {
       setError(t("auth.registerFailed"));
     } finally {
@@ -68,11 +69,35 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     }
   }
 
+  if (submitted) {
+    return (
+      <AuthFormCard>
+        <div className="grid gap-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("auth.verifyCheckInbox")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("auth.verifyCheckInboxBody")}
+          </p>
+          <PrivacyNote />
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {t("auth.signIn")}
+          </Link>
+        </div>
+      </AuthFormCard>
+    );
+  }
+
   return (
     <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.registerName")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.registerName")}
+          </span>
           <input
             type="text"
             name="name"
@@ -95,7 +120,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           />
         </label>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.password")}</span>
+          <span className="font-medium text-foreground">
+            {t("auth.password")}
+          </span>
           <PasswordInput
             id="register-password"
             name="password"
@@ -119,12 +146,19 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           />
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" disabled={pending} className="min-h-[44px] w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           {pending ? t("auth.registering") : t("auth.register")}
         </Button>
         <p className="text-sm text-muted-foreground">
           {t("auth.haveAccount")}{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/login"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
             {t("auth.signIn")}
           </Link>
         </p>

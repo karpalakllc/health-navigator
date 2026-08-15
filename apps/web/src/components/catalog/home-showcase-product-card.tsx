@@ -21,7 +21,12 @@ export function HomeShowcaseProductCard({
   const gradient = GRADIENTS[index % GRADIENTS.length];
 
   return (
-    <Link href={`/products/${product.slug}`} className={cn("block h-full min-w-[260px] max-w-[280px] shrink-0 snap-start")}>
+    <Link
+      href={`/products/${product.slug}`}
+      className={cn(
+        "block h-full min-w-[260px] max-w-[280px] shrink-0 snap-start",
+      )}
+    >
       <Card className="card-hover flex h-full flex-col overflow-hidden p-0 shadow-[0_16px_44px_-28px_rgb(15_23_42/0.45)]">
         <div
           className={cn(
@@ -29,28 +34,41 @@ export function HomeShowcaseProductCard({
             gradient,
           )}
         >
-          <span className="rounded-full bg-white/20 p-3 backdrop-blur-[2px]" aria-hidden>
+          <span
+            className="rounded-full bg-white/20 p-3 backdrop-blur-[2px]"
+            aria-hidden
+          >
             <PillGlyph className="h-10 w-10 text-white" />
           </span>
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
-          <h3 className="line-clamp-2 font-semibold leading-snug text-foreground">{product.name}</h3>
+          <h3 className="line-clamp-2 font-semibold leading-snug text-foreground">
+            {product.name}
+          </h3>
           {product.category ? (
-            <p className="line-clamp-2 text-xs text-muted-foreground">{product.category}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">
+              {product.category}
+            </p>
           ) : null}
           <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
             <div>
               {product.from_price != null ? (
                 <p className="text-lg font-bold text-primary">
                   {product.from_price.toLocaleString("mk-MK")}{" "}
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">MKD</span>
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">
+                    MKD
+                  </span>
                 </p>
               ) : (
-                <span className="text-sm text-muted-foreground">{t("products.noPriceListed")}</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("products.noPriceListed")}
+                </span>
               )}
               {product.offer_count > 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  {tFormat("products.offerCount", { count: String(product.offer_count) })}
+                  {tFormat("products.offerCount", {
+                    count: String(product.offer_count),
+                  })}
                 </p>
               ) : null}
             </div>
@@ -67,8 +85,21 @@ export function HomeShowcaseProductCard({
 function PillGlyph({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
-      <rect x="12" y="20" width="24" height="10" rx="5" stroke="currentColor" strokeWidth="2.25" />
-      <path d="M18 25h12" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
+      <rect
+        x="12"
+        y="20"
+        width="24"
+        height="10"
+        rx="5"
+        stroke="currentColor"
+        strokeWidth="2.25"
+      />
+      <path
+        d="M18 25h12"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

@@ -27,10 +27,18 @@ final class ModerationBulkActions
                     return;
                 }
 
+                if (! auth()->user()?->can('update', $record)) {
+                    return;
+                }
+
                 $record->approve(auth()->user());
             }),
             self::reject('Reject selected', function (Review $record, ?string $note): void {
                 if ($record->status !== ReviewStatus::Pending) {
+                    return;
+                }
+
+                if (! auth()->user()?->can('update', $record)) {
                     return;
                 }
 
@@ -85,12 +93,8 @@ final class ModerationBulkActions
                     return;
                 }
 
+                // Topic counters are updated by ForumPost::afterApproved().
                 $record->approve(auth()->user());
-                $topic = $record->topic()->first();
-
-                if ($topic !== null && $topic->status === ForumContentStatus::Approved) {
-                    $topic->recordApprovedReply();
-                }
             }),
             self::reject('Reject selected', function (ForumPost $record, ?string $note): void {
                 if ($record->status !== ForumContentStatus::Pending) {

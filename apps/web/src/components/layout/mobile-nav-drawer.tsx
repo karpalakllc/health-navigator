@@ -15,7 +15,11 @@ type MobileNavDrawerProps = {
   isLoggedIn: boolean;
 };
 
-export function MobileNavDrawer({ open, onClose, isLoggedIn }: MobileNavDrawerProps) {
+export function MobileNavDrawer({
+  open,
+  onClose,
+  isLoggedIn,
+}: MobileNavDrawerProps) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -45,7 +49,12 @@ export function MobileNavDrawer({ open, onClose, isLoggedIn }: MobileNavDrawerPr
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] lg:hidden" role="dialog" aria-modal="true" aria-label={t("nav.menu")}>
+    <div
+      className="fixed inset-0 z-[200] lg:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("nav.menu")}
+    >
       <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -93,8 +102,19 @@ export function MobileNavDrawer({ open, onClose, isLoggedIn }: MobileNavDrawerPr
 
 function CloseIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
     </svg>
   );
 }

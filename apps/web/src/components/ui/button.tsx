@@ -2,13 +2,10 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 const variants = {
-  primary:
-    "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-  secondary:
-    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+  primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
   ghost: "hover:bg-secondary text-foreground",
-  outline:
-    "border border-border bg-card hover:bg-secondary text-foreground",
+  outline: "border border-border bg-card hover:bg-secondary text-foreground",
 } as const;
 
 type ButtonVariant = keyof typeof variants;

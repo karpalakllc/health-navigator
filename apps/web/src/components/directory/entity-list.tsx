@@ -7,7 +7,11 @@ type EntityListProps = {
   children: ReactNode;
 };
 
-export function EntityList({ emptyMessage, isEmpty, children }: EntityListProps) {
+export function EntityList({
+  emptyMessage,
+  isEmpty,
+  children,
+}: EntityListProps) {
   return (
     <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
       {isEmpty ? (

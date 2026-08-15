@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
-
-const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+import { forwardedForHeaders } from "@/lib/api/client-ip";
 
 type RegisterPayload = {
   name?: string;
   email?: string;
   password?: string;
   password_confirmation?: string;
-  device_name?: string;
 };
 
+/**
+ * Registration no longer establishes a session.
+ *
+ * The API answers 202 with the same message whether or not the address is
+ * already registered — that is what stops signup being usable to discover who
+ * has an account here. There is no token to store until the address has been
+ * verified, so this handler simply relays the API's response.
+ */
 export async function POST(request: Request) {
   const body = (await request.json()) as RegisterPayload;
 
@@ -20,33 +25,18 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "Accept-Language": "mk",
+      ...forwardedForHeaders(request),
     },
     body: JSON.stringify({
       name: body.name,
       email: body.email,
       password: body.password,
       password_confirmation: body.password_confirmation,
-      device_name: body.device_name ?? "web",
     }),
   });
 
   const payload = await response.json();
 
-  if (!response.ok) {
-    return NextResponse.json(payload, { status: response.status });
-  }
-
-  const token = payload.data?.token as string | undefined;
-
-  if (!token) {
-    return NextResponse.json(
-      { message: "Register response did not include a token." },
-      { status: 502 },
-    );
-  }
-
-  const res = NextResponse.json({ data: { user: payload.data.user } });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(TOKEN_MAX_AGE_SECONDS));
-
-  return res;
+  return NextResponse.json(payload, { status: response.status });
 }

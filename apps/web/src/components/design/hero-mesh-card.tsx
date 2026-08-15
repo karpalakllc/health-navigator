@@ -24,8 +24,17 @@ export function HeroMeshCard({
   variant = "home",
 }: HeroMeshCardProps) {
   return (
-    <div className={cn("relative block w-full max-w-none", shellClass[variant], className)}>
-      <div className="hero-mesh-grid pointer-events-none absolute inset-0" aria-hidden />
+    <div
+      className={cn(
+        "relative block w-full max-w-none",
+        shellClass[variant],
+        className,
+      )}
+    >
+      <div
+        className="hero-mesh-grid pointer-events-none absolute inset-0"
+        aria-hidden
+      />
       <div
         className={cn(
           "hero-blob-red pointer-events-none absolute rounded-full blur-[68px]",

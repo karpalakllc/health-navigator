@@ -50,8 +50,8 @@ export function Pagination({
       aria-label="Pagination"
     >
       <p>
-        {t("pagination.page")} {currentPage} {t("pagination.of")} {lastPage} ({total}{" "}
-        {t("pagination.total")})
+        {t("pagination.page")} {currentPage} {t("pagination.of")} {lastPage} (
+        {total} {t("pagination.total")})
       </p>
       <div className="flex gap-3">
         {currentPage > 1 ? (

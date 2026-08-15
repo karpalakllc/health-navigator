@@ -1,6 +1,11 @@
-# API contract (Phase 2 + 3a–3f-a + 4a baseline)
+# API contract (v1)
 
 Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
+
+> **Maintenance:** the endpoint table below is generated — run
+> `./scripts/api-routes.sh` and paste the result. Do not hand-edit it. This
+> document previously drifted far enough to state, as a premise, that public
+> registration did not exist, months after it shipped.
 
 ## Conventions
 
@@ -8,140 +13,176 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 |--|--|
 | Success (single) | `{ "data": { ... } }` or `{ "data": [ ... ] }` (non-paginated lists) |
 | Success (paginated list) | `{ "data": [ ... ], "meta": { "current_page", "per_page", "total", "last_page" } }` |
-| Validation error | `422` with `{ "message": "...", "errors": { field: string[] } }` (Laravel validation) |
-| Unauthorized | `401` with `{ "message": "Unauthenticated." }` |
-| Forbidden | `403` with `{ "message": "..." }` |
-| Not found | `404` with `{ "message": "Not found." }` |
-| Too many requests | `429` with `{ "message": "Too many requests." }` |
+| Error | `{ "message": "<localised>", "code": "<stable key>", "errors"?: { field: string[] } }` |
+| Validation error | `422` with `errors` populated (Laravel validation) |
+| Unauthorized | `401`, code `errors.unauthenticated` |
+| Forbidden | `403`, code `errors.forbidden` |
+| Not found | `404`, code `errors.not_found` |
+| Too many requests | `429`, code `errors.too_many_requests` |
+| Module disabled | `503`, code `module.unavailable` |
+| Maintenance mode | `503`, code `maintenance.active` |
+
+### Error codes
+
+`code` is a stable machine-readable key that mirrors the translation key in
+`apps/api/lang/{locale}/api.php`. Clients should branch on `code` and render
+their own copy; `message` is a human-readable convenience and its wording may
+change. Codes are part of the public contract — renaming one is a breaking
+change.
+
+### Language
+
+Responses are localised. The API negotiates `Accept-Language` across `mk` and
+`en`, defaulting to **Macedonian**, and sets `Content-Language` plus
+`Vary: Accept-Language` on every response. The web client requests `mk`
+explicitly because its UI is Macedonian-only.
 
 ## Authentication
 
-**Strategy:** Laravel Sanctum **personal access tokens** (Bearer). Same mechanism for Next.js and future mobile clients.
+**Strategy:** Laravel Sanctum **personal access tokens** (Bearer). Same
+mechanism for the Next.js web client and future mobile clients.
 
 | Channel | Mechanism |
 |---------|-----------|
 | API (`/api/v1/*`) | Bearer token; login does **not** start a web session |
 | Filament (`/admin`) | Web session (separate from API tokens) |
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/auth/login` | — | Body: `{ email, password, device_name? }` → `data`: `{ user, token, token_type }`. **Rate limit:** `api-login` (5/min per IP and per email). |
-| `POST` | `/auth/logout` | Bearer | Revokes current token |
-| `GET` | `/me` | Bearer | `data.user`: `{ id, name, email, role }` |
+- **Public registration is enabled**, gated by the `registrations_enabled`
+  site setting (`403`, code `registration.disabled`, when off).
+- **Registration is verify-then-activate and deliberately non-committal.**
+  `POST /auth/register` always answers **`202`** with the same body, whether or
+  not the address is already registered, and **never returns a token**. Which
+  email the address owner receives is the only thing that differs (verification
+  link vs. "you already have an account"). This is what stops signup being
+  usable to discover who has an account.
+- `GET /auth/email/verify/{id}/{hash}` is a **signed** link from that email. It
+  redirects to `{FRONTEND_URL}/verify-email?status=verified|already|invalid`;
+  an unsigned or expired link is `403`.
+- `POST /auth/email/resend` re-sends the link and is equally non-committal (202).
+- **Login requires a verified address**: correct credentials on an unverified
+  account return `403` with code `auth.email_unverified`. This is not an oracle —
+  it is only reachable by someone who already knows the password.
+- Contributing endpoints (reviews, forum topics and replies, avatar upload)
+  carry the `verified` guard and return the same `403` / `auth.email_unverified`.
+- **Token expiration:** `SANCTUM_TOKEN_EXPIRATION_MINUTES`, default **43200**
+  (30 days). Expired tokens are rejected — including on optional-auth routes.
+- `POST /auth/forgot-password` always returns the same success payload,
+  whether or not the address is registered.
+- `GET /me` returns `id, name, email, role, community_roles,
+  can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
 
-**Token expiration:** Sanctum `expiration` from `SANCTUM_TOKEN_EXPIRATION_MINUTES` (default **43200** = 30 days). New tokens receive `expires_at` accordingly.
+**Web client:** Next.js stores the bearer token in an httpOnly cookie via route
+handlers under `/api/session/*`; the browser never reads the token. Mobile uses
+the bearer token directly.
 
-**Web client:** Next.js stores the Bearer token in an httpOnly cookie via Route Handlers (`/api/session/login`); the browser never reads the token. Mobile uses Bearer directly.
+## Rate limits
 
-**No public registration.** Member accounts are provisioned by staff/seeders until a registration epic ships.
+A baseline `throttle:api` of **120 requests/minute** applies to every v1 route,
+keyed on the authenticated user when present and the client IP otherwise. The
+tighter named limiters are layered on top:
 
-## Public — directory
+| Limiter | Applies to | Limit |
+|---------|-----------|-------|
+| `api-login` | login, register, forgot/reset password | 5/min per IP **and** per email |
+| `api-reviews` | review submission | 10/hour, 20/day |
+| `api-forum-topics` | topic creation | 5/day |
+| `api-forum-posts` | reply creation | 30/day |
+| `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
+| `api-triage-complete` | guidance completion | 5/hour |
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | `{ "data": { "status": "ok" } }` |
-| `GET` | `/search` | Unified discovery (R1 SQL aggregate). Query: `q` (name, min 2 chars when set; Latin/Cyrillic), `city` (doctors/facilities/pharmacies), `per_page` (max 10 per vertical, default 5). Response `data`: `{ doctors, facilities, pharmacies, products }` each `{ data[], meta }`, plus `grand_total` |
-| `GET` | `/departments` | Published departments for filters. `data[]`: `{ slug, name }` |
-| `GET` | `/specialties` | Published specialties. `data[]`: `{ slug, name, description, doctors_count }` — `doctors_count` is published doctors attached to the specialty |
-| `GET` | `/specialties/{slug}` | Published specialty detail (same fields as list item). `404` if unpublished or missing |
-| `GET` | `/doctors` | Paginated doctors. Query: `specialty`, `city`, `q` (name, **min 2 chars**; matches **Latin and Cyrillic** variants of the same substring), `featured=1`, `sort` (`name` default, `rating`), `min_reviews` (non-negative int, approved reviews only), `page`, `per_page` |
-| `GET` | `/doctors/{slug}` | Doctor detail + `specialties[]`, `facilities[]` (published clinical only), `review_summary`, profile fields (`education`, `languages[]`, `clinical_interests[]`, `procedures[]`, `office_hours`, `consultation_fee_note`, …) |
-| `GET` | `/doctors/{slug}/reviews` | Approved reviews. Item: `{ id, rating, body, author_name, published_at }` |
-| `GET` | `/facilities` | Paginated **clinical** facilities only (`clinic`, `hospital`, `laboratory`). Query: `type`, `city`, `q` (name/city: Latin/Cyrillic), `has_emergency` (boolean), `department` (published department slug), `page`, `per_page`. **`type=pharmacy` is not accepted.** |
-| `GET` | `/facilities/{slug}` | Clinical facility detail (pharmacy slugs → `404`). Includes `latitude`, `longitude`, `has_emergency_services`, `departments[]` (names), `doctors[]`, `office_hours`, contact fields, `review_summary` |
-| `GET` | `/facilities/{slug}/reviews` | Approved reviews for **clinical** facilities only (pharmacy slugs → `404`; use `/pharmacies/{slug}/reviews`) |
+> IP-keyed limits require `TRUSTED_PROXIES` to be set behind a load balancer,
+> or every client shares one bucket. See `infra/deploy.md`.
 
-## Public — pharmacies & catalog
+## Endpoints
 
-Pharmacies are `facilities` with `type = pharmacy`. Use `/pharmacies*` for pharmacy browsing, not `/facilities?type=pharmacy`.
+<!-- BEGIN generated route table -->
+| Method | Path | Guards |
+|--------|------|--------|
+| `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
+| `GET` | `/departments` | — |
+| `GET` | `/doctors` | — |
+| `GET` | `/doctors/{slug}` | — |
+| `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
+| `GET` | `/facilities` | — |
+| `GET` | `/facilities/{slug}` | — |
+| `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
+| `GET` | `/forum/categories` | `module:forum` |
+| `GET` | `/forum/categories/{category}/topics` | `module:forum` |
+| `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
+| `GET` | `/forum/topics` | `module:forum` |
+| `GET` | `/forum/topics/recent` | `module:forum` |
+| `GET` | `/health` | — |
+| `GET` | `/me` | `auth:sanctum` |
+| `GET` | `/me/forum/posts` | `auth:sanctum` |
+| `GET` | `/me/forum/topics` | `auth:sanctum` |
+| `GET` | `/me/reviews` | `auth:sanctum` |
+| `GET` | `/pharmacies` | `module:pharmacies` |
+| `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
+| `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
+| `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
+| `GET` | `/platform/admin` | `auth:sanctum`, `role:admin` |
+| `GET` | `/platform/staff` | `auth:sanctum`, `role:admin,moderator` |
+| `GET` | `/products` | `module:products` |
+| `GET` | `/products/{slug}` | `module:products` |
+| `GET` | `/search` | — |
+| `GET` | `/settings/public` | — |
+| `GET` | `/specialties` | — |
+| `GET` | `/specialties/{slug}` | — |
+| `GET` | `/triage/flow` | `module:guidance` |
+| `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
+| `POST` | `/auth/forgot-password` | `throttle:api-login` |
+| `POST` | `/auth/login` | `throttle:api-login` |
+| `POST` | `/auth/logout` | `auth:sanctum` |
+| `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
+| `POST` | `/auth/reset-password` | `throttle:api-login` |
+| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
+| `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
+| `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
+<!-- END generated route table -->
 
-**Prices:** Admin-managed, informational only. Each offer includes `price`, `currency` (default `MKD`), and `price_updated_at` (when staff last set the price). Not for e-commerce on this platform.
+### Notes
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/pharmacies` | Paginated published pharmacies. Query: `city`, `q` (name/city: Latin/Cyrillic), `page`, `per_page` |
-| `GET` | `/pharmacies/{slug}` | Pharmacy detail: contact fields, `office_hours`, `latitude`, `longitude` (nullable), `review_summary`. Clinical facility slugs → `404`. |
-| `GET` | `/pharmacies/{slug}/reviews` | Approved reviews (same item shape as doctor/facility reviews) |
-| `GET` | `/pharmacies/{slug}/products` | Paginated products offered at this pharmacy. Query: `q` (name: Latin/Cyrillic), `category`, `page`, `per_page`. Item: `{ slug, name, category, price, currency, price_updated_at }` |
-| `GET` | `/products` | Paginated published products. Query: `q` (name: Latin/Cyrillic), `category`, `pharmacy` (slug), `page`, `per_page`. Item: `{ slug, name, category, from_price }` (`from_price` = min offer among published pharmacies) |
-| `GET` | `/products/{slug}` | Product detail. `offers[]` (max 10, cheapest first): `{ pharmacy: { slug, name, city }, price, currency, price_updated_at }`, plus `offers_total`, `offers_truncated` |
+- `per_page` is capped at **50** on every list endpoint (`/search` caps at 10
+  per vertical). `page` starts at 1.
+- List `q` filters match **name/title only**; `city` is a separate parameter.
+  Minimum query length is 2 characters, matching `SearchQuery::normalize`.
+- Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
+  `rating` (1–5), and return `meta.viewer_review` when the caller has one.
+- `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
+  `checks` map. It is **exempt from maintenance mode**, so a 503 there always
+  means real degradation.
+- Forum content may be created already-approved when the author holds
+  `forum.moderate` or the corresponding moderation setting is off; otherwise it
+  is `pending`.
+- Replying to a locked topic returns **422**, not 403.
+- Guidance sessions are anonymous by default. A session created while
+  authenticated is bound to that user and returns 404 to anyone else.
 
-`review_summary`: `{ count, average_rating }`.
+## Roles and permissions
 
-## Public — forum
+Authorization uses **Spatie permissions**; the `users.role` column is a coarse
+account type (`member`, `moderator`, `admin`), not the authorization source.
 
-Moderated community discussions. **Informational only — not medical advice.** Pending content is never returned on public routes.
+- Staff moderators and admins moderate through the Filament panel and the
+  public moderation endpoint.
+- **Community moderators** are client accounts holding the `Forum Moderator`
+  role, optionally scoped to specific categories via `forum_category_moderator`.
+  A scoped moderator is refused outside their categories, on both the API and
+  the admin panel.
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/forum/categories` | Published categories. `data[]`: `{ slug, name, description, topics_count? }` |
-| `GET` | `/forum/categories/{category}/topics` | Approved topics in category. Query: `q` (title, **min 2 chars**, Latin/Cyrillic), `page`, `per_page`. Sort: pinned first, then `last_post_at` |
-| `GET` | `/forum/categories/{category}/topics/{topic}` | Approved topic + paginated approved replies. Response: `{ data: { topic, posts }, meta }` |
-
-Topic list item: `{ slug, title, author_name, replies_count, last_post_at, is_pinned, published_at }`.  
-Topic detail: `{ slug, title, body, author_name, category, replies_count, is_locked, is_pinned, published_at }`.  
-Post item: `{ id, body, author_name, published_at }`.
-
-## Public — symptom guidance (internal: triage)
-
-**Informational only — not diagnosis or emergency care.** One published flow at a time. Rule logic is server-side only and **not** returned by the API.
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/triage/flow` | Published flow: `{ title, intro_body, red_flags[], steps[] }`. Steps: `{ key, type, label, required, options[] }`. `404` if none published. |
-| `POST` | `/triage/sessions` | Body: `{ accepted_terms: true }` (required). `201` → `{ session_id }`. Optional Bearer attaches `user_id`. **Rate limit:** `api-triage-sessions` (10/hour per IP). |
-| `PUT` | `/triage/sessions/{id}/answers` | Body: `{ answers: [{ step_key, values: string[] }] }`. `red_flags` step may short-circuit emergency. → `{ session_id, emergency_stopped }`. |
-| `POST` | `/triage/sessions/{id}/emergency` | Marks emergency, completes session → `{ session_id, emergency_stopped, outcome }`. |
-| `POST` | `/triage/sessions/{id}/complete` | Evaluates rules → `{ session_id, outcome }`. Outcome: `{ outcome_code, title, body, handoffs[] }`. **Rate limit:** `api-triage-complete` (5/hour per IP). |
-
-Handoff item: `{ type: home|doctors|facilities|emergency, label?, href? }`.
-
-## Member (authenticated)
-
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| `POST` | `/doctors/{slug}/reviews` | `member` | Submit review → `pending`. **Rate limit:** `api-reviews` (10/hour, 20/day per user) |
-| `POST` | `/facilities/{slug}/reviews` | `member` | Submit review for **clinical** facility → `pending` |
-| `POST` | `/pharmacies/{slug}/reviews` | `member` | Submit review for pharmacy → `pending` |
-| `GET` | `/me/reviews` | Bearer | Own reviews with `status` |
-| `POST` | `/forum/categories/{category}/topics` | `member` | Create topic → `pending`. **Rate limit:** `api-forum-topics` (**5/day** per user) |
-| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `member` | Reply on approved, unlocked topic → `pending`. **Rate limit:** `api-forum-posts` (**30/day** per user) |
-| `GET` | `/me/forum/topics` | Bearer | Own topics (all statuses) |
-| `GET` | `/me/forum/posts` | Bearer | Own replies (all statuses) |
-
-## Platform (protected)
-
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| `GET` | `/platform/staff` | `admin`, `moderator` | Staff placeholder |
-| `GET` | `/platform/admin` | `admin` | Admin placeholder |
-
-## Roles
-
-| Value | API | Filament `/admin` |
-|-------|-----|-------------------|
-| `admin` | Full platform routes | Yes |
-| `moderator` | Staff routes | Yes |
-| `member` | Reviews + forum create | No |
-
-## Admin panel
-
-- **Facilities** — clinical types only (`clinic`, `hospital`, `laboratory`): departments, emergency, doctors, map coordinates
-- **Pharmacies** — `PharmacyResource` (`type = pharmacy`): shelf **product offers** relation manager; map coordinates + office hours
-- **Products** — catalog CRUD; **pharmacy offers** relation manager (inverse of shelf)
-- **Reviews** — moderation queue
-- **Forum** — categories CRUD; topic/reply moderation (approve/reject, pin, lock)
-- **Symptom guidance** — flow, steps, red flags, rules, outcomes (one published flow)
-- Publication: `is_published` + `published_at` on directory entities; offers require pivot `is_available` and both parents published
-
-## Local dev users (seeded)
-
-| Email | Role | Password |
-|-------|------|----------|
-| `admin@zdravje360.test` | admin | `password` |
-| `moderator@zdravje360.test` | moderator | `password` |
-| `member@zdravje360.test` | member | `password` |
+See [community-moderator-onboarding.md](./community-moderator-onboarding.md).
 
 ## Not in this contract yet
 
-`POST /auth/register`, checkout/cart/orders, stock sync, external pharmacy APIs, `GET /products/{slug}/pharmacies`, product-specific reviews, member forum edit/delete, triage AI (3f-b), `GET /triage/sessions/{id}` resume, sponsorships, Meilisearch, media/photos.
+- Meilisearch is wired behind `SCOUT_DRIVER`; `/search` falls back to SQL.
+- AI-assisted triage (gated — see [triage-safety.md](./triage-safety.md)).
+- Sponsorships, mobile-specific endpoints (token refresh, device registry,
+  push), cursor pagination, and a generated OpenAPI document.

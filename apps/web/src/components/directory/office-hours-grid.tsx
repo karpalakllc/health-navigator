@@ -1,8 +1,4 @@
-export function OfficeHoursGrid({
-  hours,
-}: {
-  hours: Record<string, string>;
-}) {
+export function OfficeHoursGrid({ hours }: { hours: Record<string, string> }) {
   const entries = Object.entries(hours);
 
   if (entries.length === 0) {

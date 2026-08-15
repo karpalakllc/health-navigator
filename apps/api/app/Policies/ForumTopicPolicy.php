@@ -33,11 +33,15 @@ class ForumTopicPolicy
 
     public function update(User $user, ForumTopic $forumTopic): bool
     {
-        if ($user->can('forum.moderate') && $user->canModerateForumCategory($forumTopic->category)) {
-            return true;
+        // A moderator assigned to specific categories must not act outside them.
+        // The old fallback to `forum_topics.update` defeated the scoping entirely,
+        // because the Forum Moderator role grants exactly that permission.
+        if ($user->hasScopedForumModeration()) {
+            return $user->canModerateForumCategory($forumTopic->category);
         }
 
-        return $user->can('forum_topics.update');
+        return ($user->can('forum.moderate') && $user->canModerateForumCategory($forumTopic->category))
+            || $user->can('forum_topics.update');
     }
 
     public function delete(User $user, ForumTopic $forumTopic): bool

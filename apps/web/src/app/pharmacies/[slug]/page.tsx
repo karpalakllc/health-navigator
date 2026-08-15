@@ -39,7 +39,10 @@ export async function generateMetadata({
   try {
     const pharmacy = await fetchPharmacy(slug);
 
-    return pageMetadata(pharmacy.name, pharmacy.city ?? t("pharmacies.description"));
+    return pageMetadata(
+      pharmacy.name,
+      pharmacy.city ?? t("pharmacies.description"),
+    );
   } catch {
     return pageMetadata(t("pharmacies.title"));
   }
@@ -68,7 +71,10 @@ export default async function PharmacyDetailPage({
   let products;
 
   try {
-    [pharmacy, products] = await Promise.all([fetchPharmacy(slug), fetchPharmacyProducts(slug)]);
+    [pharmacy, products] = await Promise.all([
+      fetchPharmacy(slug),
+      fetchPharmacyProducts(slug),
+    ]);
   } catch {
     notFound();
   }
@@ -94,7 +100,10 @@ export default async function PharmacyDetailPage({
       <DirectoryDetailLayout
         main={
           <div className="space-y-5">
-            <FacilityProfileHero facility={pharmacy} typeLabel={t("nav.pharmacies")} />
+            <FacilityProfileHero
+              facility={pharmacy}
+              typeLabel={t("nav.pharmacies")}
+            />
 
             <PriceDisclaimer />
 
@@ -105,7 +114,10 @@ export default async function PharmacyDetailPage({
             ) : null}
 
             <ProfileContentCard title={t("pharmacies.products")}>
-              <EntityLinkList items={productItems} emptyMessage={t("pharmacies.noProducts")} />
+              <EntityLinkList
+                items={productItems}
+                emptyMessage={t("pharmacies.noProducts")}
+              />
             </ProfileContentCard>
 
             <ReviewSection

@@ -26,14 +26,20 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
     Route::get('/doctors', [DoctorController::class, 'index']);
-    Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor']);
+    // Optional auth so meta.viewer_review resolves: without it a signed-in user who
+    // has already reviewed a profile is shown the submission form, then told they
+    // have already reviewed it.
+    Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor'])
+        ->middleware('auth.sanctum.optional');
     Route::get('/doctors/{slug}', [DoctorController::class, 'show']);
     Route::get('/facilities', [FacilityController::class, 'index']);
-    Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility']);
+    Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
+        ->middleware('auth.sanctum.optional');
     Route::get('/facilities/{slug}', [FacilityController::class, 'show']);
     Route::middleware('module:pharmacies')->group(function (): void {
         Route::get('/pharmacies', [PharmacyController::class, 'index']);
-        Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy']);
+        Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
+            ->middleware('auth.sanctum.optional');
         Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products']);
         Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show']);
     });
@@ -69,6 +75,14 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:api-login');
         Route::post('/register', [AuthController::class, 'register'])
             ->middleware(['registrations', 'throttle:api-login']);
+        Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+            ->middleware(['signed', 'throttle:api-login'])
+            ->name('verification.verify');
+        // Deliberately NOT behind `registrations`: this is a recovery action for an
+        // account that already exists. Gating it means that turning signups off
+        // strands anyone mid-verification — they can neither log in nor get a new link.
+        Route::post('/email/resend', [AuthController::class, 'resendVerification'])
+            ->middleware('throttle:api-verification-resend');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->middleware('throttle:api-login');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])
@@ -78,22 +92,30 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
-        Route::post('/me/avatar', [MeAvatarController::class, 'update']);
+        Route::post('/me/avatar', [MeAvatarController::class, 'update'])->middleware('verified');
         Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
         Route::get('/me/forum/topics', [ForumController::class, 'myTopics']);
         Route::get('/me/forum/posts', [ForumController::class, 'myPosts']);
         Route::post('/forum/categories/{category}/topics', [ForumController::class, 'storeTopic'])
-            ->middleware(['module:forum', 'role:member', 'throttle:api-forum-topics']);
+            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-topics']);
         Route::post('/forum/categories/{category}/topics/{topic}/posts', [ForumController::class, 'storePost'])
-            ->middleware(['module:forum', 'role:member', 'throttle:api-forum-posts']);
+            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-posts']);
+        // Authorization is ForumTopicPolicy::update, which understands both staff
+        // permissions and category-scoped community moderation. A `role:member`
+        // gate here would 403 staff moderators while the UI still offered them
+        // the toolbar, because the toolbar is driven by the policy.
         Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
-            ->middleware(['module:forum', 'role:member']);
+            ->middleware(['module:forum']);
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
-            ->middleware(['role:member', 'throttle:api-reviews']);
+            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
+        // Intentional: these two stubs are the only coverage of the `role`
+        // middleware's allow/deny matrix (PlatformRoutesTest), and that middleware
+        // guards real endpoints. Do not delete them without first moving those
+        // assertions onto another role-gated route.
         Route::get('/platform/staff', [PlatformController::class, 'staff'])
             ->middleware('role:admin,moderator');
         Route::get('/platform/admin', [PlatformController::class, 'admin'])

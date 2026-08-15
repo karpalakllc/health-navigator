@@ -6,13 +6,14 @@ use App\Models\ForumCategory;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+
 class ClientUserForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
             TextInput::make('name')->required(),
-            TextInput::make('email')->email()->required()->disabledOn('edit'),
+            TextInput::make('email')->email()->required()->unique(ignoreRecord: true)->disabledOn('edit'),
             Select::make('roles')
                 ->relationship(
                     name: 'roles',

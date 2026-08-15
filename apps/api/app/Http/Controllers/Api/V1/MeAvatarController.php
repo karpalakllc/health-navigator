@@ -16,10 +16,7 @@ class MeAvatarController extends Controller
         $user = $request->user();
 
         if (! $user->canChangeAvatar()) {
-            return ApiResponse::error(
-                'Profile photo upload is locked until you reach the required forum message count.',
-                403,
-            );
+            return ApiResponse::errorCode('avatar.locked', 403);
         }
 
         $validated = $request->validate([

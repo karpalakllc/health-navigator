@@ -73,7 +73,7 @@ final class UnifiedSearch
      */
     private function searchDoctors(?string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Doctor::query()
+        $query = ReviewSummary::eagerLoad(Doctor::query())
             ->published()
             ->with(['specialties' => fn ($relation) => $relation->published()])
             ->orderBy('full_name');
@@ -94,7 +94,7 @@ final class UnifiedSearch
      */
     private function searchFacilities(?string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Facility::query()
+        $query = ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->clinical()
             ->orderBy('name');
@@ -115,7 +115,7 @@ final class UnifiedSearch
      */
     private function searchPharmacies(?string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Facility::query()
+        $query = ReviewSummary::eagerLoad(Facility::query())
             ->published()
             ->pharmacy()
             ->orderBy('name');

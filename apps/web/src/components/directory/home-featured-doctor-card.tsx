@@ -19,7 +19,10 @@ export function HomeFeaturedDoctorCard({
   const reviewCount = doctor.review_summary.count;
 
   return (
-    <Link href={`/doctors/${doctor.slug}`} className="block h-full min-h-[44px]">
+    <Link
+      href={`/doctors/${doctor.slug}`}
+      className="block h-full min-h-[44px]"
+    >
       <article
         className={cn(
           "surface-glass flex h-full flex-col rounded-[28px] p-[22px]",
@@ -37,11 +40,17 @@ export function HomeFeaturedDoctorCard({
               className="h-[62px] w-[62px] shrink-0 rounded-[20px]"
             />
             <div className="min-w-0">
-              <h3 className="text-[1.08rem] font-extrabold tracking-tight text-foreground">{doctor.full_name}</h3>
+              <h3 className="text-[1.08rem] font-extrabold tracking-tight text-foreground">
+                {doctor.full_name}
+              </h3>
               {specialtyLine ? (
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{specialtyLine}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {specialtyLine}
+                </p>
               ) : null}
-              {city ? <p className="mt-2 text-sm text-[#7c8893]">{city}</p> : null}
+              {city ? (
+                <p className="mt-2 text-sm text-[#7c8893]">{city}</p>
+              ) : null}
             </div>
           </div>
           {doctor.is_featured ? (
@@ -55,7 +64,11 @@ export function HomeFeaturedDoctorCard({
           <div className="mt-[18px] flex flex-wrap items-center gap-2.5">
             <span className="inline-flex gap-1 text-primary" aria-hidden>
               {Array.from({ length: 5 }).map((_, i) => (
-                <StarIcon key={i} className="h-4 w-4" filled={i < Math.round(rating)} />
+                <StarIcon
+                  key={i}
+                  className="h-4 w-4"
+                  filled={i < Math.round(rating)}
+                />
               ))}
             </span>
             <span className="text-[0.94rem] font-bold text-[#485460]">
@@ -78,7 +91,9 @@ export function HomeFeaturedDoctorCard({
         {doctor.years_experience ? (
           <div className="mt-3">
             <span className="inline-flex min-h-[34px] items-center rounded-full bg-[#f1f4f6] px-3 text-[0.82rem] font-bold text-[#5d6771]">
-              {tFormat("doctors.yearsExperience", { years: String(doctor.years_experience) })}
+              {tFormat("doctors.yearsExperience", {
+                years: String(doctor.years_experience),
+              })}
             </span>
           </div>
         ) : null}
@@ -87,9 +102,21 @@ export function HomeFeaturedDoctorCard({
   );
 }
 
-function StarIcon({ className, filled }: { className?: string; filled?: boolean }) {
+function StarIcon({
+  className,
+  filled,
+}: {
+  className?: string;
+  filled?: boolean;
+}) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill={filled ? "currentColor" : "none"} stroke="currentColor" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      aria-hidden
+    >
       <path
         strokeWidth={filled ? 0 : 1.5}
         d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"

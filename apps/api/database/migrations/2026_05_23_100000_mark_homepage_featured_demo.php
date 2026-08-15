@@ -6,8 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Demo content, not schema. Guarded so it cannot promote a real clinic that
+     * happens to share one of these slugs (e.g. univerzitetska-klinika-skopje).
+     */
+    private function demoEnvironment(): bool
+    {
+        return app()->environment(['local', 'testing', 'development']);
+    }
+
     public function up(): void
     {
+        if (! $this->demoEnvironment()) {
+            return;
+        }
+
         if (Schema::hasColumn('doctors', 'is_featured')) {
             DB::table('doctors')
                 ->whereIn('slug', [
@@ -32,6 +45,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! $this->demoEnvironment()) {
+            return;
+        }
+
         if (Schema::hasColumn('doctors', 'is_featured')) {
             DB::table('doctors')
                 ->whereIn('slug', [

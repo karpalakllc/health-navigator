@@ -37,6 +37,11 @@ class ForumPostPolicy
     {
         $category = $forumPost->topic?->category;
 
+        // See ForumTopicPolicy::update — scoped moderators must stay in scope.
+        if ($user->hasScopedForumModeration()) {
+            return $category !== null && $user->canModerateForumCategory($category);
+        }
+
         if ($category && $user->can('forum.moderate') && $user->canModerateForumCategory($category)) {
             return true;
         }

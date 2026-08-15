@@ -20,7 +20,12 @@ export function TrustRibbon({
 }) {
   if (variant === "compact") {
     return (
-      <ul className={cn("mt-3.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3", className)}>
+      <ul
+        className={cn(
+          "mt-3.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3",
+          className,
+        )}
+      >
         {items.map((item) => (
           <li
             key={item.text}
@@ -34,7 +39,9 @@ export function TrustRibbon({
             >
               {item.icon}
             </span>
-            <span className="text-sm font-semibold leading-snug text-[#586570]">{item.text}</span>
+            <span className="text-sm font-semibold leading-snug text-[#586570]">
+              {item.text}
+            </span>
           </li>
         ))}
       </ul>
@@ -45,7 +52,9 @@ export function TrustRibbon({
     <ul
       className={cn(
         "grid gap-3",
-        columns === 4 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3",
+        columns === 4
+          ? "sm:grid-cols-2 xl:grid-cols-4"
+          : "sm:grid-cols-2 lg:grid-cols-3",
         className,
       )}
     >
@@ -62,7 +71,9 @@ export function TrustRibbon({
           >
             {item.icon}
           </span>
-          <span className="text-sm font-semibold leading-snug text-[#586570]">{item.text}</span>
+          <span className="text-sm font-semibold leading-snug text-[#586570]">
+            {item.text}
+          </span>
         </li>
       ))}
     </ul>

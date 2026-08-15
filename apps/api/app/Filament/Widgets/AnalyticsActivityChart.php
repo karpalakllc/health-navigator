@@ -13,7 +13,7 @@ class AnalyticsActivityChart extends ChartWidget
 
     protected ?string $maxHeight = '280px';
 
-  protected function getType(): string
+    protected function getType(): string
     {
         return 'line';
     }

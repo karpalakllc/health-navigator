@@ -28,8 +28,12 @@ export default function LoginPage() {
       <PageShell className="pb-16">
         <AuthSplitLayout aside={<AuthTrustAside />}>
           <div className="hidden lg:block">
-            <h1 className="text-3xl font-black tracking-tight text-foreground">{t("auth.loginTitle")}</h1>
-            <p className="mt-2 text-muted-foreground">{t("auth.loginDescription")}</p>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              {t("auth.loginTitle")}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {t("auth.loginDescription")}
+            </p>
           </div>
           <Suspense fallback={<LoginFormSkeleton />}>
             <LoginForm />

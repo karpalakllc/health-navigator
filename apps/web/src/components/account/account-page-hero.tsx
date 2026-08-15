@@ -7,7 +7,11 @@ type AccountPageHeroProps = {
   description: string;
 };
 
-export function AccountPageHero({ badge, title, description }: AccountPageHeroProps) {
+export function AccountPageHero({
+  badge,
+  title,
+  description,
+}: AccountPageHeroProps) {
   return (
     <DirectoryHero badge={badge} title={title} description={description} />
   );

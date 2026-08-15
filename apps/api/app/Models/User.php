@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\ForumContentStatus;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
-use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,10 +26,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role', 'user_kind', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
+
+    private ?bool $hasScopedForumModeration = null;
 
     protected function casts(): array
     {
@@ -86,6 +90,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole('Forum Moderator');
     }
 
+    /**
+     * Drives the `viewer.can_moderate` flag on the topic payload. Must stay in
+     * lockstep with ForumTopicPolicy::update, or the UI offers a moderation
+     * toolbar that the endpoint then rejects.
+     */
     public function canModerateForumTopic(ForumTopic $topic): bool
     {
         $category = $topic->category;
@@ -94,11 +103,12 @@ class User extends Authenticatable implements FilamentUser
             return false;
         }
 
-        if ($this->can('forum.moderate') && $this->canModerateForumCategory($category)) {
-            return true;
+        if ($this->hasScopedForumModeration()) {
+            return $this->canModerateForumCategory($category);
         }
 
-        return $this->can('forum_topics.update');
+        return ($this->can('forum.moderate') && $this->canModerateForumCategory($category))
+            || $this->can('forum_topics.update');
     }
 
     public function canModerateForumCategory(ForumCategory $category): bool
@@ -112,9 +122,27 @@ class User extends Authenticatable implements FilamentUser
             ->exists();
     }
 
+    /**
+     * Memoised: this is consulted at the top of both forum policies, again inside
+     * canModerateForumCategory(), and once per query in ForumModerationScope — so an
+     * un-cached ->exists() turns every authorization check into extra round trips.
+     *
+     * The memo lasts as long as the model instance. Anything that changes the
+     * assignment within one request (the Filament client form) must call
+     * forgetForumModerationScope(), or authorization decisions later in that
+     * request are made against the previous assignment.
+     */
     public function hasScopedForumModeration(): bool
     {
-        return $this->moderatedForumCategories()->exists();
+        return $this->hasScopedForumModeration ??= $this->moderatedForumCategories()->exists();
+    }
+
+    public function forgetForumModerationScope(): static
+    {
+        $this->hasScopedForumModeration = null;
+        $this->unsetRelation('moderatedForumCategories');
+
+        return $this;
     }
 
     /**
@@ -170,6 +198,11 @@ class User extends Authenticatable implements FilamentUser
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
     }
 
     public function avatarUrl(): ?string

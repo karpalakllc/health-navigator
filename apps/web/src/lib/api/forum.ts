@@ -1,5 +1,13 @@
-import { apiGet, apiGetPaginated } from "@/lib/api/client";
-import { ApiRequestError, apiFetch, apiGetPaginatedServer } from "@/lib/api/server";
+import {
+  apiGet,
+  apiGetPaginated,
+  type ApiCacheOptions,
+} from "@/lib/api/client";
+import {
+  ApiRequestError,
+  apiFetch,
+  apiGetPaginatedServer,
+} from "@/lib/api/server";
 import type { PaginatedEnvelope } from "@/lib/api/types";
 
 export type ForumAuthor = {
@@ -91,26 +99,38 @@ export type MyForumPost = {
   created_at: string | null;
 };
 
-export async function fetchForumCategories(): Promise<ForumCategory[]> {
-  return apiGet<ForumCategory[]>("/forum/categories");
+export async function fetchForumCategories(
+  options?: ApiCacheOptions,
+): Promise<ForumCategory[]> {
+  return apiGet<ForumCategory[]>("/forum/categories", options);
 }
 
 export async function fetchForumTopicSearch(
-  params: { q?: string; category?: string; page?: number } = {},
+  params: {
+    q?: string;
+    category?: string;
+    page?: number;
+    per_page?: number;
+  } = {},
+  options?: ApiCacheOptions,
 ) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
   if (params.page) search.set("page", String(params.page));
+  if (params.per_page) search.set("per_page", String(params.per_page));
   const query = search.toString();
 
   return apiGetPaginated<ForumTopicSearchItem>(
     `/forum/topics${query ? `?${query}` : ""}`,
+    options,
   );
 }
 
 export async function fetchForumRecentTopics(perPage = 8) {
-  return apiGetPaginated<ForumTopicSearchItem>(`/forum/topics/recent?per_page=${perPage}`);
+  return apiGetPaginated<ForumTopicSearchItem>(
+    `/forum/topics/recent?per_page=${perPage}`,
+  );
 }
 
 export async function fetchForumTopics(
@@ -138,7 +158,9 @@ export async function fetchForumTopicPage(
   );
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
     throw new ApiRequestError(
       body?.message ?? `API request failed (${response.status})`,
       response.status,

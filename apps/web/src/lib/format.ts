@@ -28,7 +28,9 @@ export function formatForumDateTime(iso: string | null | undefined): string {
   }).format(date);
 }
 
-export function formatForumLastActivity(iso: string | null | undefined): string {
+export function formatForumLastActivity(
+  iso: string | null | undefined,
+): string {
   if (!iso) {
     return t("forum.noActivityYet");
   }

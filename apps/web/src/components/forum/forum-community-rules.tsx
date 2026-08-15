@@ -9,7 +9,10 @@ type ForumCommunityRulesProps = {
   >;
 };
 
-export function ForumCommunityRules({ compact = false, settings }: ForumCommunityRulesProps) {
+export function ForumCommunityRules({
+  compact = false,
+  settings,
+}: ForumCommunityRulesProps) {
   if (settings && !settings.forum_rules_enabled) {
     return null;
   }
@@ -35,9 +38,7 @@ export function ForumCommunityRules({ compact = false, settings }: ForumCommunit
 
   if (compact) {
     return (
-      <p className="text-xs text-muted-foreground">
-        {t("forum.rulesCompact")}
-      </p>
+      <p className="text-xs text-muted-foreground">{t("forum.rulesCompact")}</p>
     );
   }
 

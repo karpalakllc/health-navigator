@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
+import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { t } from "@/i18n/t";
 
 type PostPayload = {
   categorySlug?: string;
@@ -12,14 +14,17 @@ export async function POST(request: Request) {
   const token = await getSessionToken();
 
   if (!token) {
-    return NextResponse.json({ message: "Unauthenticated." }, { status: 401 });
+    return NextResponse.json(
+      { message: t("errors.unauthenticated") },
+      { status: 401 },
+    );
   }
 
   const body = (await request.json()) as PostPayload;
 
   if (!body.categorySlug || !body.topicSlug) {
     return NextResponse.json(
-      { message: "Topic is required." },
+      { message: t("errors.topicRequired") },
       { status: 422 },
     );
   }
@@ -34,6 +39,8 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
       },
       body: JSON.stringify({ body: body.body }),
     },

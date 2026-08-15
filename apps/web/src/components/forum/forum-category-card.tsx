@@ -17,15 +17,21 @@ export function ForumCategoryCard({ category }: { category: ForumCategory }) {
             {initials}
           </span>
           <div className="min-w-0 flex-1 space-y-1">
-            <h2 className="font-semibold text-foreground group-hover:text-primary">{category.name}</h2>
+            <h2 className="font-semibold text-foreground group-hover:text-primary">
+              {category.name}
+            </h2>
             {category.description ? (
-              <p className="line-clamp-2 text-sm text-muted-foreground">{category.description}</p>
+              <p className="line-clamp-2 text-sm text-muted-foreground">
+                {category.description}
+              </p>
             ) : null}
           </div>
         </div>
         <p className="mt-auto text-xs font-medium text-muted-foreground">
           {category.topics_count != null
-            ? tFormat("forum.topicsCount", { count: String(category.topics_count) })
+            ? tFormat("forum.topicsCount", {
+                count: String(category.topics_count),
+              })
             : t("forum.topics")}
         </p>
       </article>

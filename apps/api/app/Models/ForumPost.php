@@ -36,6 +36,20 @@ class ForumPost extends Model
     }
 
     /**
+     * A reply becoming visible is what makes a topic "active". This runs for both
+     * moderator approval and creation-time approval, so the counters can no longer
+     * drift depending on which path the reply took.
+     */
+    protected function afterApproved(): void
+    {
+        $topic = $this->topic()->first();
+
+        if ($topic !== null && $topic->status === ForumContentStatus::Approved) {
+            $topic->recordApprovedReply();
+        }
+    }
+
+    /**
      * @return BelongsTo<ForumTopic, $this>
      */
     public function topic(): BelongsTo

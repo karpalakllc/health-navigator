@@ -10,7 +10,10 @@ type NestedKeyOf<T, Prefix extends string = ""> = T extends object
 
 export type MessageKey = NestedKeyOf<MkMessages>;
 
-function resolvePath(obj: Record<string, unknown>, path: string): string | undefined {
+function resolvePath(
+  obj: Record<string, unknown>,
+  path: string,
+): string | undefined {
   const parts = path.split(".");
   let current: unknown = obj;
 

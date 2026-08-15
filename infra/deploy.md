@@ -7,7 +7,7 @@ Simple **deploy-first** topology for public launch. Not Kubernetes.
 | Component | Suggested host | Notes |
 |-----------|----------------|-------|
 | **Web** (`apps/web`) | Vercel, Netlify, or similar | Set `NEXT_PUBLIC_API_URL` to public API URL |
-| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.3+, `public/` as web root |
+| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.4+ (see `composer.json`), `public/` as web root |
 | **PostgreSQL** | Managed DB from API host or Neon/DO | Same region as API when possible |
 | **Redis** | Managed Redis or same host | Cache, queues, rate limits, scheduler locks |
 | **Meilisearch** | Meilisearch Cloud or self-hosted | Unified search (doctors, facilities, forum topics) |
@@ -29,14 +29,24 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 1. Provision PostgreSQL, Redis, and Meilisearch; create database and user.
 2. Set environment variables on the API host (never commit secrets).
 3. Deploy code; `composer install --no-dev --optimize-autoloader`.
-4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Subsequent deploys: `php artisan migrate --force` only.
+4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
 5. `php artisan config:cache` and `php artisan route:cache` when stable.
 6. Start a **queue worker** (see below).
 7. Add **scheduler** cron (see below).
 8. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
 9. Verify `GET /api/v1/health` and Filament login.
 
-**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local` and `testing`**. Do not rely on them in staging/prod except via intentional imports.
+**Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
+
+**Client addresses:** the web tier forwards the visitor's address as
+`X-Forwarded-For`, taking the **rightmost** entry of the incoming chain — correct
+whether the edge appends or overwrites. If your edge writes a single-value header
+instead (`cf-connecting-ip` on Cloudflare), set `CLIENT_IP_HEADER` to its name on
+the web app. Do not set it to a header your edge does not overwrite: anything the
+edge leaves alone is caller-supplied, and a caller that picks its own address
+picks its own rate-limit bucket.
+
+**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). It must list **the edge *and* the web tier** — sign-in and every other browser write is relayed to the API by a Next route handler, which forwards the visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header is ignored and every login on the platform shares one rate-limit bucket. There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
 
 ### Queue worker
 
@@ -83,6 +93,11 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 4. Build: `npm ci && npm run build`.
 5. Verify home, `/register`, `/doctors`, `/forum`, `/privacy`.
 
+> **`NEXT_PUBLIC_SITE_URL` must be set at _build_ time**, not only at runtime.
+> `NEXT_PUBLIC_*` is inlined into the bundle, so setting it afterwards leaves
+> localhost in `robots.txt`, the sitemap and every canonical URL. A production
+> build without it now fails rather than shipping that silently.
+
 ## CORS
 
 API must allow the web origin(s). In `apps/api/.env`:
@@ -92,6 +107,64 @@ CORS_ALLOWED_ORIGINS=https://staging.example.com,https://www.example.com
 ```
 
 Local defaults remain in `config/cors.php` (`localhost:3000`).
+
+## Transactional email
+
+Every transactional message — password reset, welcome, and the UGC
+submitted/approved/rejected lifecycle — is a **queued** mailable. That means a
+missing or misconfigured transport does not surface as a request error: the job
+lands in `failed_jobs` and the user simply never receives anything.
+
+Before launch:
+
+1. Set the `MAIL_*` variables (see [env.production.example](./env.production.example)).
+   Sign-up mail is rate limited per address (one per minute, six per hour) across
+   every path that can trigger it, so a stranger cannot flood someone's inbox by
+   repeatedly submitting their address.
+2. Publish **SPF**, **DKIM** and **DMARC** records for the sending domain. Without
+   them, password-reset mail lands in spam, which is an account-loss event.
+3. Monitor `failed_jobs` and alert on it — this is the only signal that mail is broken.
+4. Verify end to end on staging: request a password reset and complete it.
+
+**Trusted hosts:** outside `local`, the app rejects requests whose `Host` is not
+`APP_URL`'s domain (or a subdomain). This is what stops a forged host being used
+to mint verification links on an attacker's domain. It makes **`APP_URL` a
+required, correct value** — if it is wrong, legitimate requests are refused.
+Asset and signed-link generation still follow the (now validated) request host,
+so serving the admin on a different port in development continues to work.
+
+> A wrong `APP_URL` in production therefore rejects **every** request with a 400,
+> not just signed links — loud rather than subtle, but check it first if a fresh
+> deploy answers nothing. The rule is off in `local` and in tests, so this only
+> bites in staging and production.
+
+## Pre-deploy data checks
+
+Two one-off checks before the first deploy of the Part I remediation:
+
+- **Featured demo rows.** `2026_05_23_100000_mark_homepage_featured_demo` is now
+  guarded to non-production, but the guard cannot undo a database where it already
+  ran. Confirm `doctors.is_featured` / `facilities.is_featured` are not set on real
+  records that happen to share a demo slug:
+
+  ```sql
+  select slug from doctors where is_featured;
+  select slug from facilities where is_featured;
+  ```
+
+  *Checked on the local development database: the four featured doctors are
+  exactly the demo slugs, no facilities are featured, and nothing real was
+  promoted. No staging or production database exists yet.*
+
+- **Unverified accounts.** Login refuses accounts with a null
+  `email_verified_at`. `2026_08_15_100000_verify_accounts_predating_email_verification`
+  grandfathers everything that predates the deploy and prints how many it touched
+  — read that line rather than assuming it was zero.
+
+  *Checked locally: three accounts had a null value. Two were seeded demo members
+  that `RichDemoSeeder` created without one, which meant a fresh seed produced
+  accounts that could not sign in; the seeder now sets it. A fresh seed leaves
+  zero, and all four demo logins return a token.*
 
 ## TLS and secrets
 
@@ -108,6 +181,7 @@ Local defaults remain in `config/cors.php` (`localhost:3000`).
 
 - Monitor `GET {API_URL}/api/v1/health` — expect HTTP 200 and `data.status` of `ok` with `checks.database` (and `checks.redis` when Redis is configured).
 - HTTP 503 with `data.status` `degraded` indicates database or Redis failure.
+- The health route (and `/api/v1/settings/public`) are **exempt from maintenance mode**, so a 503 there always means real degradation, never planned maintenance. Maintenance-mode 503s on other routes return `{"message": ...}` with no `data` key.
 - Monitor web `/` availability.
 - Sentry alerts on new issues (staging vs production separated).
 

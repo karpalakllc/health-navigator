@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\ForumContentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListForumPostsRequest;
 use App\Http\Requests\Api\V1\ListForumTopicsRequest;
@@ -198,7 +197,7 @@ class ForumController extends Controller
             'status' => $status,
         ]);
 
-        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+        if (ForumContentModeration::shouldNotifyAuthor($status)) {
             UgcMailer::notifySubmitted($topic);
         }
 
@@ -227,7 +226,7 @@ class ForumController extends Controller
 
         if ($topicModel->is_locked) {
             throw ValidationException::withMessages([
-                'topic' => ['This topic is locked and does not accept new replies.'],
+                'topic' => [__('api.forum.topic_locked')],
             ]);
         }
 
@@ -241,7 +240,7 @@ class ForumController extends Controller
             'status' => $status,
         ]);
 
-        if (ForumContentModeration::shouldNotifyStaff($user, $status)) {
+        if (ForumContentModeration::shouldNotifyAuthor($status)) {
             UgcMailer::notifySubmitted($post);
         }
 

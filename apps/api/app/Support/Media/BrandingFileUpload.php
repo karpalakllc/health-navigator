@@ -10,8 +10,7 @@ class BrandingFileUpload
     /**
      * Move Livewire temp uploads to permanent branding storage.
      *
-     * @param  mixed  $state
-     * @return list<string>|null  Replacement state when temp files were stored; null if unchanged.
+     * @return list<string>|null Replacement state when temp files were stored; null if unchanged.
      */
     public static function persistTemporaryFiles(mixed $state, string $subdirectory): ?array
     {

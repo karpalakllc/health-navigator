@@ -12,7 +12,10 @@ export default function Loading() {
           <Skeleton className="h-48 w-full rounded-2xl" />
         </div>
         <div className="space-y-6 lg:col-span-3">
-          <PageHeader title={t("auth.loginTitle")} description={t("auth.loginDescription")} />
+          <PageHeader
+            title={t("auth.loginTitle")}
+            description={t("auth.loginDescription")}
+          />
           <LoginFormSkeleton />
         </div>
       </div>

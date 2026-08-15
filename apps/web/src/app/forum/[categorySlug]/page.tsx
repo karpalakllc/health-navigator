@@ -12,12 +12,37 @@ import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
+import { pageMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 import { t, tFormat } from "@/i18n/t";
 
 type CategoryTopicsPageProps = {
   params: Promise<{ categorySlug: string }>;
   searchParams: Promise<{ q?: string; sort?: string; page?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: CategoryTopicsPageProps): Promise<Metadata> {
+  const { categorySlug } = await params;
+
+  try {
+    const categories = await fetchForumCategories();
+    const category = categories.find((item) => item.slug === categorySlug);
+
+    if (category) {
+      return pageMetadata(category.name, category.description ?? undefined, {
+        path: `/forum/${categorySlug}`,
+      });
+    }
+  } catch {
+    // Fall through to the generic forum title.
+  }
+
+  return pageMetadata(t("forum.title"), undefined, {
+    path: `/forum/${categorySlug}`,
+  });
+}
 
 export default async function CategoryTopicsPage({
   params,
@@ -64,12 +89,17 @@ export default async function CategoryTopicsPage({
           description={category.description ?? t("forum.description")}
           stat={
             <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-              {tFormat("forum.topicsCount", { count: String(topics.meta.total) })}
+              {tFormat("forum.topicsCount", {
+                count: String(topics.meta.total),
+              })}
             </span>
           }
           filters={
             <div className="filters-card filters-card-nested space-y-4 p-4 sm:p-5">
-              <ForumTopicSearch defaultQuery={query.q} action={`/forum/${categorySlug}`} />
+              <ForumTopicSearch
+                defaultQuery={query.q}
+                action={`/forum/${categorySlug}`}
+              />
               <ForumCategoryToolbar
                 categorySlug={categorySlug}
                 currentSort={sort}
@@ -83,8 +113,16 @@ export default async function CategoryTopicsPage({
           variant="compact"
           columns={3}
           items={[
-            { text: t("forum.rulesModeration"), icon: <ShieldIcon />, tone: "teal" },
-            { text: t("forum.rulesNoDiagnosis"), icon: <InfoIcon />, tone: "red" },
+            {
+              text: t("forum.rulesModeration"),
+              icon: <ShieldIcon />,
+              tone: "teal",
+            },
+            {
+              text: t("forum.rulesNoDiagnosis"),
+              icon: <InfoIcon />,
+              tone: "red",
+            },
           ]}
         />
       </PageHeroBleed>
@@ -99,7 +137,9 @@ export default async function CategoryTopicsPage({
         />
 
         <FilterStatsRow
-          label={tFormat("forum.topicsCount", { count: String(topics.meta.total) })}
+          label={tFormat("forum.topicsCount", {
+            count: String(topics.meta.total),
+          })}
           clearHref={query.q ? `/forum/${categorySlug}` : undefined}
         />
 
@@ -136,23 +176,50 @@ export default async function CategoryTopicsPage({
 
 function ForumIcon() {
   return (
-    <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z" strokeLinejoin="round" />
+    <svg
+      className="h-4 w-4 text-primary"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function ShieldIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" strokeLinejoin="round" />
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function InfoIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
     </svg>

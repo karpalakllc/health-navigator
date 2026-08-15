@@ -8,7 +8,11 @@ import { t } from "@/i18n/t";
 const RAIL_CARD_WIDTH =
   "w-[calc((100cqw-36px)/3)] min-w-[17.5rem] max-w-[22rem] shrink-0 snap-start";
 
-export function HomeFeaturedDoctorsSection({ doctors }: { doctors: DoctorListItem[] }) {
+export function HomeFeaturedDoctorsSection({
+  doctors,
+}: {
+  doctors: DoctorListItem[];
+}) {
   if (doctors.length === 0) {
     return null;
   }
@@ -25,7 +29,12 @@ export function HomeFeaturedDoctorsSection({ doctors }: { doctors: DoctorListIte
         href="/doctors?sort=rating"
         linkLabel={t("home.featuredDoctorsViewAll")}
         icon={
-          <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <svg
+            className="h-4 w-4 text-primary"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden
+          >
             <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4L12 17l-6.3 4.4 2.3-7.4-6-4.6h7.6z" />
           </svg>
         }

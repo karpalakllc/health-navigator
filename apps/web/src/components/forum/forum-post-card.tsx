@@ -21,7 +21,10 @@ function resolveAuthor(post: ForumPost): ForumAuthor {
   );
 }
 
-export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardProps) {
+export function ForumPostCard({
+  post,
+  isOriginalPost = false,
+}: ForumPostCardProps) {
   const author = resolveAuthor(post);
 
   return (
@@ -44,7 +47,9 @@ export function ForumPostCard({ post, isOriginalPost = false }: ForumPostCardPro
                 {isOriginalPost ? t("forum.originalPost") : t("forum.reply")}
               </p>
               {!isOriginalPost ? (
-                <p className="text-sm font-medium text-foreground lg:hidden">{author.name}</p>
+                <p className="text-sm font-medium text-foreground lg:hidden">
+                  {author.name}
+                </p>
               ) : null}
             </div>
             {post.published_at ? (

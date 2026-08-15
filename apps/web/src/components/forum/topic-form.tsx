@@ -49,7 +49,9 @@ export function TopicForm({ categorySlug }: { categorySlug: string }) {
       onSubmit={handleSubmit}
       className="grid gap-3 rounded-xl border border-border bg-card p-4"
     >
-      <p className="text-sm font-semibold text-foreground">{t("forum.startTopic")}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {t("forum.startTopic")}
+      </p>
       <p className="text-xs text-muted-foreground">{t("forum.rulesCompact")}</p>
       <label className="grid gap-1.5 text-sm">
         <span className="font-medium text-foreground">{t("common.title")}</span>
@@ -62,7 +64,9 @@ export function TopicForm({ categorySlug }: { categorySlug: string }) {
         />
       </label>
       <label className="grid gap-1.5 text-sm">
-        <span className="font-medium text-foreground">{t("common.message")}</span>
+        <span className="font-medium text-foreground">
+          {t("common.message")}
+        </span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -74,7 +78,9 @@ export function TopicForm({ categorySlug }: { categorySlug: string }) {
       </label>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? (
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t("forum.topicSuccess")}</p>
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          {t("forum.topicSuccess")}
+        </p>
       ) : null}
       <button
         type="submit"

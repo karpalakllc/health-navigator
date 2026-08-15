@@ -10,7 +10,11 @@ export type PharmaciesFilterValues = {
   q?: string;
 };
 
-export function PharmaciesFilterBar({ values }: { values: PharmaciesFilterValues }) {
+export function PharmaciesFilterBar({
+  values,
+}: {
+  values: PharmaciesFilterValues;
+}) {
   const hasFilters = Boolean(values.city || values.q);
 
   return (
@@ -21,7 +25,9 @@ export function PharmaciesFilterBar({ values }: { values: PharmaciesFilterValues
             <h2 className="text-lg font-extrabold tracking-tight text-foreground">
               {t("pharmacies.filtersTitle")}
             </h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">{t("pharmacies.filtersDescription")}</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {t("pharmacies.filtersDescription")}
+            </p>
           </div>
           {hasFilters ? (
             <Link
@@ -36,7 +42,9 @@ export function PharmaciesFilterBar({ values }: { values: PharmaciesFilterValues
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FilterField label={t("filters.city")}>
-            <FilterInputWrap icon={<MapPinIcon className="h-5 w-5" aria-hidden />}>
+            <FilterInputWrap
+              icon={<MapPinIcon className="h-5 w-5" aria-hidden />}
+            >
               <input
                 name="city"
                 defaultValue={values.city ?? ""}
@@ -46,8 +54,13 @@ export function PharmaciesFilterBar({ values }: { values: PharmaciesFilterValues
             </FilterInputWrap>
           </FilterField>
 
-          <FilterField label={t("search.nameLabel")} hint={t("search.queryHint")}>
-            <FilterInputWrap icon={<SearchIcon className="h-5 w-5" aria-hidden />}>
+          <FilterField
+            label={t("search.nameLabel")}
+            hint={t("search.queryHint")}
+          >
+            <FilterInputWrap
+              icon={<SearchIcon className="h-5 w-5" aria-hidden />}
+            >
               <input
                 name="q"
                 defaultValue={values.q ?? ""}
@@ -84,17 +97,40 @@ export function PharmaciesFilterBar({ values }: { values: PharmaciesFilterValues
 
 function ResetIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M21 3v5h-5M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M21 3v5h-5M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function MapPinIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );
@@ -102,7 +138,13 @@ function MapPinIcon({ className }: { className?: string }) {
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
     </svg>

@@ -23,17 +23,28 @@ function toQuery(params: ReviewListParams): string {
   return query ? `?${query}` : "";
 }
 
-export async function fetchDoctorReviews(slug: string, params: ReviewListParams = {}) {
-  return apiGetPaginatedServer<PublicReview>(`/doctors/${slug}/reviews${toQuery(params)}`);
+export async function fetchDoctorReviews(
+  slug: string,
+  params: ReviewListParams = {},
+) {
+  return apiGetPaginatedServer<PublicReview>(
+    `/doctors/${slug}/reviews${toQuery(params)}`,
+  );
 }
 
-export async function fetchFacilityReviews(slug: string, params: ReviewListParams = {}) {
+export async function fetchFacilityReviews(
+  slug: string,
+  params: ReviewListParams = {},
+) {
   return apiGetPaginatedServer<PublicReview>(
     `/facilities/${slug}/reviews${toQuery(params)}`,
   );
 }
 
-export async function fetchPharmacyReviews(slug: string, params: ReviewListParams = {}) {
+export async function fetchPharmacyReviews(
+  slug: string,
+  params: ReviewListParams = {},
+) {
   return apiGetPaginatedServer<PublicReview>(
     `/pharmacies/${slug}/reviews${toQuery(params)}`,
   );

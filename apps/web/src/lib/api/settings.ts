@@ -1,4 +1,5 @@
-import { apiGet } from "@/lib/api/client";
+import { cache } from "react";
+import { apiGet, type ApiCacheOptions } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 
 export type PublicSettings = {
@@ -9,7 +10,6 @@ export type PublicSettings = {
   registrations_enabled: boolean;
   maintenance_mode: boolean;
   maintenance_message: string | null;
-  require_email_verification: boolean;
   logo_url: string | null;
   favicon_url: string | null;
   placeholder_doctor_url: string | null;
@@ -33,7 +33,6 @@ export const publicSettingsDefaults: PublicSettings = {
   registrations_enabled: true,
   maintenance_mode: false,
   maintenance_message: null,
-  require_email_verification: false,
   logo_url: null,
   favicon_url: null,
   placeholder_doctor_url: null,
@@ -43,26 +42,38 @@ export const publicSettingsDefaults: PublicSettings = {
   forum_rules_enabled: true,
   forum_rules_title: null,
   forum_rules_body: null,
-  footer_emergency_text:
-    "При медицинска итност повикайте 194 или 112 веднаш.",
+  footer_emergency_text: "При медицинска итност повикајте 194 или 112 веднаш.",
   footer_disclaimer_text:
     "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.",
   copyright_name: "Zdravje360",
   profile_avatar_min_messages: 10,
 };
 
-export async function fetchPublicSettings(): Promise<PublicSettings> {
+/*
+ * Both fetchers are wrapped in React's cache() so the five-plus call sites in a
+ * single render (generateMetadata, the layout, the maintenance gate, the header
+ * and the footer, plus any page-level call) collapse to one fetch per request.
+ *
+ * They stay as two separate memo cells on purpose: the *Server variant carries
+ * the session bearer token and the plain one does not, so sharing a cell would
+ * mix an authenticated and an anonymous response.
+ */
+export const fetchPublicSettings = cache(async function fetchPublicSettings(
+  options?: ApiCacheOptions,
+): Promise<PublicSettings> {
   try {
-    return await apiGet<PublicSettings>("/settings/public");
+    return await apiGet<PublicSettings>("/settings/public", options);
   } catch {
     return publicSettingsDefaults;
   }
-}
+});
 
-export async function fetchPublicSettingsServer(): Promise<PublicSettings> {
-  try {
-    return await apiGetServer<PublicSettings>("/settings/public");
-  } catch {
-    return publicSettingsDefaults;
-  }
-}
+export const fetchPublicSettingsServer = cache(
+  async function fetchPublicSettingsServer(): Promise<PublicSettings> {
+    try {
+      return await apiGetServer<PublicSettings>("/settings/public");
+    } catch {
+      return publicSettingsDefaults;
+    }
+  },
+);

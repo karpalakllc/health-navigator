@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Doctor;
+use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,7 +32,7 @@ class DoctorListResource extends JsonResource
             'title' => $this->title,
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,
-            'avatar_url' => \App\Support\Media\MediaUrl::resolve($this->avatar_url),
+            'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'years_experience' => $this->years_experience,
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,

@@ -14,11 +14,36 @@ const SCOPES: {
   action: string;
   sendQuery: boolean;
 }[] = [
-  { id: "all", labelKey: "home.searchScopeAll", action: "/search", sendQuery: true },
-  { id: "symptoms", labelKey: "home.searchScopeSymptoms", action: "/guidance", sendQuery: false },
-  { id: "doctors", labelKey: "home.searchScopeDoctors", action: "/doctors", sendQuery: true },
-  { id: "products", labelKey: "home.searchScopeProducts", action: "/products", sendQuery: true },
-  { id: "pharmacies", labelKey: "home.searchScopePharmacies", action: "/pharmacies", sendQuery: true },
+  {
+    id: "all",
+    labelKey: "home.searchScopeAll",
+    action: "/search",
+    sendQuery: true,
+  },
+  {
+    id: "symptoms",
+    labelKey: "home.searchScopeSymptoms",
+    action: "/guidance",
+    sendQuery: false,
+  },
+  {
+    id: "doctors",
+    labelKey: "home.searchScopeDoctors",
+    action: "/doctors",
+    sendQuery: true,
+  },
+  {
+    id: "products",
+    labelKey: "home.searchScopeProducts",
+    action: "/products",
+    sendQuery: true,
+  },
+  {
+    id: "pharmacies",
+    labelKey: "home.searchScopePharmacies",
+    action: "/pharmacies",
+    sendQuery: true,
+  },
 ];
 
 function placeholderKey(scope: SearchScope): MessageKey {
@@ -75,7 +100,10 @@ export function HomeHeroSearchClient() {
           {active.sendQuery ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
               <label className="flex min-h-[60px] flex-1 items-center gap-3 rounded-[1.25rem] border border-border bg-[#fbfcfc] px-[18px]">
-                <SearchIcon className="h-5 w-5 shrink-0 text-[#7b8693]" aria-hidden />
+                <SearchIcon
+                  className="h-5 w-5 shrink-0 text-[#7b8693]"
+                  aria-hidden
+                />
                 <input
                   name="q"
                   type="search"
@@ -94,7 +122,9 @@ export function HomeHeroSearchClient() {
             </div>
           ) : (
             <div className="flex flex-col gap-3 rounded-[1.25rem] border border-border bg-[#fbfcfc] px-5 py-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-              <p className="text-sm text-muted-foreground">{t("home.searchSymptomsHint")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("home.searchSymptomsHint")}
+              </p>
               <button
                 type="submit"
                 className="btn-gradient-primary inline-flex h-11 shrink-0 items-center justify-center rounded-[1.25rem] px-6 text-sm font-extrabold text-white"
@@ -111,7 +141,13 @@ export function HomeHeroSearchClient() {
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
     </svg>

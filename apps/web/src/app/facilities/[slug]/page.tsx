@@ -36,7 +36,10 @@ export async function generateMetadata({
       .filter(Boolean)
       .join(" · ");
 
-    return pageMetadata(facility.name, description || t("facilities.description"));
+    return pageMetadata(
+      facility.name,
+      description || t("facilities.description"),
+    );
   } catch {
     return pageMetadata(t("facilities.title"));
   }
@@ -78,7 +81,9 @@ export default async function FacilityDetailPage({
           <div className="space-y-5">
             <FacilityProfileHero facility={facility} />
 
-            {facility.has_emergency_services ? <FacilityEmergencyBanner /> : null}
+            {facility.has_emergency_services ? (
+              <FacilityEmergencyBanner />
+            ) : null}
 
             {facility.departments.length > 0 ? (
               <ProfileContentCard title={t("facilities.departments")}>
@@ -88,7 +93,9 @@ export default async function FacilityDetailPage({
 
             {officeHourEntries.length > 0 ? (
               <ProfileContentCard title={t("directory.officeHours")}>
-                <OfficeHoursGrid hours={Object.fromEntries(officeHourEntries)} />
+                <OfficeHoursGrid
+                  hours={Object.fromEntries(officeHourEntries)}
+                />
               </ProfileContentCard>
             ) : null}
 

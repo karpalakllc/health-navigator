@@ -16,10 +16,11 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use App\Support\FrontendUrl;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -35,21 +36,44 @@ class TransactionalMailTest extends TestCase
         SiteSetting::current();
     }
 
-    public function test_register_queues_welcome_mail(): void
+    /**
+     * The welcome mail moved from signup to verification: registration only
+     * promises that a message was sent, and the account is not usable until the
+     * address is confirmed, so welcoming someone at signup would be premature.
+     */
+    public function test_verifying_an_address_queues_the_welcome_mail(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create([
+            'name' => 'Ana Member',
+            'email' => 'ana@example.com',
+            'email_verified_at' => null,
+        ]);
+
+        $this->get(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $user->id,
+            'hash' => sha1($user->getEmailForVerification()),
+        ]))->assertRedirectContains('status=verified');
+
+        Mail::assertQueued(WelcomeMail::class, function (WelcomeMail $mail): bool {
+            return $mail->recipientName === 'Ana Member'
+                && $mail->loginUrl === FrontendUrl::to('/login');
+        });
+    }
+
+    public function test_registration_alone_does_not_queue_the_welcome_mail(): void
     {
         Mail::fake();
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Ana Member',
             'email' => 'ana@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-        ])->assertCreated();
+            'password' => 'sufficiently1long',
+            'password_confirmation' => 'sufficiently1long',
+        ])->assertStatus(202);
 
-        Mail::assertQueued(WelcomeMail::class, function (WelcomeMail $mail): bool {
-            return $mail->recipientName === 'Ana Member'
-                && $mail->loginUrl === FrontendUrl::to('/login');
-        });
+        Mail::assertNotQueued(WelcomeMail::class);
     }
 
     public function test_forgot_password_sends_reset_notification(): void

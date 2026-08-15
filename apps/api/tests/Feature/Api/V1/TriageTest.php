@@ -6,7 +6,6 @@ use App\Models\TriageFlow;
 use App\Services\Triage\TriageSessionService;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class TriageTest extends TestCase
@@ -16,8 +15,7 @@ class TriageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        RateLimiter::clear('api-triage-sessions');
-        RateLimiter::clear('api-triage-complete');
+        $this->forgetRateLimits();
     }
 
     public function test_flow_returns_published_steps_without_rules(): void

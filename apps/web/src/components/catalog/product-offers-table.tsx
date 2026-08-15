@@ -5,7 +5,9 @@ import { t } from "@/i18n/t";
 
 export function ProductOffersTable({ offers }: { offers: ProductOffer[] }) {
   if (offers.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("products.noOffers")}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">{t("products.noOffers")}</p>
+    );
   }
 
   const minPrice = Math.min(...offers.map((offer) => offer.price));
@@ -40,7 +42,9 @@ export function ProductOffersTable({ offers }: { offers: ProductOffer[] }) {
                     {offer.pharmacy.name}
                   </Link>
                   {offer.pharmacy.city ? (
-                    <p className="text-xs text-muted-foreground">{offer.pharmacy.city}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {offer.pharmacy.city}
+                    </p>
                   ) : null}
                 </td>
                 <td className="px-4 py-3">

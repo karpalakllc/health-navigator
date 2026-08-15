@@ -15,4 +15,5 @@ export const pageEdgeBleedClass = "w-full px-4 sm:px-5";
 
 /** Hero copy/search widths when the card is edge-bleed */
 export const homeHeroCopyClass = "mx-auto w-full max-w-5xl 2xl:max-w-6xl";
-export const homeHeroSearchClass = "mx-auto mt-7 w-full max-w-4xl 2xl:max-w-5xl";
+export const homeHeroSearchClass =
+  "mx-auto mt-7 w-full max-w-4xl 2xl:max-w-5xl";

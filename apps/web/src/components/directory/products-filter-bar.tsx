@@ -19,17 +19,31 @@ export function ProductsFilterBar({
   return (
     <FilterForm searchHint={SEARCH_QUERY_HINT} fieldsClassName="xl:grid-cols-3">
       <FilterStatsRow
-        label={tFormat("products.resultsCount", { count: String(resultsTotal) })}
+        label={tFormat("products.resultsCount", {
+          count: String(resultsTotal),
+        })}
         clearHref={hasFilters ? "/products" : undefined}
       />
       <FilterField label={t("search.nameLabel")}>
-        <input name="q" defaultValue={values.q ?? ""} className={filterInputClassName} />
+        <input
+          name="q"
+          defaultValue={values.q ?? ""}
+          className={filterInputClassName}
+        />
       </FilterField>
       <FilterField label={t("filters.category")}>
-        <input name="category" defaultValue={values.category ?? ""} className={filterInputClassName} />
+        <input
+          name="category"
+          defaultValue={values.category ?? ""}
+          className={filterInputClassName}
+        />
       </FilterField>
       <FilterField label={t("filters.pharmacy")}>
-        <input name="pharmacy" defaultValue={values.pharmacy ?? ""} className={filterInputClassName} />
+        <input
+          name="pharmacy"
+          defaultValue={values.pharmacy ?? ""}
+          className={filterInputClassName}
+        />
       </FilterField>
     </FilterForm>
   );

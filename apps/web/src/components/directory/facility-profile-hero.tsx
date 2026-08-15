@@ -7,7 +7,9 @@ import { t, tFormat } from "@/i18n/t";
 
 type FacilityLike = FacilityDetail | PharmacyDetail;
 
-function isClinicalFacility(facility: FacilityLike): facility is FacilityDetail {
+function isClinicalFacility(
+  facility: FacilityLike,
+): facility is FacilityDetail {
   return "type" in facility;
 }
 
@@ -20,13 +22,20 @@ export function FacilityProfileHero({
 }) {
   const label =
     typeLabel ??
-    (isClinicalFacility(facility) ? facilityTypeLabel(facility.type) : t("nav.pharmacies"));
+    (isClinicalFacility(facility)
+      ? facilityTypeLabel(facility.type)
+      : t("nav.pharmacies"));
 
   const departments = isClinicalFacility(facility) ? facility.departments : [];
-  const hasEmergency = isClinicalFacility(facility) && facility.has_emergency_services;
+  const hasEmergency =
+    isClinicalFacility(facility) && facility.has_emergency_services;
 
   return (
-    <HeroMeshCard variant="profile" align="start" innerClassName="w-full max-w-none">
+    <HeroMeshCard
+      variant="profile"
+      align="start"
+      innerClassName="w-full max-w-none"
+    >
       <div className="grid items-center gap-5 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">
         <DirectoryAvatar
           kind={isClinicalFacility(facility) ? "facility" : "pharmacy"}
@@ -46,19 +55,28 @@ export function FacilityProfileHero({
               {[label, facility.city].filter(Boolean).join(" · ")}
             </p>
             {facility.address ? (
-              <p className="text-sm text-muted-foreground">{facility.address}</p>
+              <p className="text-sm text-muted-foreground">
+                {facility.address}
+              </p>
             ) : null}
           </div>
 
-          {facility.review_summary.count > 0 && facility.review_summary.average_rating !== null ? (
+          {facility.review_summary.count > 0 &&
+          facility.review_summary.average_rating !== null ? (
             <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-              <StarRating value={facility.review_summary.average_rating} size="md" />
+              <StarRating
+                value={facility.review_summary.average_rating}
+                size="md"
+              />
               <span className="text-lg font-extrabold tabular-nums">
                 {facility.review_summary.average_rating}
               </span>
               <span className="text-sm text-muted-foreground">
                 ({facility.review_summary.count}{" "}
-                {facility.review_summary.count === 1 ? t("reviews.countOne") : t("reviews.count")})
+                {facility.review_summary.count === 1
+                  ? t("reviews.countOne")
+                  : t("reviews.count")}
+                )
               </span>
             </div>
           ) : null}
@@ -70,11 +88,15 @@ export function FacilityProfileHero({
                   {t("facilities.emergencyAvailable")}
                 </span>
               ) : (
-                <span className="directory-tag">{t("facilities.emergencyNotAvailable")}</span>
+                <span className="directory-tag">
+                  {t("facilities.emergencyNotAvailable")}
+                </span>
               )}
               {departments.length > 0 ? (
                 <span className="directory-tag directory-tag-teal">
-                  {tFormat("facilities.departmentCount", { count: String(departments.length) })}
+                  {tFormat("facilities.departmentCount", {
+                    count: String(departments.length),
+                  })}
                 </span>
               ) : null}
             </div>
@@ -97,8 +119,18 @@ export function FacilityProfileHero({
 
 function PinGlyph({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="12" cy="10" r="2.5" />
     </svg>
   );

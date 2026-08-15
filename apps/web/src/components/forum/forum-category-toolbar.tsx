@@ -32,8 +32,16 @@ export function ForumCategoryToolbar({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="inline-flex flex-wrap gap-2 rounded-full border border-border bg-card p-1">
-        <SortLink href={href("latest")} active={currentSort === "latest"} label={t("forum.sortLatest")} />
-        <SortLink href={href("active")} active={currentSort === "active"} label={t("forum.sortActive")} />
+        <SortLink
+          href={href("latest")}
+          active={currentSort === "latest"}
+          label={t("forum.sortLatest")}
+        />
+        <SortLink
+          href={href("active")}
+          active={currentSort === "active"}
+          label={t("forum.sortActive")}
+        />
       </div>
       <Link
         href={newTopicHref}
@@ -48,18 +56,35 @@ export function ForumCategoryToolbar({
 
 function PlusIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      aria-hidden
+    >
       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
     </svg>
   );
 }
 
-function SortLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+function SortLink({
+  href,
+  active,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+}) {
   return (
     <Link
       href={href}
       className={`inline-flex min-h-[36px] items-center rounded-full px-4 text-sm font-semibold transition ${
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {label}

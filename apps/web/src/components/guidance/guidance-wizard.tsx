@@ -102,9 +102,7 @@ export function GuidanceWizard({ flow }: Props) {
         return;
       }
 
-      await saveGuidanceAnswers(id, [
-        { step_key: "red_flags", values: [] },
-      ]);
+      await saveGuidanceAnswers(id, [{ step_key: "red_flags", values: [] }]);
       setPhase("questions");
     } catch (e) {
       setError(e instanceof Error ? e.message : t("guidance.saveError"));
@@ -223,8 +221,12 @@ export function GuidanceWizard({ flow }: Props) {
     return (
       <div className="flex flex-col gap-6">
         <GuidanceSafetyNotice compact />
-        <h2 className="text-lg font-semibold text-foreground">{t("guidance.safetyCheck")}</h2>
-        <p className="text-sm text-muted-foreground">{t("guidance.redFlagIntro")}</p>
+        <h2 className="text-lg font-semibold text-foreground">
+          {t("guidance.safetyCheck")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("guidance.redFlagIntro")}
+        </p>
         <ul className="space-y-2">
           {flow.red_flags.map((flag) => (
             <li key={flag.code}>
@@ -255,10 +257,17 @@ export function GuidanceWizard({ flow }: Props) {
         </ul>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <div className="flex flex-wrap gap-3">
-          <Button type="button" disabled={loading} onClick={handleRedFlagsContinue}>
+          <Button
+            type="button"
+            disabled={loading}
+            onClick={handleRedFlagsContinue}
+          >
             {loading ? t("guidance.saving") : t("guidance.continue")}
           </Button>
-          <EmergencyShortcutButton loading={loading} onEmergency={handleEmergencyNow} />
+          <EmergencyShortcutButton
+            loading={loading}
+            onEmergency={handleEmergencyNow}
+          />
         </div>
       </div>
     );
@@ -280,7 +289,8 @@ export function GuidanceWizard({ flow }: Props) {
         <GuidanceSafetyNotice compact />
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            {t("guidance.step")} {stepIndex + 1} {t("pagination.of")} {flow.steps.length}
+            {t("guidance.step")} {stepIndex + 1} {t("pagination.of")}{" "}
+            {flow.steps.length}
           </p>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
@@ -289,7 +299,9 @@ export function GuidanceWizard({ flow }: Props) {
             />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-foreground">{currentStep.label}</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {currentStep.label}
+        </h2>
         <ul className="space-y-2">
           {currentStep.options.map((option) => {
             const isSelected = selected.includes(option.value);
@@ -328,7 +340,10 @@ export function GuidanceWizard({ flow }: Props) {
                 ? t("common.next")
                 : t("guidance.seeGuidance")}
           </Button>
-          <EmergencyShortcutButton loading={loading} onEmergency={handleEmergencyNow} />
+          <EmergencyShortcutButton
+            loading={loading}
+            onEmergency={handleEmergencyNow}
+          />
         </div>
       </div>
     );
@@ -368,12 +383,15 @@ function OutcomeView({
     <div className="flex flex-col gap-6">
       <GuidanceSafetyNotice />
       <Card className="space-y-3 p-5">
-        <h2 className="text-lg font-semibold text-foreground">{outcome.title}</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {outcome.title}
+        </h2>
         <p className="text-sm text-muted-foreground">{outcome.body}</p>
       </Card>
       {isEmergency ? (
         <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          {t("guidance.emergencyResultNote")} <strong>194</strong> / <strong>112</strong>.
+          {t("guidance.emergencyResultNote")} <strong>194</strong> /{" "}
+          <strong>112</strong>.
         </Card>
       ) : null}
       <ul className="flex flex-wrap gap-3">

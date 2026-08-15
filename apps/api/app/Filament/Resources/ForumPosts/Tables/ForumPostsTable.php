@@ -48,11 +48,8 @@ class ForumPostsTable
                         && auth()->user()?->can('update', $record))
                     ->requiresConfirmation()
                     ->action(function (ForumPost $record): void {
+                        // Topic counters are updated by ForumPost::afterApproved().
                         $record->approve(auth()->user());
-                        $topic = $record->topic()->first();
-                        if ($topic !== null && $topic->status === ForumContentStatus::Approved) {
-                            $topic->recordApprovedReply();
-                        }
                     }),
                 Action::make('reject')
                     ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending
