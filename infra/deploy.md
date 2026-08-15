@@ -7,7 +7,7 @@ Simple **deploy-first** topology for public launch. Not Kubernetes.
 | Component | Suggested host | Notes |
 |-----------|----------------|-------|
 | **Web** (`apps/web`) | Vercel, Netlify, or similar | Set `NEXT_PUBLIC_API_URL` to public API URL |
-| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.4+ (see `composer.json`), `public/` as web root |
+| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.5+ (see `composer.json`), `public/` as web root |
 | **PostgreSQL** | Managed DB from API host or Neon/DO | Same region as API when possible |
 | **Redis** | Managed Redis or same host | Cache, queues, rate limits, scheduler locks |
 | **Meilisearch** | Meilisearch Cloud or self-hosted | Unified search (doctors, facilities, forum topics) |

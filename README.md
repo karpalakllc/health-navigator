@@ -22,7 +22,7 @@ Read [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) and [docs/architecture.md](./docs/ar
 
 | Layer | Technology | Status |
 |-------|------------|--------|
-| API | Laravel 13, PHP 8.3+ | `/api/v1`, Sanctum tokens, JSON envelope |
+| API | Laravel 13, PHP 8.5+ | `/api/v1`, Sanctum tokens, JSON envelope |
 | Admin | Filament at `/admin` (session) | Phase 2 baseline |
 | Web | Next.js 16, React 19, Tailwind 4 | Public directories, login, reviews (cookie auth bridge) |
 | Database | PostgreSQL | Runtime standard; see `apps/api/.env.example` |
@@ -39,8 +39,28 @@ Read [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) and [docs/architecture.md](./docs/ar
 
 ## Prerequisites
 
-- PHP 8.3+, [Composer](https://getcomposer.org/)
-- Node.js 20+ (for `apps/web`)
+- PHP 8.5+, [Composer](https://getcomposer.org/)
+- Node.js 24+ (for `apps/web`) — see below if your machine defaults to an older Node
+
+### Node 24 without disturbing your other projects
+
+`apps/web` requires Node 24 (declared in `engines`; Node 20 went end-of-life in
+April 2026). If your machine's default `node` is older and other projects on it
+depend on that older version, install Node 24 *keg-only* so nothing global
+changes:
+
+```sh
+brew install node@24          # keg-only: does NOT relink /opt/homebrew/bin/node
+```
+
+Then put it first on PATH only while working in this repo:
+
+```sh
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+```
+
+Your default `node` stays exactly where it was, so every other project resolves
+the same version it always did. `.nvmrc` pins 24 for anyone using nvm or fnm.
 - **PostgreSQL** for the API (create database `zdravje360`; see `apps/api/.env.example`)
 - Redis and Meilisearch for full local parity — not wired yet ([TASKS.md](./TASKS.md))
 
