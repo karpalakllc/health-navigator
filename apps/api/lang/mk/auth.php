@@ -1,7 +1,7 @@
 <?php
 
 /*
-| Authentication messages (Macedonian). Not natively reviewed —
+| Authentication messages (Macedonian).
 | see the note in lang/mk/api.php.
 */
 

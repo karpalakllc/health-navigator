@@ -253,4 +253,26 @@ class LoginThrottleTest extends TestCase
             ->assertStatus(202);
         Notification::assertSentToTimes($user, VerifyEmailNotification::class, 2);
     }
+
+    /**
+     * The 429 has to say when to retry. Without these headers the only
+     * rate-limit headers on the response come from the route's throttle
+     * middleware — a different limiter, one that still has budget — so a client
+     * reads a healthy X-RateLimit-Remaining and retries immediately.
+     */
+    public function test_the_lockout_response_advertises_when_to_retry(): void
+    {
+        $user = User::factory()->create(['email' => 'retry@example.test']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->tryLogin('retry@example.test', 'wrong-password', '198.51.100.7');
+        }
+
+        $response = $this->tryLogin('retry@example.test', 'wrong-password', '198.51.100.7');
+
+        $response->assertStatus(429);
+        $this->assertGreaterThan(0, (int) $response->headers->get('Retry-After'));
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+        $this->assertSame('5', $response->headers->get('X-RateLimit-Limit'));
+    }
 }

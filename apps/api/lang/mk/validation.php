@@ -10,7 +10,8 @@
 | which is deliberate: a partial, reviewed translation is safer than a full
 | machine-generated one on a health platform.
 |
-| NOT natively reviewed — see the note in lang/mk/api.php.
+| REVIEW STATUS: NOT natively reviewed. Authored alongside the i18n plumbing.
+| Watch for Bulgarian spellings — see H7/H9 in the audit.
 |
 */
 
@@ -47,6 +48,22 @@ return [
         'file' => 'Полето :attribute мора да биде најмалку :min килобајти.',
         'numeric' => 'Полето :attribute мора да биде најмалку :min.',
         'string' => 'Полето :attribute мора да има најмалку :min знаци.',
+    ],
+
+    /*
+     * Messages for Password::defaults() (AppServiceProvider).
+     *
+     * Without this group these five fall back to English while :attribute is
+     * still translated, producing half-Macedonian sentences on the sign-up and
+     * password-reset forms — "The лозинка field must contain at least one
+     * number." The attribute below was translated; the rule messages were not.
+     */
+    'password' => [
+        'letters' => 'Полето :attribute мора да содржи барем една буква.',
+        'mixed' => 'Полето :attribute мора да содржи барем една голема и една мала буква.',
+        'numbers' => 'Полето :attribute мора да содржи барем една бројка.',
+        'symbols' => 'Полето :attribute мора да содржи барем еден специјален знак.',
+        'uncompromised' => 'Оваа :attribute се појавила во протекување на податоци. Изберете друга лозинка.',
     ],
 
     'attributes' => [

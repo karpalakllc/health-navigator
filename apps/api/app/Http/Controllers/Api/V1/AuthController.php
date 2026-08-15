@@ -59,10 +59,19 @@ class AuthController extends Controller
         );
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_ATTEMPTS)) {
+            $retryAfter = RateLimiter::availableIn($throttleKey);
+
+            // Retry-After, and an X-RateLimit-* set describing *this* limiter.
+            // Without them the only rate-limit headers on the response come from
+            // the route's throttle middleware, which is not the limiter that
+            // rejected the request — it advertises the remaining budget of a
+            // bucket that still has room, which reads as "try again now".
             return ApiResponse::errorCode('errors.too_many_requests', 429, errors: [
-                'email' => [__('api.auth.throttled', [
-                    'seconds' => RateLimiter::availableIn($throttleKey),
-                ])],
+                'email' => [__('api.auth.throttled', ['seconds' => $retryAfter])],
+            ])->withHeaders([
+                'Retry-After' => $retryAfter,
+                'X-RateLimit-Limit' => self::LOGIN_ATTEMPTS,
+                'X-RateLimit-Remaining' => 0,
             ]);
         }
 

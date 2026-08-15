@@ -95,43 +95,31 @@ tighter named limiters are layered on top:
 
 ## Endpoints
 
+<!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
-| `POST` | `/auth/email/resend` | `registrations` |
-| `GET` | `/auth/email/verify/{id}/{hash}` | `ValidateSignature` |
-| `POST` | `/auth/forgot-password` | — |
-| `POST` | `/auth/login` | — |
-| `POST` | `/auth/logout` | `auth:sanctum` |
-| `POST` | `/auth/register` | `registrations` |
-| `POST` | `/auth/reset-password` | — |
+| `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | — |
 | `GET` | `/doctors` | — |
 | `GET` | `/doctors/{slug}` | — |
-| `GET` | `/doctors/{slug}/reviews` | — |
-| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
+| `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/facilities` | — |
 | `GET` | `/facilities/{slug}` | — |
-| `GET` | `/facilities/{slug}/reviews` | — |
-| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
+| `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/forum/categories` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
-| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `EnsureEmailIsVerified` |
-| `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `optional-auth` |
-| `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
-| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `EnsureEmailIsVerified` |
+| `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
 | `GET` | `/me` | `auth:sanctum` |
-| `POST` | `/me/avatar` | `auth:sanctum`, `EnsureEmailIsVerified` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
 | `GET` | `/pharmacies` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
-| `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `EnsureEmailIsVerified` |
+| `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
 | `GET` | `/platform/admin` | `auth:sanctum`, `role:admin` |
 | `GET` | `/platform/staff` | `auth:sanctum`, `role:admin,moderator` |
 | `GET` | `/products` | `module:products` |
@@ -141,10 +129,24 @@ tighter named limiters are layered on top:
 | `GET` | `/specialties` | — |
 | `GET` | `/specialties/{slug}` | — |
 | `GET` | `/triage/flow` | `module:guidance` |
-| `POST` | `/triage/sessions` | `module:guidance` |
-| `PUT` | `/triage/sessions/{id}/answers` | `module:guidance` |
-| `POST` | `/triage/sessions/{id}/complete` | `module:guidance` |
-| `POST` | `/triage/sessions/{id}/emergency` | `module:guidance` |
+| `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
+| `POST` | `/auth/forgot-password` | `throttle:api-login` |
+| `POST` | `/auth/login` | `throttle:api-login` |
+| `POST` | `/auth/logout` | `auth:sanctum` |
+| `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
+| `POST` | `/auth/reset-password` | `throttle:api-login` |
+| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
+| `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
+| `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
+<!-- END generated route table -->
 
 ### Notes
 

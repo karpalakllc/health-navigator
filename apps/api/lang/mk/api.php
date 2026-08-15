@@ -9,9 +9,13 @@
 | so a native client can localise independently of the message text. Keep the
 | keys stable — they are part of the public contract (docs/api-contract.md).
 |
-| NOTE: these Macedonian strings were authored alongside the i18n plumbing and
-| have NOT had a native review. See H7/H9 in the audit — Bulgarian spellings
-| had previously reached production copy.
+| REVIEW STATUS: natively reviewed, corrections applied. The files that have
+| NOT been reviewed are auth.php, passwords.php and validation.php — each says
+| so in its own header rather than pointing here, because this note used to be
+| the single source and went stale the moment this file was corrected.
+|
+| Watch for Bulgarian spellings specifically: see H7/H9 in the audit, where
+| they had previously reached production copy.
 |
 */
 

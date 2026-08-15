@@ -1,7 +1,7 @@
 <?php
 
 /*
-| Password broker messages (Macedonian). Not natively reviewed —
+| Password broker messages (Macedonian).
 | see the note in lang/mk/api.php.
 */
 
