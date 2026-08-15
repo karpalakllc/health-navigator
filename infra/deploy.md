@@ -145,11 +145,26 @@ Two one-off checks before the first deploy of the Part I remediation:
 - **Featured demo rows.** `2026_05_23_100000_mark_homepage_featured_demo` is now
   guarded to non-production, but the guard cannot undo a database where it already
   ran. Confirm `doctors.is_featured` / `facilities.is_featured` are not set on real
-  records that happen to share a demo slug.
-- **Unverified accounts.** Login now refuses accounts with a null
+  records that happen to share a demo slug:
+
+  ```sql
+  select slug from doctors where is_featured;
+  select slug from facilities where is_featured;
+  ```
+
+  *Checked on the local development database: the four featured doctors are
+  exactly the demo slugs, no facilities are featured, and nothing real was
+  promoted. No staging or production database exists yet.*
+
+- **Unverified accounts.** Login refuses accounts with a null
   `email_verified_at`. `2026_08_15_100000_verify_accounts_predating_email_verification`
-  grandfathers everything that predates the deploy, and prints how many it touched
+  grandfathers everything that predates the deploy and prints how many it touched
   — read that line rather than assuming it was zero.
+
+  *Checked locally: three accounts had a null value. Two were seeded demo members
+  that `RichDemoSeeder` created without one, which meant a fresh seed produced
+  accounts that could not sign in; the seeder now sets it. A fresh seed leaves
+  zero, and all four demo logins return a token.*
 
 ## TLS and secrets
 

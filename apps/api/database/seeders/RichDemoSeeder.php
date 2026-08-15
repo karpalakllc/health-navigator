@@ -72,6 +72,10 @@ class RichDemoSeeder extends Seeder
                     'name' => $member['name'],
                     'password' => Hash::make($member['password']),
                     'role' => UserRole::Member,
+                    // Login refuses unverified accounts, and nothing sends these
+                    // demo members a link — without this a fresh seed produces
+                    // accounts that exist, own reviews, and cannot sign in.
+                    'email_verified_at' => now(),
                 ],
             );
         }
