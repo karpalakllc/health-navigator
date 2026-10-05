@@ -6,6 +6,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchGuidanceFlow } from "@/lib/api/guidance";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GuidancePage() {
   const settings = await fetchPublicSettings();
 
-  if (!settings.public_guidance) {
+  if (!isModuleOn(settings, "public_guidance")) {
     return (
       <ComingSoonShell
         title={t("guidance.title")}

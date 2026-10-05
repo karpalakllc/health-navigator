@@ -19,6 +19,7 @@ import {
   fetchForumTopicSearch,
 } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 import type { Metadata } from "next";
@@ -39,7 +40,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
   const settings = await fetchPublicSettings();
 
   // Every /forum API route answers 503 while the module is off.
-  if (!settings.public_forum) {
+  if (!isModuleOn(settings, "public_forum")) {
     return (
       <ComingSoonShell
         module="forum"

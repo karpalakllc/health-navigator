@@ -7,6 +7,7 @@ import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import type { Metadata } from "next";
@@ -26,7 +27,7 @@ export default async function NewTopicPage({
   const settings = await fetchPublicSettings();
 
   // The forum hub explains that the module is off; there is nothing to compose.
-  if (!settings.public_forum) {
+  if (!isModuleOn(settings, "public_forum")) {
     redirect("/forum");
   }
 

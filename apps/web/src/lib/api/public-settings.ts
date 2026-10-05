@@ -25,6 +25,12 @@ export type PublicSettings = {
   forum_rules_enabled: boolean;
   forum_rules_title: string | null;
   forum_rules_body: string | null;
+  /**
+   * Web-side only, never sent by the API: true when /settings/public could not
+   * be read and these values are the fallback. A module that reads as off is
+   * then *unknown*, not switched off — see isModuleOn.
+   */
+  degraded: boolean;
 };
 
 export const publicSettingsDefaults: PublicSettings = {
@@ -49,6 +55,7 @@ export const publicSettingsDefaults: PublicSettings = {
     "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.",
   copyright_name: "Zdravje360",
   profile_avatar_min_messages: 10,
+  degraded: false,
 };
 
 /**
@@ -61,6 +68,7 @@ export const publicSettingsDefaults: PublicSettings = {
  */
 export const publicSettingsUnavailable: PublicSettings = {
   ...publicSettingsDefaults,
+  degraded: true,
   public_guidance: false,
   public_products: false,
   public_pharmacies: false,
@@ -90,7 +98,8 @@ export function resolvePublicSettings(
   outcome: PublicSettingsOutcome,
 ): PublicSettings {
   if (outcome.kind === "ok") {
-    return { ...publicSettingsDefaults, ...outcome.data };
+    // `degraded` is ours; a stray field of that name from the API cannot set it.
+    return { ...publicSettingsDefaults, ...outcome.data, degraded: false };
   }
 
   if (outcome.kind === "http-error" && outcome.status === 503) {
@@ -98,4 +107,67 @@ export function resolvePublicSettings(
   }
 
   return publicSettingsUnavailable;
+}
+
+export type ModuleFlag =
+  "public_guidance" | "public_products" | "public_pharmacies" | "public_forum";
+
+/**
+ * Thrown by a page when it cannot tell whether its module is on, so the error
+ * boundary renders a "try again" page instead of a 404 or a "switched off"
+ * page that a crawler would believe.
+ */
+export class SettingsUnavailableError extends Error {
+  constructor() {
+    super("Public settings unavailable; module state unknown");
+    this.name = "SettingsUnavailableError";
+  }
+}
+
+/**
+ * Whether a module's pages should render. False only when the admin really
+ * switched it off (the page then shows its 404 or "not available" state).
+ *
+ * When the settings could not be read the flag says nothing about the module,
+ * and answering "off" would turn every forum, pharmacy and product URL into a
+ * real 404 for the length of an API blip — long enough for crawlers to drop
+ * them. So this throws SettingsUnavailableError instead. Navigation, footer and
+ * sitemap keep reading the flag directly: hiding a link is harmless.
+ */
+export function isModuleOn(
+  settings: Pick<PublicSettings, ModuleFlag | "degraded">,
+  flag: ModuleFlag,
+): boolean {
+  if (settings[flag]) {
+    return true;
+  }
+
+  if (settings.degraded) {
+    throw new SettingsUnavailableError();
+  }
+
+  return false;
+}
+
+/** process.env.NEXT_PHASE while `next build` prerenders (next/constants). */
+const PHASE_PRODUCTION_BUILD = "phase-production-build";
+
+/**
+ * Whether the sitemap should give up rather than be generated from fallback
+ * settings.
+ *
+ * The sitemap is cached for an hour; built from fallback settings it would
+ * drop every forum URL for that hour. Throwing instead makes Next keep serving
+ * the last good sitemap (an error during ISR revalidation leaves the stale
+ * entry in place and retries on the next request).
+ *
+ * Except during `next build`: there is no previous sitemap to keep, and a build
+ * must not fail because the API was unreachable from the build machine. That
+ * first sitemap is replaced on the first revalidation that can read settings.
+ */
+export function shouldAbortSitemap(
+  settings: Pick<PublicSettings, "degraded">,
+  phase: string | undefined,
+): boolean {
+  return settings.degraded && phase !== PHASE_PRODUCTION_BUILD;
 }
