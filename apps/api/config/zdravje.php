@@ -34,4 +34,20 @@ return [
         'password' => env('PLATFORM_ADMIN_PASSWORD'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Web tier
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret the Next.js server sends as X-Web-Tier-Auth so the API will
+    | accept its X-Client-IP (see TrustWebTierClientIp). Must match the web
+    | tier's WEB_TIER_SECRET and be at least 32 characters; anything shorter is
+    | ignored, which leaves client-IP resolution to TrustProxies alone.
+    |
+    */
+
+    'web_tier' => [
+        'secret' => env('WEB_TIER_SECRET'),
+    ],
+
 ];
