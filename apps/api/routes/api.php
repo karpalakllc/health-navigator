@@ -110,8 +110,10 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])
             ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
+        // Same module gate as the pharmacy GETs: with the module off, the listing
+        // and profile 503 but a direct POST would otherwise still accept reviews.
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
-            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
+            ->middleware(['module:pharmacies', 'role:member', 'verified', 'throttle:api-reviews']);
         // Intentional: these two stubs are the only coverage of the `role`
         // middleware's allow/deny matrix (PlatformRoutesTest), and that middleware
         // guards real endpoints. Do not delete them without first moving those

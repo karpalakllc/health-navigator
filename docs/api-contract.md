@@ -141,7 +141,7 @@ tighter named limiters are layered on top:
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `role:member`, `verified`, `throttle:api-reviews` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |

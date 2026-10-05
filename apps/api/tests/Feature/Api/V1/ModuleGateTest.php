@@ -2,8 +2,14 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\FacilityType;
+use App\Enums\UserRole;
+use App\Models\Facility;
+use App\Models\Review;
 use App\Models\SiteSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ModuleGateTest extends TestCase
@@ -24,5 +30,23 @@ class ModuleGateTest extends TestCase
 
         $this->getJson('/api/v1/pharmacies')
             ->assertStatus(503);
+    }
+
+    public function test_pharmacy_review_submission_returns_503_when_disabled(): void
+    {
+        Facility::factory()->create([
+            'slug' => 'eurofarm',
+            'type' => FacilityType::Pharmacy,
+        ]);
+        SiteSetting::current()->update(['public_pharmacies' => false]);
+
+        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Member]));
+
+        $this->postJson('/api/v1/pharmacies/eurofarm/reviews', [
+            'rating' => 5,
+            'body' => 'Helpful staff and clear pricing boards.',
+        ])->assertStatus(503);
+
+        $this->assertSame(0, Review::query()->count());
     }
 }
