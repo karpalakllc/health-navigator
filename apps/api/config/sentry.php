@@ -1,6 +1,6 @@
 <?php
 
-use Sentry\Event;
+use App\Support\SentryEventScrubber;
 
 /**
  * Sentry Laravel SDK configuration file.
@@ -50,23 +50,14 @@ return [
     'logs_channel_level' => env('SENTRY_LOG_LEVEL', env('SENTRY_LOGS_LEVEL', env('LOG_LEVEL', 'debug'))),
 
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#send_default_pii
-    'send_default_pii' => env('SENTRY_SEND_DEFAULT_PII', false),
+    // Deliberately not env-driven: this API handles health data, and turning it
+    // on ships cookies, bearer tokens and client IPs to a third party.
+    'send_default_pii' => false,
 
-    'before_send' => function (Event $event): ?Event {
-        $request = $event->getRequest();
-        if ($request !== null && is_array($request['data'] ?? null)) {
-            $data = $request['data'];
-            foreach (['password', 'token', 'email'] as $key) {
-                if (array_key_exists($key, $data)) {
-                    $data[$key] = '[Filtered]';
-                }
-            }
-            $request['data'] = $data;
-            $event->setRequest($request);
-        }
-
-        return $event;
-    },
+    // send_default_pii=false still leaves request bodies, URLs and query strings
+    // in each event, so credentials and email addresses are scrubbed here.
+    // A class callable rather than a closure, or `config:cache` cannot serialise this file.
+    'before_send' => [SentryEventScrubber::class, 'beforeSend'],
 
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#ignore_exceptions
     // 'ignore_exceptions' => [],
