@@ -25,7 +25,7 @@ class EditClientUser extends EditRecord
     {
         // Same as SetPasswordAction: an admin-set password ends existing API sessions.
         if ($this->record->wasChanged('password')) {
-            $this->record->tokens()->delete();
+            $this->record->revokeApiTokens();
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

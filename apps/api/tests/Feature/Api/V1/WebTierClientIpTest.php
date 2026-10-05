@@ -42,6 +42,9 @@ class WebTierClientIpTest extends TestCase
             'secure' => $request->isSecure(),
             'auth_header' => $request->headers->get('X-Web-Tier-Auth'),
             'client_ip_header' => $request->headers->get('X-Client-IP'),
+            // The server bag keeps its own copy of every header.
+            'auth_server' => $request->server('HTTP_X_WEB_TIER_AUTH'),
+            'client_ip_server' => $request->server('HTTP_X_CLIENT_IP'),
         ]);
     }
 
@@ -72,12 +75,12 @@ class WebTierClientIpTest extends TestCase
         $this->probe([
             'X-Web-Tier-Auth' => self::SECRET,
             'X-Client-IP' => '198.51.100.7',
-        ])->assertJson(['auth_header' => null, 'client_ip_header' => null]);
+        ])->assertJson(['auth_header' => null, 'client_ip_header' => null, 'auth_server' => null, 'client_ip_server' => null]);
 
         $this->probe([
             'X-Web-Tier-Auth' => 'wrong',
             'X-Client-IP' => '198.51.100.7',
-        ])->assertJson(['auth_header' => null, 'client_ip_header' => null]);
+        ])->assertJson(['auth_header' => null, 'client_ip_header' => null, 'auth_server' => null, 'client_ip_server' => null]);
     }
 
     public function test_the_forwarded_address_is_what_the_throttle_keys_on(): void
