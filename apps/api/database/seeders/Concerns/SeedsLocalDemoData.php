@@ -17,6 +17,6 @@ trait SeedsLocalDemoData
             return true;
         }
 
-        return filter_var(env('SEED_LOCAL_DEMO', false), FILTER_VALIDATE_BOOLEAN);
+        return (bool) config('zdravje.seed.local_demo');
     }
 }

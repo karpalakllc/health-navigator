@@ -6,51 +6,68 @@ Reads `php artisan route:list --path=api/v1 --json` on stdin.
 The hand-maintained table in that document had drifted to roughly 50
 inaccuracies — whole endpoints missing, and a stated premise ("no public
 registration") that had been false for months. Regenerate rather than edit.
+
+The output must match `php artisan docs:route-table` byte for byte —
+RouteTableIsCurrentTest compares the committed table against that command —
+so middleware is printed under the alias the route file uses, not the class
+`route:list` resolves it to.
 """
 
 import json
 import sys
 
-SHORT = {
+# Resolved class basename -> the alias routes/api.php registers it under.
+ALIAS = {
     "EnsureModuleEnabled": "module",
     "EnsureUserRole": "role",
     "EnsureRegistrationsEnabled": "registrations",
-    "EnsureNotInMaintenance": "maintenance",
-    "OptionalSanctumAuth": "optional-auth",
-    "SetApiLocale": "locale",
+    "EnsureEmailIsVerified": "verified",
+    "OptionalSanctumAuth": "auth.sanctum.optional",
+    "ValidateSignature": "signed",
     "Authenticate": "auth",
     "ThrottleRequests": "throttle",
 }
 
-# Applied to the whole group; listing it on every row is noise.
-IMPLICIT = {"api", "maintenance", "locale", "throttle"}
+# Applied to the whole v1 group; listing them on every row is noise. Only the
+# group-wide limiter is hidden — named limiters such as throttle:api-login are
+# the per-route guard a client most needs to know about, so they stay.
+IMPLICIT = {"api", "throttle:api"}
+
+SKIPPED_METHODS = {"HEAD", "OPTIONS"}
 
 
 def short_name(middleware: str) -> str:
     name, _, argument = middleware.partition(":")
     base = name.split("\\")[-1]
-    label = SHORT.get(base, base)
+    label = ALIAS.get(base, base)
     return f"{label}:{argument}" if argument else label
 
 
 def main() -> None:
-    rows = json.load(sys.stdin)
+    routes = json.load(sys.stdin)
+    rows = {}
 
-    print("| Method | Path | Guards |")
-    print("|--------|------|--------|")
-
-    for route in sorted(rows, key=lambda r: r["uri"]):
-        method = route["method"].replace("|HEAD", "")
+    for route in routes:
         path = "/" + route["uri"].removeprefix("api/v1").lstrip("/")
 
         guards = []
         for middleware in route.get("middleware", []):
             label = short_name(middleware)
-            if label.split(":")[0] in IMPLICIT:
+            if label in IMPLICIT:
                 continue
             guards.append(f"`{label}`")
 
-        print(f"| `{method}` | `{path}` | {', '.join(guards) or '—'} |")
+        for method in route["method"].split("|"):
+            if method in SKIPPED_METHODS:
+                continue
+            rows[f"{method} {path}"] = (
+                f"| `{method}` | `{path}` | {', '.join(guards) or '—'} |"
+            )
+
+    print("| Method | Path | Guards |")
+    print("|--------|------|--------|")
+    for key in sorted(rows):
+        print(rows[key])
 
 
 if __name__ == "__main__":

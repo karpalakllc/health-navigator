@@ -34,4 +34,28 @@ return [
         'password' => env('PLATFORM_ADMIN_PASSWORD'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Local demo seeding
+    |--------------------------------------------------------------------------
+    |
+    | Demo/directory seeders run in local, development and testing, or anywhere
+    | SEED_LOCAL_DEMO=true. The staff/member accounts below are created only by
+    | PlatformUserSeeder in those environments. `platform:preflight` fails a
+    | deploy that leaves local_demo on.
+    |
+    */
+
+    'seed' => [
+        'local_demo' => filter_var(env('SEED_LOCAL_DEMO', false), FILTER_VALIDATE_BOOLEAN),
+        'moderator' => [
+            'email' => env('PLATFORM_MODERATOR_EMAIL', 'moderator@zdravje360.test'),
+            'password' => env('PLATFORM_MODERATOR_PASSWORD', 'password'),
+        ],
+        'member' => [
+            'email' => env('PLATFORM_MEMBER_EMAIL', 'member@zdravje360.test'),
+            'password' => env('PLATFORM_MEMBER_PASSWORD', 'password'),
+        ],
+    ],
+
 ];

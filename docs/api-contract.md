@@ -3,7 +3,9 @@
 Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 
 > **Maintenance:** the endpoint table below is generated — run
-> `./scripts/api-routes.sh` and paste the result. Do not hand-edit it. This
+> `php artisan docs:route-table --write` (from `apps/api`), or
+> `./scripts/api-routes.sh` and paste the result; both print the same table, and
+> `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
 > document previously drifted far enough to state, as a premise, that public
 > registration did not exist, months after it shipped.
 
@@ -77,13 +79,19 @@ the bearer token directly.
 
 ## Rate limits
 
-A baseline `throttle:api` of **120 requests/minute** applies to every v1 route,
-keyed on the authenticated user when present and the client IP otherwise. The
-tighter named limiters are layered on top:
+A baseline `throttle:api` applies to every v1 route: **300 requests/minute** per
+authenticated user, **1200/minute** per client IP otherwise (high on purpose — the
+web tier's server-side rendering arrives from one address). The tighter named
+limiters are layered on top:
 
 | Limiter | Applies to | Limit |
 |---------|-----------|-------|
-| `api-login` | login, register, forgot/reset password | 5/min per IP **and** per email |
+| `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
+| `api-verification-resend` | verification email resend | 10/min per IP |
+
+Login additionally locks an account out after **5 failed attempts per minute**,
+counted per email + IP (`AuthController`). It counts failures, not requests, so
+nobody can hold an account locked by merely sending traffic.
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |

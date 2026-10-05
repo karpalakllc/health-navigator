@@ -6,8 +6,8 @@ Simple **deploy-first** topology for public launch. Not Kubernetes.
 
 | Component | Suggested host | Notes |
 |-----------|----------------|-------|
-| **Web** (`apps/web`) | Vercel, Netlify, or similar | Set `NEXT_PUBLIC_API_URL` to public API URL |
-| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.5+ (see `composer.json`), `public/` as web root |
+| **Web** (`apps/web`) | Vercel, Netlify, or a fixed-egress host | Set `NEXT_PUBLIC_API_URL` to public API URL; see **Trusted proxies** before choosing a serverless host |
+| **API** (`apps/api`) | Laravel Forge, Laravel Cloud, Railway, Fly.io | PHP 8.4 or 8.5 (`composer.json` requires `^8.4`; CI tests both, 8.5 is the deploy target), `public/` as web root |
 | **PostgreSQL** | Managed DB from API host or Neon/DO | Same region as API when possible |
 | **Redis** | Managed Redis or same host | Cache, queues, rate limits, scheduler locks |
 | **Meilisearch** | Meilisearch Cloud or self-hosted | Unified search (doctors, facilities, forum topics) |
@@ -27,14 +27,34 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 ## Deploy order (API)
 
 1. Provision PostgreSQL, Redis, and Meilisearch; create database and user.
-2. Set environment variables on the API host (never commit secrets).
-3. Deploy code; `composer install --no-dev --optimize-autoloader`.
-4. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
-5. `php artisan config:cache` and `php artisan route:cache` when stable.
-6. Start a **queue worker** (see below).
-7. Add **scheduler** cron (see below).
-8. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
-9. Verify `GET /api/v1/health` and Filament login.
+2. **Once per environment**, generate the application key and store it in the
+   host's secret manager as `APP_KEY`:
+
+   ```bash
+   php artisan key:generate --show
+   ```
+
+   Never run `key:generate` as part of a build or deploy: a new key logs every
+   admin out and makes every encrypted value unreadable. Staging and production
+   get different keys.
+3. Set the remaining environment variables on the API host (never commit secrets) —
+   start from [env.production.example](./env.production.example) /
+   [env.staging.example](./env.staging.example).
+4. Deploy code; `composer install --no-dev --optimize-autoloader`.
+5. `php artisan config:cache` and `php artisan route:cache`.
+6. **Required:** `php artisan platform:preflight`. It checks the cached
+   configuration — APP_KEY, debug off, https URLs, `TRUSTED_PROXIES`, mail
+   transport, queue and cache drivers, secure session cookie, CORS origins, token
+   expiry, the admin address, demo seeding, Meilisearch credentials — and exits
+   non-zero on any error. Do not migrate or send traffic until it passes. Warnings
+   (Sentry DSN, the local `public` media disk) do not fail it but should be read.
+   Add `--json` for machine-readable output in a deploy script.
+7. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
+8. When `MEDIA_DISK=public` (persistent volume, not object storage): `php artisan storage:link` once, or uploaded logos and avatars 404.
+9. Start a **queue worker** (see below).
+10. Add **scheduler** cron (see below).
+11. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
+12. Verify `GET /api/v1/health` and Filament login.
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
 
@@ -46,7 +66,29 @@ the web app. Do not set it to a header your edge does not overwrite: anything th
 edge leaves alone is caller-supplied, and a caller that picks its own address
 picks its own rate-limit bucket.
 
-**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`). It must list **the edge *and* the web tier** — sign-in and every other browser write is relayed to the API by a Next route handler, which forwards the visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header is ignored and every login on the platform shares one rate-limit bucket. There is deliberately **no default**. Leaving it unset collapses every IP-based rate limit into one shared bucket behind the edge; setting it to `*` when the origin is reachable directly is worse, because then a client can spoof `X-Forwarded-For` and mint itself a fresh bucket for each limiter, including the 5/min on login. Use `*` only when the app port is reachable solely through the edge; otherwise list the host's CIDR ranges.
+**Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`) to the
+exact CIDR ranges of **the edge *and* the web tier** — sign-in and every other
+browser write is relayed to the API by a Next route handler, which forwards the
+visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header
+is ignored and every login on the platform shares one rate-limit bucket. There is
+deliberately **no default**: unset collapses every IP-based limit into one shared
+bucket behind the edge.
+
+**Never use `*`** (or `**`, `0.0.0.0/0`), not even when the origin is reachable
+only through the edge. With every hop trusted, Laravel takes the *leftmost*
+`X-Forwarded-For` entry as the client — and the edge appends to whatever the client
+sent, so that entry is attacker-chosen. Any caller then mints a fresh bucket for
+every IP-keyed limiter: the 40/min per-address login limiter, registration,
+reviews, triage. (The per-account failed-login lockout — 5 failures per minute,
+keyed on email *and* address — is affected too, since its address half is spoofed.)
+`platform:preflight` rejects these values.
+
+**Serverless web tiers (Vercel, Netlify):** their egress addresses are dynamic and
+not published as a stable list, so they cannot be enumerated in `TRUSTED_PROXIES`.
+A shared-secret mechanism that lets the web tier vouch for the client address
+without IP trust is planned; until it ships, prefer a web host with fixed,
+listable egress, or accept that per-visitor limits are metered per web-tier
+address.
 
 ### Queue worker
 
@@ -87,9 +129,14 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 
 ## Deploy order (Web)
 
-1. Set `NEXT_PUBLIC_API_URL` to the public API URL.
-2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`.
+1. Set `NEXT_PUBLIC_API_URL` to the public API URL and `NEXT_PUBLIC_SITE_URL` to the
+   public web origin (both at build time — see below).
+2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. For self-hosted Plausible also
+   set `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` and `NEXT_PUBLIC_PLAUSIBLE_HOST` to the same
+   origin — the script loads from the first, the CSP allows the beacon only to the second.
 3. Set Sentry: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT`.
+   For readable production stack traces also set `SENTRY_ORG`, `SENTRY_PROJECT` and
+   `SENTRY_AUTH_TOKEN` in the **build** environment so source maps are uploaded.
 4. Build: `npm ci && npm run build`.
 5. Verify home, `/register`, `/doctors`, `/forum`, `/privacy`.
 
@@ -108,12 +155,24 @@ CORS_ALLOWED_ORIGINS=https://staging.example.com,https://www.example.com
 
 Local defaults remain in `config/cors.php` (`localhost:3000`).
 
+## Media on object storage
+
+When `MEDIA_DISK` points at object storage (S3, R2, …), images are served from that
+bucket's host rather than the API. The web CSP `img-src` (`apps/web/src/proxy.ts`)
+and `images.remotePatterns` (`apps/web/next.config.ts`) currently allow only the API
+origin, so the media host must be added there before switching, or every logo and
+avatar is blocked.
+
 ## Transactional email
 
-Every transactional message — password reset, welcome, and the UGC
-submitted/approved/rejected lifecycle — is a **queued** mailable. That means a
-missing or misconfigured transport does not surface as a request error: the job
-lands in `failed_jobs` and the user simply never receives anything.
+Password reset, email verification, the welcome mail and the UGC
+submitted/approved/rejected lifecycle all depend on a working transport. Mail sent
+through the queue does not surface a misconfigured transport as a request error:
+the job lands in `failed_jobs` and the user simply never receives anything.
+
+`MAIL_SCHEME` is Symfony Mailer's scheme, not a TLS mode: use `smtp` (port 587,
+STARTTLS negotiated automatically) or `smtps` (port 465). `tls` and `ssl` are
+rejected and every send fails; `platform:preflight` checks this.
 
 Before launch:
 
@@ -168,8 +227,8 @@ Two one-off checks before the first deploy of the Part I remediation:
 
 ## TLS and secrets
 
-- TLS terminated at the PaaS edge (required for production).
-- Rotate `APP_KEY` per environment; never reuse production key in staging.
+- TLS terminated at the PaaS edge (required for production). `SESSION_SECURE_COOKIE=true`.
+- One `APP_KEY` per environment, generated once (see deploy step 2); never reuse the production key in staging.
 - Use strong unique passwords for staff accounts (Filament).
 
 ## Backups
