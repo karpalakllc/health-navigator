@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Password;
 
 class StaffUserForm
 {
@@ -56,6 +57,7 @@ class StaffUserForm
                 ->label('Permission roles'),
             TextInput::make('password')
                 ->password()
+                ->rule(Password::defaults())
                 ->dehydrated(fn (?string $state): bool => filled($state))
                 ->required(fn (string $operation): bool => $operation === 'create'),
         ]);

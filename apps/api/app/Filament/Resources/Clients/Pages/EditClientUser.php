@@ -25,6 +25,11 @@ class EditClientUser extends EditRecord
 
     protected function afterSave(): void
     {
+        // Same as SetPasswordAction: an admin-set password ends existing API sessions.
+        if ($this->record->wasChanged('password')) {
+            $this->record->tokens()->delete();
+        }
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Scoped-category assignment may have just changed; drop the memo so any

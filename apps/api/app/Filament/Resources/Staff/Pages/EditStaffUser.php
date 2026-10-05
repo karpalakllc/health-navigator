@@ -21,4 +21,12 @@ class EditStaffUser extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        // Same as SetPasswordAction: an admin-set password ends existing API sessions.
+        if ($this->record->wasChanged('password')) {
+            $this->record->tokens()->delete();
+        }
+    }
 }

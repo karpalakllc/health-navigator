@@ -6,6 +6,7 @@ use App\Models\ForumCategory;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Password;
 
 class ClientUserForm
 {
@@ -34,6 +35,7 @@ class ClientUserForm
                 ->helperText('Leave empty for full forum moderation when the role allows it.'),
             TextInput::make('password')
                 ->password()
+                ->rule(Password::defaults())
                 ->dehydrated(fn (?string $state): bool => filled($state)),
         ]);
     }

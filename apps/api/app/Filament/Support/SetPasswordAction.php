@@ -47,6 +47,10 @@ final class SetPasswordAction
                     'password' => Hash::make($data['password']),
                 ]);
 
+                // An admin reset usually means the account is compromised or handed
+                // over; existing API sessions must not survive it.
+                $record->tokens()->delete();
+
                 Notification::make()
                     ->title('Password updated')
                     ->body('Share the new password with the member through a secure channel.')
