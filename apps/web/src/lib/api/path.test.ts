@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isSlug, pathSegment } from "@/lib/api/path";
+import { ApiRequestError as ServerApiRequestError } from "@/lib/api/server";
 import { fetchProduct } from "@/lib/api/products";
 import { fetchForumTopics } from "@/lib/api/forum";
 
@@ -25,6 +26,19 @@ describe("pathSegment", () => {
     expect(() => pathSegment(".")).toThrow();
     expect(() => pathSegment("..")).toThrow();
     expect(() => pathSegment("")).toThrow();
+  });
+
+  it("refuses them as a 404 the detail pages turn into notFound()", () => {
+    for (const value of [".", "..", ""]) {
+      try {
+        pathSegment(value);
+        expect.unreachable();
+      } catch (error) {
+        // server.ts re-exports this class; the pages check against it.
+        expect(error).toBeInstanceOf(ServerApiRequestError);
+        expect((error as ServerApiRequestError).status).toBe(404);
+      }
+    }
   });
 
   it("keeps the resolved URL inside the resource it names", () => {

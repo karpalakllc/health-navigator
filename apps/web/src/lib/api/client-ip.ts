@@ -2,7 +2,6 @@ import "server-only";
 import { isIP } from "node:net";
 import { headers } from "next/headers";
 import { unstable_rethrow } from "next/navigation";
-import { registerServerHeaders } from "@/lib/api/client";
 
 /**
  * Tells the API who the visitor is, and proves the claim comes from us.
@@ -61,10 +60,6 @@ import { registerServerHeaders } from "@/lib/api/client";
  */
 
 const WEB_TIER_SECRET_MIN_LENGTH = 32;
-
-// lib/api/client.ts cannot import this module (see there), so hand it the
-// provider as soon as the server loads us.
-registerServerHeaders((options) => webTierRequestHeaders(options));
 
 /** The visitor's address as configured by CLIENT_IP_HEADER, if any. */
 export function clientIpFrom(incoming: Headers): string | undefined {

@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { fetchForumCategories, fetchForumTopicSearch } from "@/lib/api/forum";
+import {
+  SettingsUnavailableError,
+  shouldAbortSitemap,
+} from "@/lib/api/public-settings";
 import { loadPublicSettings } from "@/lib/api/settings";
 import { collectPages } from "@/lib/collect-pages";
 import { absoluteUrl } from "@/lib/site-url";
@@ -27,8 +31,13 @@ const MAX_PAGES = 40;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // If the settings cannot be read this resolves with every optional module
-  // off (see resolvePublicSettings), so an outage never advertises /forum & co.
+  // off (see resolvePublicSettings). Caching that for an hour would drop every
+  // forum URL, so throw instead and let Next keep the previous sitemap.
   const settings = await loadPublicSettings(revalidate);
+
+  if (shouldAbortSitemap(settings, process.env.NEXT_PHASE)) {
+    throw new SettingsUnavailableError();
+  }
 
   const staticPaths = [
     "/",

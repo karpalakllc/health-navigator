@@ -10,6 +10,7 @@ import { Pagination } from "@/components/directory/pagination";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
@@ -38,7 +39,7 @@ export default async function PharmaciesPage({
 }: PharmaciesPageProps) {
   const settings = await fetchPublicSettings();
 
-  if (!settings.public_pharmacies) {
+  if (!isModuleOn(settings, "public_pharmacies")) {
     return (
       <ComingSoonShell
         module="pharmacies"

@@ -4,6 +4,7 @@ import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
+import { readUpstream } from "@/lib/api/upstream";
 
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -22,22 +23,28 @@ export async function POST(request: Request) {
 
   const body = guarded.value;
 
-  const response = await fetch(apiUrl("/auth/login"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
-      ...forwardedForHeaders(request),
-    },
-    body: JSON.stringify({
-      email: body.email,
-      password: body.password,
-      device_name: body.device_name ?? "web",
+  const upstream = await readUpstream(
+    fetch(apiUrl("/auth/login"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
+      },
+      body: JSON.stringify({
+        email: body.email,
+        password: body.password,
+        device_name: body.device_name ?? "web",
+      }),
     }),
-  });
+  );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   if (!response.ok) {
     return NextResponse.json(payload, { status: response.status });

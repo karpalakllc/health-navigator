@@ -41,10 +41,56 @@ function originOf(value: string): string | null {
   }
 }
 
+/** `https://` for a bare host (Vercel's system variables carry no scheme). */
+function originOfHost(value: string): string | null {
+  return originOf(
+    /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`,
+  );
+}
+
 /**
- * The configured public origin. Outside production the origin the request was
- * actually addressed to is accepted too, so `localhost` and `127.0.0.1` both work
- * while developing whichever one NEXT_PUBLIC_SITE_URL names.
+ * Extra origins from the runtime environment, read on every request.
+ *
+ * NEXT_PUBLIC_SITE_URL is inlined at build time, so it can name only one
+ * origin, and the same build is often served from several: a Vercel preview
+ * URL, the apex as well as www, a staging alias. Writes from any of those were
+ * refused with 403 — logout included, which also stalls the stale-session
+ * cleanup. None of these variables has a NEXT_PUBLIC_ prefix, and they are read
+ * here, inside the request path, so Next never bakes them into the bundle.
+ *
+ *   ALLOWED_ORIGINS        comma-separated origins (`https://www.example.mk`)
+ *   VERCEL_URL             set by Vercel per deployment (host only)
+ *   VERCEL_BRANCH_URL      set by Vercel per git branch (host only)
+ */
+function runtimeOrigins(): string[] {
+  const env = process.env;
+  const origins: string[] = [];
+
+  for (const entry of (env.ALLOWED_ORIGINS ?? "").split(",")) {
+    const trimmed = entry.trim();
+    const origin = trimmed ? originOf(trimmed) : null;
+
+    if (origin && origin !== "null") {
+      origins.push(origin);
+    }
+  }
+
+  for (const host of [env.VERCEL_URL, env.VERCEL_BRANCH_URL]) {
+    const origin = host?.trim() ? originOfHost(host.trim()) : null;
+
+    if (origin && origin !== "null") {
+      origins.push(origin);
+    }
+  }
+
+  return origins;
+}
+
+/**
+ * The configured public origin plus any runtime-configured ones (see
+ * runtimeOrigins). Outside production the origin the request was actually
+ * addressed to is accepted too, so `localhost` and `127.0.0.1` both work while
+ * developing whichever one NEXT_PUBLIC_SITE_URL names.
  */
 function allowedOrigins(request: Request): string[] {
   const origins: string[] = [];
@@ -54,6 +100,8 @@ function allowedOrigins(request: Request): string[] {
   if (configuredOrigin) {
     origins.push(configuredOrigin);
   }
+
+  origins.push(...runtimeOrigins());
 
   if (!configuredOrigin || process.env.NODE_ENV !== "production") {
     const own = originOf(request.url);

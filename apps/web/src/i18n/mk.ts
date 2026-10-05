@@ -14,12 +14,13 @@ export const mk = {
     body: "Овој дел од платформата ќе биде достапен наскоро. Дотогаш истражувајте лекари, установи и форум.",
     bodyWithoutForum:
       "Овој дел од платформата ќе биде достапен наскоро. Дотогаш истражувајте лекари и установи.",
-    forumTitle: "Форум",
+    // A module the admin switched off: no "coming soon" promise.
+    unavailableBadge: "Недостапно",
+    unavailableTitle: "Овој дел моментално не е достапен",
+    unavailableBody: "Во меѓувреме, истражувајте лекари и установи.",
     forumBody: "Форумот на заедницата моментално не е достапен.",
-    productsTitle: "Каталог на производи",
     productsBody:
       "Споредба на референтни цени по аптеки — информативно, не за купување на страницата.",
-    pharmaciesTitle: "Директориум на аптеки",
     pharmaciesBody:
       "Локации, контакт и производи по аптека — наскоро целосно достапно.",
     exploreDoctors: "Пребарај лекари",
@@ -228,6 +229,8 @@ export const mk = {
     payloadTooLarge: "Барањето е преголемо.",
     invalidJson: "Барањето не е во валиден формат.",
     invalidAvatar: "Изберете слика до 5 MB.",
+    upstreamUnavailable:
+      "Услугата моментално не е достапна. Обидете се повторно за неколку минути.",
   },
   notFound: {
     title: "Страницата не е пронајдена",
@@ -595,7 +598,8 @@ export const mk = {
     summaryLine: "{average} / 5 · {count} {countLabel}",
     submitTitle: "Оставете рецензија",
     rating: "Оценка",
-    ratingStarLabel: "{stars} од 5",
+    ratingStarLabelOne: "{stars} ѕвезда од 5",
+    ratingStarLabelOther: "{stars} ѕвезди од 5",
     ratingNone: "Не е избрана оценка",
     ratingRequired: "Изберете оценка од 1 до 5 ѕвезди.",
     body: "Коментар (опционално, мин. 10 знаци ако е пополнет)",

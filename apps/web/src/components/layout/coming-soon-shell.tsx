@@ -32,19 +32,19 @@ export async function ComingSoonShell({
       : module === "forum"
         ? t("comingSoon.forumBody")
         : t("comingSoon.productsBody");
-  const moduleTitle =
-    module === "pharmacies"
-      ? t("comingSoon.pharmaciesTitle")
-      : module === "forum"
-        ? t("comingSoon.forumTitle")
-        : t("comingSoon.productsTitle");
+  // The forum is not a feature in the works: when it is off, the admin turned
+  // it off, so it gets neutral "not available" copy instead of "coming soon".
+  const unavailable = module === "forum";
+  const badge = unavailable
+    ? t("comingSoon.unavailableBadge")
+    : t("comingSoon.badge");
 
   return (
     <>
       <PageHeroBleed>
         <DirectoryHero
-          badge={t("comingSoon.badge")}
-          title={title || moduleTitle}
+          badge={badge}
+          title={title}
           description={description || body}
         />
         <TrustRibbon
@@ -73,15 +73,19 @@ export async function ComingSoonShell({
       <PageShell className="pb-16">
         <div className="content-card rounded-[1.625rem] p-8 text-center">
           <p className="text-xs font-extrabold uppercase tracking-wide text-primary">
-            {t("comingSoon.badge")}
+            {badge}
           </p>
           <h2 className="mt-2 text-2xl font-black tracking-tight">
-            {t("comingSoon.title")}
+            {unavailable
+              ? t("comingSoon.unavailableTitle")
+              : t("comingSoon.title")}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            {settings.public_forum
-              ? t("comingSoon.body")
-              : t("comingSoon.bodyWithoutForum")}
+            {unavailable
+              ? t("comingSoon.unavailableBody")
+              : settings.public_forum
+                ? t("comingSoon.body")
+                : t("comingSoon.bodyWithoutForum")}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <QuickLink href="/doctors">

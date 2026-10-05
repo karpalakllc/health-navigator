@@ -22,6 +22,10 @@ export default function Error({
 
   return (
     <PageShell className="py-16 text-center">
+      {/* React hoists this into <head>. The status is already 200 once the
+          page streams, so this is what keeps a transient failure (an API
+          blip, unreadable settings) out of the index. */}
+      <meta name="robots" content="noindex" />
       <h1 className="text-2xl font-semibold text-foreground">
         {t("errors.title")}
       </h1>

@@ -76,6 +76,40 @@ describe("rejectCrossSite", () => {
     ).toBe(403);
   });
 
+  it("accepts the runtime ALLOWED_ORIGINS list, read per request", () => {
+    const www = "https://www.zdravje.test";
+    const staging = "https://staging.zdravje.test";
+
+    expect(rejectCrossSite(post({ origin: www }))?.status).toBe(403);
+
+    vi.stubEnv("ALLOWED_ORIGINS", ` ${www}/ , ${staging},not a url,`);
+
+    expect(rejectCrossSite(post({ origin: www }))).toBeNull();
+    expect(rejectCrossSite(post({ origin: staging }))).toBeNull();
+    expect(rejectCrossSite(post({ origin: SITE }))).toBeNull();
+    expect(
+      rejectCrossSite(post({ origin: "https://evil.example" }))?.status,
+    ).toBe(403);
+  });
+
+  it("accepts Vercel's deployment and branch hosts over https", () => {
+    vi.stubEnv("VERCEL_URL", "zdravje-abc123.vercel.app");
+    vi.stubEnv("VERCEL_BRANCH_URL", "zdravje-git-feature.vercel.app");
+
+    expect(
+      rejectCrossSite(post({ origin: "https://zdravje-abc123.vercel.app" })),
+    ).toBeNull();
+    expect(
+      rejectCrossSite(
+        post({ origin: "https://zdravje-git-feature.vercel.app" }),
+      ),
+    ).toBeNull();
+    expect(
+      rejectCrossSite(post({ origin: "http://zdravje-abc123.vercel.app" }))
+        ?.status,
+    ).toBe(403);
+  });
+
   it("refuses a request with no provenance at all", () => {
     expect(rejectCrossSite(post({}))?.status).toBe(403);
   });

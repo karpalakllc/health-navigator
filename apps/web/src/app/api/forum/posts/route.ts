@@ -5,6 +5,7 @@ import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { isSlug, pathSegment } from "@/lib/api/path";
 import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
+import { readUpstream } from "@/lib/api/upstream";
 
 type PostPayload = {
   categorySlug?: string;
@@ -37,24 +38,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = await fetch(
-    apiUrl(
-      `/forum/categories/${pathSegment(body.categorySlug)}/topics/${pathSegment(body.topicSlug)}/posts`,
-    ),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Accept-Language": "mk",
-        ...forwardedForHeaders(request),
+  const upstream = await readUpstream(
+    fetch(
+      apiUrl(
+        `/forum/categories/${pathSegment(body.categorySlug)}/topics/${pathSegment(body.topicSlug)}/posts`,
+      ),
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Accept-Language": "mk",
+          ...forwardedForHeaders(request),
+        },
+        body: JSON.stringify({ body: body.body }),
       },
-      body: JSON.stringify({ body: body.body }),
-    },
+    ),
   );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   return NextResponse.json(payload, { status: response.status });
 }

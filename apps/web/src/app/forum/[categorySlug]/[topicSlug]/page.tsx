@@ -13,6 +13,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
@@ -60,7 +61,7 @@ export default async function TopicDetailPage({
   const settings = await fetchPublicSettings();
 
   // Detail pages of a switched-off module do not exist; /forum explains why.
-  if (!settings.public_forum) {
+  if (!isModuleOn(settings, "public_forum")) {
     notFound();
   }
 

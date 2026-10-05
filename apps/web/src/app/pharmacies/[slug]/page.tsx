@@ -13,6 +13,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { absoluteUrl } from "@/lib/site-url";
 import { placeJsonLd } from "@/lib/structured-data";
@@ -59,7 +60,7 @@ export default async function PharmacyDetailPage({
 
   // A switched-off module has no detail pages: the list page carries the
   // "coming soon" stand-in, a detail URL is simply not there.
-  if (!settings.public_pharmacies) {
+  if (!isModuleOn(settings, "public_pharmacies")) {
     notFound();
   }
 

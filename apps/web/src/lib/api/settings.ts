@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { cache } from "react";
 import { API_LANGUAGE_HEADER } from "@/lib/api/client";
 import {
+  createReportThrottle,
   resolvePublicSettings,
   type PublicSettings,
   type PublicSettingsOutcome,
@@ -46,6 +47,8 @@ export const SETTINGS_REVALIDATE_SECONDS = 30;
  * page fetches fail on their own in that window. A cold cache sees the 503 and
  * shows the maintenance page.
  */
+const shouldReportOutage = createReportThrottle();
+
 export async function loadPublicSettings(
   revalidate: number = SETTINGS_REVALIDATE_SECONDS,
 ): Promise<PublicSettings> {
@@ -67,9 +70,10 @@ export async function loadPublicSettings(
     outcome = { kind: "network-error" };
   }
 
-  if (outcome.kind !== "ok") {
+  if (outcome.kind !== "ok" && shouldReportOutage()) {
     // A silent fallback hides an outage behind a site that merely looks
-    // smaller (modules off) — make sure somebody hears about it.
+    // smaller (modules off) — make sure somebody hears about it, once a
+    // minute per instance rather than once per page view.
     Sentry.captureMessage(
       outcome.kind === "http-error"
         ? `Public settings unavailable (${outcome.status})`

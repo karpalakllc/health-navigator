@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isValidReviewRating, ratingLabel } from "@/lib/rating";
+import {
+  isValidReviewRating,
+  ratingLabel,
+  starRatingLabel,
+} from "@/lib/rating";
 
 describe("ratingLabel", () => {
   it("keeps one decimal instead of rounding 4.5 up to 5", () => {
@@ -26,5 +30,13 @@ describe("isValidReviewRating", () => {
     expect(isValidReviewRating(2.5)).toBe(false);
     expect(isValidReviewRating(1)).toBe(true);
     expect(isValidReviewRating(5)).toBe(true);
+  });
+});
+
+describe("starRatingLabel", () => {
+  it("names the unit with the right Macedonian number", () => {
+    expect(starRatingLabel(1)).toBe("1 ѕвезда од 5");
+    expect(starRatingLabel(2)).toBe("2 ѕвезди од 5");
+    expect(starRatingLabel(5)).toBe("5 ѕвезди од 5");
   });
 });

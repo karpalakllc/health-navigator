@@ -137,6 +137,11 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 
 1. Set `NEXT_PUBLIC_API_URL` to the public API URL and `NEXT_PUBLIC_SITE_URL` to the
    public web origin (both at build time — see below).
+   If the same build is also reached from other origins (apex and www without a
+   redirect, a staging alias), list them in `ALLOWED_ORIGINS` — comma-separated,
+   server-only, read at runtime — or every sign-in, logout and form submitted from
+   them is refused with 403. On Vercel the deployment's own `VERCEL_URL` and
+   `VERCEL_BRANCH_URL` are accepted automatically, so preview URLs work.
 2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. For self-hosted Plausible also
    set `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` and `NEXT_PUBLIC_PLAUSIBLE_HOST` to the same
    origin — the script loads from the first, the CSP allows the beacon only to the second.

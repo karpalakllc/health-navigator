@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  createReportThrottle,
+  isModuleOn,
   publicSettingsDefaults,
   resolvePublicSettings,
+  SettingsUnavailableError,
+  shouldAbortSitemap,
 } from "@/lib/api/public-settings";
 
 const MODULES = [
@@ -45,5 +49,88 @@ describe("resolvePublicSettings", () => {
       // The defaults have the forum on; an outage must not advertise it.
       expect(settings[flag]).toBe(false);
     }
+  });
+});
+
+describe("degraded settings", () => {
+  it("marks only a fallback as degraded", () => {
+    expect(resolvePublicSettings({ kind: "ok", data: {} }).degraded).toBe(
+      false,
+    );
+    expect(
+      resolvePublicSettings({ kind: "ok", data: { degraded: true } }).degraded,
+    ).toBe(false);
+    expect(resolvePublicSettings({ kind: "network-error" }).degraded).toBe(
+      true,
+    );
+    expect(
+      resolvePublicSettings({ kind: "http-error", status: 500 }).degraded,
+    ).toBe(true);
+  });
+});
+
+describe("isModuleOn", () => {
+  const read = (data: Parameters<typeof resolvePublicSettings>[0]) =>
+    resolvePublicSettings(data);
+
+  it("is true for a module the admin left on", () => {
+    expect(
+      isModuleOn(
+        read({ kind: "ok", data: { public_forum: true } }),
+        "public_forum",
+      ),
+    ).toBe(true);
+  });
+
+  it("is false (404 / not-available page) when the admin switched it off", () => {
+    expect(
+      isModuleOn(
+        read({ kind: "ok", data: { public_forum: false } }),
+        "public_forum",
+      ),
+    ).toBe(false);
+  });
+
+  it.each([
+    "public_forum",
+    "public_pharmacies",
+    "public_products",
+    "public_guidance",
+  ] as const)(
+    "throws instead of claiming %s is off when settings could not be read",
+    (flag) => {
+      // A 404 here during an API blip would get real URLs deindexed.
+      expect(() => isModuleOn(read({ kind: "network-error" }), flag)).toThrow(
+        SettingsUnavailableError,
+      );
+      expect(() =>
+        isModuleOn(read({ kind: "http-error", status: 502 }), flag),
+      ).toThrow(SettingsUnavailableError);
+    },
+  );
+});
+
+describe("shouldAbortSitemap", () => {
+  it("keeps the previous sitemap at runtime when settings are degraded", () => {
+    expect(shouldAbortSitemap({ degraded: true }, undefined)).toBe(true);
+    expect(shouldAbortSitemap({ degraded: false }, undefined)).toBe(false);
+  });
+
+  it("never fails `next build` over an unreachable API", () => {
+    expect(
+      shouldAbortSitemap({ degraded: true }, "phase-production-build"),
+    ).toBe(false);
+  });
+});
+
+describe("createReportThrottle", () => {
+  it("reports at most once per interval", () => {
+    const shouldReport = createReportThrottle(60_000);
+
+    expect(shouldReport(1_000)).toBe(true);
+    expect(shouldReport(1_001)).toBe(false);
+    expect(shouldReport(60_999)).toBe(false);
+    expect(shouldReport(61_000)).toBe(true);
+    expect(shouldReport(61_500)).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchProduct } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
@@ -46,7 +47,7 @@ export default async function ProductDetailPage({
 
   // A switched-off module has no detail pages: the list page carries the
   // "coming soon" stand-in, a detail URL is simply not there.
-  if (!settings.public_products) {
+  if (!isModuleOn(settings, "public_products")) {
     notFound();
   }
 

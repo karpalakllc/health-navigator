@@ -2,22 +2,9 @@ import { webTierRequestHeaders } from "@/lib/api/client-ip";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
+import { ApiRequestError, type ApiErrorBody } from "@/lib/api/errors";
 
-export type ApiErrorBody = {
-  message: string;
-  errors?: Record<string, string[]>;
-};
-
-export class ApiRequestError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-    public readonly body?: ApiErrorBody,
-  ) {
-    super(message);
-    this.name = "ApiRequestError";
-  }
-}
+export { ApiRequestError, type ApiErrorBody };
 
 async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
