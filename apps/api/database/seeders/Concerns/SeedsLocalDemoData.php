@@ -2,18 +2,17 @@
 
 namespace Database\Seeders\Concerns;
 
+use App\Support\DeploymentEnvironment;
+
 trait SeedsLocalDemoData
 {
     /**
-     * Demo/directory seeders run on local/testing, or when SEED_LOCAL_DEMO=true.
+     * Demo/directory seeders run outside deployments (DeploymentEnvironment),
+     * or when SEED_LOCAL_DEMO=true.
      */
     protected function shouldRunLocalDemoSeeders(): bool
     {
-        if (app()->environment('testing')) {
-            return true;
-        }
-
-        if (app()->environment(['local', 'development'])) {
+        if (! DeploymentEnvironment::isDeployed()) {
             return true;
         }
 

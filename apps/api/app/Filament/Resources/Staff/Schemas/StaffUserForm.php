@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Staff\Schemas;
 
 use App\Enums\UserKind;
 use App\Enums\UserRole;
+use App\Filament\Support\EmailField;
 use App\Models\User;
 use App\Policies\Support\PrivilegeHierarchy;
 use Closure;
@@ -19,7 +20,7 @@ class StaffUserForm
     {
         return $schema->components([
             TextInput::make('name')->required(),
-            TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
+            EmailField::make()->required()->unique(ignoreRecord: true),
             // Options are narrowed to what the acting user may grant, and the
             // rules re-check server-side: a non-administrator must not be able to
             // hand out the admin column, the Administrator role, or any role

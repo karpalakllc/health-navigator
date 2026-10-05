@@ -81,4 +81,39 @@ class ClientUserFormTest extends TestCase
         Livewire::test(EditClientUser::class, ['record' => $this->client()->getKey()])
             ->assertActionDoesNotExist('delete');
     }
+
+    public function test_an_assigner_cannot_grant_a_community_role_with_permissions_they_lack(): void
+    {
+        // clients.assign_roles, but none of the forum moderation permissions the
+        // Forum Moderator role carries.
+        $editor = $this->clientEditor();
+        $editor->givePermissionTo('clients.assign_roles');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->actingAs($editor);
+
+        $client = $this->client();
+
+        Livewire::test(EditClientUser::class, ['record' => $client->getKey()])
+            ->fillForm(['roles' => [Role::findByName('Forum Moderator', 'web')->getKey()]])
+            ->call('save')
+            ->assertHasFormErrors(['roles']);
+
+        $this->assertFalse($client->fresh()->hasRole('Forum Moderator'));
+    }
+
+    public function test_an_administrator_can_still_grant_the_community_role(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
+        $admin->syncRoles(['Administrator']);
+        $this->actingAs($admin);
+
+        $client = $this->client();
+
+        Livewire::test(EditClientUser::class, ['record' => $client->getKey()])
+            ->fillForm(['roles' => [Role::findByName('Forum Moderator', 'web')->getKey()]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue($client->fresh()->hasRole('Forum Moderator'));
+    }
 }

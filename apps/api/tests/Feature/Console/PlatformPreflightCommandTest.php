@@ -159,9 +159,22 @@ class PlatformPreflightCommandTest extends TestCase
         $this->assertSame(1, $this->preflight()['exit']);
     }
 
-    public function test_findings_are_reported_but_not_enforced_locally(): void
+    /**
+     * The same environments where CORS allows localhost and the seeder creates
+     * the demo accounts (DeploymentEnvironment::NON_DEPLOYED). Enforcing in
+     * `development` failed it on the localhost origins CORS itself adds there.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function nonDeployedEnvironments(): array
     {
-        $this->app['env'] = 'local';
+        return ['local' => ['local'], 'development' => ['development'], 'testing' => ['testing']];
+    }
+
+    #[DataProvider('nonDeployedEnvironments')]
+    public function test_findings_are_reported_but_not_enforced_outside_deployments(string $environment): void
+    {
+        $this->app['env'] = $environment;
         config(['app.debug' => true]);
 
         $result = $this->preflight();

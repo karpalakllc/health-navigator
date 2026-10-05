@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\DeploymentEnvironment;
+use App\Support\EmailAddress;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SiteSettingsSeeder;
 use Illuminate\Console\Command;
@@ -28,10 +30,13 @@ class PlatformBootstrapCommand extends Command
 
     public function handle(): int
     {
-        $adminEmail = (string) config('zdravje.admin.email');
+        // Normalised as the User model stores it. Looking up the raw value missed
+        // the row the model had lowercased, so a mixed-case PLATFORM_ADMIN_EMAIL
+        // tried to create the admin again on every later deploy.
+        $adminEmail = EmailAddress::normalize((string) config('zdravje.admin.email'));
         $adminPassword = config('zdravje.admin.password');
 
-        if (strcasecmp($adminEmail, self::DEFAULT_ADMIN_EMAIL) === 0 && ! app()->environment(['local', 'testing'])) {
+        if ($adminEmail === self::DEFAULT_ADMIN_EMAIL && DeploymentEnvironment::isDeployed()) {
             $this->error('PLATFORM_ADMIN_EMAIL is still the default '.self::DEFAULT_ADMIN_EMAIL.'.');
             $this->line('Set it to an address you control before bootstrapping a '.app()->environment().' environment.');
 
@@ -104,6 +109,13 @@ class PlatformBootstrapCommand extends Command
 
             $this->warn("Promoting existing account {$adminEmail}; it keeps its current password.");
             $admin->update(['user_kind' => UserKind::Staff]);
+        }
+
+        // Staff are verified from creation. An unverified one is what the public
+        // sign-up treats as "pending", and running --promote-existing is the
+        // operator vouching for the address.
+        if (! $admin->hasVerifiedEmail()) {
+            $admin->markEmailAsVerified();
         }
 
         if (! $admin->hasRole('Administrator')) {

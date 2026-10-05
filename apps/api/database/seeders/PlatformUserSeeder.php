@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\EmailAddress;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
@@ -12,6 +13,11 @@ class PlatformUserSeeder extends Seeder
 {
     use SeedsLocalDemoData;
 
+    /**
+     * Each lookup normalises the configured address the way the User model
+     * stores it. updateOrCreate() matching the raw value missed the lowercased
+     * row on the second run and then hit the unique index inserting it again.
+     */
     public function run(): void
     {
         if (! $this->shouldRunLocalDemoSeeders()) {
@@ -21,7 +27,7 @@ class PlatformUserSeeder extends Seeder
         }
 
         User::query()->updateOrCreate(
-            ['email' => config('zdravje.admin.email')],
+            ['email' => EmailAddress::normalize((string) config('zdravje.admin.email'))],
             [
                 'name' => 'Platform Admin',
                 'password' => config('zdravje.admin.password') ?? 'password',
@@ -32,7 +38,7 @@ class PlatformUserSeeder extends Seeder
         );
 
         User::query()->updateOrCreate(
-            ['email' => config('zdravje.seed.moderator.email')],
+            ['email' => EmailAddress::normalize((string) config('zdravje.seed.moderator.email'))],
             [
                 'name' => 'Platform Moderator',
                 'password' => config('zdravje.seed.moderator.password'),
@@ -43,7 +49,7 @@ class PlatformUserSeeder extends Seeder
         );
 
         User::query()->updateOrCreate(
-            ['email' => config('zdravje.seed.member.email')],
+            ['email' => EmailAddress::normalize((string) config('zdravje.seed.member.email'))],
             [
                 'name' => 'Test Member',
                 'password' => config('zdravje.seed.member.password'),

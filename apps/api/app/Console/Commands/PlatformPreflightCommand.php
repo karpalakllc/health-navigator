@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Http\Middleware\TrustWebTierClientIp;
+use App\Support\DeploymentEnvironment;
 use Illuminate\Console\Command;
 
 /**
@@ -23,9 +24,6 @@ class PlatformPreflightCommand extends Command
 
     protected $description = 'Check that the deployed configuration is safe for staging/production';
 
-    /** Environments where findings are reported but never fail the command. */
-    private const RELAXED_ENVIRONMENTS = ['local', 'testing'];
-
     /** Values that make TRUSTED_PROXIES trust every hop. */
     private const TRUST_EVERYONE = ['*', '**', '0.0.0.0/0', '::/0'];
 
@@ -44,7 +42,8 @@ class PlatformPreflightCommand extends Command
 
         $errors = $this->ofLevel('error');
         $warnings = $this->ofLevel('warning');
-        $enforced = ! $this->laravel->environment(self::RELAXED_ENVIRONMENTS);
+        // Findings are reported everywhere but only fail a deployment.
+        $enforced = DeploymentEnvironment::isDeployed();
         $failed = $enforced && $errors !== [];
 
         if ($this->option('json')) {
@@ -324,7 +323,7 @@ class PlatformPreflightCommand extends Command
         $summary = sprintf('%d error(s), %d warning(s) for APP_ENV=%s.', count($errors), count($warnings), $environment);
 
         if (! $enforced) {
-            $this->components->info('Preflight not enforced in local/testing: '.$summary);
+            $this->components->info('Preflight not enforced outside deployments: '.$summary);
         } elseif ($errors !== []) {
             $this->components->error('Preflight FAILED: '.$summary.' Fix the errors before migrating or sending traffic.');
         } else {
