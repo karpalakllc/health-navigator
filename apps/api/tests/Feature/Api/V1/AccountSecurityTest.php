@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -500,6 +501,49 @@ class AccountSecurityTest extends TestCase
         $this->assertTrue(DB::table('users')->where('email', 'Dup@Example.com')->exists());
     }
 
+    // ---- deploy transition: accounts the old sign-up may have re-registered ----
+
+    public function test_the_transition_migration_contests_every_pending_client_account(): void
+    {
+        $pending = $this->insertRawUser('pending@example.com');
+        $verified = $this->insertRawUser('verified@example.com');
+        DB::table('users')->where('id', $verified)->update(['email_verified_at' => now()]);
+        $staff = $this->insertRawUser('staff@example.com');
+        DB::table('users')->where('id', $staff)->update(['user_kind' => 'staff']);
+        $roleHolder = $this->insertRawUser('editor@example.com');
+        User::query()->findOrFail($roleHolder)->syncRoles(['Administrator']);
+
+        $this->runMigration('*_contest_pending_client_registrations.php');
+
+        $contested = DB::table('users')->whereNotNull('registration_contested_at')->pluck('id')->all();
+        $this->assertSame([$pending], $contested);
+    }
+
+    /**
+     * The pre-fix sign-up replaced a pending account's credentials on every
+     * re-registration, and its links carried a credential= fingerprint. After
+     * the migration such a link — still validly signed — must not activate
+     * whatever password is stored; it leads to a reset like any contested link.
+     */
+    public function test_a_pre_deploy_link_on_a_pending_account_leads_to_a_reset_not_activation(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Possibly Attacker', 'replaced1password');
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $link = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHour(),
+            ['id' => $user->id, 'hash' => sha1($user->email), 'credential' => 'legacyfingerprint'],
+        );
+
+        $this->runMigration('*_contest_pending_client_registrations.php');
+
+        $this->get($link)->assertRedirectContains('/verify-email?status=verified_set_password');
+        $this->assertCannotSignIn('replaced1password');
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
+    }
+
     // ---- per-address mail ceiling cannot strand the owner ----
 
     public function test_a_stranger_exhausting_the_address_ceiling_does_not_block_the_owner(): void
@@ -547,7 +591,12 @@ class AccountSecurityTest extends TestCase
 
     private function runEmailMigration(): void
     {
-        $files = glob(database_path('migrations/*_normalise_user_emails.php')) ?: [];
+        $this->runMigration('*_normalise_user_emails.php');
+    }
+
+    private function runMigration(string $pattern): void
+    {
+        $files = glob(database_path('migrations/'.$pattern)) ?: [];
         $this->assertCount(1, $files);
 
         (require $files[0])->up();
