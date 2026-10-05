@@ -16,6 +16,22 @@ const securityHeaders = [
   },
 ];
 
+/*
+ * The local Laravel API serves uploads over plain http on :8000. Only a dev
+ * server may optimise images from there: in a production build these entries
+ * let anyone make the image optimiser fetch from the server's own loopback port,
+ * and buy nothing — uploaded avatars are rendered with plain <img> tags.
+ */
+const localApiStoragePatterns =
+  process.env.NODE_ENV === "production"
+    ? []
+    : (["127.0.0.1", "localhost"] as const).map((hostname) => ({
+        protocol: "http" as const,
+        hostname,
+        port: "8000",
+        pathname: "/storage/**",
+      }));
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -32,18 +48,7 @@ const nextConfig: NextConfig = {
         hostname: "api.dicebear.com",
         pathname: "/**",
       },
-      {
-        protocol: "http",
-        hostname: "127.0.0.1",
-        port: "8000",
-        pathname: "/storage/**",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "8000",
-        pathname: "/storage/**",
-      },
+      ...localApiStoragePatterns,
     ],
   },
 };
