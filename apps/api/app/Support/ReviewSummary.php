@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Doctor;
 use App\Models\Facility;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class ReviewSummary
 {
@@ -30,6 +31,41 @@ class ReviewSummary
         return $query
             ->withCount(['reviews as '.self::COUNT_ALIAS => fn ($relation) => $relation->approved()])
             ->withAvg(['reviews as '.self::AVG_ALIAS => fn ($relation) => $relation->approved()], 'rating');
+    }
+
+    /**
+     * The same aggregates for models that were not loaded through a Builder we
+     * control — Scout hydrates search hits itself. One query for the whole set.
+     *
+     * @template TModel of Doctor|Facility
+     *
+     * @param  Collection<int, TModel>  $models
+     * @return Collection<int, TModel>
+     */
+    public static function eagerLoadInto(Collection $models): Collection
+    {
+        if ($models->isEmpty()) {
+            return $models;
+        }
+
+        $first = $models->first();
+
+        // select() before the aggregates: called after, it would replace them.
+        $aggregates = self::eagerLoad($first->newModelQuery()->select($first->getQualifiedKeyName()))
+            ->whereKey($models->modelKeys())
+            ->get()
+            ->keyBy($first->getKeyName());
+
+        foreach ($models as $model) {
+            $row = $aggregates->get($model->getKey());
+
+            $model->forceFill([
+                self::COUNT_ALIAS => $row?->getAttribute(self::COUNT_ALIAS) ?? 0,
+                self::AVG_ALIAS => $row?->getAttribute(self::AVG_ALIAS),
+            ])->syncOriginalAttributes([self::COUNT_ALIAS, self::AVG_ALIAS]);
+        }
+
+        return $models;
     }
 
     /**
