@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Middleware\TrustWebTierClientIp;
 use Illuminate\Console\Command;
 
 /**
@@ -67,6 +68,7 @@ class PlatformPreflightCommand extends Command
     {
         $this->checkApp();
         $this->checkTrustedProxies();
+        $this->checkWebTier();
         $this->checkFrontendUrls();
         $this->checkMail();
         $this->checkQueueAndCache();
@@ -102,7 +104,7 @@ class PlatformPreflightCommand extends Command
         $list = array_values(array_filter($list, fn ($proxy) => filled($proxy)));
 
         if ($list === []) {
-            $this->addError('trustedproxy.proxies', 'TRUSTED_PROXIES is not set. Behind an edge every IP rate limit then keys on the load balancer, and a few failed logins lock out everyone. List the edge and web-tier CIDR ranges.');
+            $this->addError('trustedproxy.proxies', 'TRUSTED_PROXIES is not set. Behind an edge every IP rate limit then keys on the load balancer, and a few failed logins lock out everyone. List the CIDR ranges of the API\'s edge/load balancer.');
 
             return;
         }
@@ -111,6 +113,14 @@ class PlatformPreflightCommand extends Command
 
         if ($everyone !== []) {
             $this->addError('trustedproxy.proxies', 'TRUSTED_PROXIES contains "'.implode('", "', $everyone).'", which trusts every hop: the client-supplied leftmost X-Forwarded-For entry becomes $request->ip(), so any caller picks its own rate-limit bucket. List the exact CIDR ranges instead.');
+        }
+    }
+
+    private function checkWebTier(): void
+    {
+        // Never echo the value: preflight output ends up in deploy logs.
+        if (strlen((string) config('zdravje.web_tier.secret')) < TrustWebTierClientIp::MIN_SECRET_LENGTH) {
+            $this->addError('zdravje.web_tier.secret', 'WEB_TIER_SECRET must be set (at least '.TrustWebTierClientIp::MIN_SECRET_LENGTH.' characters) and match the web tier\'s. Without it the API cannot tell visitors apart behind the web tier, so every server-rendered page and relayed sign-in shares one rate-limit bucket.');
         }
     }
 

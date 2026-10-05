@@ -58,21 +58,33 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
 
-**Client addresses:** the web tier forwards the visitor's address as
-`X-Forwarded-For`, taking the **rightmost** entry of the incoming chain — correct
-whether the edge appends or overwrites. If your edge writes a single-value header
-instead (`cf-connecting-ip` on Cloudflare), set `CLIENT_IP_HEADER` to its name on
-the web app. Do not set it to a header your edge does not overwrite: anything the
-edge leaves alone is caller-supplied, and a caller that picks its own address
-picks its own rate-limit bucket.
+**Client addresses:** the web tier vouches for the visitor's address on every
+server-side API call (route handlers *and* server rendering) by sending
+`X-Client-IP` together with `X-Web-Tier-Auth: <WEB_TIER_SECRET>`. The API accepts
+`X-Client-IP` only when that secret matches (`TrustWebTierClientIp`); from anyone
+else the header is stripped and ignored.
+
+1. Generate the secret once per environment: `openssl rand -hex 32` (≥32 chars).
+2. Set `WEB_TIER_SECRET` to the **same value** on the API (then `config:cache`) and
+   on the web server as a runtime, server-only variable — never `NEXT_PUBLIC_`. On
+   Vercel, a non-public env var for Production and Preview.
+3. Rotate by updating both tiers and restarting. During a mismatch the web tier
+   is metered as a single client: it fails safe, with no bypass.
+
+The web tier takes the visitor's address from the **rightmost**
+`x-forwarded-for` entry by default — correct behind a single appending or
+overwriting edge (nginx, Vercel, Fly, Render). Set `CLIENT_IP_HEADER` on the web
+app only to a header your edge is known to **overwrite** (`cf-connecting-ip` when
+the origin accepts traffic solely from Cloudflare); otherwise two-hop setups such
+as Cloudflare → nginx → Next meter visitors per Cloudflare PoP. If `next start` is
+exposed to the internet with no proxy in front, set `CLIENT_IP_HEADER=none`.
 
 **Trusted proxies:** set `TRUSTED_PROXIES` (see `env.production.example`) to the
-exact CIDR ranges of **the edge *and* the web tier** — sign-in and every other
-browser write is relayed to the API by a Next route handler, which forwards the
-visitor's address as `X-Forwarded-For`. If the web tier is not trusted, that header
-is ignored and every login on the platform shares one rate-limit bucket. There is
-deliberately **no default**: unset collapses every IP-based limit into one shared
-bucket behind the edge.
+exact CIDR ranges of **the API's own edge/load balancer**. The web tier does not
+need to be listed — it authenticates with the shared secret instead, which is
+what makes serverless web hosts (Vercel, Netlify) with dynamic egress workable.
+There is deliberately **no default**: unset collapses every IP-based limit on
+direct browser→API calls (guidance/triage, media) into one bucket behind the edge.
 
 **Never use `*`** (or `**`, `0.0.0.0/0`), not even when the origin is reachable
 only through the edge. With every hop trusted, Laravel takes the *leftmost*
@@ -81,14 +93,8 @@ sent, so that entry is attacker-chosen. Any caller then mints a fresh bucket for
 every IP-keyed limiter: the 40/min per-address login limiter, registration,
 reviews, triage. (The per-account failed-login lockout — 5 failures per minute,
 keyed on email *and* address — is affected too, since its address half is spoofed.)
-`platform:preflight` rejects these values.
-
-**Serverless web tiers (Vercel, Netlify):** their egress addresses are dynamic and
-not published as a stable list, so they cannot be enumerated in `TRUSTED_PROXIES`.
-A shared-secret mechanism that lets the web tier vouch for the client address
-without IP trust is planned; until it ships, prefer a web host with fixed,
-listable egress, or accept that per-visitor limits are metered per web-tier
-address.
+`platform:preflight` rejects these values, and fails when `WEB_TIER_SECRET` is
+missing or shorter than 32 characters.
 
 ### Queue worker
 

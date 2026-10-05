@@ -41,12 +41,13 @@ class AppServiceProvider extends ServiceProvider
         // AuthenticatesRequests ahead of ThrottleRequests, so the guard has already run
         // by the time this closure is invoked on an auth: route.
         //
-        // Anonymous callers key on IP, and that IP is frequently *not* an end user:
-        // the Next.js server renders every public page server-side, so all of that
-        // traffic reaches us from one origin address with no per-visitor identity.
-        // The ceiling therefore has to accommodate aggregate server-side rendering
-        // for the whole site, which is why it is high — treat it as a runaway guard,
-        // not as a per-visitor control. The per-visitor controls are the named
+        // Anonymous callers key on IP. Server-side rendering reaches us from the
+        // Next.js server, which vouches for the visitor's address with
+        // WEB_TIER_SECRET (TrustWebTierClientIp), so with that set this is per
+        // visitor. Without it — a misconfigured deploy, or cached fetches such as
+        // the sitemap that deliberately carry no visitor — everything rendered
+        // server-side shares the web tier's address, which is why the ceiling stays
+        // high: treat it as a runaway guard, not as a per-visitor control. The per-visitor controls are the named
         // limiters below, which sit on the endpoints a browser calls directly.
         RateLimiter::for('api', function (Request $request) {
             return $request->user()
@@ -60,9 +61,9 @@ class AppServiceProvider extends ServiceProvider
         // address hold that account in permanent lockout by sending requests.
         //
         // This is deliberately loose. It depends on $request->ip() being the
-        // visitor, which depends on the web tier forwarding an address and on that
-        // tier being trusted — so if a deployment gets that wrong, this throttles a
-        // shared origin instead of locking the platform out.
+        // visitor, which depends on the web tier vouching for the address with
+        // WEB_TIER_SECRET (TrustWebTierClientIp) — so if a deployment gets that
+        // wrong, this throttles a shared origin instead of locking the platform out.
         RateLimiter::for('api-login', function (Request $request) {
             return Limit::perMinute(40)->by('login-ip:'.$request->ip());
         });

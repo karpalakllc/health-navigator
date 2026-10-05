@@ -181,7 +181,7 @@ class SiteSetting extends Model
             'footer_emergency_text' => $this->footer_emergency_text ?: self::DEFAULT_FOOTER_EMERGENCY,
             'footer_disclaimer_text' => $this->footer_disclaimer_text ?: self::DEFAULT_FOOTER_DISCLAIMER,
             'copyright_name' => $this->copyright_name ?: 'Zdravje360',
-            'profile_avatar_min_messages' => $this->profile_avatar_min_messages ?: 10,
+            'profile_avatar_min_messages' => $this->profile_avatar_min_messages ?? 10,
             'maintenance_message' => $this->maintenance_message,
             'site_font_family' => $this->site_font_family ?: 'geist',
             'forum_rules_enabled' => (bool) $this->forum_rules_enabled,
