@@ -39,6 +39,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'registration_contested_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
             'user_kind' => UserKind::class,
@@ -198,6 +199,16 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function moderatedForumCategories(): BelongsToMany
     {
         return $this->belongsToMany(ForumCategory::class, 'forum_category_moderator');
+    }
+
+    /**
+     * End every API session the account has. The one place this happens, for
+     * every way a password can change (reset, an administrator setting it, a
+     * contested registration being verified), so none of them can forget it.
+     */
+    public function revokeApiTokens(): void
+    {
+        $this->tokens()->delete();
     }
 
     public function sendPasswordResetNotification($token): void

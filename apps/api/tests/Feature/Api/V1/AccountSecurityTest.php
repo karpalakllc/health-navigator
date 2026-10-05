@@ -2,20 +2,25 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\UserKind;
+use App\Enums\UserRole;
+use App\Mail\AccountExistsMail;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\FrontendUrl;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Bootstrap\SetRequestForConsole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\URL;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -64,89 +69,188 @@ class AccountSecurityTest extends TestCase
 
     // ---- account pre-hijacking ----
 
-    public function test_re_registering_an_unverified_address_replaces_the_pending_credentials(): void
+    private function registerAs(string $name, string $password): void
+    {
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/register', $this->registration([
+            'name' => $name,
+            'password' => $password,
+        ]))->assertStatus(202);
+    }
+
+    private function assertCannotSignIn(string $password): void
+    {
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'victim@example.com',
+            'password' => $password,
+        ])->assertUnprocessable();
+    }
+
+    private function adminWithAddress(string $email, ?string $verifiedAt): User
+    {
+        $admin = User::factory()->create([
+            'name' => 'Platform Admin',
+            'email' => $email,
+            'password' => 'staff1password',
+            'role' => UserRole::Admin,
+            'user_kind' => UserKind::Staff,
+            'email_verified_at' => $verifiedAt,
+        ]);
+        $admin->syncRoles(['Administrator']);
+
+        return $admin;
+    }
+
+    public function test_registering_over_an_unverified_staff_account_neither_takes_it_over_nor_mails_it_a_link(): void
     {
         Notification::fake();
+        Mail::fake();
 
-        $this->postJson('/api/v1/auth/register', $this->registration([
+        // Created in Filament before staff were verified on creation.
+        $admin = $this->adminWithAddress('ops@example.com', null);
+
+        $fresh = $this->postJson('/api/v1/auth/register', $this->registration(['email' => 'fresh@example.com']));
+        $this->forgetRateLimits();
+        $hijack = $this->postJson('/api/v1/auth/register', $this->registration([
             'name' => 'Attacker',
+            'email' => 'ops@example.com',
             'password' => 'attacker1password',
-        ]))->assertStatus(202);
-        $this->forgetRateLimits();
+        ]));
 
-        $this->postJson('/api/v1/auth/register', $this->registration([
-            'name' => 'Real Owner',
-            'password' => 'owner1password',
-        ]))->assertStatus(202);
+        $this->assertSame(202, $hijack->status());
+        $this->assertSame($fresh->json(), $hijack->json());
 
-        $user = User::query()->where('email', 'victim@example.com')->sole();
-
-        $this->assertSame('Real Owner', $user->name);
-        $this->assertTrue(Hash::check('owner1password', $user->password));
-        $this->assertFalse(
-            Hash::check('attacker1password', $user->password),
-            'A pre-registration kept its password after the address owner signed up.',
-        );
+        $admin->refresh();
+        $this->assertSame('Platform Admin', $admin->name);
+        $this->assertTrue(Hash::check('staff1password', $admin->password));
+        $this->assertFalse(Hash::check('attacker1password', $admin->password), 'A public sign-up replaced a staff password.');
+        $this->assertNull($admin->registration_contested_at);
+        Notification::assertNotSentTo($admin, VerifyEmailNotification::class);
+        Mail::assertQueued(AccountExistsMail::class, fn (AccountExistsMail $mail): bool => $mail->hasTo('ops@example.com'));
     }
 
-    public function test_a_link_issued_before_a_credential_replacement_cannot_activate_the_account(): void
+    public function test_re_registering_never_replaces_the_pending_credentials(): void
     {
         Notification::fake();
 
-        $this->postJson('/api/v1/auth/register', $this->registration([
-            'password' => 'owner1password',
-        ]))->assertStatus(202);
+        $this->registerAs('First', 'first1password');
+        $this->registerAs('Second', 'second1password');
 
         $user = User::query()->where('email', 'victim@example.com')->sole();
-        $staleLink = $this->latestVerificationLink($user);
 
-        // Someone re-registers the still-unverified address with their own password.
-        $this->forgetRateLimits();
-        $this->postJson('/api/v1/auth/register', $this->registration([
-            'password' => 'attacker1password',
-        ]))->assertStatus(202);
-
-        $this->get($staleLink)->assertRedirectContains('/verify-email?status=invalid');
-        $this->assertNull(
-            $user->fresh()->email_verified_at,
-            'A link issued for one password activated an account holding another.',
-        );
+        $this->assertSame('First', $user->name);
+        $this->assertTrue(Hash::check('first1password', $user->password));
+        $this->assertNotNull($user->registration_contested_at);
     }
 
-    public function test_the_link_for_the_current_credential_still_activates_the_account(): void
+    public function test_attacker_first_then_owner_the_owner_ends_up_choosing_the_password(): void
     {
         Notification::fake();
 
-        $this->postJson('/api/v1/auth/register', $this->registration([
-            'password' => 'attacker1password',
-        ]))->assertStatus(202);
-        $this->forgetRateLimits();
-        $this->postJson('/api/v1/auth/register', $this->registration([
-            'password' => 'owner1password',
-        ]))->assertStatus(202);
+        $this->registerAs('Attacker', 'attacker1password');
+        $this->registerAs('Real Owner', 'owner1password');
 
         $user = User::query()->where('email', 'victim@example.com')->sole();
 
         $this->get($this->latestVerificationLink($user))
-            ->assertRedirectContains('/verify-email?status=verified');
+            ->assertRedirectContains('/verify-email?status=verified_set_password');
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertNull($user->fresh()->registration_contested_at);
+        $this->assertCannotSignIn('attacker1password');
+        $this->assertCannotSignIn('owner1password');
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
+    }
+
+    public function test_owner_first_then_attacker_the_owners_link_still_works_and_leads_to_a_reset(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Real Owner', 'owner1password');
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $ownersLink = $this->latestVerificationLink($user);
+
+        // Re-registering cannot invalidate a link the owner already holds.
+        $this->registerAs('Attacker', 'attacker1password');
+
+        $this->get($ownersLink)->assertRedirectContains('/verify-email?status=verified_set_password');
+
+        $this->assertCannotSignIn('attacker1password');
+        $this->assertCannotSignIn('owner1password');
+
+        // The reset link reaches the mailbox, and completes the account.
+        $reset = Notification::sent($user, ResetPasswordNotification::class)->sole();
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => 'victim@example.com',
+            'token' => $reset->token,
+            'password' => 'chosen1bythemailbox',
+            'password_confirmation' => 'chosen1bythemailbox',
+        ])->assertOk();
+
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'victim@example.com',
+            'password' => 'chosen1bythemailbox',
+        ])->assertOk();
+    }
+
+    public function test_verifying_a_contested_account_revokes_its_tokens(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Attacker', 'attacker1password');
+        $this->registerAs('Real Owner', 'owner1password');
+
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $user->createToken('minted-somehow');
+
+        $this->get($this->latestVerificationLink($user))
+            ->assertRedirectContains('status=verified_set_password');
+
+        $this->assertSame(0, $user->tokens()->count());
+    }
+
+    public function test_an_uncontested_registration_activates_its_password_with_an_unbound_link(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Real Owner', 'owner1password');
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $link = $this->latestVerificationLink($user);
+
+        // Links no longer carry anything derived from the password.
+        $this->assertStringNotContainsString('credential=', $link);
+
+        $this->get($link)->assertRedirect(FrontendUrl::to('/verify-email?status=verified'));
 
         $this->postJson('/api/v1/auth/login', [
             'email' => 'victim@example.com',
             'password' => 'owner1password',
         ])->assertOk();
+        Notification::assertNotSentTo($user, ResetPasswordNotification::class);
     }
 
-    public function test_a_link_without_a_credential_binding_is_rejected(): void
+    /**
+     * Queued mail builds its link in the worker, where there is no incoming
+     * request: the URL comes from APP_URL alone. It still has to validate on the
+     * API's signed route.
+     */
+    public function test_a_link_built_without_a_request_validates_on_the_api(): void
     {
-        $user = User::factory()->create(['email_verified_at' => null]);
+        Notification::fake();
+        config(['app.url' => 'https://api.example.test']);
 
-        $unbound = URL::temporarySignedRoute('verification.verify', now()->addHour(), [
-            'id' => $user->id,
-            'hash' => sha1($user->getEmailForVerification()),
-        ]);
+        $user = User::factory()->create(['email' => 'victim@example.com', 'email_verified_at' => null]);
 
-        $this->get($unbound)->assertRedirectContains('/verify-email?status=invalid');
-        $this->assertNull($user->fresh()->email_verified_at);
+        // What a queue worker has: the console request, seeded from APP_URL.
+        (new SetRequestForConsole)->bootstrap($this->app);
+        $link = (new VerifyEmailNotification)->toMail($user)->actionUrl;
+
+        $this->assertStringStartsWith('https://api.example.test/api/v1/auth/email/verify/', $link);
+
+        $this->get($link)->assertRedirect(FrontendUrl::to('/verify-email?status=verified'));
+        $this->assertNotNull($user->fresh()->email_verified_at);
     }
 
     public function test_re_registering_an_unverified_address_answers_like_a_new_one(): void

@@ -197,6 +197,9 @@ to mint verification links on an attacker's domain. It makes **`APP_URL` a
 required, correct value** — if it is wrong, legitimate requests are refused.
 Asset and signed-link generation still follow the (now validated) request host,
 so serving the admin on a different port in development continues to work.
+Queued mail is the exception: the worker has no request, so verification links
+are built from `APP_URL` alone — it must be the exact public API origin
+(scheme, host and any port), or every emailed link fails its signature check.
 
 > A wrong `APP_URL` in production therefore rejects **every** request with a 400,
 > not just signed links — loud rather than subtle, but check it first if a fresh
