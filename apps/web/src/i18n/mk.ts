@@ -229,6 +229,8 @@ export const mk = {
     payloadTooLarge: "Барањето е преголемо.",
     invalidJson: "Барањето не е во валиден формат.",
     invalidAvatar: "Изберете слика до 5 MB.",
+    upstreamUnavailable:
+      "Услугата моментално не е достапна. Обидете се повторно за неколку минути.",
   },
   notFound: {
     title: "Страницата не е пронајдена",
