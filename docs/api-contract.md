@@ -14,11 +14,13 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 | Success (single) | `{ "data": { ... } }` or `{ "data": [ ... ] }` (non-paginated lists) |
 | Success (paginated list) | `{ "data": [ ... ], "meta": { "current_page", "per_page", "total", "last_page" } }` |
 | Error | `{ "message": "<localised>", "code": "<stable key>", "errors"?: { field: string[] } }` |
-| Validation error | `422` with `errors` populated (Laravel validation) |
+| Validation error | `422`, code `validation.failed`, `errors` populated per field; `message` is the first field error plus a localised "(and N more errors)" |
 | Unauthorized | `401`, code `errors.unauthenticated` |
-| Forbidden | `403`, code `errors.forbidden` |
-| Not found | `404`, code `errors.not_found` |
-| Too many requests | `429`, code `errors.too_many_requests` |
+| Forbidden | `403`, code `errors.forbidden` (`message` is the policy's own denial text when it gives one) |
+| Not found | `404`, code `errors.not_found` — including paths under `/api` that match no route |
+| Method not allowed | `405`, code `errors.method_not_allowed`, with an `Allow` header |
+| Too many requests | `429`, code `errors.too_many_requests`, with a `Retry-After` header |
+| Server error | `500`, code `errors.server_error`; the exception message is never exposed (outside local debug mode) |
 | Module disabled | `503`, code `module.unavailable` |
 | Maintenance mode | `503`, code `maintenance.active` |
 
@@ -34,7 +36,8 @@ change.
 
 Responses are localised. The API negotiates `Accept-Language` across `mk` and
 `en`, defaulting to **Macedonian**, and sets `Content-Language` plus
-`Vary: Accept-Language` on every response. The web client requests `mk`
+`Vary: Accept-Language` on every response — error responses included, even for
+a path that matches no route. The web client requests `mk`
 explicitly because its UI is Macedonian-only.
 
 ## Authentication

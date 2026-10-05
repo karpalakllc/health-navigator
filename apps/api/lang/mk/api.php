@@ -26,6 +26,14 @@ return [
         'forbidden' => 'Немате дозвола за оваа акција.',
         'not_found' => 'Не е пронајдено.',
         'too_many_requests' => 'Премногу барања. Обидете се повторно подоцна.',
+        'method_not_allowed' => 'Методот не е дозволен за оваа адреса.',
+        'server_error' => 'Настана грешка на серверот. Обидете се повторно подоцна.',
+    ],
+
+    // `message` on a 422 is the first field error plus a count (lang/mk.json);
+    // this entry exists so the `validation.failed` code has a translation key.
+    'validation' => [
+        'failed' => 'Внесените податоци не се валидни.',
     ],
 
     'auth' => [

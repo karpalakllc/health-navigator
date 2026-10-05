@@ -17,6 +17,14 @@ return [
         'forbidden' => 'Forbidden.',
         'not_found' => 'Not found.',
         'too_many_requests' => 'Too many requests.',
+        'method_not_allowed' => 'This method is not allowed for this address.',
+        'server_error' => 'Something went wrong on our side. Please try again later.',
+    ],
+
+    // `message` on a 422 is the first field error plus a count (lang/en.json);
+    // this entry exists so the `validation.failed` code has a translation key.
+    'validation' => [
+        'failed' => 'The given data was invalid.',
     ],
 
     'auth' => [
