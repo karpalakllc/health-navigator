@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\FakeMeilisearchEngine;
 use Tests\TestCase;
 
@@ -237,5 +238,38 @@ class MeilisearchUnifiedSearchTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.doctors.meta.total', 4)
             ->assertJsonPath('data.doctors.meta.last_page', 2);
+    }
+
+    public function test_moving_a_topic_indexes_the_new_categorys_visibility(): void
+    {
+        $published = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'open']);
+        $hidden = ForumCategory::factory()->create(['is_published' => false, 'slug' => 'closed']);
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $published->id, 'title' => 'Ana moved']);
+        $topic->load('category');
+
+        $topic->update(['forum_category_id' => $hidden->id]);
+        $this->assertArrayNotHasKey($topic->id, $this->engine->indexes['forum_topics'] ?? []);
+
+        $other = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'other']);
+        $topic->update(['forum_category_id' => $other->id]);
+        $this->assertSame('other', $this->engine->indexes['forum_topics'][$topic->id]['category_slug'] ?? null);
+    }
+
+    public function test_republishing_a_category_resyncs_its_topics_without_a_query_per_topic(): void
+    {
+        $category = ForumCategory::factory()->create(['is_published' => false]);
+        ForumTopic::factory()->count(5)->create(['forum_category_id' => $category->id]);
+
+        DB::enableQueryLog();
+        $category->update(['is_published' => true]);
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $this->assertCount(5, $this->engine->indexes['forum_topics'] ?? []);
+        $this->assertLessThanOrEqual(
+            1,
+            $queries->filter(fn (string $sql): bool => str_contains($sql, 'from "forum_categories"'))->count(),
+            "Categories were loaded once per topic:\n".$queries->implode("\n"),
+        );
     }
 }
