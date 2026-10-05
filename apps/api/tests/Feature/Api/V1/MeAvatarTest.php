@@ -81,4 +81,90 @@ class MeAvatarTest extends TestCase
             ->assertJsonPath('data.user.avatar_initials', 'MI')
             ->assertJsonPath('data.user.profile_avatar.min_messages', 10);
     }
+
+    public function test_zero_threshold_is_reported_as_zero_and_unlocks_upload(): void
+    {
+        SiteSetting::current()->update(['profile_avatar_min_messages' => 0]);
+
+        $user = User::factory()->create(['user_kind' => UserKind::Client]);
+
+        $this->withToken($user->createToken('test')->plainTextToken)
+            ->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('data.user.profile_avatar.min_messages', 0)
+            ->assertJsonPath('data.user.profile_avatar.can_change', true);
+    }
+
+    public function test_undecodable_upload_is_a_422_and_keeps_the_previous_avatar(): void
+    {
+        [$user, $token, $oldPath] = $this->userWithExistingAvatar();
+
+        // Valid PNG header (so it passes the `image` rule and getimagesize),
+        // corrupt pixel data (so GD cannot decode it).
+        $file = UploadedFile::fake()->createWithContent('avatar.png', self::pngHeader(64, 64).'garbage');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/avatar', ['avatar' => $file])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('avatar');
+
+        $this->assertSame($oldPath, $user->fresh()->avatar_path);
+        Storage::disk('public')->assertExists($oldPath);
+    }
+
+    public function test_decompression_bomb_is_rejected_before_decoding(): void
+    {
+        [$user, $token, $oldPath] = $this->userWithExistingAvatar();
+
+        // A few hundred bytes declaring 20000×20000 px (~1.6 GB once decoded).
+        $file = UploadedFile::fake()->createWithContent('avatar.png', self::pngHeader(20000, 20000).str_repeat("\0", 64));
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/avatar', ['avatar' => $file])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('avatar');
+
+        $this->assertSame($oldPath, $user->fresh()->avatar_path);
+        Storage::disk('public')->assertExists($oldPath);
+    }
+
+    public function test_successful_replacement_deletes_the_previous_avatar(): void
+    {
+        [$user, $token, $oldPath] = $this->userWithExistingAvatar();
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/avatar', ['avatar' => UploadedFile::fake()->image('avatar.jpg', 100, 100)])
+            ->assertOk();
+
+        $newPath = $user->fresh()->avatar_path;
+        $this->assertNotSame($oldPath, $newPath);
+        Storage::disk('public')->assertExists($newPath);
+        Storage::disk('public')->assertMissing($oldPath);
+    }
+
+    /**
+     * @return array{0: User, 1: string, 2: string}
+     */
+    private function userWithExistingAvatar(): array
+    {
+        SiteSetting::current()->update(['profile_avatar_min_messages' => 0]);
+
+        $oldPath = 'media/users/avatars/old.webp';
+        Storage::disk('public')->put($oldPath, 'old-avatar');
+
+        $user = User::factory()->create([
+            'user_kind' => UserKind::Client,
+            'avatar_path' => $oldPath,
+        ]);
+
+        return [$user, $user->createToken('test')->plainTextToken, $oldPath];
+    }
+
+    private static function pngHeader(int $width, int $height): string
+    {
+        $ihdr = pack('NNCCCCC', $width, $height, 8, 2, 0, 0, 0);
+
+        return "\x89PNG\r\n\x1a\n"
+            .pack('N', strlen($ihdr)).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr));
+    }
 }

@@ -25,6 +25,14 @@ class ImageOptimizer
     ];
 
     /**
+     * Decoded GD images cost ~4 bytes per pixel, so 24 MP is ~96 MB — enough for
+     * a modern phone photo, well short of what a crafted header can claim.
+     */
+    public const MAX_TOTAL_PIXELS = 24_000_000;
+
+    public const MAX_SIDE_PIXELS = 10_000;
+
+    /**
      * Store logo/favicon and other branding assets in their original format (SVG stays SVG).
      */
     public function storeBranding(UploadedFile $file, string $subdirectory): string
@@ -44,10 +52,11 @@ class ImageOptimizer
 
         if ($extension === 'svg') {
             $this->assertSvg($file);
-        } elseif ($extension !== 'ico' && @getimagesize((string) $file->getRealPath()) === false) {
-            // Raster branding is stored verbatim, so confirm it really decodes.
+        } elseif ($extension !== 'ico') {
+            // Raster branding is stored verbatim, so confirm it really decodes —
+            // and is not a decompression bomb every visitor's browser must decode.
             // ICO is excluded because GD cannot read it.
-            throw new RuntimeException('Unsupported or corrupt image file.');
+            $this->assertWithinPixelBudget((string) $file->getRealPath());
         }
 
         return $this->storeRaw($file, $subdirectory, $extension);
@@ -100,13 +109,17 @@ class ImageOptimizer
         $path = $file->getRealPath();
 
         if ($path === false) {
-            throw new RuntimeException('Could not read uploaded image.');
+            throw new InvalidImageException('Could not read uploaded image.');
         }
+
+        // Read the header before GD decodes anything: a small, highly
+        // compressible file can declare enough pixels to exhaust memory.
+        $this->assertWithinPixelBudget($path);
 
         $image = @imagecreatefromstring((string) file_get_contents($path));
 
         if ($image === false) {
-            throw new RuntimeException('Unsupported or corrupt image file.');
+            throw new InvalidImageException('Unsupported or corrupt image file.');
         }
 
         if (! imageistruecolor($image)) {
@@ -117,6 +130,26 @@ class ImageOptimizer
         imagesavealpha($image, true);
 
         return $image;
+    }
+
+    /**
+     * getimagesize() only parses the header, so this is cheap even for a bomb.
+     */
+    private function assertWithinPixelBudget(string $path): void
+    {
+        $size = @getimagesize($path);
+
+        if ($size === false || $size[0] < 1 || $size[1] < 1) {
+            throw new InvalidImageException('Unsupported or corrupt image file.');
+        }
+
+        if (
+            $size[0] > self::MAX_SIDE_PIXELS
+            || $size[1] > self::MAX_SIDE_PIXELS
+            || $size[0] * $size[1] > self::MAX_TOTAL_PIXELS
+        ) {
+            throw new InvalidImageException('Image dimensions are too large.');
+        }
     }
 
     private function resize(\GdImage $image, int $maxWidth, int $maxHeight): \GdImage
@@ -200,16 +233,30 @@ class ImageOptimizer
             throw new RuntimeException('Invalid SVG file.');
         }
 
+        $contents = (string) file_get_contents($path);
+
+        // A DTD can declare internal entities whose replacement text is markup
+        // (<script>, onload=…). XPath never sees inside an unexpanded entity, but
+        // a browser rendering the file does expand it. A logo needs no DTD.
+        if (stripos($contents, '<!DOCTYPE') !== false || stripos($contents, '<!ENTITY') !== false) {
+            throw new RuntimeException('SVG contains a DOCTYPE or entity declaration.');
+        }
+
         $previous = libxml_use_internal_errors(true);
         $document = new \DOMDocument;
         // LIBXML_NONET blocks external entity fetches. LIBXML_NOENT is deliberately
         // NOT passed — it would enable entity substitution (XXE, billion laughs).
-        $parsed = $document->loadXML((string) file_get_contents($path), LIBXML_NONET);
+        $parsed = $document->loadXML($contents, LIBXML_NONET);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
         if (! $parsed || $document->documentElement?->localName !== 'svg') {
             throw new RuntimeException('Invalid SVG file.');
+        }
+
+        // Belt and braces for the textual check above (e.g. odd encodings).
+        if ($document->doctype !== null) {
+            throw new RuntimeException('SVG contains a DOCTYPE or entity declaration.');
         }
 
         $xpath = new \DOMXPath($document);
@@ -221,17 +268,50 @@ class ImageOptimizer
         }
 
         foreach ($xpath->query('//@*') ?: [] as $attribute) {
-            $name = strtolower($attribute->nodeName);
-            $value = strtolower(trim((string) $attribute->nodeValue));
+            $localName = strtolower((string) $attribute->localName);
+            $value = self::normaliseAttributeValue((string) $attribute->nodeValue);
 
-            if (str_starts_with($name, 'on')) {
+            if (str_starts_with($localName, 'on')) {
                 throw new RuntimeException('SVG contains event handlers.');
             }
 
-            if (str_contains($value, 'javascript:') || str_contains($value, 'data:text/html')) {
+            // Links may only point inside the document (gradients, clip paths).
+            // An allow-list, because scheme deny-lists are what got bypassed.
+            if ($localName === 'href' && ! preg_match('/^#[a-z0-9_.:-]*$/', $value)) {
                 throw new RuntimeException('SVG contains disallowed references.');
             }
+
+            if (
+                str_contains($value, 'javascript:')
+                || str_contains($value, 'vbscript:')
+                || str_contains($value, 'data:text/html')
+            ) {
+                throw new RuntimeException('SVG contains disallowed references.');
+            }
+
+            // fill="url(#grad)" is fine; url() to anything else (also inside a
+            // style attribute) fetches or embeds foreign content.
+            if (preg_match_all('/url\(([^)]*)\)/', $value, $urls) > 0) {
+                foreach ($urls[1] as $url) {
+                    if (! str_starts_with(trim($url, '\'"'), '#')) {
+                        throw new RuntimeException('SVG contains disallowed references.');
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Browsers ignore ASCII whitespace and control characters inside a URL
+     * scheme, so `java&#9;script:` runs as `javascript:`. The parser has already
+     * decoded character references into nodeValue; decode any HTML-style ones
+     * left over, then drop everything a browser would ignore before comparing.
+     */
+    private static function normaliseAttributeValue(string $value): string
+    {
+        $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return strtolower((string) preg_replace('/[\x00-\x20\x7F]+/u', '', $decoded));
     }
 
     private function buildPath(string $subdirectory, string $extension = 'webp'): string

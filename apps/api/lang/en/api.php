@@ -50,6 +50,7 @@ return [
 
     'avatar' => [
         'locked' => 'Profile photo upload is locked until you reach the required forum message count.',
+        'invalid' => 'The image could not be read, or its dimensions are too large.',
     ],
 
     'guidance' => [

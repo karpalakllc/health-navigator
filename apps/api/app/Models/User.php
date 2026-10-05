@@ -228,7 +228,17 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             return true;
         }
 
-        return $this->approvedForumPostCount() >= SiteSetting::current()->profile_avatar_min_messages;
+        return $this->approvedForumPostCount() >= self::avatarMinMessages();
+    }
+
+    /**
+     * One source for the threshold so the gate and the meta the UI shows agree.
+     * 0 is a valid setting (Filament allows it) meaning "no requirement" — the
+     * old `?: 10` in the meta reported 10 while the gate let everyone through.
+     */
+    private static function avatarMinMessages(): int
+    {
+        return (int) (SiteSetting::current()->profile_avatar_min_messages ?? 10);
     }
 
     /**
@@ -236,7 +246,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function profileAvatarMeta(): array
     {
-        $required = SiteSetting::current()->profile_avatar_min_messages ?: 10;
+        $required = self::avatarMinMessages();
 
         return [
             'min_messages' => $required,
