@@ -62,6 +62,7 @@ return [
         'invalid_option' => 'Invalid option selected.',
         'invalid_red_flag' => 'Invalid red-flag code.',
         'answer_required' => 'Please answer: :step',
+        'red_flags_required' => 'Please answer the warning-signs question first.',
         'fallback' => [
             'title' => 'General information',
             'body' => 'We could not load detailed guidance. If you are worried about your health, contact a healthcare professional or emergency services (194 / 112).',
