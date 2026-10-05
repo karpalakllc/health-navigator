@@ -17,11 +17,13 @@ class ViewReview extends ViewRecord
     {
         return [
             Action::make('approve')
-                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                    && auth()->user()?->can('update', $record))
                 ->requiresConfirmation()
                 ->action(fn (Review $record) => $record->approve(auth()->user())),
             Action::make('reject')
-                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                    && auth()->user()?->can('update', $record))
                 ->form([
                     Textarea::make('rejection_note')
                         ->label('Rejection note (internal)')
