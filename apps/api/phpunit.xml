@@ -18,6 +18,10 @@
         </include>
     </source>
     <php>
+        <!-- The suite's resident memory grows with every Filament/Livewire render
+             test (~190M for the whole run). PHP's default CLI limit of 128M kills
+             the process partway through with "Premature end of PHP process". -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

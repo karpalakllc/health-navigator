@@ -1,7 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-// Next resolves "server-only" at compile time; plain vitest has no such module.
-vi.mock("server-only", () => ({}));
+import { afterEach, describe, expect, it } from "vitest";
 
 const { clientIpFrom, forwardedForHeaders, webTierHeaders } =
   await import("@/lib/api/client-ip");

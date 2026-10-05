@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Models\User;
-use Database\Seeders\PlatformUserSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SiteSettingsSeeder;
 use Illuminate\Console\Command;
@@ -45,15 +44,16 @@ class PlatformBootstrapCommand extends Command
         $this->info('Seeding site settings and permissions…');
         $this->call('db:seed', ['--class' => SiteSettingsSeeder::class, '--force' => true]);
         $this->call('db:seed', ['--class' => RolesAndPermissionsSeeder::class, '--force' => true]);
-        $this->call('db:seed', ['--class' => PlatformUserSeeder::class, '--force' => true]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $admin = User::query()->where('email', $adminEmail)->first();
 
-        // PlatformUserSeeder deliberately self-skips outside local/testing, so on a
-        // fresh staging or production database nothing above created an admin. Create
-        // it here instead of failing — this command is the documented first-deploy step.
+        // The admin is created here, never by PlatformUserSeeder: that seeder is demo
+        // data (it upserts by email with a fallback password), and running it first
+        // would bypass both the password rule and the refusal to promote a
+        // self-registered account below. Demo moderator/member accounts come from
+        // `--seed-demo` / `db:seed`.
         if ($admin === null) {
             if (blank($adminPassword)) {
                 $this->error("No admin user at {$adminEmail}, and PLATFORM_ADMIN_PASSWORD is not set.");
@@ -69,7 +69,9 @@ class PlatformBootstrapCommand extends Command
                 ['password' => ['required', 'string', Password::defaults()]],
             );
 
-            if ($validator->fails()) {
+            // Local and development keep the documented throwaway credential
+            // (.env.example); everywhere else, including the test suite, the rule holds.
+            if ($validator->fails() && ! app()->environment(['local', 'development'])) {
                 $this->error('PLATFORM_ADMIN_PASSWORD is too weak:');
 
                 foreach ($validator->errors()->all() as $message) {
