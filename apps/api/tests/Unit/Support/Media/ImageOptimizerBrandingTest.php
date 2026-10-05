@@ -245,6 +245,52 @@ class ImageOptimizerBrandingTest extends TestCase
     }
 
     /**
+     * Dropping unused editor declarations used to run a namespace::* query on
+     * every element — seconds for a large logo that never had any. Such a file
+     * now gets no per-element query at all.
+     */
+    public function test_store_branding_skips_namespace_cleanup_on_an_svg_no_editor_touched(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+            .str_repeat('<g/>', 200_000).'</svg>';
+        $file = UploadedFile::fake()->createWithContent('logo.svg', $svg, 'image/svg+xml');
+
+        $optimizer = new class extends ImageOptimizer
+        {
+            public int $perNodeQueries = 0;
+
+            protected function xpath(\DOMDocument $document): \DOMXPath
+            {
+                $count = function (): void {
+                    $this->perNodeQueries++;
+                };
+
+                return new class($document, $count) extends \DOMXPath
+                {
+                    public function __construct(\DOMDocument $document, private \Closure $count)
+                    {
+                        parent::__construct($document);
+                    }
+
+                    public function query(string $expression, ?\DOMNode $contextNode = null, bool $registerNodeNS = true): mixed
+                    {
+                        if ($contextNode !== null) {
+                            ($this->count)();
+                        }
+
+                        return parent::query($expression, $contextNode, $registerNodeNS);
+                    }
+                };
+            }
+        };
+
+        $path = $optimizer->storeBranding($file, 'site/logo');
+
+        Storage::disk('public')->assertExists($path);
+        $this->assertSame(0, $optimizer->perNodeQueries);
+    }
+
+    /**
      * Whatever hides inside a stripped element is gone with it, and anything
      * active on what remains is still refused.
      */

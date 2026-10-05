@@ -381,16 +381,25 @@ class ImageOptimizer
             $inUse[(string) $node->namespaceURI] = true;
         }
 
+        // Only URIs the file still mentions can still be declared: an SVG no
+        // editor touched has none, and skips the per-element namespace::*
+        // queries below, which take seconds on a large file.
+        $serialised = (string) $document->saveXML();
+
         $unused = array_values(array_filter(
             array_merge(self::EDITOR_NAMESPACES, self::METADATA_NAMESPACES),
-            fn (string $uri): bool => ! isset($inUse[$uri]),
+            fn (string $uri): bool => ! isset($inUse[$uri]) && str_contains($serialised, $uri),
         ));
 
-        foreach ($xpath->query('//*') ?: [] as $element) {
-            foreach ($xpath->query('namespace::*', $element) ?: [] as $namespace) {
-                if (in_array($namespace->nodeValue, $unused, true)) {
-                    $element->removeAttributeNS((string) $namespace->nodeValue, (string) $namespace->localName);
-                }
+        if ($unused === []) {
+            return;
+        }
+
+        $isUnused = implode(' or ', array_map(fn (string $uri): string => ". = '{$uri}'", $unused));
+
+        foreach ($xpath->query("//*[namespace::*[{$isUnused}]]") ?: [] as $element) {
+            foreach ($xpath->query("namespace::*[{$isUnused}]", $element) ?: [] as $namespace) {
+                $element->removeAttributeNS((string) $namespace->nodeValue, (string) $namespace->localName);
             }
         }
     }
