@@ -218,6 +218,12 @@ export const mk = {
     topicRequired: "Темата е задолжителна.",
     categoryRequired: "Категоријата е задолжителна.",
     missingToken: "Серверот не врати сесија. Обидете се повторно.",
+    forbiddenOrigin:
+      "Барањето е одбиено бидејќи не потекнува од оваа страница.",
+    unsupportedMediaType: "Неподдржан формат на барањето.",
+    payloadTooLarge: "Барањето е преголемо.",
+    invalidJson: "Барањето не е во валиден формат.",
+    invalidAvatar: "Изберете слика до 5 MB.",
   },
   notFound: {
     title: "Страницата не е пронајдена",

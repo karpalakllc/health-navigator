@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { isSlug, pathSegment } from "@/lib/api/path";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 
 type ModerationPayload = {
@@ -21,9 +23,15 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const body = (await request.json()) as ModerationPayload;
+  const guarded = await guardJson<ModerationPayload>(request);
 
-  if (!body.categorySlug || !body.topicSlug) {
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  if (!isSlug(body.categorySlug) || !isSlug(body.topicSlug)) {
     return NextResponse.json(
       { message: t("errors.topicRequired") },
       { status: 422 },
@@ -32,7 +40,7 @@ export async function PATCH(request: Request) {
 
   const response = await fetch(
     apiUrl(
-      `/forum/categories/${body.categorySlug}/topics/${body.topicSlug}/moderation`,
+      `/forum/categories/${pathSegment(body.categorySlug)}/topics/${pathSegment(body.topicSlug)}/moderation`,
     ),
     {
       method: "PATCH",
