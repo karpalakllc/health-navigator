@@ -132,18 +132,44 @@ class PlatformBootstrapCommandTest extends TestCase
         $this->assertSame(1, User::query()->count());
     }
 
-    public function test_promoting_an_existing_account_verifies_it(): void
+    /**
+     * --promote-existing is the operator vouching for the account's owner, but
+     * an unverified account's password may be anyone's — whoever signed up for
+     * the address first. Promoting it would verify it and hand Administrator to
+     * that password. The operator has to confirm the address (or reset) first.
+     */
+    public function test_it_refuses_to_promote_an_unverified_account_even_when_asked(): void
     {
-        $owner = User::factory()->unverified()->create([
+        $pending = User::factory()->unverified()->create([
             'email' => self::EMAIL,
+            'password' => 'whoever1signedup',
             'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 
-        $this->artisan('platform:bootstrap', ['--promote-existing' => true])->assertSuccessful();
+        $this->artisan('platform:bootstrap', ['--promote-existing' => true])
+            ->expectsOutputToContain('not verified')
+            ->assertFailed();
 
-        // Unverified staff are what a public sign-up could treat as pending.
-        $this->assertNotNull($owner->fresh()->email_verified_at);
+        $pending->refresh();
+        $this->assertNull($pending->email_verified_at);
+        $this->assertSame(UserKind::Client, $pending->user_kind);
+        $this->assertFalse($pending->hasRole('Administrator'));
+    }
+
+    public function test_it_refuses_to_promote_a_contested_account_even_when_asked(): void
+    {
+        $contested = User::factory()->create([
+            'email' => self::EMAIL,
+            'role' => UserRole::Member,
+            'user_kind' => UserKind::Client,
+            'registration_contested_at' => now(),
+        ]);
+
+        $this->artisan('platform:bootstrap', ['--promote-existing' => true])->assertFailed();
+
+        $this->assertFalse($contested->fresh()->hasRole('Administrator'));
+        $this->assertSame(UserKind::Client, $contested->fresh()->user_kind);
     }
 
     public function test_the_demo_seeder_matches_mixed_case_configured_addresses(): void

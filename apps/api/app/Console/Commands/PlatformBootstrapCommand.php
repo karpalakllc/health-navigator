@@ -107,13 +107,24 @@ class PlatformBootstrapCommand extends Command
                 return self::FAILURE;
             }
 
+            // The flag vouches for the account's owner, not for its password. An
+            // unverified (or contested) account's password is whichever sign-up
+            // got there first, and promoting would verify it and make that
+            // password the Administrator's. Proof of the mailbox comes first.
+            if (! $admin->hasVerifiedEmail() || $admin->registration_contested_at !== null) {
+                $this->error("{$adminEmail} is not verified (or its sign-up is contested); refusing to promote it, even with --promote-existing.");
+                $this->line('Confirm the address first: open the verification link sent to it, or complete a password reset from that mailbox. Then re-run.');
+
+                return self::FAILURE;
+            }
+
             $this->warn("Promoting existing account {$adminEmail}; it keeps its current password.");
             $admin->update(['user_kind' => UserKind::Staff]);
         }
 
-        // Staff are verified from creation. An unverified one is what the public
-        // sign-up treats as "pending", and running --promote-existing is the
-        // operator vouching for the address.
+        // Staff are verified from creation; an unverified one is what the public
+        // sign-up treats as "pending". Only an existing staff account can reach
+        // this unverified — a promoted client was refused above unless verified.
         if (! $admin->hasVerifiedEmail()) {
             $admin->markEmailAsVerified();
         }
