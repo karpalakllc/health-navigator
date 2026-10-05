@@ -77,14 +77,17 @@ final class MeilisearchUnifiedSearch
     /**
      * Every constraint here is a Meilisearch filter. A Scout ->query() callback
      * runs only after Meilisearch has paginated, so filtering there leaves pages
-     * short of per_page and the totals out of step with the items shown.
+     * short of per_page — it is used only as a guard that re-checks visibility
+     * in SQL, for index entries left stale by queued syncs or query-builder
+     * updates that bypass the model observers. Scout recounts the total through
+     * the same callback, so totals and last_page match what is shown.
      * Relations and review aggregates are loaded onto the page afterwards.
      *
      * @return LengthAwarePaginator<Doctor>
      */
     private function searchDoctors(string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $search = Doctor::search($q);
+        $search = Doctor::search($q)->query(fn (Builder $query) => $query->published());
 
         if ($city !== null) {
             $cities = $this->matchingCities(Doctor::query()->published(), $city);
@@ -112,7 +115,7 @@ final class MeilisearchUnifiedSearch
      */
     private function searchFacilities(string $q, ?string $city, int $perPage, bool $pharmacies): LengthAwarePaginator
     {
-        $search = Facility::search($q);
+        $search = Facility::search($q)->query(fn (Builder $query) => $query->published());
 
         if ($pharmacies) {
             $search->where('type', FacilityType::Pharmacy->value);
@@ -143,6 +146,7 @@ final class MeilisearchUnifiedSearch
     {
         $paginator = ForumTopic::search($q)
             ->where('category_is_published', true)
+            ->query(fn (Builder $query) => $query->visible())
             ->paginate($perPage);
 
         $paginator->getCollection()->load(['user', 'category']);

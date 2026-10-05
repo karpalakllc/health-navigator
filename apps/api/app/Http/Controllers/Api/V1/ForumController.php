@@ -26,6 +26,7 @@ use App\Support\MeilisearchGateway;
 use App\Support\Slug;
 use App\Support\UgcMailer;
 use App\Support\UniqueSlug;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
@@ -346,8 +347,11 @@ class ForumController extends Controller
 
         if (config('scout.driver') === 'meilisearch') {
             // Filters go to Meilisearch, not into a ->query() callback: a callback
-            // runs after Meilisearch has paginated, so it under-fills pages.
-            $search = ForumTopic::search($q)->where('category_is_published', true);
+            // runs after Meilisearch has paginated, so it under-fills pages. The
+            // visible() callback is only a guard against stale index entries.
+            $search = ForumTopic::search($q)
+                ->where('category_is_published', true)
+                ->query(fn (Builder $query) => $query->visible());
 
             if ($categoryId !== null) {
                 $search->where('forum_category_id', $categoryId);
