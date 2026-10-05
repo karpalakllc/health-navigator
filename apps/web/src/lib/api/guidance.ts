@@ -1,4 +1,8 @@
-import { apiGet } from "@/lib/api/client";
+/*
+ * Browser-side guidance calls, imported by the client wizard. Nothing here may
+ * import lib/api/client.ts (server-only); the server-rendered flow read lives
+ * in lib/api/guidance-flow.ts.
+ */
 import { apiUrl } from "@/lib/config";
 import { pathSegment } from "@/lib/api/path";
 
@@ -37,10 +41,6 @@ export type GuidanceOutcome = {
     href?: string | null;
   }>;
 };
-
-export async function fetchGuidanceFlow(): Promise<GuidanceFlow> {
-  return apiGet<GuidanceFlow>("/triage/flow");
-}
 
 async function parseJson<T>(response: Response): Promise<T> {
   const body = await response.json();
