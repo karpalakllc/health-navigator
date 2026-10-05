@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { scrubEvent, scrubUrl } from "@/lib/sentry-scrub";
+import {
+  isSettingsUnavailable,
+  SettingsUnavailableError,
+} from "@/lib/api/public-settings";
+import { beforeSendFilter, scrubEvent, scrubUrl } from "@/lib/sentry-scrub";
 
 /**
  * A reset link is /reset-password?token=…&email=…, and beforeSend used to filter
@@ -78,5 +82,72 @@ describe("scrubEvent", () => {
 
     expect(hasSecret(event)).toBe(false);
     expect(event.breadcrumbs?.[0].data?.to).toBe("/reset-password/new");
+  });
+});
+
+/**
+ * isModuleOn() throws SettingsUnavailableError on every page view during a
+ * settings outage. settings.ts already reports the outage once a minute; the
+ * per-view errors from onRequestError and the error boundary are noise that
+ * defeats that throttle.
+ */
+describe("beforeSendFilter", () => {
+  it("drops a server event for SettingsUnavailableError", () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: "SettingsUnavailableError",
+            value: "Public settings unavailable; module state unknown",
+          },
+        ],
+      },
+    };
+
+    expect(beforeSendFilter(event)).toBeNull();
+    expect(
+      beforeSendFilter(
+        {},
+        { originalException: new SettingsUnavailableError() },
+      ),
+    ).toBeNull();
+  });
+
+  it("keeps and scrubs every other event", () => {
+    const event = {
+      exception: { values: [{ type: "TypeError", value: "x is undefined" }] },
+      request: { url: RESET_URL },
+    };
+
+    const result = beforeSendFilter(event, {
+      originalException: new TypeError("x is undefined"),
+    });
+
+    expect(result).not.toBeNull();
+    expect(hasSecret(result)).toBe(false);
+  });
+});
+
+describe("isSettingsUnavailable", () => {
+  it("recognises the error as the client boundary receives it in production", () => {
+    // Next masks the message and the name of a server error before it reaches
+    // the client, but keeps a digest the error already carried.
+    const masked = Object.assign(
+      new Error("An error occurred in the Server Components render."),
+      { digest: new SettingsUnavailableError().digest },
+    );
+
+    expect(isSettingsUnavailable(masked)).toBe(true);
+    expect(isSettingsUnavailable(new SettingsUnavailableError())).toBe(true);
+  });
+
+  it("does not match other errors, including other digests", () => {
+    expect(isSettingsUnavailable(new Error("boom"))).toBe(false);
+    expect(
+      isSettingsUnavailable(
+        Object.assign(new Error("masked"), { digest: "123" }),
+      ),
+    ).toBe(false);
+    expect(isSettingsUnavailable(undefined)).toBe(false);
   });
 });

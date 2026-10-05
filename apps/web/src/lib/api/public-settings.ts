@@ -112,16 +112,47 @@ export function resolvePublicSettings(
 export type ModuleFlag =
   "public_guidance" | "public_products" | "public_pharmacies" | "public_forum";
 
+/** Must not start with a prefix Next reserves (NEXT_, BAILOUT_, DYNAMIC_). */
+export const SETTINGS_UNAVAILABLE_DIGEST = "ZDRAVJE_SETTINGS_UNAVAILABLE";
+
 /**
  * Thrown by a page when it cannot tell whether its module is on, so the error
  * boundary renders a "try again" page instead of a 404 or a "switched off"
  * page that a crawler would believe.
  */
 export class SettingsUnavailableError extends Error {
+  /*
+   * In production Next masks a server error's message and name before the
+   * client error boundary sees it, leaving only `digest`. Next keeps a digest
+   * the thrown error already carries instead of hashing a new one
+   * (server/app-render/create-error-handler.js), so a fixed one is how
+   * app/error.tsx can still tell this error apart.
+   */
+  readonly digest = SETTINGS_UNAVAILABLE_DIGEST;
+
   constructor() {
     super("Public settings unavailable; module state unknown");
     this.name = "SettingsUnavailableError";
   }
+}
+
+/**
+ * Whether an error is SettingsUnavailableError: by name where it survives (the
+ * server, development), by digest where Next has masked it (the production
+ * client). The outage itself is reported once a minute by settings.ts, so the
+ * per-page-view error is not reported again.
+ */
+export function isSettingsUnavailable(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const { name, digest } = error as { name?: unknown; digest?: unknown };
+
+  return (
+    name === "SettingsUnavailableError" ||
+    digest === SETTINGS_UNAVAILABLE_DIGEST
+  );
 }
 
 /**

@@ -5,7 +5,7 @@
  * quiet because nothing was being sent, not because nothing was breaking.
  */
 import * as Sentry from "@sentry/nextjs";
-import { scrubEvent } from "@/lib/sentry-scrub";
+import { beforeSendFilter } from "@/lib/sentry-scrub";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -18,6 +18,7 @@ if (dsn) {
     sendDefaultPii: false,
     // Filters credentials from request bodies AND from URLs: the request URL,
     // query string, Referer and navigation/fetch breadcrumbs.
-    beforeSend: (event) => scrubEvent(event),
+    // Also drops the per-view SettingsUnavailableError (see beforeSendFilter).
+    beforeSend: (event, hint) => beforeSendFilter(event, hint),
   });
 }

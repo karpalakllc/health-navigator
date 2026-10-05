@@ -7,6 +7,8 @@
  * fetch breadcrumb. Shared by the browser and server configs.
  */
 
+import { isSettingsUnavailable } from "@/lib/api/public-settings";
+
 const FILTERED = "[Filtered]";
 const SENSITIVE_KEYS = ["password", "password_confirmation", "token", "email"];
 
@@ -131,4 +133,30 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
   }
 
   return event;
+}
+
+type FilterableEvent = ScrubbableEvent & {
+  exception?: { values?: Array<{ type?: string }> };
+};
+
+/**
+ * The `beforeSend` both Sentry configs use: drops the per-page-view
+ * SettingsUnavailableError (onRequestError on the server, the error boundary in
+ * the browser) — settings.ts already reports the outage behind it once a
+ * minute — and scrubs everything else.
+ */
+export function beforeSendFilter<T extends FilterableEvent>(
+  event: T,
+  hint?: { originalException?: unknown },
+): T | null {
+  if (
+    isSettingsUnavailable(hint?.originalException) ||
+    event.exception?.values?.some(
+      (value) => value.type === "SettingsUnavailableError",
+    )
+  ) {
+    return null;
+  }
+
+  return scrubEvent(event);
 }
