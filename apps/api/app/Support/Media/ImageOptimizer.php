@@ -33,6 +33,31 @@ class ImageOptimizer
     private const XSLT_NAMESPACE = 'http://www.w3.org/1999/XSL/Transform';
 
     /**
+     * Editor-state namespaces (Inkscape's default "Inkscape SVG" export). Their
+     * elements and attributes never render and are removed before validation.
+     *
+     * @var list<string>
+     */
+    private const EDITOR_NAMESPACES = [
+        'http://www.inkscape.org/namespaces/inkscape',
+        'http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd',
+    ];
+
+    /**
+     * Licence/authoring vocabularies Inkscape writes inside <metadata>. Only
+     * their now-unused declarations are dropped: <metadata> goes whole, and an
+     * element in one of these namespaces anywhere else is still refused.
+     *
+     * @var list<string>
+     */
+    private const METADATA_NAMESPACES = [
+        'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'http://creativecommons.org/ns#',
+        'http://web.resource.org/cc/',
+        'http://purl.org/dc/elements/1.1/',
+    ];
+
+    /**
      * Decoded GD images cost ~4 bytes per pixel, so 24 MP is ~96 MB — enough for
      * a modern phone photo, well short of what a crafted header can claim.
      */
@@ -59,8 +84,12 @@ class ImageOptimizer
         };
 
         if ($extension === 'svg') {
-            $this->assertSvg($file);
-        } elseif ($extension !== 'ico') {
+            // The cleaned, validated document is what gets stored — never the
+            // uploaded bytes.
+            return $this->storeContents($this->sanitisedSvg($file), $subdirectory, $extension);
+        }
+
+        if ($extension !== 'ico') {
             // Raster branding is stored verbatim, so confirm it really decodes —
             // and is not a decompression bomb every visitor's browser must decode.
             // ICO is excluded because GD cannot read it.
@@ -204,12 +233,18 @@ class ImageOptimizer
 
     private function storeRaw(UploadedFile $file, string $subdirectory, string $extension): string
     {
-        $path = $this->buildPath($subdirectory, $extension);
         $contents = file_get_contents($file->getRealPath());
 
         if ($contents === false) {
             throw new RuntimeException('Could not read uploaded file.');
         }
+
+        return $this->storeContents($contents, $subdirectory, $extension);
+    }
+
+    private function storeContents(string $contents, string $subdirectory, string $extension): string
+    {
+        $path = $this->buildPath($subdirectory, $extension);
 
         Storage::disk(config('media.disk'))->put($path, $contents, [
             'visibility' => 'public',
@@ -219,7 +254,7 @@ class ImageOptimizer
     }
 
     /**
-     * SVG is the one branding format that is executable. It is stored verbatim on a
+     * SVG is the one branding format that is executable. It is stored on a
      * public disk served from the API origin — the same origin as the admin panel —
      * so a script inside one runs there when the file is opened directly.
      *
@@ -228,8 +263,14 @@ class ImageOptimizer
      * parses the document and rejects active content outright rather than trying to
      * sanitise it, which is the safer direction for an upload we do not need to be
      * clever about.
+     *
+     * The one thing removed rather than rejected is editor metadata (see
+     * stripEditorMetadata()), so an Inkscape export uploads as it is. Removal
+     * only ever deletes nodes, and the result is serialised, parsed again and
+     * validated in full: the bytes returned — and stored — are exactly the bytes
+     * that passed validation.
      */
-    private function assertSvg(UploadedFile $file): void
+    private function sanitisedSvg(UploadedFile $file): string
     {
         if ($file->getMimeType() !== 'image/svg+xml') {
             throw new RuntimeException('Invalid SVG file.');
@@ -241,8 +282,22 @@ class ImageOptimizer
             throw new RuntimeException('Invalid SVG file.');
         }
 
-        $contents = (string) file_get_contents($path);
+        $document = $this->parseSvg((string) file_get_contents($path));
+        $this->stripEditorMetadata($document);
 
+        $cleaned = $document->saveXML();
+
+        if ($cleaned === false) {
+            throw new RuntimeException('Invalid SVG file.');
+        }
+
+        $this->assertSvgIsInert($this->parseSvg($cleaned));
+
+        return $cleaned;
+    }
+
+    private function parseSvg(string $contents): \DOMDocument
+    {
         // A DTD can declare internal entities whose replacement text is markup
         // (<script>, onload=…). XPath never sees inside an unexpanded entity, but
         // a browser rendering the file does expand it. A logo needs no DTD.
@@ -267,6 +322,81 @@ class ImageOptimizer
             throw new RuntimeException('SVG contains a DOCTYPE or entity declaration.');
         }
 
+        return $document;
+    }
+
+    /**
+     * Inkscape's default export keeps its editor state in the file: a
+     * sodipodi:namedview element, inkscape:* / sodipodi:* attributes and
+     * elements, and an RDF licence block in <metadata>. None of it renders, so
+     * it is deleted — along with comments — instead of failing the namespace
+     * allow-list. Whatever is nested inside a deleted element goes with it.
+     * Nothing is renamed or rewritten, so this cannot turn an inert node into
+     * an active one; validation still runs on the result.
+     */
+    private function stripEditorMetadata(\DOMDocument $document): void
+    {
+        $xpath = new \DOMXPath($document);
+
+        $doomed = [];
+
+        foreach ($xpath->query('//*') ?: [] as $element) {
+            $isEditorElement = in_array($element->namespaceURI, self::EDITOR_NAMESPACES, true);
+            $isMetadata = $element->localName === 'metadata'
+                && in_array($element->namespaceURI, [null, self::SVG_NAMESPACE], true);
+
+            if ($isEditorElement || $isMetadata) {
+                $doomed[] = $element;
+            }
+        }
+
+        foreach ($xpath->query('//comment()') ?: [] as $comment) {
+            $doomed[] = $comment;
+        }
+
+        foreach ($doomed as $node) {
+            $node->parentNode?->removeChild($node);
+        }
+
+        $attributes = [];
+
+        foreach ($xpath->query('//@*') ?: [] as $attribute) {
+            if (in_array($attribute->namespaceURI, self::EDITOR_NAMESPACES, true)) {
+                $attributes[] = $attribute;
+            }
+        }
+
+        foreach ($attributes as $attribute) {
+            $attribute->ownerElement?->removeAttributeNode($attribute);
+        }
+
+        // Drop the declarations nothing uses any more, so the stored file carries
+        // no trace of the editor. Only unused ones: removing the declaration of a
+        // namespace still in use (rdf:RDF outside <metadata>) would leave libxml
+        // to re-home that element, possibly into the SVG namespace — a rename.
+        // Such an element is left as it is, for the allow-list to refuse.
+        $inUse = [];
+
+        foreach ($xpath->query('//* | //@*') ?: [] as $node) {
+            $inUse[(string) $node->namespaceURI] = true;
+        }
+
+        $unused = array_values(array_filter(
+            array_merge(self::EDITOR_NAMESPACES, self::METADATA_NAMESPACES),
+            fn (string $uri): bool => ! isset($inUse[$uri]),
+        ));
+
+        foreach ($xpath->query('//*') ?: [] as $element) {
+            foreach ($xpath->query('namespace::*', $element) ?: [] as $namespace) {
+                if (in_array($namespace->nodeValue, $unused, true)) {
+                    $element->removeAttributeNS((string) $namespace->nodeValue, (string) $namespace->localName);
+                }
+            }
+        }
+    }
+
+    private function assertSvgIsInert(\DOMDocument $document): void
+    {
         $xpath = new \DOMXPath($document);
 
         // An xml-stylesheet PI with type="text/xsl" makes the browser run an XSLT (one
