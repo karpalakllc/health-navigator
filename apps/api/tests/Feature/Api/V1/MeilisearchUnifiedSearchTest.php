@@ -240,6 +240,48 @@ class MeilisearchUnifiedSearchTest extends TestCase
             ->assertJsonPath('data.doctors.meta.last_page', 2);
     }
 
+    /**
+     * The visibility guard (->query()) makes Scout recount the total with a
+     * second, unpaginated search of up to maxTotalHits hits. Only ids are
+     * needed — for the page and for the recount — so nothing else, forum topic
+     * bodies included, may come back over the wire.
+     */
+    public function test_searches_and_their_recounts_retrieve_ids_only(): void
+    {
+        $category = ForumCategory::factory()->create(['is_published' => true]);
+        foreach (range(1, 3) as $i) {
+            Doctor::factory()->create(['full_name' => "Ana Doctor {$i}"]);
+            Facility::factory()->create(['name' => "Ana Clinic {$i}", 'type' => FacilityType::Clinic]);
+            Facility::factory()->create(['name' => "Ana Pharmacy {$i}", 'type' => FacilityType::Pharmacy]);
+            ForumTopic::factory()->create(['forum_category_id' => $category->id, 'title' => "Ana topic {$i}"]);
+        }
+
+        $this->getJson('/api/v1/search?q=ana&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 3)
+            ->assertJsonPath('data.doctors.data.0.full_name', 'Ana Doctor 1')
+            ->assertJsonPath('data.forum_topics.meta.total', 3);
+        $this->getJson('/api/v1/forum/topics?q=ana&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('data.0.title', 'Ana topic 1');
+
+        $byIndex = collect($this->engine->searches)->groupBy('index');
+
+        // Page + recount for each vertical (two facility verticals, two forum callers).
+        $this->assertCount(2, $byIndex['doctors']);
+        $this->assertCount(4, $byIndex['facilities']);
+        $this->assertCount(4, $byIndex['forum_topics']);
+
+        foreach ($this->engine->searches as $search) {
+            $this->assertSame(
+                ['id'],
+                array_values(array_unique($search['params']['attributesToRetrieve'] ?? ['*'])),
+                "A search on [{$search['index']}] retrieved whole documents.",
+            );
+        }
+    }
+
     public function test_moving_a_topic_indexes_the_new_categorys_visibility(): void
     {
         $published = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'open']);

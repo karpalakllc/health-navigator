@@ -349,7 +349,7 @@ class ForumController extends Controller
             // Filters go to Meilisearch, not into a ->query() callback: a callback
             // runs after Meilisearch has paginated, so it under-fills pages. The
             // visible() callback is only a guard against stale index entries.
-            $search = ForumTopic::search($q)
+            $search = MeilisearchGateway::idsOnly(ForumTopic::search($q))
                 ->where('category_is_published', true)
                 ->query(fn (Builder $query) => $query->visible());
 

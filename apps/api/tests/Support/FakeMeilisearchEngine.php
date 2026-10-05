@@ -99,6 +99,18 @@ class FakeMeilisearchEngine extends MeilisearchEngine
     protected function performSearch(Builder $builder, array $searchParams = [])
     {
         $index = $builder->index ?: $builder->model->searchableAs();
+
+        // As the parent does before its HTTP call: builder ->options() are
+        // merged in, and a restricted attributesToRetrieve always keeps the key.
+        $searchParams = array_merge($builder->options, $searchParams);
+
+        if (array_key_exists('attributesToRetrieve', $searchParams)) {
+            $searchParams['attributesToRetrieve'] = array_merge(
+                [$builder->model->getScoutKeyName()],
+                $searchParams['attributesToRetrieve'],
+            );
+        }
+
         $this->searches[] = ['index' => $index, 'query' => $builder->query, 'params' => $searchParams];
 
         if ($this->failSearchesWith !== null) {
@@ -120,8 +132,16 @@ class FakeMeilisearchEngine extends MeilisearchEngine
         $perPage = (int) ($searchParams['hitsPerPage'] ?? 20);
         $page = (int) ($searchParams['page'] ?? 1);
 
+        $pageHits = array_slice($hits, ($page - 1) * $perPage, $perPage);
+
+        // Meilisearch returns only the listed attributes (and "_" metadata).
+        if (isset($searchParams['attributesToRetrieve'])) {
+            $keep = array_flip($searchParams['attributesToRetrieve']);
+            $pageHits = array_map(fn (array $hit): array => array_intersect_key($hit, $keep), $pageHits);
+        }
+
         return [
-            'hits' => array_slice($hits, ($page - 1) * $perPage, $perPage),
+            'hits' => $pageHits,
             'totalHits' => count($hits),
             'page' => $page,
             'hitsPerPage' => $perPage,
