@@ -9,13 +9,18 @@ use App\Filament\Resources\Pharmacies\Pages\ListPharmacies;
 use App\Filament\Resources\Pharmacies\Schemas\PharmacyForm;
 use App\Filament\Resources\Pharmacies\Tables\PharmaciesTable;
 use App\Models\Facility;
+use App\Models\User;
+use App\Policies\PharmacyPolicy;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class PharmacyResource extends Resource
 {
@@ -25,7 +30,7 @@ class PharmacyResource extends Resource
 
     protected static ?string $navigationLabel = 'Pharmacies';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Directory';
+    protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
     protected static ?int $navigationSort = 25;
 
@@ -59,24 +64,30 @@ class PharmacyResource extends Resource
         ];
     }
 
-    public static function canViewAny(): bool
+    /**
+     * Every Filament ability — page access, row and bulk actions alike — goes
+     * through PharmacyPolicy, so `pharmacies.*` applies rather than the
+     * `facilities.*` the Gate would pick for the shared Facility model. The old
+     * canEdit/canDelete overrides only covered page access; the actions
+     * themselves (including bulk delete) still consulted FacilityPolicy.
+     */
+    public static function getAuthorizationResponse(string|UnitEnum $action, ?Model $record = null): Response
     {
-        return auth()->user()?->can('pharmacies.view') ?? false;
-    }
+        $user = auth()->user();
+        $ability = match (true) {
+            $action instanceof BackedEnum => (string) $action->value,
+            $action instanceof UnitEnum => $action->name,
+            default => $action,
+        };
+        $policy = app(PharmacyPolicy::class);
 
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->can('pharmacies.create') ?? false;
-    }
+        if (! $user instanceof User || ! method_exists($policy, $ability)) {
+            return Response::deny();
+        }
 
-    public static function canEdit($record): bool
-    {
-        return auth()->user()?->can('pharmacies.update') ?? false;
-    }
+        $allowed = $record === null ? $policy->{$ability}($user) : $policy->{$ability}($user, $record);
 
-    public static function canDelete($record): bool
-    {
-        return auth()->user()?->can('pharmacies.delete') ?? false;
+        return $allowed ? Response::allow() : Response::deny();
     }
 
     public static function getEloquentQuery(): Builder

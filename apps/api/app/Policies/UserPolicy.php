@@ -3,9 +3,12 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
 
 class UserPolicy
 {
+    use DeniesUndefinedFilamentAbilities;
+
     public function viewAny(User $user): bool
     {
         return $user->can('staff.view') || $user->can('clients.view');

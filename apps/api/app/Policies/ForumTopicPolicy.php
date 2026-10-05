@@ -5,9 +5,12 @@ namespace App\Policies;
 use App\Enums\UserRole;
 use App\Models\ForumTopic;
 use App\Models\User;
+use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
 
 class ForumTopicPolicy
 {
+    use DeniesUndefinedFilamentAbilities;
+
     public function viewAny(User $user): bool
     {
         return $user->can('forum_topics.view');

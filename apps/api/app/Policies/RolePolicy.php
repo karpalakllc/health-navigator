@@ -3,10 +3,13 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
 use Spatie\Permission\Models\Role;
 
 class RolePolicy
 {
+    use DeniesUndefinedFilamentAbilities;
+
     public function viewAny(User $user): bool
     {
         return $user->can('roles.view');
