@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
+use App\Policies\Support\PrivilegeHierarchy;
 use Spatie\Permission\Models\Role;
 
 class RolePolicy
@@ -27,11 +28,13 @@ class RolePolicy
 
     public function update(User $user, Role $role): bool
     {
-        return $user->can('roles.update');
+        return $user->can('roles.update') && PrivilegeHierarchy::canEditRole($user, $role);
     }
 
     public function delete(User $user, Role $role): bool
     {
-        return $user->can('roles.delete') && $role->name !== 'Administrator';
+        return $user->can('roles.delete')
+            && $role->name !== PrivilegeHierarchy::ADMINISTRATOR_ROLE
+            && PrivilegeHierarchy::canEditRole($user, $role);
     }
 }

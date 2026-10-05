@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
+use App\Policies\Support\PrivilegeHierarchy;
 
 class UserPolicy
 {
@@ -28,15 +29,22 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return $model->isStaff()
+        $permitted = $model->isStaff()
             ? $user->can('staff.update')
             : $user->can('clients.update');
+
+        return $permitted && PrivilegeHierarchy::canManageUser($user, $model);
     }
 
+    /**
+     * Client accounts cannot be deleted here: reviews, forum topics and posts
+     * reference users with restrictOnDelete, so a plain delete fails for any
+     * client who has contributed, and erasure needs anonymisation instead.
+     */
     public function delete(User $user, User $model): bool
     {
         return $model->isStaff()
-            ? $user->can('staff.delete')
-            : false;
+            && $user->can('staff.delete')
+            && PrivilegeHierarchy::canManageUser($user, $model);
     }
 }

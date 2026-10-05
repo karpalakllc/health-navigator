@@ -24,7 +24,10 @@ final class SetPasswordAction
         return Action::make('resetPassword')
             ->label('Set password')
             ->icon('heroicon-o-key')
-            ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+            ->visible(fn (User $record): bool => (auth()->user()?->isAdmin() ?? false)
+                // UserPolicy::update carries the privilege hierarchy: isAdmin() alone
+                // let a settings.update holder reset an Administrator's password.
+                && auth()->user()->can('update', $record))
             ->form([
                 TextInput::make('password')
                     ->password()
