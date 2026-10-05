@@ -14,7 +14,7 @@ namespace App\Support;
  * that very address, and preflight enforced rules CORS itself relaxed.)
  *
  * A plain constant so config files, which load before the environment is
- * detected, can compare env('APP_ENV') against the same list.
+ * detected, can compare the raw APP_ENV value against the same list.
  */
 final class DeploymentEnvironment
 {
