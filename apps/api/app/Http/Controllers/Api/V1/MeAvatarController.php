@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\User;
 use App\Support\Media\ImageOptimizer;
 use App\Support\Media\InvalidImageException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -36,10 +38,16 @@ class MeAvatarController extends Controller
 
         // Store, swap, then delete: the old file goes only once nothing points
         // at it, so a failure at any step leaves the user with a working avatar.
-        $previous = $user->avatar_path;
-
+        // The previous path is read under a row lock, not from the in-memory
+        // user: two concurrent uploads would otherwise both "replace" the same
+        // old file, and the first upload's new file would be orphaned.
         try {
-            $user->update(['avatar_path' => $path]);
+            $previous = DB::transaction(function () use ($user, $path): ?string {
+                $previous = User::query()->whereKey($user->getKey())->lockForUpdate()->value('avatar_path');
+                $user->update(['avatar_path' => $path]);
+
+                return $previous;
+            });
         } catch (Throwable $exception) {
             $optimizer->delete($path);
 
