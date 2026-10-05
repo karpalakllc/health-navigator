@@ -78,7 +78,7 @@ export function TopicForm({ categorySlug }: { categorySlug: string }) {
         />
       </label>
       {error ? <FormError>{error}</FormError> : null}
-      {success ? <FormSuccess>{t("forum.topicSuccess")}</FormSuccess> : null}
+      <FormSuccess>{success ? t("forum.topicSuccess") : null}</FormSuccess>
       <button
         type="submit"
         disabled={pending}

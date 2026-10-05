@@ -102,7 +102,7 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
         />
       </label>
       {error ? <FormError>{error}</FormError> : null}
-      {success ? <FormSuccess>{t("reviews.submitSuccess")}</FormSuccess> : null}
+      <FormSuccess>{success ? t("reviews.submitSuccess") : null}</FormSuccess>
       <button
         type="submit"
         disabled={pending}

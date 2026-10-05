@@ -75,7 +75,7 @@ export function ReplyForm({
         />
       </label>
       {error ? <FormError>{error}</FormError> : null}
-      {success ? <FormSuccess>{t("forum.replySuccess")}</FormSuccess> : null}
+      <FormSuccess>{success ? t("forum.replySuccess") : null}</FormSuccess>
       <button
         type="submit"
         disabled={pending}
