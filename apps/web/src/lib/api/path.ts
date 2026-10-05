@@ -1,3 +1,5 @@
+import { ApiRequestError } from "@/lib/api/errors";
+
 /**
  * Building API paths from values that came from a URL or a request body.
  *
@@ -29,7 +31,9 @@ export function pathSegment(value: string | number): string {
   const raw = String(value);
 
   if (raw === "" || raw === "." || raw === "..") {
-    throw new Error("Invalid API path segment");
+    // A 404, not a 500: detail pages map ApiRequestError 404 to notFound(), and
+    // `/doctors/..` is simply a page that does not exist.
+    throw new ApiRequestError("Invalid API path segment", 404);
   }
 
   return encodeURIComponent(raw);
