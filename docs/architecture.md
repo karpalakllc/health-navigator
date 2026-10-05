@@ -241,7 +241,7 @@ Hosting provider and CI/CD pipelines are intentionally unspecified until `infra/
 | R1 audit | Media URLs resolve through `Storage::disk()->url()`, so `MEDIA_DISK` may point at object storage |
 | R1 audit | CSP is minted per request in `apps/web/src/proxy.ts` with a script nonce; no `unsafe-inline` for scripts in production |
 | R1 audit | CI runs the API suite against both SQLite (fast) and PostgreSQL (fidelity); the two engines order NULLs oppositely, which SQLite-only testing could not surface |
-| Phase 4 | Rate limits: `api-login` (5/min per IP + email), `api-reviews` (10/hour, 20/day per user) |
+| Phase 4 | Rate limits: `api-login` (40/min per IP; plus 5 failed logins/min per email + IP in `AuthController`), `api-reviews` (10/hour, 20/day per user) |
 | Phase 4 | Sanctum `expiration` default 43200 minutes; Meilisearch still deferred |
 | R1 UI | Public web IA: directory in primary nav; **global search** as header affordance (modal / command palette) deep-linking to existing list filters — not a primary nav item; spec: [frontend-ui-transformation.md](./frontend-ui-transformation.md) |
 
