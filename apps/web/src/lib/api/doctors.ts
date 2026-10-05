@@ -1,6 +1,7 @@
 import { apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 import type { DoctorDetail, DoctorListItem } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type DoctorListParams = {
   specialty?: string;
@@ -40,5 +41,5 @@ export async function fetchDoctors(
 }
 
 export async function fetchDoctor(slug: string): Promise<DoctorDetail> {
-  return apiGetServer<DoctorDetail>(`/doctors/${slug}`);
+  return apiGetServer<DoctorDetail>(`/doctors/${pathSegment(slug)}`);
 }

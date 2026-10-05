@@ -1,5 +1,6 @@
 import { apiGetPaginatedServer } from "@/lib/api/server";
 import type { PublicReview } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type ReviewListParams = {
   page?: number;
@@ -28,7 +29,7 @@ export async function fetchDoctorReviews(
   params: ReviewListParams = {},
 ) {
   return apiGetPaginatedServer<PublicReview>(
-    `/doctors/${slug}/reviews${toQuery(params)}`,
+    `/doctors/${pathSegment(slug)}/reviews${toQuery(params)}`,
   );
 }
 
@@ -37,7 +38,7 @@ export async function fetchFacilityReviews(
   params: ReviewListParams = {},
 ) {
   return apiGetPaginatedServer<PublicReview>(
-    `/facilities/${slug}/reviews${toQuery(params)}`,
+    `/facilities/${pathSegment(slug)}/reviews${toQuery(params)}`,
   );
 }
 
@@ -46,6 +47,6 @@ export async function fetchPharmacyReviews(
   params: ReviewListParams = {},
 ) {
   return apiGetPaginatedServer<PublicReview>(
-    `/pharmacies/${slug}/reviews${toQuery(params)}`,
+    `/pharmacies/${pathSegment(slug)}/reviews${toQuery(params)}`,
   );
 }
