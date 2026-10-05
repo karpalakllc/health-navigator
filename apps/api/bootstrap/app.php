@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
+use App\Http\Middleware\TrustWebTierClientIp;
 use App\Http\Responses\ApiResponse;
 use App\Support\FrontendUrl;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -54,6 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
+
+        // The web tier proves itself with a shared secret rather than an address
+        // (its egress IPs are not stable enough for TRUSTED_PROXIES) and hands us
+        // the visitor's address. Appended globally so it runs after TrustProxies,
+        // whose scheme decision it preserves, and before any route throttle.
+        $middleware->append(TrustWebTierClientIp::class);
 
         // Constrain the Host header to APP_URL's domain outside local/testing.
         // This is what stops a request claiming an arbitrary host and having
