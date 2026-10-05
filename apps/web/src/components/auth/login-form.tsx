@@ -10,6 +10,7 @@ import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 export function LoginForm() {
   const router = useRouter();
@@ -94,16 +95,26 @@ export function LoginForm() {
             className={filterInputClassName}
           />
         </label>
-        <label className="grid gap-1.5 text-sm">
-          <span className="flex items-center justify-between gap-2 font-semibold text-foreground">
-            <span>{t("auth.password")}</span>
+        {/*
+          The forgot-password link sits beside the label, not inside it: a link
+          inside a <label> makes the label's accessible name include the link
+          text, and clicking it is ambiguous between focusing and navigating.
+        */}
+        <div className="grid gap-1.5 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor="login-password"
+              className="font-semibold text-foreground"
+            >
+              {t("auth.password")}
+            </label>
             <Link
               href="/forgot-password"
               className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
             >
               {t("auth.forgotPassword")}
             </Link>
-          </span>
+          </div>
           <PasswordInput
             id="login-password"
             name="password"
@@ -112,8 +123,8 @@ export function LoginForm() {
             value={password}
             onChange={setPassword}
           />
-        </label>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        </div>
+        {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
           disabled={pending}

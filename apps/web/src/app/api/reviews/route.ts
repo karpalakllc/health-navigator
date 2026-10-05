@@ -5,7 +5,7 @@ import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { t } from "@/i18n/t";
 
 type ReviewPayload = {
-  kind?: "doctor" | "facility";
+  kind?: "doctor" | "facility" | "pharmacy";
   slug?: string;
   rating?: number;
   body?: string | null;
@@ -23,7 +23,11 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as ReviewPayload;
 
-  if (body.kind !== "doctor" && body.kind !== "facility") {
+  if (
+    body.kind !== "doctor" &&
+    body.kind !== "facility" &&
+    body.kind !== "pharmacy"
+  ) {
     return NextResponse.json(
       { message: t("errors.invalidReviewTarget") },
       { status: 422 },
@@ -40,7 +44,9 @@ export async function POST(request: Request) {
   const path =
     body.kind === "doctor"
       ? `/doctors/${body.slug}/reviews`
-      : `/facilities/${body.slug}/reviews`;
+      : body.kind === "pharmacy"
+        ? `/pharmacies/${body.slug}/reviews`
+        : `/facilities/${body.slug}/reviews`;
 
   const response = await fetch(apiUrl(path), {
     method: "POST",

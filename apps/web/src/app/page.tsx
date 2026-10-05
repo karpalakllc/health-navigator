@@ -18,11 +18,13 @@ import { fetchFacilities } from "@/lib/api/facilities";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
+import { moduleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
   `${t("home.heroTitleLead")} ${t("home.heroTitleAccent")}`.trim(),
   t("home.heroSubtitle"),
+  { path: "/" },
 );
 
 const TOP_RATED_MIN_REVIEWS = 2;
@@ -73,7 +75,7 @@ export default async function Home() {
             >
               {t("home.heroSubtitle")}
             </p>
-            <HomeHeroSearchClient />
+            <HomeHeroSearchClient modules={moduleFlags(settings)} />
           </HeroMeshCard>
 
           <TrustRibbon

@@ -6,7 +6,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories } from "@/lib/api/forum";
-import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import type { Metadata } from "next";
@@ -23,6 +23,13 @@ type NewTopicPageProps = {
 export default async function NewTopicPage({
   searchParams,
 }: NewTopicPageProps) {
+  const settings = await fetchPublicSettings();
+
+  // The forum hub explains that the module is off; there is nothing to compose.
+  if (!settings.public_forum) {
+    redirect("/forum");
+  }
+
   const token = await getSessionToken();
 
   if (!token) {
@@ -35,10 +42,7 @@ export default async function NewTopicPage({
   }
 
   const params = await searchParams;
-  const [categories, settings] = await Promise.all([
-    fetchForumCategories(),
-    fetchPublicSettingsServer(),
-  ]);
+  const categories = await fetchForumCategories();
 
   if (categories.length === 0) {
     redirect("/forum");

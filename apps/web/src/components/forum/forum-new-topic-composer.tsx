@@ -10,6 +10,7 @@ import { ProfileContentCard } from "@/components/design/profile-content-card";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 type ForumNewTopicComposerProps = {
   categories: ForumCategory[];
@@ -165,7 +166,7 @@ export function ForumNewTopicComposer({
 
           {preview ? previewBody : null}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <FormError>{error}</FormError> : null}
 
           <div className="flex flex-wrap gap-3">
             <button

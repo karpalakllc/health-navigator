@@ -4,9 +4,10 @@ import { DirectoryHero } from "@/components/design/directory-hero";
 import { TrustRibbon } from "@/components/design/trust-ribbon";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeroBleed } from "@/components/design/page-hero-bleed";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { t } from "@/i18n/t";
 
-type ComingSoonModule = "products" | "pharmacies";
+type ComingSoonModule = "products" | "pharmacies" | "forum";
 
 type ComingSoonShellProps = {
   title: string;
@@ -14,19 +15,29 @@ type ComingSoonShellProps = {
   module?: ComingSoonModule;
 };
 
-export function ComingSoonShell({
+/**
+ * Stands in for a module the admin has switched off. It answers 200, so every
+ * page that renders it must also mark itself noindex in its metadata — a
+ * placeholder must not be indexed in place of the real page.
+ */
+export async function ComingSoonShell({
   title,
   description,
   module = "products",
 }: ComingSoonShellProps) {
+  const settings = await fetchPublicSettings();
   const body =
     module === "pharmacies"
       ? t("comingSoon.pharmaciesBody")
-      : t("comingSoon.productsBody");
+      : module === "forum"
+        ? t("comingSoon.forumBody")
+        : t("comingSoon.productsBody");
   const moduleTitle =
     module === "pharmacies"
       ? t("comingSoon.pharmaciesTitle")
-      : t("comingSoon.productsTitle");
+      : module === "forum"
+        ? t("comingSoon.forumTitle")
+        : t("comingSoon.productsTitle");
 
   return (
     <>
@@ -68,7 +79,9 @@ export function ComingSoonShell({
             {t("comingSoon.title")}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            {t("comingSoon.body")}
+            {settings.public_forum
+              ? t("comingSoon.body")
+              : t("comingSoon.bodyWithoutForum")}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <QuickLink href="/doctors">
@@ -77,7 +90,11 @@ export function ComingSoonShell({
             <QuickLink href="/facilities">
               {t("comingSoon.exploreFacilities")}
             </QuickLink>
-            <QuickLink href="/forum">{t("comingSoon.exploreForum")}</QuickLink>
+            {settings.public_forum ? (
+              <QuickLink href="/forum">
+                {t("comingSoon.exploreForum")}
+              </QuickLink>
+            ) : null}
           </div>
         </div>
       </PageShell>

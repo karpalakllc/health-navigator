@@ -7,18 +7,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { loginHref } from "@/lib/auth/login-href";
 import { cn } from "@/lib/cn";
+import type { ModuleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
 
 type MobileNavDrawerProps = {
   open: boolean;
   onClose: () => void;
   isLoggedIn: boolean;
+  modules: ModuleFlags;
 };
 
 export function MobileNavDrawer({
   open,
   onClose,
   isLoggedIn,
+  modules,
 }: MobileNavDrawerProps) {
   const pathname = usePathname();
 
@@ -79,7 +82,12 @@ export function MobileNavDrawer({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-3">
-          <SiteNav layout="vertical" className="gap-0.5" onNavigate={onClose} />
+          <SiteNav
+            layout="vertical"
+            className="gap-0.5"
+            onNavigate={onClose}
+            modules={modules}
+          />
         </div>
         {!isLoggedIn ? (
           <div className="border-t border-border p-4">

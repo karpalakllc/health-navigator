@@ -7,17 +7,14 @@ import {
 } from "@/lib/api/reviews";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import { ReviewSummaryBlock } from "@/components/reviews/review-summary";
+import { parseReviewQuery, type ReviewQueryInput } from "@/lib/review-query";
 import { t } from "@/i18n/t";
 
 type ReviewSectionProps = {
   kind: "doctor" | "facility" | "pharmacy";
   slug: string;
   summary: ReviewSummary;
-  searchParams?: {
-    review_page?: string;
-    review_sort?: string;
-    review_rating?: string;
-  };
+  searchParams?: ReviewQueryInput;
 };
 
 export async function ReviewSection({
@@ -27,16 +24,10 @@ export async function ReviewSection({
   searchParams = {},
 }: ReviewSectionProps) {
   const token = await getSessionToken();
-  const page =
-    Number(searchParams.review_page) > 0 ? Number(searchParams.review_page) : 1;
-  const sort = searchParams.review_sort ?? "newest";
-  const rating = searchParams.review_rating ?? "";
-
-  const reviewParams = {
-    page,
-    sort: sort as "newest" | "oldest" | "rating_high" | "rating_low",
-    rating: rating ? Number(rating) : undefined,
-  };
+  // Whitelisted: a hand-edited ?review_rating=9 must not 422 the whole page.
+  const reviewParams = parseReviewQuery(searchParams);
+  const { page, sort } = reviewParams;
+  const rating = reviewParams.rating ? String(reviewParams.rating) : "";
 
   const reviews =
     kind === "doctor"

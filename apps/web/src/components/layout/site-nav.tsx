@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { isPathEnabled, type ModuleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
 
 export const SITE_NAV_LINKS = [
@@ -18,15 +19,21 @@ type SiteNavProps = {
   className?: string;
   onNavigate?: () => void;
   layout?: "horizontal" | "vertical";
+  /** Switched-off modules are left out rather than linking to a dead end. */
+  modules: ModuleFlags;
 };
 
 export function SiteNav({
   className,
   onNavigate,
   layout = "horizontal",
+  modules,
 }: SiteNavProps) {
   const pathname = usePathname();
   const vertical = layout === "vertical";
+  const links = SITE_NAV_LINKS.filter((link) =>
+    isPathEnabled(link.href, modules),
+  );
 
   return (
     <nav
@@ -36,7 +43,7 @@ export function SiteNav({
         className,
       )}
     >
-      {SITE_NAV_LINKS.map((link) => {
+      {links.map((link) => {
         const active =
           pathname === link.href || pathname.startsWith(`${link.href}/`);
         const isForum = link.href === "/forum";

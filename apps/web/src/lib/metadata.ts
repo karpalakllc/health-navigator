@@ -36,7 +36,10 @@ export function pageMetadata(
       title: fullTitle,
       description: summary,
     },
-    // Account pages hold personal data and must never be indexed.
-    robots: options.noIndex ? { index: false, follow: false } : undefined,
+    // Account pages hold personal data and must never be indexed, nor may a
+    // stand-in for a switched-off module. The key is omitted otherwise: Next
+    // merges metadata key by key, so `robots: undefined` here would wipe the
+    // root layout's maintenance-mode noindex.
+    ...(options.noIndex ? { robots: { index: false, follow: false } } : {}),
   };
 }

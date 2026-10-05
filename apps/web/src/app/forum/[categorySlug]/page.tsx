@@ -12,6 +12,7 @@ import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
 import { t, tFormat } from "@/i18n/t";
@@ -25,6 +26,11 @@ export async function generateMetadata({
   params,
 }: CategoryTopicsPageProps): Promise<Metadata> {
   const { categorySlug } = await params;
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_forum) {
+    return pageMetadata(t("forum.title"), undefined, { noIndex: true });
+  }
 
   try {
     const categories = await fetchForumCategories();
@@ -48,6 +54,13 @@ export default async function CategoryTopicsPage({
   params,
   searchParams,
 }: CategoryTopicsPageProps) {
+  const settings = await fetchPublicSettings();
+
+  // Detail pages of a switched-off module do not exist; /forum explains why.
+  if (!settings.public_forum) {
+    notFound();
+  }
+
   const { categorySlug } = await params;
   const query = await searchParams;
   const page = query.page ? Number(query.page) : 1;

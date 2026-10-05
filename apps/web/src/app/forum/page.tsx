@@ -10,6 +10,7 @@ import { ForumHubActions } from "@/components/forum/forum-hub-actions";
 import { ForumHubSearch } from "@/components/forum/forum-hub-search";
 import { ForumRulesBand } from "@/components/forum/forum-rules-band";
 import { ForumSearchTopicCard } from "@/components/forum/forum-search-topic-card";
+import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import {
@@ -17,30 +18,45 @@ import {
   fetchForumRecentTopics,
   fetchForumTopicSearch,
 } from "@/lib/api/forum";
-import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = pageMetadata(
-  t("forum.title"),
-  t("forum.description"),
-);
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("forum.title"), t("forum.description"), {
+    noIndex: !settings.public_forum,
+  });
+}
 
 type ForumPageProps = {
   searchParams: Promise<{ q?: string; category?: string; page?: string }>;
 };
 
 export default async function ForumPage({ searchParams }: ForumPageProps) {
+  const settings = await fetchPublicSettings();
+
+  // Every /forum API route answers 503 while the module is off.
+  if (!settings.public_forum) {
+    return (
+      <ComingSoonShell
+        module="forum"
+        title={t("forum.title")}
+        description={t("comingSoon.forumBody")}
+      />
+    );
+  }
+
   const query = await searchParams;
   const page = query.page ? Number(query.page) : 1;
   const searchQuery = query.q?.trim() ?? "";
   const categoryFilter = query.category?.trim() ?? "";
   const token = await getSessionToken();
 
-  const [categories, settings, recent] = await Promise.all([
+  const [categories, recent] = await Promise.all([
     fetchForumCategories(),
-    fetchPublicSettingsServer(),
     fetchForumRecentTopics(6),
   ]);
 
