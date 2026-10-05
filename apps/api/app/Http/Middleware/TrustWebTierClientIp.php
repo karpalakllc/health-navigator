@@ -46,8 +46,12 @@ class TrustWebTierClientIp
         // unauthenticated caller is plain user input, and the secret must not
         // reach anything that records request headers (exception reporters,
         // request logging).
-        $request->headers->remove(self::AUTH_HEADER);
-        $request->headers->remove(self::CLIENT_IP_HEADER);
+        // The server bag holds its own copy (HTTP_X_WEB_TIER_AUTH, …), which is
+        // what $_SERVER-based reporters read, so both have to go.
+        foreach ([self::AUTH_HEADER, self::CLIENT_IP_HEADER] as $header) {
+            $request->headers->remove($header);
+            $request->server->remove('HTTP_'.strtoupper(str_replace('-', '_', $header)));
+        }
 
         if ($clientIp !== null) {
             $this->resolveTo($request, $clientIp);

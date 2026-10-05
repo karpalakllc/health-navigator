@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\DeploymentEnvironment;
+
 return [
 
     'paths' => ['api/*'],
@@ -10,9 +12,10 @@ return [
     // testing, never in staging or production, where CORS_ALLOWED_ORIGINS must
     // list the real web origins (platform:preflight fails a deploy that allows a
     // localhost origin). Config files load before the environment is detected,
-    // so this reads env() directly rather than app()->environment().
+    // so this reads env() directly rather than app()->environment(); the list
+    // is the shared DeploymentEnvironment::NON_DEPLOYED.
     'allowed_origins' => array_values(array_filter(array_merge(
-        ! in_array(env('APP_ENV'), ['local', 'development', 'testing'], true) ? [] : [
+        ! in_array(env('APP_ENV'), DeploymentEnvironment::NON_DEPLOYED, true) ? [] : [
             'http://localhost:3000',
             'http://127.0.0.1:3000',
         ],

@@ -13,7 +13,6 @@ use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Mail\WelcomeMail;
 use App\Models\User;
-use App\Notifications\VerifyEmailNotification;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
 use App\Support\VerificationMailer;
@@ -153,7 +152,7 @@ class AuthController extends Controller
         $existing = User::query()->where('email', $email)->first();
 
         if ($existing !== null) {
-            $this->notifyExistingAccount($existing, $name, $hashedPassword);
+            $this->notifyExistingAccount($existing);
 
             return $this->registrationAccepted();
         }
@@ -173,7 +172,7 @@ class AuthController extends Controller
             $raced = User::query()->where('email', $email)->first();
 
             if ($raced !== null) {
-                $this->notifyExistingAccount($raced, $name, $hashedPassword);
+                $this->notifyExistingAccount($raced);
             }
 
             return $this->registrationAccepted();
@@ -204,16 +203,10 @@ class AuthController extends Controller
             return redirect()->away(FrontendUrl::to('/verify-email?status=already'));
         }
 
-        // The link only activates the password it was issued for. If the address
-        // was re-registered since, the pending password is a different one and
-        // this link must not activate it (see notifyExistingAccount()). Links
-        // without the parameter predate the binding and are refused the same way;
-        // the landing page offers a fresh one.
-        $credential = $request->query('credential');
+        if ($user->registration_contested_at !== null) {
+            $this->settleContestedRegistration($user);
 
-        if (! is_string($credential)
-            || ! hash_equals(VerifyEmailNotification::credentialFingerprint($user), $credential)) {
-            return redirect()->away(FrontendUrl::to('/verify-email?status=invalid'));
+            return redirect()->away(FrontendUrl::to('/verify-email?status=verified_set_password'));
         }
 
         $user->markEmailAsVerified();
@@ -245,36 +238,28 @@ class AuthController extends Controller
     }
 
     /**
-     * Account pre-hijacking defence. An unverified account belongs to nobody yet:
-     * all it records is that someone, at some point, typed this address. If that
-     * someone was not the owner, keeping their password means the owner's later
-     * sign-up — and their click on the genuine link — activates an account the
-     * other party can sign in to.
+     * A sign-up for an address that already has an account never changes that
+     * account's name or password — whether it is verified or not, client or
+     * staff. The response is the same 202 in every case; only the mail differs.
      *
-     * So the newest registration for an unverified address replaces the pending
-     * name and password, and the verification link is bound to the credential
-     * it was issued for (VerifyEmailNotification::credentialFingerprint()), so a
-     * link mailed before a replacement can no longer activate the account.
+     * An unverified client account gets another verification link (a "you
+     * already have an account" notice is useless to someone who cannot sign in
+     * yet) and is marked contested: two parties have now claimed the address, and
+     * the stored password may belong to either. See settleContestedRegistration()
+     * for how verification resolves that.
      *
-     * Residual risk: someone who re-registers the address *after* the owner does
-     * has their password installed, and a fresh link for it goes to the owner's
-     * inbox. Clicking it would activate the other party's password. The owner
-     * then cannot sign in with their own password and recovers through password
-     * reset, which revokes every token the other party obtained in between
-     * (RevokeApiTokensOnPasswordReset). Closing that fully needs the link to
-     * carry proof of who registered (e.g. a code shown only to the registering
-     * browser), which is a product change rather than a fix.
+     * Staff accounts and accounts holding a role are never "pending" in this
+     * sense — they are created by an administrator, verified from creation, and
+     * nobody signs up for them. They get the account-exists notice like any
+     * verified account, so the public form can neither mail them a link nor
+     * touch their state.
      */
-    private function notifyExistingAccount(User $user, string $name, string $hashedPassword): void
+    private function notifyExistingAccount(User $user): void
     {
-        // Unverified accounts get another verification link rather than a
-        // "you already have an account" message they cannot act on.
-        if (! $user->hasVerifiedEmail()) {
-            // forceFill + the hashed cast: an already-hashed value is stored as is.
-            $user->forceFill([
-                'name' => $name,
-                'password' => $hashedPassword,
-            ])->save();
+        if (! $user->hasVerifiedEmail() && $user->isClient() && ! $user->roles()->exists()) {
+            if ($user->registration_contested_at === null) {
+                $user->forceFill(['registration_contested_at' => now()])->save();
+            }
 
             VerificationMailer::sendVerificationLink($user);
 
@@ -286,6 +271,48 @@ class AuthController extends Controller
         // be metered per address rather than relying on whatever limit happens to
         // sit on the route.
         VerificationMailer::sendAccountExistsNotice($user);
+    }
+
+    /**
+     * Account pre-hijacking defence: verifying a contested registration confirms
+     * the address but does not activate the password stored with it.
+     *
+     * Once two sign-ups have named the same unverified address, the stored
+     * password is whichever one was kept — the first registrant's — and nothing
+     * the server holds says whether that was the mailbox owner. Clicking the link
+     * proves control of the mailbox, not authorship of that password. So the
+     * stored password is replaced with an unusable random one, any tokens are
+     * revoked, and a password-reset link goes to the address: whoever controls
+     * the mailbox ends up choosing the password, regardless of who registered
+     * first or last. Re-registering again cannot invalidate a link the owner
+     * already holds, and cannot bind a link to anyone's password, because links
+     * no longer carry a password at all.
+     *
+     * Residual: someone who registers an address its owner never registers
+     * leaves an uncontested account whose link only the owner receives. Unless
+     * the owner clicks a link for a sign-up they did not make — the mail tells
+     * them to ignore it — the account stays inactive, and the owner can claim it
+     * at any time through password reset.
+     */
+    private function settleContestedRegistration(User $user): void
+    {
+        // forceFill + the hashed cast: an already-hashed value is stored as is.
+        $user->forceFill([
+            'email_verified_at' => $user->freshTimestamp(),
+            'password' => Hash::make(Str::random(64)),
+            'remember_token' => Str::random(60),
+            'registration_contested_at' => null,
+        ])->save();
+
+        $user->revokeApiTokens();
+
+        event(new Verified($user));
+        $this->analytics->record('user.registered', $user);
+
+        // Created directly rather than through Password::sendResetLink(), whose
+        // per-address throttle could silently drop this one — and without it the
+        // owner of a now password-less account has nothing in their inbox.
+        $user->sendPasswordResetNotification(Password::createToken($user));
     }
 
     private function registrationAccepted(): JsonResponse

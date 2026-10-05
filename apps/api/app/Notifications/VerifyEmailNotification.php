@@ -35,26 +35,6 @@ class VerifyEmailNotification extends BaseVerifyEmail implements ShouldQueue
     }
 
     /**
-     * Short, keyed fingerprint of the credential an account currently holds.
-     *
-     * Carried in the signed link so that a link only ever activates the password
-     * it was issued for. An unverified address can be re-registered (the newest
-     * submission replaces the pending password), and without this a link mailed
-     * for the earlier password would activate whichever password is current when
-     * it is clicked. HMAC'd with the app key so the link reveals nothing about the
-     * hash; truncated because it only has to distinguish credentials — the route
-     * signature is what makes the link unforgeable.
-     */
-    public static function credentialFingerprint(User $user): string
-    {
-        return substr(
-            hash_hmac('sha256', (string) $user->getAuthPassword(), (string) Config::get('app.key')),
-            0,
-            16,
-        );
-    }
-
-    /**
      * @param  User  $notifiable
      */
     protected function verificationUrl($notifiable): string
@@ -65,7 +45,6 @@ class VerifyEmailNotification extends BaseVerifyEmail implements ShouldQueue
             [
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
-                'credential' => self::credentialFingerprint($notifiable),
             ],
         );
     }

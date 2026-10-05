@@ -130,7 +130,7 @@ class RegisterTest extends TestCase
             ->assertStatus(202);
 
         // A "you already have an account" mail would be useless here — they cannot
-        // log in yet. (That the pending password is replaced is AccountSecurityTest.)
+        // log in yet. (What a second sign-up does to the pending account is AccountSecurityTest.)
         Notification::assertSentTo($pending, VerifyEmailNotification::class);
         Mail::assertNotQueued(AccountExistsMail::class);
     }
@@ -342,7 +342,6 @@ class RegisterTest extends TestCase
         return URL::temporarySignedRoute('verification.verify', now()->addHour(), [
             'id' => $user->id,
             'hash' => sha1($user->getEmailForVerification()),
-            'credential' => VerifyEmailNotification::credentialFingerprint($user),
         ]);
     }
 }

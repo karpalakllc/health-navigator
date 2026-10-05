@@ -287,6 +287,13 @@ export const mk = {
     verifyUnverified: "Вашата е-адреса сè уште не е потврдена.",
     verifiedTitle: "Е-адресата е потврдена",
     verifiedBody: "Сметката е активна. Сега можете да се најавите.",
+    // A second sign-up named the same address before it was confirmed, so the
+    // password stored with it may not be the owner's. The API confirms the
+    // address and mails a link to choose a password instead of activating it.
+    verifiedSetPasswordTitle: "Е-адресата е потврдена",
+    verifiedSetPasswordBody:
+      "Бидејќи оваа е-адреса беше користена за повеќе од една регистрација, од безбедносни причини ја поништивме внесената лозинка. На е-адресата ви испративме линк за поставување нова лозинка. Ако пораката не стигне за неколку минути, побарајте нов линк подолу.",
+    verifiedSetPasswordLink: "Побарај нов линк за лозинка",
     verifiedAlreadyTitle: "Веќе е потврдена",
     verifiedAlreadyBody:
       "Оваа е-адреса е веќе потврдена. Најавете се за да продолжите.",

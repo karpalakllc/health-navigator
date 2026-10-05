@@ -49,7 +49,7 @@ final class SetPasswordAction
 
                 // An admin reset usually means the account is compromised or handed
                 // over; existing API sessions must not survive it.
-                $record->tokens()->delete();
+                $record->revokeApiTokens();
 
                 Notification::make()
                     ->title('Password updated')

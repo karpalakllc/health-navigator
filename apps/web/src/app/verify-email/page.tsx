@@ -29,17 +29,23 @@ export default async function VerifyEmailPage({
           body: t("auth.verifiedBody"),
           showResend: false,
         }
-      : status === "already"
+      : status === "verified_set_password"
         ? {
-            title: t("auth.verifiedAlreadyTitle"),
-            body: t("auth.verifiedAlreadyBody"),
+            title: t("auth.verifiedSetPasswordTitle"),
+            body: t("auth.verifiedSetPasswordBody"),
             showResend: false,
           }
-        : {
-            title: t("auth.verifiedInvalidTitle"),
-            body: t("auth.verifiedInvalidBody"),
-            showResend: true,
-          };
+        : status === "already"
+          ? {
+              title: t("auth.verifiedAlreadyTitle"),
+              body: t("auth.verifiedAlreadyBody"),
+              showResend: false,
+            }
+          : {
+              title: t("auth.verifiedInvalidTitle"),
+              body: t("auth.verifiedInvalidBody"),
+              showResend: true,
+            };
 
   return (
     <PageShell className="max-w-xl py-16">
@@ -49,6 +55,15 @@ export default async function VerifyEmailPage({
 
         {copy.showResend ? (
           <ResendVerificationForm />
+        ) : status === "verified_set_password" ? (
+          // No password to sign in with yet; this is where a lost reset mail
+          // is re-requested.
+          <Link
+            href="/forgot-password"
+            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {t("auth.verifiedSetPasswordLink")}
+          </Link>
         ) : (
           <Link
             href="/login"

@@ -50,8 +50,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // header reaches the app change the host that URL::temporarySignedRoute()
         // builds from — which would have the platform mail a real user a genuine,
         // correctly-signed verification link pointing at a host they control.
-        // Nothing here needs it; the canonical host comes from config (see
-        // AppServiceProvider::boot, URL::forceRootUrl).
+        // Nothing here needs it. Incoming Host headers are constrained to APP_URL's
+        // domain by trustHosts() below, and queued mail — where verification links
+        // are built — has no request at all, so those links come from APP_URL.
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);

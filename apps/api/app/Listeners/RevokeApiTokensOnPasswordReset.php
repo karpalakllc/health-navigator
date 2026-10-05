@@ -19,7 +19,7 @@ class RevokeApiTokensOnPasswordReset
     public function handle(PasswordReset $event): void
     {
         if ($event->user instanceof User) {
-            $event->user->tokens()->delete();
+            $event->user->revokeApiTokens();
         }
     }
 }
