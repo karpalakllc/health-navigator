@@ -140,14 +140,20 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
+            // Filters must be applied by Meilisearch itself (Scout ->where()),
+            // never in a ->query() callback, which runs after pagination and
+            // under-fills pages. Push changes with `php artisan search:reindex`.
             'doctors' => [
                 'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names'],
+                'filterableAttributes' => ['city'],
             ],
             'facilities' => [
                 'searchableAttributes' => ['name', 'city', 'description', 'type'],
+                'filterableAttributes' => ['city', 'type'],
             ],
             'forum_topics' => [
                 'searchableAttributes' => ['title', 'body', 'category_name'],
+                'filterableAttributes' => ['forum_category_id', 'category_is_published'],
             ],
         ],
     ],

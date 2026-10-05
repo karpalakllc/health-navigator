@@ -2,15 +2,18 @@
 
 namespace App\Support;
 
+use App\Enums\FacilityType;
 use App\Http\Resources\Api\V1\DoctorListResource;
 use App\Http\Resources\Api\V1\FacilityListResource;
 use App\Http\Resources\Api\V1\ForumTopicSearchResource;
+use App\Http\Resources\Api\V1\PharmacyListResource;
 use App\Http\Resources\Api\V1\ProductListResource;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumTopic;
 use App\Models\SiteSetting;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
@@ -19,6 +22,10 @@ final class MeilisearchUnifiedSearch
     public const DEFAULT_PER_VERTICAL = UnifiedSearch::DEFAULT_PER_VERTICAL;
 
     public const MAX_PER_VERTICAL = UnifiedSearch::MAX_PER_VERTICAL;
+
+    public function __construct(
+        private readonly UnifiedSearch $sql,
+    ) {}
 
     /**
      * @return array{
@@ -38,15 +45,16 @@ final class MeilisearchUnifiedSearch
 
         $perPage = min(max(1, $perPage), self::MAX_PER_VERTICAL);
         $settings = SiteSetting::current();
-        $city = $city !== null && $city !== '' ? trim($city) : null;
+        $city = $city !== null && trim($city) !== '' ? trim($city) : null;
 
         $doctors = $this->searchDoctors($q, $city, $perPage);
-        $facilities = $this->searchFacilities($q, $city, $perPage);
+        $facilities = $this->searchFacilities($q, $city, $perPage, pharmacies: false);
         $pharmacies = $settings->public_pharmacies
-            ? $this->emptyPaginator($perPage)
+            ? $this->searchFacilities($q, $city, $perPage, pharmacies: true)
             : $this->emptyPaginator($perPage);
+        // Products have no Meilisearch index; the SQL query is their only source.
         $products = $settings->public_products
-            ? $this->emptyPaginator($perPage)
+            ? $this->sql->searchProducts($q, $perPage)
             : $this->emptyPaginator($perPage);
         $forumTopics = $settings->public_forum
             ? $this->searchForumTopics($q, $perPage)
@@ -55,7 +63,7 @@ final class MeilisearchUnifiedSearch
         return [
             'doctors' => $this->section($doctors, DoctorListResource::class),
             'facilities' => $this->section($facilities, FacilityListResource::class),
-            'pharmacies' => $this->section($pharmacies, FacilityListResource::class),
+            'pharmacies' => $this->section($pharmacies, PharmacyListResource::class),
             'products' => $this->section($products, ProductListResource::class),
             'forum_topics' => $this->section($forumTopics, ForumTopicSearchResource::class),
             'grand_total' => $doctors->total()
@@ -67,36 +75,65 @@ final class MeilisearchUnifiedSearch
     }
 
     /**
+     * Every constraint here is a Meilisearch filter. A Scout ->query() callback
+     * runs only after Meilisearch has paginated, so filtering there leaves pages
+     * short of per_page and the totals out of step with the items shown.
+     * Relations and review aggregates are loaded onto the page afterwards.
+     *
      * @return LengthAwarePaginator<Doctor>
      */
     private function searchDoctors(string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        return Doctor::search($q)
-            ->query(function ($builder) use ($city): void {
-                $builder->published()
-                    ->with(['specialties' => fn ($relation) => $relation->published()]);
+        $search = Doctor::search($q);
 
-                if ($city !== null) {
-                    $builder->cityContains($city);
-                }
-            })
-            ->paginate($perPage);
+        if ($city !== null) {
+            $cities = $this->matchingCities(Doctor::query()->published(), $city);
+
+            if ($cities === []) {
+                return $this->emptyPaginator($perPage);
+            }
+
+            $search->whereIn('city', $cities);
+        }
+
+        $paginator = $search->paginate($perPage);
+
+        $doctors = $paginator->getCollection()->load([
+            'specialties' => fn ($relation) => $relation->published(),
+            'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
+        ]);
+        ReviewSummary::eagerLoadInto($doctors);
+
+        return $paginator;
     }
 
     /**
      * @return LengthAwarePaginator<Facility>
      */
-    private function searchFacilities(string $q, ?string $city, int $perPage): LengthAwarePaginator
+    private function searchFacilities(string $q, ?string $city, int $perPage, bool $pharmacies): LengthAwarePaginator
     {
-        return Facility::search($q)
-            ->query(function ($builder) use ($city): void {
-                $builder->published()->clinical();
+        $search = Facility::search($q);
 
-                if ($city !== null) {
-                    $builder->cityContains($city);
-                }
-            })
-            ->paginate($perPage);
+        if ($pharmacies) {
+            $search->where('type', FacilityType::Pharmacy->value);
+        } else {
+            $search->whereIn('type', FacilityType::clinicalValues());
+        }
+
+        if ($city !== null) {
+            $cities = $this->matchingCities(Facility::query()->published(), $city);
+
+            if ($cities === []) {
+                return $this->emptyPaginator($perPage);
+            }
+
+            $search->whereIn('city', $cities);
+        }
+
+        $paginator = $search->paginate($perPage);
+        ReviewSummary::eagerLoadInto($paginator->getCollection());
+
+        return $paginator;
     }
 
     /**
@@ -104,9 +141,34 @@ final class MeilisearchUnifiedSearch
      */
     private function searchForumTopics(string $q, int $perPage): LengthAwarePaginator
     {
-        return ForumTopic::search($q)
-            ->query(fn ($builder) => $builder->approved()->with(['user', 'category']))
+        $paginator = ForumTopic::search($q)
+            ->where('category_is_published', true)
             ->paginate($perPage);
+
+        $paginator->getCollection()->load(['user', 'category']);
+
+        return $paginator;
+    }
+
+    /**
+     * The SQL path's city filter is a script-insensitive substring match, which
+     * a Meilisearch filter cannot express. Resolving it to the exact stored
+     * values first keeps both paths matching the same rows. Values are escaped
+     * because Scout interpolates them into the filter string verbatim.
+     *
+     * @param  Builder<Doctor>|Builder<Facility>  $query
+     * @return list<string>
+     */
+    private function matchingCities(Builder $query, string $city): array
+    {
+        return $query
+            ->cityContains($city)
+            ->whereNotNull('city')
+            ->distinct()
+            ->pluck('city')
+            ->map(fn (string $value): string => addcslashes($value, '"\\'))
+            ->values()
+            ->all();
     }
 
     /**

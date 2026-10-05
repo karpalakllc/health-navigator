@@ -5,6 +5,8 @@ namespace Tests\Unit\Support\Media;
 use App\Support\Media\ImageOptimizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\TestCase;
 
 class ImageOptimizerBrandingTest extends TestCase
@@ -87,6 +89,81 @@ class ImageOptimizerBrandingTest extends TestCase
         );
 
         $this->expectExceptionMessage('Unsupported or corrupt image file.');
+
+        app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function svgBypassPayloads(): array
+    {
+        $ns = 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"';
+
+        return [
+            // XPath never sees inside an unexpanded entity; a browser expands it.
+            'internal entity carrying a script' => [
+                '<!DOCTYPE svg [<!ENTITY x "<script>alert(1)</script>">]>'
+                ."<svg {$ns}>&x;</svg>",
+            ],
+            'internal entity carrying an event handler' => [
+                '<!DOCTYPE svg [<!ENTITY x "<g onload=\'alert(1)\'/>">]>'
+                ."<svg {$ns}>&x;</svg>",
+            ],
+            'bare doctype' => [
+                '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+                ."<svg {$ns}/>",
+            ],
+            'tab inside the javascript scheme' => [
+                "<svg {$ns}><a href=\"java&#9;script:alert(1)\"><circle r=\"1\"/></a></svg>",
+            ],
+            'newline and case inside the javascript scheme' => [
+                "<svg {$ns}><a xlink:href=\" JaVa&#10;ScRiPt:alert(1)\"><circle r=\"1\"/></a></svg>",
+            ],
+            'external href' => [
+                "<svg {$ns}><a href=\"https://evil.example/\"><circle r=\"1\"/></a></svg>",
+            ],
+            'data uri href' => [
+                "<svg {$ns}><a href=\"data:image/svg+xml;base64,PHN2Zy8+\"><circle r=\"1\"/></a></svg>",
+            ],
+            'external url() in a style attribute' => [
+                "<svg {$ns}><rect style=\"fill:url(https://evil.example/x.svg#a)\"/></svg>",
+            ],
+        ];
+    }
+
+    #[DataProvider('svgBypassPayloads')]
+    public function test_store_branding_rejects_svg_bypass_payloads(string $svg): void
+    {
+        $file = UploadedFile::fake()->createWithContent('logo.svg', $svg, 'image/svg+xml');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/^SVG contains /');
+
+        app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
+    }
+
+    public function test_store_branding_still_accepts_internal_references(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10">'
+            .'<defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs>'
+            .'<rect width="10" height="10" fill="url(#g)"/>'
+            .'<a xlink:href="#g"><circle cx="5" cy="5" r="4"/></a>'
+            .'</svg>';
+        $file = UploadedFile::fake()->createWithContent('logo.svg', $svg, 'image/svg+xml');
+
+        $path = app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
+
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_store_branding_rejects_a_raster_decompression_bomb(): void
+    {
+        $ihdr = pack('NNCCCCC', 20000, 20000, 8, 2, 0, 0, 0);
+        $png = "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr));
+        $file = UploadedFile::fake()->createWithContent('logo.png', $png, 'image/png');
+
+        $this->expectExceptionMessage('Image dimensions are too large.');
 
         app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
     }

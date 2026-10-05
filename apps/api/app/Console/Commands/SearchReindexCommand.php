@@ -12,7 +12,7 @@ class SearchReindexCommand extends Command
 {
     protected $signature = 'search:reindex {--flush : Remove all records from indexes before importing}';
 
-    protected $description = 'Import doctors, clinical facilities, and forum topics into Meilisearch';
+    protected $description = 'Sync index settings and import doctors, facilities, pharmacies, and forum topics into Meilisearch';
 
     public function handle(): int
     {
@@ -27,6 +27,10 @@ class SearchReindexCommand extends Command
             $this->call('scout:flush', ['model' => Facility::class]);
             $this->call('scout:flush', ['model' => ForumTopic::class]);
         }
+
+        // Filterable attributes live in config/scout.php; without syncing them
+        // first, every filtered search is rejected by Meilisearch.
+        $this->call('scout:sync-index-settings');
 
         foreach ([Doctor::class, Facility::class, ForumTopic::class] as $model) {
             $this->call('scout:import', ['model' => $model]);

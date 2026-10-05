@@ -22,12 +22,15 @@ use App\Models\ForumTopic;
 use App\Services\AnalyticsService;
 use App\Support\Forum\ForumContentModeration;
 use App\Support\ForumAuthorCounts;
+use App\Support\MeilisearchGateway;
 use App\Support\Slug;
 use App\Support\UgcMailer;
 use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ForumController extends Controller
 {
@@ -40,7 +43,7 @@ class ForumController extends Controller
         $perPage = min($request->validated()['per_page'] ?? 8, 20);
 
         $paginator = ForumTopic::query()
-            ->approved()
+            ->visible()
             ->with(['user', 'category'])
             ->orderByDesc('last_post_at')
             ->orderByDesc('published_at')
@@ -342,19 +345,31 @@ class ForumController extends Controller
         }
 
         if (config('scout.driver') === 'meilisearch') {
-            return ForumTopic::search($q)
-                ->query(function ($builder) use ($categoryId) {
-                    $builder->approved()->with(['user', 'category']);
+            // Filters go to Meilisearch, not into a ->query() callback: a callback
+            // runs after Meilisearch has paginated, so it under-fills pages.
+            $search = ForumTopic::search($q)->where('category_is_published', true);
 
-                    if ($categoryId !== null) {
-                        $builder->where('forum_category_id', $categoryId);
-                    }
-                })
-                ->paginate($perPage);
+            if ($categoryId !== null) {
+                $search->where('forum_category_id', $categoryId);
+            }
+
+            try {
+                $paginator = $search->paginate($perPage);
+                $paginator->getCollection()->load(['user', 'category']);
+
+                return $paginator;
+            } catch (Throwable $exception) {
+                // e.g. index settings not yet synced, so the filter is rejected.
+                // Same degradation as UnifiedSearchCoordinator: fall back to SQL.
+                MeilisearchGateway::forgetHealthCache();
+                Log::warning('Meilisearch forum search failed; falling back to SQL.', [
+                    'message' => $exception->getMessage(),
+                ]);
+            }
         }
 
         $query = ForumTopic::query()
-            ->approved()
+            ->visible()
             ->with(['user', 'category'])
             ->searchTitle($q);
 

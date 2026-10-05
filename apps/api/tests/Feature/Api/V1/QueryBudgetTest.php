@@ -9,6 +9,7 @@ use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\FakeMeilisearchEngine;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,11 @@ class QueryBudgetTest extends TestCase
 
         Doctor::factory()->count($doctors)->create(['is_published' => true])
             ->each(function (Doctor $doctor) use ($users): void {
+                $doctor->facilities()->attach(
+                    Facility::factory()->create(['is_published' => true])->id,
+                    ['is_primary' => true],
+                );
+
                 foreach ($users as $user) {
                     Review::query()->create([
                         'user_id' => $user->id,
@@ -150,5 +156,46 @@ class QueryBudgetTest extends TestCase
             count($settingsQueries),
             'site_settings was queried '.count($settingsQueries).' times in one request.',
         );
+    }
+
+    /**
+     * Every factory doctor is named "д-р …", so q=д-р hits all of them.
+     */
+    private function assertSearchCostIsFlat(): void
+    {
+        $this->getJson('/api/v1/settings/public')->assertOk();
+
+        $this->seedDoctorsWithReviews(doctors: 2, reviewsEach: 2);
+        $small = $this->captureQueries(
+            fn () => $this->getJson('/api/v1/search?per_page=10&q='.rawurlencode('д-р'))
+                ->assertOk()
+                ->assertJsonCount(2, 'data.doctors.data'),
+        );
+
+        $this->seedDoctorsWithReviews(doctors: 6, reviewsEach: 2);
+        $large = $this->captureQueries(
+            fn () => $this->getJson('/api/v1/search?per_page=10&q='.rawurlencode('д-р'))
+                ->assertOk()
+                ->assertJsonCount(8, 'data.doctors.data'),
+        );
+
+        $this->assertSame(
+            count($small),
+            count($large),
+            'Searching 8 doctors cost '.count($large).' queries vs '.count($small)
+            ." for 2 — something is resolved per row:\n".implode("\n", $large),
+        );
+    }
+
+    public function test_sql_unified_search_cost_does_not_grow_with_the_number_of_results(): void
+    {
+        $this->assertSearchCostIsFlat();
+    }
+
+    public function test_meilisearch_unified_search_cost_does_not_grow_with_the_number_of_results(): void
+    {
+        FakeMeilisearchEngine::install();
+
+        $this->assertSearchCostIsFlat();
     }
 }

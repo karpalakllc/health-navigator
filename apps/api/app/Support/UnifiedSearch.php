@@ -75,7 +75,12 @@ final class UnifiedSearch
     {
         $query = ReviewSummary::eagerLoad(Doctor::query())
             ->published()
-            ->with(['specialties' => fn ($relation) => $relation->published()])
+            ->with([
+                'specialties' => fn ($relation) => $relation->published(),
+                // DoctorListResource reads the primary facility; without this it
+                // lazy-loads once per doctor, unpublished facilities included.
+                'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
+            ])
             ->orderBy('full_name');
 
         if ($city !== null && $city !== '') {
@@ -137,7 +142,7 @@ final class UnifiedSearch
     private function searchForumTopics(?string $q, int $perPage): LengthAwarePaginator
     {
         $query = ForumTopic::query()
-            ->approved()
+            ->visible()
             ->with(['user', 'category'])
             ->orderByDesc('last_post_at')
             ->orderByDesc('published_at');
@@ -150,13 +155,21 @@ final class UnifiedSearch
     }
 
     /**
+     * Public because products have no Meilisearch index: the Meilisearch path
+     * reuses this query rather than returning an always-empty vertical.
+     *
      * @return LengthAwarePaginator<Product>
      */
-    private function searchProducts(?string $q, int $perPage): LengthAwarePaginator
+    public function searchProducts(?string $q, int $perPage): LengthAwarePaginator
     {
         $query = Product::query()
             ->published()
             ->orderBy('name');
+
+        // ProductListResource renders from_price / offer_count; without the
+        // aggregates every search hit reported "no offers".
+        PharmacyCatalog::withFromPrice($query);
+        PharmacyCatalog::withOfferCount($query);
 
         if ($q !== null && $q !== '') {
             $query->searchName($q);
@@ -165,15 +178,6 @@ final class UnifiedSearch
         return $query->paginate($perPage);
     }
 
-    /**
-     * @return array{
-     *     doctors: array{data: array<int, mixed>, meta: array<string, int>},
-     *     facilities: array{data: array<int, mixed>, meta: array<string, int>},
-     *     pharmacies: array{data: array<int, mixed>, meta: array<string, int>},
-     *     products: array{data: array<int, mixed>, meta: array<string, int>},
-     *     grand_total: int
-     * }
-     */
     /**
      * @return LengthAwarePaginator<Model>
      */

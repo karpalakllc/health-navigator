@@ -13,6 +13,7 @@ use App\Services\Triage\TriageSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TriageController extends Controller
@@ -96,6 +97,12 @@ class TriageController extends Controller
 
     private function findSession(string $id, int $flowId): TriageSession
     {
+        // Session ids are UUIDs; anything else is a plain 404 rather than a
+        // driver error (PostgreSQL rejects a malformed uuid literal → 500).
+        if (! Str::isUuid($id)) {
+            abort(404);
+        }
+
         $session = TriageSession::query()->find($id);
 
         if ($session === null || $session->triage_flow_id !== $flowId) {

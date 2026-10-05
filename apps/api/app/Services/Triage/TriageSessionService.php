@@ -97,6 +97,12 @@ class TriageSessionService
             return $this->outcomePayload($flow, $outcomeCode);
         }
 
+        // Fail closed: the red-flag screen is the hard stop in front of the
+        // questionnaire (docs/triage-safety.md). A client that skips it must
+        // not get a non-emergency outcome, so an explicit (possibly empty)
+        // red_flags answer is required before rules are evaluated.
+        $this->assertRedFlagsScreened($session);
+
         $this->assertRequiredStepsAnswered($session, $flow);
 
         $outcomeCode = $this->ruleEvaluator->evaluate($flow, $session->answersMap());
@@ -189,6 +195,15 @@ class TriageSessionService
         }
 
         return true;
+    }
+
+    private function assertRedFlagsScreened(TriageSession $session): void
+    {
+        if ($session->answers->firstWhere('step_key', self::RED_FLAGS_STEP_KEY) === null) {
+            throw ValidationException::withMessages([
+                'session' => [__('api.guidance.red_flags_required')],
+            ]);
+        }
     }
 
     private function assertRequiredStepsAnswered(TriageSession $session, TriageFlow $flow): void
