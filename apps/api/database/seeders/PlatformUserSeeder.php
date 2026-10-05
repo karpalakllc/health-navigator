@@ -21,10 +21,10 @@ class PlatformUserSeeder extends Seeder
         }
 
         User::query()->updateOrCreate(
-            ['email' => env('PLATFORM_ADMIN_EMAIL', 'admin@zdravje360.test')],
+            ['email' => config('zdravje.admin.email')],
             [
                 'name' => 'Platform Admin',
-                'password' => env('PLATFORM_ADMIN_PASSWORD', 'password'),
+                'password' => config('zdravje.admin.password') ?? 'password',
                 'role' => UserRole::Admin,
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
@@ -32,10 +32,10 @@ class PlatformUserSeeder extends Seeder
         );
 
         User::query()->updateOrCreate(
-            ['email' => env('PLATFORM_MODERATOR_EMAIL', 'moderator@zdravje360.test')],
+            ['email' => config('zdravje.seed.moderator.email')],
             [
                 'name' => 'Platform Moderator',
-                'password' => env('PLATFORM_MODERATOR_PASSWORD', 'password'),
+                'password' => config('zdravje.seed.moderator.password'),
                 'role' => UserRole::Moderator,
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
@@ -43,10 +43,10 @@ class PlatformUserSeeder extends Seeder
         );
 
         User::query()->updateOrCreate(
-            ['email' => env('PLATFORM_MEMBER_EMAIL', 'member@zdravje360.test')],
+            ['email' => config('zdravje.seed.member.email')],
             [
                 'name' => 'Test Member',
-                'password' => env('PLATFORM_MEMBER_PASSWORD', 'password'),
+                'password' => config('zdravje.seed.member.password'),
                 'role' => UserRole::Member,
                 'user_kind' => UserKind::Client,
                 'email_verified_at' => now(),
