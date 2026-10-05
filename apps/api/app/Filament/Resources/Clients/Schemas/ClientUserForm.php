@@ -6,6 +6,7 @@ use App\Models\ForumCategory;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Password;
 
 class ClientUserForm
 {
@@ -31,9 +32,13 @@ class ClientUserForm
                 ->preload()
                 ->options(ForumCategory::query()->orderBy('name')->pluck('name', 'id'))
                 ->label('Forum categories (scoped moderation)')
-                ->helperText('Leave empty for full forum moderation when the role allows it.'),
+                ->helperText('Leave empty for full forum moderation when the role allows it.')
+                // Scoping moderation is part of assigning the role, so it needs the same
+                // permission; a hidden field is neither dehydrated nor saved.
+                ->visible(fn (): bool => auth()->user()?->can('clients.assign_roles') ?? false),
             TextInput::make('password')
                 ->password()
+                ->rule(Password::defaults())
                 ->dehydrated(fn (?string $state): bool => filled($state)),
         ]);
     }

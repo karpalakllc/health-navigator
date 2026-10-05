@@ -9,16 +9,36 @@ use Database\Seeders\PlatformUserSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SiteSettingsSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\PermissionRegistrar;
 
 class PlatformBootstrapCommand extends Command
 {
-    protected $signature = 'platform:bootstrap {--seed-demo : Also run full local demo seeders}';
+    protected $signature = 'platform:bootstrap
+        {--seed-demo : Also run full local demo seeders}
+        {--promote-existing : Promote an existing non-staff account at the admin email to Administrator}';
+
+    /**
+     * The address PlatformUserSeeder and .env.example ship with. Anyone can
+     * register it, so it is only acceptable where the seeder itself runs.
+     */
+    private const DEFAULT_ADMIN_EMAIL = 'admin@zdravje360.test';
 
     protected $description = 'Migrate DB, seed site settings + RBAC, and ensure admin can access Filament';
 
     public function handle(): int
     {
+        $adminEmail = (string) config('zdravje.admin.email');
+        $adminPassword = config('zdravje.admin.password');
+
+        if (strcasecmp($adminEmail, self::DEFAULT_ADMIN_EMAIL) === 0 && ! app()->environment(['local', 'testing'])) {
+            $this->error('PLATFORM_ADMIN_EMAIL is still the default '.self::DEFAULT_ADMIN_EMAIL.'.');
+            $this->line('Set it to an address you control before bootstrapping a '.app()->environment().' environment.');
+
+            return self::FAILURE;
+        }
+
         $this->info('Running migrations…');
         $this->call('migrate', ['--force' => true]);
 
@@ -28,9 +48,6 @@ class PlatformBootstrapCommand extends Command
         $this->call('db:seed', ['--class' => PlatformUserSeeder::class, '--force' => true]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        $adminEmail = (string) config('zdravje.admin.email');
-        $adminPassword = config('zdravje.admin.password');
 
         $admin = User::query()->where('email', $adminEmail)->first();
 
@@ -45,6 +62,23 @@ class PlatformBootstrapCommand extends Command
                 return self::FAILURE;
             }
 
+            // The same rule registration and reset use; this is the most
+            // privileged credential on the platform.
+            $validator = Validator::make(
+                ['password' => $adminPassword],
+                ['password' => ['required', 'string', Password::defaults()]],
+            );
+
+            if ($validator->fails()) {
+                $this->error('PLATFORM_ADMIN_PASSWORD is too weak:');
+
+                foreach ($validator->errors()->all() as $message) {
+                    $this->line("  - {$message}");
+                }
+
+                return self::FAILURE;
+            }
+
             $admin = User::query()->create([
                 'name' => 'Platform Admin',
                 'email' => $adminEmail,
@@ -55,9 +89,18 @@ class PlatformBootstrapCommand extends Command
             ]);
 
             $this->components->info("Created admin user {$adminEmail}.");
-        }
+        } elseif ($admin->user_kind !== UserKind::Staff) {
+            // Anyone can self-register this address (verified or not) before the
+            // first deploy. Promoting it silently would hand Administrator, with
+            // the registrant's own password, to whoever got there first.
+            if (! $this->option('promote-existing')) {
+                $this->error("{$adminEmail} belongs to an existing non-staff account; refusing to promote it to Administrator.");
+                $this->line('If you own that account, re-run with --promote-existing. Otherwise set PLATFORM_ADMIN_EMAIL to another address.');
 
-        if ($admin->user_kind !== UserKind::Staff) {
+                return self::FAILURE;
+            }
+
+            $this->warn("Promoting existing account {$adminEmail}; it keeps its current password.");
             $admin->update(['user_kind' => UserKind::Staff]);
         }
 

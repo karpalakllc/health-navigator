@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
 
 class StaffUserResource extends Resource
@@ -55,23 +56,17 @@ class StaffUserResource extends Resource
         ];
     }
 
-    public static function canViewAny(): bool
+    // Only the kind-specific gates live here. Edit and delete go through
+    // UserPolicy, which also enforces the privilege hierarchy — an override of
+    // canEdit()/canDelete() would let page access skip it.
+
+    public static function getViewAnyAuthorizationResponse(): Response
     {
-        return auth()->user()?->can('staff.view') ?? false;
+        return (auth()->user()?->can('staff.view') ?? false) ? Response::allow() : Response::deny();
     }
 
-    public static function canCreate(): bool
+    public static function getCreateAuthorizationResponse(): Response
     {
-        return auth()->user()?->can('staff.create') ?? false;
-    }
-
-    public static function canEdit($record): bool
-    {
-        return auth()->user()?->can('staff.update') ?? false;
-    }
-
-    public static function canDelete($record): bool
-    {
-        return auth()->user()?->can('staff.delete') ?? false;
+        return (auth()->user()?->can('staff.create') ?? false) ? Response::allow() : Response::deny();
     }
 }

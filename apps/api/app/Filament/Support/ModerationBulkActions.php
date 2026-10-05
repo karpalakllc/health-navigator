@@ -111,6 +111,18 @@ final class ModerationBulkActions
     }
 
     /**
+     * The note is not internal: it goes into the rejection email and is returned
+     * to the author by the My* API resources, so the label must say so.
+     */
+    public static function rejectionNoteField(): Textarea
+    {
+        return Textarea::make('rejection_note')
+            ->label('Rejection note (shown to the author, optional)')
+            ->helperText('Sent to the author in the rejection email and shown in their account. Write it in Macedonian.')
+            ->rows(3);
+    }
+
+    /**
      * @param  Closure(Model): void  $approve
      */
     private static function approve(string $label, Closure $approve): BulkAction
@@ -138,9 +150,7 @@ final class ModerationBulkActions
             ->label($label)
             ->requiresConfirmation()
             ->form([
-                Textarea::make('rejection_note')
-                    ->label('Rejection note (internal, optional)')
-                    ->rows(3),
+                self::rejectionNoteField(),
             ])
             ->action(function (EloquentCollection $records, array $data) use ($reject): void {
                 $note = $data['rejection_note'] ?? null;
