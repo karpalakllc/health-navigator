@@ -7,6 +7,7 @@ use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\EmailAddress;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
 use Database\Factories\UserFactory;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,6 +43,20 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'role' => UserRole::class,
             'user_kind' => UserKind::class,
         ];
+    }
+
+    /**
+     * Stored normalised wherever it is set — API, admin panel, seeders — so that
+     * Foo@x and foo@x can never become two accounts. The auth requests normalise
+     * too, because their lookups happen before any model is involved.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null ? null : EmailAddress::normalize($value),
+        );
     }
 
     public function canAccessPanel(Panel $panel): bool
