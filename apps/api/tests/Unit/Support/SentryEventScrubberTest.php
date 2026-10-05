@@ -163,6 +163,8 @@ class SentryEventScrubberTest extends TestCase
             'long base64url secret' => ['key 3q2-7wAbCdEfGhIjKlMnOpQrStUvWxYz0123456789+abc=', 'AbCdEfGhIjKlMnOp'],
             'email address' => ['Mail to jane.doe+x@example.co.uk failed', 'jane.doe'],
             'email after a space-free key' => ['to=jane@example.mk', 'jane@example.mk'],
+            'email in a url path' => ['GET /users/john@example.com 404', 'john@example.com'],
+            'email after a backslash' => ['Unknown user DOMAIN\\jane@example.org', 'jane@example.org'],
         ];
     }
 

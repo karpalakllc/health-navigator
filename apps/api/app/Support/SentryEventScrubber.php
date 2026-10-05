@@ -39,10 +39,10 @@ final class SentryEventScrubber
 
     /** Patterns redacted from free text (exception messages, log messages, breadcrumbs). */
     private const SENSITIVE_TEXT = [
-        // Email addresses. The local part may not continue a path ("/www/x@2x.png",
-        // or a backslash one), and the domain must end in a letters-only label that
-        // is not an image or code file extension ("logo@2x.png").
-        '/(?<![A-Za-z0-9._%+\/\\\\-])[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+(?!(?:png|jpe?g|gif|svg|webp|avif|ico|css|js|php)\b)[A-Za-z]{2,}\b/',
+        // Email addresses, wherever they sit ("/users/jane@example.com" included).
+        // The domain must end in a letters-only label that is the last one and not
+        // a file extension, so "/www/x@2x.png" and "x@cdn.example.org.txt" stay.
+        '/(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+(?!(?:png|jpe?g|gif|svg|webp|avif|ico|css|js|php|txt|log|json)\b)[A-Za-z]{2,}\b(?!\.[A-Za-z0-9])/',
         // bcrypt / argon2 password hashes.
         '/\$2[aby]?\$\d{2}\$[.\/A-Za-z0-9]{53}/',
         '/\$argon2(?:id|i|d)\$[^\s\'"]+/',
