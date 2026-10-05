@@ -336,7 +336,7 @@ class ImageOptimizer
      */
     private function stripEditorMetadata(\DOMDocument $document): void
     {
-        $xpath = new \DOMXPath($document);
+        $xpath = $this->xpath($document);
 
         $doomed = [];
 
@@ -397,7 +397,7 @@ class ImageOptimizer
 
     private function assertSvgIsInert(\DOMDocument $document): void
     {
-        $xpath = new \DOMXPath($document);
+        $xpath = $this->xpath($document);
 
         // An xml-stylesheet PI with type="text/xsl" makes the browser run an XSLT (one
         // can be embedded in the file itself) and render its output, which may
@@ -466,6 +466,15 @@ class ImageOptimizer
                 }
             }
         }
+    }
+
+    /**
+     * Every SVG pass queries through this, so a test can count what a large
+     * file costs.
+     */
+    protected function xpath(\DOMDocument $document): \DOMXPath
+    {
+        return new \DOMXPath($document);
     }
 
     /**
