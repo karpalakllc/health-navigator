@@ -13,6 +13,7 @@ use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
 use App\Support\VerificationMailer;
@@ -41,6 +42,13 @@ class AuthController extends Controller
     private const LOGIN_ATTEMPTS = 5;
 
     private const LOGIN_DECAY_SECONDS = 60;
+
+    /**
+     * Bcrypt hash of a throwaway string, at cost 12 (BCRYPT_ROUNDS in every
+     * deployed environment). Checked against when the address has no account so
+     * that branch costs the same as a wrong password. Matches nothing real.
+     */
+    private const TIMING_EQUALISER_HASH = '$2y$12$kOBD7Q0gtjx9c85wxOWxXOcWCnR2K4svzU66W3Q9G73w0fDy.vwry';
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -77,7 +85,15 @@ class AuthController extends Controller
 
         $user = User::query()->where('email', $request->string('email')->toString())->first();
 
-        if ($user === null || ! Hash::check($request->string('password')->toString(), $user->password)) {
+        // Always pay for one bcrypt verification. Skipping it for unknown
+        // addresses made "no such account" answer measurably faster than "wrong
+        // password", which is an account-existence oracle by timing.
+        $passwordMatches = Hash::check(
+            $request->string('password')->toString(),
+            $user !== null ? $user->password : self::TIMING_EQUALISER_HASH,
+        );
+
+        if ($user === null || ! $passwordMatches) {
             RateLimiter::hit($throttleKey, self::LOGIN_DECAY_SECONDS);
 
             throw ValidationException::withMessages([
@@ -89,7 +105,12 @@ class AuthController extends Controller
 
         // Only reachable with correct credentials, so this cannot be used to probe
         // which addresses exist — the caller already proved they own the account.
+        //
+        // The link is sent from the owner's own mail budget: the public one can be
+        // spent by anyone who knows the address (see VerificationMailer).
         if (! $user->hasVerifiedEmail()) {
+            VerificationMailer::sendVerificationLinkToOwner($user);
+
             return ApiResponse::errorCode('auth.email_unverified', 403);
         }
 
@@ -127,17 +148,19 @@ class AuthController extends Controller
         // Production uses redis (infra/env.production.example).
         $hashedPassword = Hash::make($password);
 
+        $name = $request->string('name')->toString();
+
         $existing = User::query()->where('email', $email)->first();
 
         if ($existing !== null) {
-            $this->notifyExistingAccount($existing);
+            $this->notifyExistingAccount($existing, $name, $hashedPassword);
 
             return $this->registrationAccepted();
         }
 
         try {
             $user = User::query()->create([
-                'name' => $request->string('name')->toString(),
+                'name' => $name,
                 'email' => $email,
                 'password' => $hashedPassword,
                 'role' => UserRole::Member,
@@ -150,7 +173,7 @@ class AuthController extends Controller
             $raced = User::query()->where('email', $email)->first();
 
             if ($raced !== null) {
-                $this->notifyExistingAccount($raced);
+                $this->notifyExistingAccount($raced, $name, $hashedPassword);
             }
 
             return $this->registrationAccepted();
@@ -181,6 +204,18 @@ class AuthController extends Controller
             return redirect()->away(FrontendUrl::to('/verify-email?status=already'));
         }
 
+        // The link only activates the password it was issued for. If the address
+        // was re-registered since, the pending password is a different one and
+        // this link must not activate it (see notifyExistingAccount()). Links
+        // without the parameter predate the binding and are refused the same way;
+        // the landing page offers a fresh one.
+        $credential = $request->query('credential');
+
+        if (! is_string($credential)
+            || ! hash_equals(VerifyEmailNotification::credentialFingerprint($user), $credential)) {
+            return redirect()->away(FrontendUrl::to('/verify-email?status=invalid'));
+        }
+
         $user->markEmailAsVerified();
         event(new Verified($user));
 
@@ -209,11 +244,38 @@ class AuthController extends Controller
         return $this->registrationAccepted();
     }
 
-    private function notifyExistingAccount(User $user): void
+    /**
+     * Account pre-hijacking defence. An unverified account belongs to nobody yet:
+     * all it records is that someone, at some point, typed this address. If that
+     * someone was not the owner, keeping their password means the owner's later
+     * sign-up — and their click on the genuine link — activates an account the
+     * other party can sign in to.
+     *
+     * So the newest registration for an unverified address replaces the pending
+     * name and password, and the verification link is bound to the credential
+     * it was issued for (VerifyEmailNotification::credentialFingerprint()), so a
+     * link mailed before a replacement can no longer activate the account.
+     *
+     * Residual risk: someone who re-registers the address *after* the owner does
+     * has their password installed, and a fresh link for it goes to the owner's
+     * inbox. Clicking it would activate the other party's password. The owner
+     * then cannot sign in with their own password and recovers through password
+     * reset, which revokes every token the other party obtained in between
+     * (RevokeApiTokensOnPasswordReset). Closing that fully needs the link to
+     * carry proof of who registered (e.g. a code shown only to the registering
+     * browser), which is a product change rather than a fix.
+     */
+    private function notifyExistingAccount(User $user, string $name, string $hashedPassword): void
     {
         // Unverified accounts get another verification link rather than a
         // "you already have an account" message they cannot act on.
         if (! $user->hasVerifiedEmail()) {
+            // forceFill + the hashed cast: an already-hashed value is stored as is.
+            $user->forceFill([
+                'name' => $name,
+                'password' => $hashedPassword,
+            ])->save();
+
             VerificationMailer::sendVerificationLink($user);
 
             return;
@@ -238,6 +300,16 @@ class AuthController extends Controller
         $status = Password::sendResetLink(
             $request->only('email'),
         );
+
+        // For a real account the broker bcrypt-hashes the new token before storing
+        // it; for an unknown address (or a throttled one) it returns straight away.
+        // Pay the same hash here so the two do not separate on timing. What remains
+        // is the token row's delete+insert and the queue push for real accounts —
+        // single-digit milliseconds against a ~250ms hash and network jitter, and
+        // not worth faking writes to remove.
+        if ($status === Password::INVALID_USER || $status === Password::RESET_THROTTLED) {
+            Hash::make(Str::random(40));
+        }
 
         // Always answer identically. Reporting "we can't find that email" turned
         // this into an unauthenticated oracle for whether a given person has an

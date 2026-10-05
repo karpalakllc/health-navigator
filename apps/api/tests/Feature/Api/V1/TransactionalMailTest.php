@@ -15,6 +15,7 @@ use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
 use App\Support\FrontendUrl;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,6 +55,7 @@ class TransactionalMailTest extends TestCase
         $this->get(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
             'id' => $user->id,
             'hash' => sha1($user->getEmailForVerification()),
+            'credential' => VerifyEmailNotification::credentialFingerprint($user),
         ]))->assertRedirectContains('status=verified');
 
         Mail::assertQueued(WelcomeMail::class, function (WelcomeMail $mail): bool {
