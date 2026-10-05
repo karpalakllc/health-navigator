@@ -24,6 +24,14 @@ class ImageOptimizer
         'use', 'image', 'style',
     ];
 
+    private const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+    private const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+
+    private const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace';
+
+    private const XSLT_NAMESPACE = 'http://www.w3.org/1999/XSL/Transform';
+
     /**
      * Decoded GD images cost ~4 bytes per pixel, so 24 MP is ~96 MB — enough for
      * a modern phone photo, well short of what a crafted header can claim.
@@ -260,6 +268,35 @@ class ImageOptimizer
         }
 
         $xpath = new \DOMXPath($document);
+
+        // An xml-stylesheet PI with type="text/xsl" makes the browser run an XSLT (one
+        // can be embedded in the file itself) and render its output, which may
+        // contain a <script>. The XML declaration is not a PI node, so a logo
+        // has no reason to carry any.
+        if ($xpath->query('//processing-instruction()')?->length > 0) {
+            throw new RuntimeException('SVG contains processing instructions.');
+        }
+
+        foreach ($xpath->query('//namespace::*') ?: [] as $namespace) {
+            if (rtrim((string) $namespace->nodeValue, '/') === rtrim(self::XSLT_NAMESPACE, '/')) {
+                throw new RuntimeException('SVG contains disallowed namespaces.');
+            }
+        }
+
+        // Namespace allow-list: element and attribute deny-lists only know SVG's
+        // own names, so xsl:element, xhtml:script or XML Events attributes would
+        // slip past them. No namespace is inert and stays allowed.
+        foreach ($xpath->query('//*') ?: [] as $element) {
+            if (! in_array($element->namespaceURI, [null, self::SVG_NAMESPACE], true)) {
+                throw new RuntimeException('SVG contains disallowed namespaces.');
+            }
+        }
+
+        foreach ($xpath->query('//@*') ?: [] as $attribute) {
+            if (! in_array($attribute->namespaceURI, [null, self::XLINK_NAMESPACE, self::XML_NAMESPACE], true)) {
+                throw new RuntimeException('SVG contains disallowed namespaces.');
+            }
+        }
 
         foreach (self::DISALLOWED_SVG_ELEMENTS as $tag) {
             if ($xpath->query('//*[local-name()="'.$tag.'"]')?->length > 0) {
