@@ -59,6 +59,8 @@ return [
     // A class callable rather than a closure, or `config:cache` cannot serialise this file.
     'before_send' => [SentryEventScrubber::class, 'beforeSend'],
     'before_send_transaction' => [SentryEventScrubber::class, 'beforeSendTransaction'],
+    // Log lines become breadcrumbs (breadcrumbs.logs below) carrying their context.
+    'before_breadcrumb' => [SentryEventScrubber::class, 'beforeBreadcrumb'],
 
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#ignore_exceptions
     // 'ignore_exceptions' => [],

@@ -5,7 +5,9 @@ namespace Tests\Unit\Support;
 use App\Support\SentryEventScrubber;
 use Illuminate\Database\QueryException;
 use PDOException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Sentry\Breadcrumb;
 use Sentry\Event;
 use Sentry\EventHint;
 use Sentry\ExceptionDataBag;
@@ -110,5 +112,109 @@ class SentryEventScrubberTest extends TestCase
         $this->assertStringNotContainsString(self::TOKEN, $request['url']);
         $this->assertStringNotContainsString('jane', $request['url']);
         $this->assertSame(SentryEventScrubber::FILTERED, $request['data']['password']);
+    }
+
+    private static function scrubbedMessage(string $message): string
+    {
+        $event = Event::createEvent();
+        $event->setExceptions([new ExceptionDataBag(new RuntimeException($message))]);
+
+        return (string) SentryEventScrubber::beforeSend($event)?->getExceptions()[0]->getValue();
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function harmlessText(): array
+    {
+        return [
+            'canonical uuid' => ['Doctor 9b2f4c1e-7a3d-4e8b-9c0f-1a2b3c4d5e6f not found'],
+            'uppercase uuid' => ['Job 9B2F4C1E-7A3D-4E8B-9C0F-1A2B3C4D5E6F failed'],
+            '40-char commit sha' => ['release 3f786850e387550fdab836ed7e6dc881de23001b deployed'],
+            'migration name' => ['Migrating: 2026_10_07_100001_verify_existing_staff_accounts_and_contest_registrations'],
+            'snake_case key with digits' => ['Missing key triage_step_2_answer_option_3_label_override_v2 in payload'],
+            'retina image path' => ['Unable to read /var/www/storage/app/public/x@2x.png'],
+            'retina image name' => ['Missing asset logo@2x.png'],
+            'windows path' => ['Unable to read C:\\srv\\x@cdn.example.org.txt'],
+        ];
+    }
+
+    #[DataProvider('harmlessText')]
+    public function test_identifiers_that_are_not_secrets_survive(string $message): void
+    {
+        $this->assertSame($message, self::scrubbedMessage($message));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function secretText(): array
+    {
+        $entropy = 'Kq3VbX9mLr2TzW8nYp4HcJ6dFs1GtAe5Ru7Mi0Oa';
+        $sanctum = $entropy.hash('crc32b', $entropy);
+
+        return [
+            'sanctum token with prefix' => ['Bearer 17|z360_'.$sanctum.' rejected', $entropy],
+            'sanctum token without prefix' => ['token 3|'.$sanctum, $entropy],
+            'bare prefixed sanctum secret' => ['secret z360_'.$sanctum.' leaked', $entropy],
+            'bcrypt hash' => ['hash $2y$12$kOBD7Q0gtjx9c85wxOWxXOcWCnR2K4svzU66W3Q9G73w0fDy.vwry', 'kOBD7Q0gtjx9c85'],
+            'argon2id hash' => ['hash $argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG', 'RdescudvJCsgt3ub'],
+            '64-hex reset token' => ['token '.self::TOKEN, self::TOKEN],
+            'long base64url secret' => ['key 3q2-7wAbCdEfGhIjKlMnOpQrStUvWxYz0123456789+abc=', 'AbCdEfGhIjKlMnOp'],
+            'email address' => ['Mail to jane.doe+x@example.co.uk failed', 'jane.doe'],
+            'email after a space-free key' => ['to=jane@example.mk', 'jane@example.mk'],
+        ];
+    }
+
+    #[DataProvider('secretText')]
+    public function test_secrets_in_free_text_are_redacted(string $message, string $secret): void
+    {
+        $scrubbed = self::scrubbedMessage($message);
+
+        $this->assertStringNotContainsString($secret, $scrubbed);
+        $this->assertStringContainsString(SentryEventScrubber::FILTERED, $scrubbed);
+    }
+
+    public function test_breadcrumbs_are_scrubbed_through_a_cacheable_config_callable(): void
+    {
+        $callable = config('sentry.before_breadcrumb');
+
+        $this->assertIsArray($callable, 'A closure would break php artisan config:cache.');
+        $this->assertIsCallable($callable);
+
+        // What sentry-laravel records for Log::warning($message, $context).
+        $breadcrumb = new Breadcrumb(
+            Breadcrumb::LEVEL_WARNING,
+            Breadcrumb::TYPE_DEFAULT,
+            'log.warning',
+            'Search fallback for jane@example.com',
+            [
+                'message' => 'Meilisearch said: no match for '.self::TOKEN,
+                'password' => 'hunter2',
+                'nested' => ['query' => 'reset jane@example.com'],
+                'count' => 3,
+            ],
+        );
+
+        $scrubbed = $callable($breadcrumb);
+
+        $this->assertInstanceOf(Breadcrumb::class, $scrubbed);
+        $this->assertSame('Search fallback for '.SentryEventScrubber::FILTERED, $scrubbed->getMessage());
+        $metadata = $scrubbed->getMetadata();
+        $this->assertSame('Meilisearch said: no match for '.SentryEventScrubber::FILTERED, $metadata['message']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $metadata['password']);
+        $this->assertSame('reset '.SentryEventScrubber::FILTERED, $metadata['nested']['query']);
+        $this->assertSame(3, $metadata['count']);
+    }
+
+    public function test_message_params_are_scrubbed(): void
+    {
+        $event = Event::createEvent();
+        $event->setMessage('Login failed for %s', ['jane@example.com'], 'Login failed for jane@example.com');
+
+        $scrubbed = SentryEventScrubber::beforeSend($event);
+
+        $this->assertSame([SentryEventScrubber::FILTERED], $scrubbed?->getMessageParams());
+        $this->assertSame('Login failed for '.SentryEventScrubber::FILTERED, $scrubbed?->getMessageFormatted());
     }
 }
