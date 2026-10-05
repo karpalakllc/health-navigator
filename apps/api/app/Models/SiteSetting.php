@@ -57,9 +57,11 @@ class SiteSetting extends Model
     public const CACHE_KEY = 'site-settings:current';
 
     /**
-     * Container key for the per-request memo. Deliberately not a class static:
-     * the container is rebuilt per request (and per test), so the memo cannot
-     * outlive the request that populated it.
+     * Container key for the per-request memo. Deliberately not a class static,
+     * and bound with scoped() rather than instance(): Octane and queue workers
+     * reuse one container across requests/jobs and only flush *scoped*
+     * instances between them, so an instance() memo would serve the first
+     * request's settings for the life of the worker.
      */
     private const MEMO_KEY = 'site-settings.memo';
 
@@ -87,20 +89,24 @@ class SiteSetting extends Model
     {
         $container = app();
 
-        if ($container->bound(self::MEMO_KEY)) {
-            return $container->make(self::MEMO_KEY);
+        // The binding is registered once; the resolved model is what gets
+        // forgotten (per request by forgetScopedInstances(), on save by flushCache()).
+        if (! $container->bound(self::MEMO_KEY)) {
+            $container->scoped(self::MEMO_KEY, static fn (): self => static::loadCurrent());
         }
 
+        return $container->make(self::MEMO_KEY);
+    }
+
+    private static function loadCurrent(): self
+    {
         $attributes = Cache::remember(
             self::CACHE_KEY,
             now()->addSeconds(60),
             static fn (): array => static::resolveRow()->fresh()->getRawOriginal(),
         );
 
-        $settings = (new static)->newFromBuilder($attributes);
-        $container->instance(self::MEMO_KEY, $settings);
-
-        return $settings;
+        return (new static)->newFromBuilder($attributes);
     }
 
     private static function resolveRow(): self
