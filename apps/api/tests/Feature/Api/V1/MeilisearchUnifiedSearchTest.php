@@ -108,7 +108,7 @@ class MeilisearchUnifiedSearchTest extends TestCase
     {
         Doctor::factory()->create(['full_name' => 'Ana One', 'city' => 'Битола']);
 
-        $this->getJson('/api/v1/search?q=ana&city=Струга')
+        $this->getJson('/api/v1/search?q=ana&city='.rawurlencode('Струга'))
             ->assertOk()
             ->assertJsonPath('data.doctors.meta.total', 0);
 

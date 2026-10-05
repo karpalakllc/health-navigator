@@ -34,6 +34,7 @@ return [
     // this entry exists so the `validation.failed` code has a translation key.
     'validation' => [
         'failed' => 'Внесените податоци не се валидни.',
+        'invalid_encoding' => 'Вредноста не е валиден UTF-8 текст.',
     ],
 
     'auth' => [

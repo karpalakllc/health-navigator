@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\RejectInvalidUtf8;
 use App\Models\TriageFlow;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
+
+        // Pushed here rather than in bootstrap/app.php: it joins the api group
+        // after SetApiLocale, so its 422 message is already localised.
+        $this->app->make(Router::class)->pushMiddlewareToGroup('api', RejectInvalidUtf8::class);
 
         // Applies to registration and password reset. The breach check is production-only:
         // it calls the Have I Been Pwned range API, fails open on network error, and we do
