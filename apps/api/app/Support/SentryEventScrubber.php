@@ -57,6 +57,9 @@ final class SentryEventScrubber
      */
     private const TOKEN_RUN = '/(?<![A-Za-z0-9+_-])[A-Za-z0-9+_-]{32,}={0,2}(?![A-Za-z0-9+_=-])/';
 
+    /** A word in an identifier: lower case or Capitalised, maybe camel-cased or numbered ("add", "AuthController", "step2"). */
+    private const IDENTIFIER_WORD = '/^(?:[A-Z]?[a-z]{2,})+\d*$/';
+
     private const UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
 
     /** A 40-character hex digest: a git commit or other SHA-1, not a secret we issue. */
@@ -194,20 +197,46 @@ final class SentryEventScrubber
     }
 
     /**
-     * A run containing "_" is an identifier (migration name, snake_case key,
-     * "z360_" token prefix), never a secret as a whole; each of its segments is
-     * judged on its own, so a long secret behind a prefix still goes.
+     * "_" is part of base64url, so a run containing it is judged whole first: a
+     * long one with no identifier-like word in it that mixes upper case, lower
+     * case and digits is a secret. Otherwise it is an identifier (migration
+     * name, snake_case key, "z360_" token prefix) and each segment is judged on
+     * its own, so a long secret behind a prefix still goes.
      */
     private static function scrubRun(string $run): string
     {
-        if (str_contains($run, '_')) {
-            return implode('_', array_map(
-                fn (string $segment): string => self::isLongSecret($segment) ? self::FILTERED : $segment,
-                explode('_', $run),
-            ));
+        if (! str_contains($run, '_')) {
+            return self::isLongSecret($run) ? self::FILTERED : $run;
         }
 
-        return self::isLongSecret($run) ? self::FILTERED : $run;
+        $segments = explode('_', $run);
+
+        if (self::isUnderscoredSecret($run, $segments)) {
+            return self::FILTERED;
+        }
+
+        return implode('_', array_map(
+            fn (string $segment): string => self::isLongSecret($segment) ? self::FILTERED : $segment,
+            $segments,
+        ));
+    }
+
+    /**
+     * @param  list<string>  $segments
+     */
+    private static function isUnderscoredSecret(string $run, array $segments): bool
+    {
+        if (strlen(rtrim($run, '=')) < 32) {
+            return false;
+        }
+
+        foreach ($segments as $segment) {
+            if (preg_match(self::IDENTIFIER_WORD, $segment)) {
+                return false;
+            }
+        }
+
+        return preg_match('/[A-Z]/', $run) === 1 && preg_match('/[a-z]/', $run) === 1 && preg_match('/\d/', $run) === 1;
     }
 
     private static function isLongSecret(string $run): bool

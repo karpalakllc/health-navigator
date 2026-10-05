@@ -136,6 +136,7 @@ class SentryEventScrubberTest extends TestCase
             'retina image path' => ['Unable to read /var/www/storage/app/public/x@2x.png'],
             'retina image name' => ['Missing asset logo@2x.png'],
             'windows path' => ['Unable to read C:\\srv\\x@cdn.example.org.txt'],
+            'pascal case class name' => ['Unresolved App_Http_Controllers_Api_V1_AuthController_2026 binding'],
         ];
     }
 
@@ -165,6 +166,8 @@ class SentryEventScrubberTest extends TestCase
             'email after a space-free key' => ['to=jane@example.mk', 'jane@example.mk'],
             'email in a url path' => ['GET /users/john@example.com 404', 'john@example.com'],
             'email after a backslash' => ['Unknown user DOMAIN\\jane@example.org', 'jane@example.org'],
+            'base64url secret split by "_"' => ['key PdEa9xQ2mK7vLr4TzW8nYpB_8H9JcF6dSs1GtAe5Ru7 rejected', '8H9JcF6dSs1GtAe5Ru7'],
+            'base64url secret with two "_"' => ['key Xa9_kQ2mK7vLr4TzW8nYp-H9JcF6d_Ss1GtAe5Ru7Mi0 rejected', 'kQ2mK7vLr4TzW8nYp'],
         ];
     }
 
