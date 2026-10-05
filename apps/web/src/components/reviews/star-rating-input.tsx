@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { t, tFormat } from "@/i18n/t";
+import { t } from "@/i18n/t";
+import { starRatingLabel } from "@/lib/rating";
 
 type StarRatingInputProps = {
   /** null until the visitor picks a rating — there is no default. */
@@ -92,9 +93,7 @@ export function StarRatingInput({
                 ? "text-amber-500"
                 : "text-zinc-300 hover:text-amber-300"
             } disabled:cursor-not-allowed disabled:opacity-60`}
-            aria-label={tFormat("reviews.ratingStarLabel", {
-              stars: String(star),
-            })}
+            aria-label={starRatingLabel(star)}
           >
             <span aria-hidden>★</span>
           </button>
