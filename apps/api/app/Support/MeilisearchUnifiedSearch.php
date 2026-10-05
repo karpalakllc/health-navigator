@@ -157,8 +157,10 @@ final class MeilisearchUnifiedSearch
     /**
      * The SQL path's city filter is a script-insensitive substring match, which
      * a Meilisearch filter cannot express. Resolving it to the exact stored
-     * values first keeps both paths matching the same rows. Values are escaped
-     * because Scout interpolates them into the filter string verbatim.
+     * values first keeps both paths matching the same rows. Scout interpolates
+     * values into the filter string verbatim, so quotes are escaped; the filter
+     * parser unescapes only \" and keeps any other backslash literally, so a
+     * value containing one cannot be expressed exactly and is left out.
      *
      * @param  Builder<Doctor>|Builder<Facility>  $query
      * @return list<string>
@@ -170,7 +172,8 @@ final class MeilisearchUnifiedSearch
             ->whereNotNull('city')
             ->distinct()
             ->pluck('city')
-            ->map(fn (string $value): string => addcslashes($value, '"\\'))
+            ->reject(fn (string $value): bool => str_contains($value, '\\'))
+            ->map(fn (string $value): string => str_replace('"', '\\"', $value))
             ->values()
             ->all();
     }

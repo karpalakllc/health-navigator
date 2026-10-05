@@ -181,9 +181,13 @@ class ForumTopic extends Model
         return $this->category;
     }
 
+    /**
+     * Prefixed like Scout's default, so SCOUT_PREFIX moves the data and the
+     * index settings (config/scout.php) to the same index.
+     */
     public function searchableAs(): string
     {
-        return 'forum_topics';
+        return config('scout.prefix').'forum_topics';
     }
 
     public function excerpt(int $length = 160): string

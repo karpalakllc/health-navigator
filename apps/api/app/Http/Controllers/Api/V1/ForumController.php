@@ -369,6 +369,9 @@ class ForumController extends Controller
                 Log::warning('Meilisearch forum search failed; falling back to SQL.', [
                     'message' => $exception->getMessage(),
                 ]);
+                // Reported too: a log line alone hides a broken production index
+                // behind a silently slower, less relevant SQL search.
+                report($exception);
             }
         }
 

@@ -272,4 +272,20 @@ class MeilisearchUnifiedSearchTest extends TestCase
             "Categories were loaded once per topic:\n".$queries->implode("\n"),
         );
     }
+
+    public function test_city_values_are_escaped_the_way_the_meilisearch_filter_parser_unescapes(): void
+    {
+        Doctor::factory()->create(['full_name' => 'Ana Quoted', 'city' => 'Скопје "Центар"']);
+        Doctor::factory()->create(['full_name' => 'Ana Slashed', 'city' => 'Скопје \\ Аеродром']);
+
+        $this->getJson('/api/v1/search?q=ana&city='.rawurlencode('Скопје'))
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 1)
+            ->assertJsonPath('data.doctors.data.0.full_name', 'Ana Quoted');
+
+        $this->assertSame(
+            'city IN ["Скопје \\"Центар\\""]',
+            $this->engine->lastSearch('doctors')['params']['filter'] ?? null,
+        );
+    }
 }
