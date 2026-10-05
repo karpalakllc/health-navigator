@@ -171,3 +171,26 @@ export function shouldAbortSitemap(
 ): boolean {
   return settings.degraded && phase !== PHASE_PRODUCTION_BUILD;
 }
+
+/** How often one server instance reports a settings outage to Sentry. */
+export const SETTINGS_OUTAGE_REPORT_INTERVAL_MS = 60_000;
+
+/**
+ * A per-instance gate: true at most once per `intervalMs`. Settings are read on
+ * every page view, so an outage would otherwise send one Sentry event per
+ * visitor — burning the quota and burying everything else.
+ */
+export function createReportThrottle(
+  intervalMs: number = SETTINGS_OUTAGE_REPORT_INTERVAL_MS,
+): (now?: number) => boolean {
+  let lastReportedAt: number | null = null;
+
+  return (now = Date.now()) => {
+    if (lastReportedAt !== null && now - lastReportedAt < intervalMs) {
+      return false;
+    }
+
+    lastReportedAt = now;
+    return true;
+  };
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createReportThrottle,
   isModuleOn,
   publicSettingsDefaults,
   resolvePublicSettings,
@@ -119,5 +120,17 @@ describe("shouldAbortSitemap", () => {
     expect(
       shouldAbortSitemap({ degraded: true }, "phase-production-build"),
     ).toBe(false);
+  });
+});
+
+describe("createReportThrottle", () => {
+  it("reports at most once per interval", () => {
+    const shouldReport = createReportThrottle(60_000);
+
+    expect(shouldReport(1_000)).toBe(true);
+    expect(shouldReport(1_001)).toBe(false);
+    expect(shouldReport(60_999)).toBe(false);
+    expect(shouldReport(61_000)).toBe(true);
+    expect(shouldReport(61_500)).toBe(false);
   });
 });
