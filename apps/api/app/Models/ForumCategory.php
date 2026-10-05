@@ -32,7 +32,8 @@ class ForumCategory extends Model
             }
 
             if ($category->is_published) {
-                $category->topics()->searchable();
+                // Eager-load: shouldBeSearchable()/toSearchableArray() read it.
+                $category->topics()->with('category')->searchable();
             } else {
                 $category->topics()->unsearchable();
             }

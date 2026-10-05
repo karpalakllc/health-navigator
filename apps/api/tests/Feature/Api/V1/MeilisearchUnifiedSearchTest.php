@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\FacilityType;
+use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
@@ -12,6 +13,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\FakeMeilisearchEngine;
 use Tests\TestCase;
 
@@ -106,7 +108,7 @@ class MeilisearchUnifiedSearchTest extends TestCase
     {
         Doctor::factory()->create(['full_name' => 'Ana One', 'city' => 'Битола']);
 
-        $this->getJson('/api/v1/search?q=ana&city=Струга')
+        $this->getJson('/api/v1/search?q=ana&city='.rawurlencode('Струга'))
             ->assertOk()
             ->assertJsonPath('data.doctors.meta.total', 0);
 
@@ -174,5 +176,116 @@ class MeilisearchUnifiedSearchTest extends TestCase
 
         $category->update(['is_published' => true]);
         $this->assertArrayHasKey($topic->id, $this->engine->indexes['forum_topics'] ?? []);
+    }
+
+    public function test_stale_index_entries_are_rechecked_against_the_database(): void
+    {
+        // Query-builder updates (and queued Scout syncs that have not run yet)
+        // bypass the model observers, so the index still holds these rows.
+        $category = ForumCategory::factory()->create(['is_published' => true]);
+        $doctor = Doctor::factory()->create(['full_name' => 'Ana Stale Doctor']);
+        Doctor::factory()->create(['full_name' => 'Ana Live Doctor']);
+        $clinic = Facility::factory()->create(['name' => 'Ana Stale Clinic', 'type' => FacilityType::Clinic]);
+        Facility::factory()->create(['name' => 'Ana Live Clinic', 'type' => FacilityType::Clinic]);
+        $pharmacy = Facility::factory()->create(['name' => 'Ana Stale Pharmacy', 'type' => FacilityType::Pharmacy]);
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id, 'title' => 'Ana stale topic']);
+        ForumTopic::factory()->create(['forum_category_id' => $category->id, 'title' => 'Ana live topic']);
+
+        Doctor::query()->whereKey($doctor->id)->update(['is_published' => false]);
+        Facility::query()->whereKey([$clinic->id, $pharmacy->id])->update(['is_published' => false]);
+        ForumTopic::query()->whereKey($topic->id)->update(['status' => ForumContentStatus::Pending]);
+
+        $this->assertArrayHasKey($doctor->id, $this->engine->indexes['doctors']);
+
+        $this->getJson('/api/v1/search?q=ana&per_page=5')
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 1)
+            ->assertJsonPath('data.doctors.data.0.full_name', 'Ana Live Doctor')
+            ->assertJsonPath('data.facilities.meta.total', 1)
+            ->assertJsonPath('data.facilities.data.0.name', 'Ana Live Clinic')
+            ->assertJsonPath('data.pharmacies.meta.total', 0)
+            ->assertJsonPath('data.forum_topics.meta.total', 1)
+            ->assertJsonPath('data.forum_topics.data.0.title', 'Ana live topic')
+            ->assertJsonPath('data.grand_total', 3);
+
+        $this->getJson('/api/v1/forum/topics?q=ana')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.title', 'Ana live topic');
+
+        // The category itself unpublished behind the observers' back.
+        ForumCategory::query()->whereKey($category->id)->update(['is_published' => false]);
+
+        $this->getJson('/api/v1/search?q=ana')
+            ->assertOk()
+            ->assertJsonPath('data.forum_topics.meta.total', 0);
+        $this->getJson('/api/v1/forum/topics?q=ana')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_stale_entries_do_not_leave_totals_out_of_step_across_pages(): void
+    {
+        $stale = collect(range(1, 3))->map(
+            fn (int $i) => Doctor::factory()->create(['full_name' => "Ana Stale {$i}"]),
+        );
+        foreach (range(1, 4) as $i) {
+            Doctor::factory()->create(['full_name' => "Ana Live {$i}"]);
+        }
+        Doctor::query()->whereKey($stale->pluck('id')->all())->update(['is_published' => false]);
+
+        $this->getJson('/api/v1/search?q=ana&per_page=3')
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 4)
+            ->assertJsonPath('data.doctors.meta.last_page', 2);
+    }
+
+    public function test_moving_a_topic_indexes_the_new_categorys_visibility(): void
+    {
+        $published = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'open']);
+        $hidden = ForumCategory::factory()->create(['is_published' => false, 'slug' => 'closed']);
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $published->id, 'title' => 'Ana moved']);
+        $topic->load('category');
+
+        $topic->update(['forum_category_id' => $hidden->id]);
+        $this->assertArrayNotHasKey($topic->id, $this->engine->indexes['forum_topics'] ?? []);
+
+        $other = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'other']);
+        $topic->update(['forum_category_id' => $other->id]);
+        $this->assertSame('other', $this->engine->indexes['forum_topics'][$topic->id]['category_slug'] ?? null);
+    }
+
+    public function test_republishing_a_category_resyncs_its_topics_without_a_query_per_topic(): void
+    {
+        $category = ForumCategory::factory()->create(['is_published' => false]);
+        ForumTopic::factory()->count(5)->create(['forum_category_id' => $category->id]);
+
+        DB::enableQueryLog();
+        $category->update(['is_published' => true]);
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $this->assertCount(5, $this->engine->indexes['forum_topics'] ?? []);
+        $this->assertLessThanOrEqual(
+            1,
+            $queries->filter(fn (string $sql): bool => str_contains($sql, 'from "forum_categories"'))->count(),
+            "Categories were loaded once per topic:\n".$queries->implode("\n"),
+        );
+    }
+
+    public function test_city_values_are_escaped_the_way_the_meilisearch_filter_parser_unescapes(): void
+    {
+        Doctor::factory()->create(['full_name' => 'Ana Quoted', 'city' => 'Скопје "Центар"']);
+        Doctor::factory()->create(['full_name' => 'Ana Slashed', 'city' => 'Скопје \\ Аеродром']);
+
+        $this->getJson('/api/v1/search?q=ana&city='.rawurlencode('Скопје'))
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 1)
+            ->assertJsonPath('data.doctors.data.0.full_name', 'Ana Quoted');
+
+        $this->assertSame(
+            'city IN ["Скопје \\"Центар\\""]',
+            $this->engine->lastSearch('doctors')['params']['filter'] ?? null,
+        );
     }
 }

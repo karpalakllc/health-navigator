@@ -58,6 +58,7 @@ return [
     // in each event, so credentials and email addresses are scrubbed here.
     // A class callable rather than a closure, or `config:cache` cannot serialise this file.
     'before_send' => [SentryEventScrubber::class, 'beforeSend'],
+    'before_send_transaction' => [SentryEventScrubber::class, 'beforeSendTransaction'],
 
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#ignore_exceptions
     // 'ignore_exceptions' => [],

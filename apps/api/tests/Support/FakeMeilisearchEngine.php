@@ -8,6 +8,8 @@ use Laravel\Scout\Builder;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\MeilisearchEngine;
 use Meilisearch\Client;
+use PHPUnit\Framework\Assert;
+use RuntimeException;
 
 /**
  * Scout's real MeilisearchEngine with only the HTTP calls replaced by an
@@ -16,9 +18,11 @@ use Meilisearch\Client;
  * totals — is the production code. The index is fed by the real model
  * observers, so shouldBeSearchable() and toSearchableArray() are exercised too.
  *
- * What it does NOT verify: Meilisearch's own ranking, typo tolerance, or that
- * the server accepts the filter (that needs filterableAttributes synced, see
- * config/scout.php). Matching here is a case-insensitive substring test.
+ * Every filtered field must be listed in the index's filterableAttributes in
+ * config/scout.php, or the real server would reject the search.
+ *
+ * What it does NOT verify: Meilisearch's own ranking or typo tolerance.
+ * Matching here is a case-insensitive substring test.
  */
 class FakeMeilisearchEngine extends MeilisearchEngine
 {
@@ -27,6 +31,13 @@ class FakeMeilisearchEngine extends MeilisearchEngine
 
     /** @var list<array{index: string, query: string, params: array<string, mixed>}> */
     public array $searches = [];
+
+    /** @var array<string, array<string, mixed>> index name => settings pushed by updateIndexSettings() */
+    public array $indexSettings = [];
+
+    public ?string $failIndexSettingsWith = null;
+
+    public ?string $failSearchesWith = null;
 
     public function __construct()
     {
@@ -72,6 +83,15 @@ class FakeMeilisearchEngine extends MeilisearchEngine
         $this->indexes[$model->indexableAs()] = [];
     }
 
+    public function updateIndexSettings($name, array $settings = [])
+    {
+        if ($this->failIndexSettingsWith !== null) {
+            throw new RuntimeException($this->failIndexSettingsWith);
+        }
+
+        $this->indexSettings[$name] = $settings;
+    }
+
     /**
      * @param  array<string, mixed>  $searchParams
      * @return array<string, mixed>
@@ -80,6 +100,12 @@ class FakeMeilisearchEngine extends MeilisearchEngine
     {
         $index = $builder->index ?: $builder->model->searchableAs();
         $this->searches[] = ['index' => $index, 'query' => $builder->query, 'params' => $searchParams];
+
+        if ($this->failSearchesWith !== null) {
+            throw new RuntimeException($this->failSearchesWith);
+        }
+
+        $this->assertFiltersAreFilterable($builder);
 
         $needle = mb_strtolower($builder->query);
         $documents = $this->indexes[$index] ?? [];
@@ -133,8 +159,43 @@ class FakeMeilisearchEngine extends MeilisearchEngine
     }
 
     /**
+     * The settings search:reindex pushes, keyed the way it resolves them: a
+     * model class key goes to that model's index, a plain name gets the prefix.
+     */
+    private function assertFiltersAreFilterable(Builder $builder): void
+    {
+        $filterable = null;
+
+        foreach ((array) config('scout.meilisearch.index-settings', []) as $name => $settings) {
+            $matches = class_exists($name)
+                ? $builder->model instanceof $name
+                : config('scout.prefix').$name === $builder->model->searchableAs();
+
+            if ($matches) {
+                $filterable = $settings['filterableAttributes'] ?? [];
+            }
+        }
+
+        $fields = array_merge(
+            array_column($builder->wheres, 'field'),
+            array_keys($builder->whereIns),
+            array_keys($builder->whereNotIns),
+        );
+
+        foreach ($fields as $field) {
+            Assert::assertContains(
+                $field,
+                $filterable ?? [],
+                sprintf('[%s] is filtered on but not in its filterableAttributes (config/scout.php); Meilisearch would reject the search.', $field),
+            );
+        }
+    }
+
+    /**
      * Mirrors the subset of filter syntax Scout generates: `field = value`
-     * from ->where() and `field IN [...]` from ->whereIn().
+     * from ->where() and `field IN [...]` from ->whereIn(). Inside a quoted
+     * value Meilisearch's filter parser unescapes only an escaped quote (\");
+     * any other backslash, \\ included, stays as it is.
      *
      * @param  array<string, mixed>  $document
      */
@@ -149,7 +210,7 @@ class FakeMeilisearchEngine extends MeilisearchEngine
         }
 
         foreach ($builder->whereIns as $field => $values) {
-            $values = array_map(fn ($value) => is_string($value) ? stripslashes($value) : $value, $values);
+            $values = array_map(fn ($value) => is_string($value) ? str_replace('\\"', '"', $value) : $value, $values);
 
             if (! in_array($document[$field] ?? null, $values, false)) {
                 return false;

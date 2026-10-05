@@ -173,8 +173,12 @@ class Doctor extends Model
         ];
     }
 
+    /**
+     * Prefixed like Scout's default, so SCOUT_PREFIX moves the data and the
+     * index settings (config/scout.php) to the same index.
+     */
     public function searchableAs(): string
     {
-        return 'doctors';
+        return config('scout.prefix').'doctors';
     }
 }

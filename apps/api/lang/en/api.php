@@ -25,6 +25,7 @@ return [
     // this entry exists so the `validation.failed` code has a translation key.
     'validation' => [
         'failed' => 'The given data was invalid.',
+        'invalid_encoding' => 'The value is not valid UTF-8 text.',
     ],
 
     'auth' => [

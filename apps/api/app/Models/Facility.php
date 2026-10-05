@@ -178,8 +178,12 @@ class Facility extends Model
         ];
     }
 
+    /**
+     * Prefixed like Scout's default, so SCOUT_PREFIX moves the data and the
+     * index settings (config/scout.php) to the same index.
+     */
     public function searchableAs(): string
     {
-        return 'facilities';
+        return config('scout.prefix').'facilities';
     }
 }

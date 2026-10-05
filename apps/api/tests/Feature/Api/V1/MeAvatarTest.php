@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class MeAvatarTest extends TestCase
@@ -166,5 +167,26 @@ class MeAvatarTest extends TestCase
 
         return "\x89PNG\r\n\x1a\n"
             .pack('N', strlen($ihdr)).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr));
+    }
+
+    public function test_a_concurrent_upload_does_not_orphan_the_other_requests_file(): void
+    {
+        SiteSetting::current()->update(['profile_avatar_min_messages' => 0]);
+        $dir = trim((string) config('media.directory'), '/').'/users/avatars';
+        Storage::disk('public')->put("{$dir}/old.webp", 'old');
+        $user = User::factory()->create(['user_kind' => UserKind::Client, 'avatar_path' => "{$dir}/old.webp"]);
+        Sanctum::actingAs($user);
+
+        // A parallel request swapped in its avatar after this request loaded
+        // the user: the in-memory avatar_path is stale.
+        Storage::disk('public')->put("{$dir}/concurrent.webp", 'concurrent');
+        User::query()->whereKey($user->id)->update(['avatar_path' => "{$dir}/concurrent.webp"]);
+        Storage::disk('public')->delete("{$dir}/old.webp");
+
+        $this->postJson('/api/v1/me/avatar', ['avatar' => UploadedFile::fake()->image('a.jpg', 200, 200)])
+            ->assertOk();
+
+        $current = $user->fresh()->avatar_path;
+        $this->assertSame([$current], Storage::disk('public')->allFiles());
     }
 }

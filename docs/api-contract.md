@@ -91,15 +91,15 @@ limiters are layered on top:
 |---------|-----------|-------|
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
-
-Login additionally locks an account out after **5 failed attempts per minute**,
-counted per email + IP (`AuthController`). It counts failures, not requests, so
-nobody can hold an account locked by merely sending traffic.
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
+
+Login additionally locks an account out after **5 failed attempts per minute**,
+counted per email + IP (`AuthController`). It counts failures, not requests, so
+nobody can hold an account locked by merely sending traffic.
 
 > IP-keyed limits require `TRUSTED_PROXIES` to be set behind a load balancer,
 > or every client shares one bucket. See `infra/deploy.md`.
