@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { isSlug, pathSegment } from "@/lib/api/path";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 
 type TopicPayload = {
@@ -21,9 +23,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as TopicPayload;
+  const guarded = await guardJson<TopicPayload>(request);
 
-  if (!body.categorySlug) {
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  if (!isSlug(body.categorySlug)) {
     return NextResponse.json(
       { message: t("errors.categoryRequired") },
       { status: 422 },
@@ -31,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   const response = await fetch(
-    apiUrl(`/forum/categories/${body.categorySlug}/topics`),
+    apiUrl(`/forum/categories/${pathSegment(body.categorySlug)}/topics`),
     {
       method: "POST",
       headers: {

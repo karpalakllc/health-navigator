@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -13,7 +14,13 @@ type LoginPayload = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as LoginPayload;
+  const guarded = await guardJson<LoginPayload>(request);
+
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
 
   const response = await fetch(apiUrl("/auth/login"), {
     method: "POST",

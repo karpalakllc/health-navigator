@@ -38,6 +38,51 @@ describe("safeRedirectTarget", () => {
     expect(safeRedirectTarget("//evil.example", "/forum")).toBe("/forum");
   });
 
+  it("rejects backslash variants that browsers read as a second slash", () => {
+    expect(safeRedirectTarget("/\\evil.example")).toBe("/");
+    expect(safeRedirectTarget("/\\/evil.example")).toBe("/");
+    expect(safeRedirectTarget("/\\\\evil.example")).toBe("/");
+    expect(safeRedirectTarget("\\\\evil.example")).toBe("/");
+  });
+
+  it("rejects tabs and newlines that browsers strip before navigating", () => {
+    expect(safeRedirectTarget("/\t/evil.example")).toBe("/");
+    expect(safeRedirectTarget("/\n/evil.example")).toBe("/");
+    expect(safeRedirectTarget("/\r\n/evil.example")).toBe("/");
+    expect(safeRedirectTarget("/\u0000/evil.example")).toBe("/");
+  });
+
+  it("rejects paths that normalise to a protocol-relative URL", () => {
+    expect(safeRedirectTarget("/.//evil.example")).toBe("/");
+    expect(safeRedirectTarget("/a/..//evil.example")).toBe("/");
+  });
+
+  it("keeps percent-encoded slashes as a harmless internal path", () => {
+    // Encoded, these are just odd path characters — not a host. Whatever comes
+    // back must still resolve on our own origin.
+    for (const candidate of ["/%5Cevil.example", "/%2F%2Fevil.example"]) {
+      const target = safeRedirectTarget(candidate);
+      expect(new URL(target, "https://site.test").origin).toBe(
+        "https://site.test",
+      );
+      expect(target.startsWith("//")).toBe(false);
+    }
+  });
+
+  it("rejects script and data URLs", () => {
+    expect(safeRedirectTarget("javascript:alert(1)")).toBe("/");
+    expect(safeRedirectTarget("JaVaScRiPt:alert(1)")).toBe("/");
+    expect(safeRedirectTarget("data:text/html,<script>alert(1)</script>")).toBe(
+      "/",
+    );
+  });
+
+  it("keeps the query string and fragment of an internal path", () => {
+    expect(safeRedirectTarget("/forum/a/b?page=2#post-3")).toBe(
+      "/forum/a/b?page=2#post-3",
+    );
+  });
+
   it("trims surrounding whitespace before validating", () => {
     expect(safeRedirectTarget("  /doctors  ")).toBe("/doctors");
     expect(safeRedirectTarget("  //evil.example  ")).toBe("/");
@@ -62,6 +107,15 @@ describe("loginHref", () => {
     expect(loginHref("//evil.example")).toBe("/login");
     expect(loginHref("https://evil.example")).toBe("/login");
     expect(loginHref("evil.example")).toBe("/login");
+  });
+
+  it("drops backslash and control-character redirect targets", () => {
+    expect(loginHref("/\\evil.example")).toBe("/login");
+    expect(loginHref("/\\/evil.example")).toBe("/login");
+    expect(loginHref("/\t/evil.example")).toBe("/login");
+    expect(loginHref("/\n/evil.example")).toBe("/login");
+    expect(loginHref("javascript:alert(1)")).toBe("/login");
+    expect(loginHref("data:text/html,x")).toBe("/login");
   });
 
   it("does not build a login loop", () => {

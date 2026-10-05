@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
+import { RESET_COOKIE, resetCookieOptions } from "@/lib/auth/reset-token";
 
 type ResetPayload = {
   email?: string;
@@ -10,7 +12,13 @@ type ResetPayload = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as ResetPayload;
+  const guarded = await guardJson<ResetPayload>(request);
+
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
 
   const response = await fetch(apiUrl("/auth/reset-password"), {
     method: "POST",
@@ -29,6 +37,12 @@ export async function POST(request: Request) {
   });
 
   const payload = await response.json();
+  const res = NextResponse.json(payload, { status: response.status });
 
-  return NextResponse.json(payload, { status: response.status });
+  // The token is spent; drop the copy the reset link left behind.
+  if (response.ok) {
+    res.cookies.set(RESET_COOKIE, "", resetCookieOptions(0));
+  }
+
+  return res;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
 
 type RegisterPayload = {
   name?: string;
@@ -18,7 +19,13 @@ type RegisterPayload = {
  * verified, so this handler simply relays the API's response.
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as RegisterPayload;
+  const guarded = await guardJson<RegisterPayload>(request);
+
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
 
   const response = await fetch(apiUrl("/auth/register"), {
     method: "POST",

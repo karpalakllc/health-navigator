@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { isSlug, pathSegment } from "@/lib/api/path";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 
 type ReviewPayload = {
@@ -21,7 +23,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as ReviewPayload;
+  const guarded = await guardJson<ReviewPayload>(request);
+
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
 
   if (body.kind !== "doctor" && body.kind !== "facility") {
     return NextResponse.json(
@@ -30,7 +38,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!body.slug) {
+  if (!isSlug(body.slug)) {
     return NextResponse.json(
       { message: t("errors.invalidReviewTarget") },
       { status: 422 },
@@ -39,8 +47,8 @@ export async function POST(request: Request) {
 
   const path =
     body.kind === "doctor"
-      ? `/doctors/${body.slug}/reviews`
-      : `/facilities/${body.slug}/reviews`;
+      ? `/doctors/${pathSegment(body.slug)}/reviews`
+      : `/facilities/${pathSegment(body.slug)}/reviews`;
 
   const response = await fetch(apiUrl(path), {
     method: "POST",

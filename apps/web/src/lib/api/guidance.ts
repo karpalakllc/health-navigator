@@ -1,5 +1,6 @@
 import { apiGet } from "@/lib/api/client";
 import { apiUrl } from "@/lib/config";
+import { pathSegment } from "@/lib/api/path";
 
 export type GuidanceRedFlag = {
   code: string;
@@ -78,7 +79,7 @@ export async function saveGuidanceAnswers(
   answers: Array<{ step_key: string; values: string[] }>,
 ): Promise<{ emergency_stopped: boolean }> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${sessionId}/answers`),
+    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/answers`),
     {
       method: "PUT",
       headers: {
@@ -97,7 +98,7 @@ export async function completeGuidanceEmergency(
   sessionId: string,
 ): Promise<GuidanceOutcome> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${sessionId}/emergency`),
+    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/emergency`),
     {
       method: "POST",
       headers: { Accept: "application/json", "Accept-Language": "mk" },
@@ -113,7 +114,7 @@ export async function completeGuidanceSession(
   sessionId: string,
 ): Promise<GuidanceOutcome> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${sessionId}/complete`),
+    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/complete`),
     {
       method: "POST",
       headers: { Accept: "application/json", "Accept-Language": "mk" },

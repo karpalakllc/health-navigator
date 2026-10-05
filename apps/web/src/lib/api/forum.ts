@@ -9,6 +9,7 @@ import {
   apiGetPaginatedServer,
 } from "@/lib/api/server";
 import type { PaginatedEnvelope } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type ForumAuthor = {
   name: string;
@@ -144,7 +145,7 @@ export async function fetchForumTopics(
   const query = search.toString();
 
   return apiGetPaginated<ForumTopicListItem>(
-    `/forum/categories/${categorySlug}/topics${query ? `?${query}` : ""}`,
+    `/forum/categories/${pathSegment(categorySlug)}/topics${query ? `?${query}` : ""}`,
   );
 }
 
@@ -154,7 +155,7 @@ export async function fetchForumTopicPage(
   page = 1,
 ): Promise<ForumTopicPage> {
   const response = await apiFetch(
-    `/forum/categories/${categorySlug}/topics/${topicSlug}?page=${page}`,
+    `/forum/categories/${pathSegment(categorySlug)}/topics/${pathSegment(topicSlug)}?page=${page}`,
   );
 
   if (!response.ok) {

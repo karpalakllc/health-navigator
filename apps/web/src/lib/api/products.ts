@@ -1,5 +1,6 @@
 import { apiGet, apiGetPaginated } from "@/lib/api/client";
 import type { ProductDetail, ProductListItem } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type ProductListParams = {
   q?: string;
@@ -28,5 +29,5 @@ export async function fetchProducts(params: ProductListParams = {}) {
 }
 
 export async function fetchProduct(slug: string): Promise<ProductDetail> {
-  return apiGet<ProductDetail>(`/products/${slug}`);
+  return apiGet<ProductDetail>(`/products/${pathSegment(slug)}`);
 }
