@@ -37,13 +37,21 @@ class InvalidUtf8InputTest extends TestCase
             ->assertJsonValidationErrors(['answers.0.values.0']);
     }
 
-    public function test_invalid_utf8_in_the_path_is_a_client_error(): void
+    /**
+     * Behaviour guard, not a regression test: this already passed before the
+     * fix, because Laravel's global ValidatePathEncoding answers it before
+     * routing. Kept so the path stays covered if that middleware is ever removed.
+     */
+    public function test_guard_invalid_utf8_in_the_path_is_already_a_client_error(): void
     {
-        // Laravel's global ValidatePathEncoding answers this before routing.
         $this->getJson('/api/v1/doctors/%D1%5C')->assertBadRequest();
     }
 
-    public function test_valid_cyrillic_input_is_untouched(): void
+    /**
+     * Behaviour guard, not a regression test: this passed before the fix too.
+     * It pins that the new UTF-8 check does not reject legitimate Cyrillic.
+     */
+    public function test_guard_valid_cyrillic_input_is_untouched(): void
     {
         $this->getJson('/api/v1/search?q='.rawurlencode('Скопје').'&city='.rawurlencode('Струга'))
             ->assertOk();

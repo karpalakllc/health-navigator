@@ -204,7 +204,11 @@ class AuthController extends Controller
         }
 
         if ($user->registration_contested_at !== null) {
-            $this->settleContestedRegistration($user);
+            // Lost the race to a concurrent hit on the same link, which has
+            // already settled the account: report it as already verified.
+            if (! $this->settleContestedRegistration($user)) {
+                return redirect()->away(FrontendUrl::to('/verify-email?status=already'));
+            }
 
             return redirect()->away(FrontendUrl::to('/verify-email?status=verified_set_password'));
         }
@@ -293,16 +297,43 @@ class AuthController extends Controller
      * the owner clicks a link for a sign-up they did not make — the mail tells
      * them to ignore it — the account stays inactive, and the owner can claim it
      * at any time through password reset.
+     *
+     * Settles at most once. Two hits on the same link (a double click, a mail
+     * scanner racing the owner) both read the account as contested; the guarded
+     * UPDATE lets exactly one of them flip it, and only that one replaces the
+     * password and mails a reset — a second reset mail would kill the token in
+     * the first. Returns false for the request that lost.
      */
-    private function settleContestedRegistration(User $user): void
+    private function settleContestedRegistration(User $user): bool
     {
-        // forceFill + the hashed cast: an already-hashed value is stored as is.
+        $verifiedAt = $user->freshTimestamp();
+        $password = Hash::make(Str::random(64));
+        $rememberToken = Str::random(60);
+
+        $settled = User::query()
+            ->whereKey($user->getKey())
+            ->whereNotNull('registration_contested_at')
+            ->whereNull('email_verified_at')
+            ->toBase()
+            ->update([
+                'email_verified_at' => $verifiedAt,
+                'password' => $password,
+                'remember_token' => $rememberToken,
+                'registration_contested_at' => null,
+                'updated_at' => $verifiedAt,
+            ]);
+
+        if ($settled !== 1) {
+            return false;
+        }
+
         $user->forceFill([
-            'email_verified_at' => $user->freshTimestamp(),
-            'password' => Hash::make(Str::random(64)),
-            'remember_token' => Str::random(60),
+            'email_verified_at' => $verifiedAt,
+            'password' => $password,
+            'remember_token' => $rememberToken,
             'registration_contested_at' => null,
-        ])->save();
+            'updated_at' => $verifiedAt,
+        ])->syncOriginal();
 
         $user->revokeApiTokens();
 
@@ -313,6 +344,8 @@ class AuthController extends Controller
         // per-address throttle could silently drop this one — and without it the
         // owner of a now password-less account has nothing in their inbox.
         $user->sendPasswordResetNotification(Password::createToken($user));
+
+        return true;
     }
 
     private function registrationAccepted(): JsonResponse
@@ -354,12 +387,28 @@ class AuthController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password): void {
+                // Completing a reset proves control of the mailbox exactly as the
+                // verification link does, and the password is the one the mailbox
+                // owner just chose — so it also finishes a pending or contested
+                // registration. Without this, an owner who used forgot-password
+                // (their sign-up password never worked: an earlier registrant's
+                // was kept) stayed unverified; logging in mailed a link whose click
+                // settled the contest by wiping the password they had just chosen.
+                $wasUnverified = ! $user->hasVerifiedEmail();
+
                 $user->forceFill([
                     'password' => $password,
                     'remember_token' => Str::random(60),
+                    'email_verified_at' => $user->email_verified_at ?? $user->freshTimestamp(),
+                    'registration_contested_at' => null,
                 ])->save();
 
                 event(new PasswordReset($user));
+
+                if ($wasUnverified) {
+                    event(new Verified($user));
+                    $this->analytics->record('user.registered', $user);
+                }
             },
         );
 

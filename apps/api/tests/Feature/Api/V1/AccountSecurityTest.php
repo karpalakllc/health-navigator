@@ -195,6 +195,93 @@ class AccountSecurityTest extends TestCase
         ])->assertOk();
     }
 
+    /**
+     * The owner whose own password never worked (attacker registered first) does
+     * the obvious thing — forgot-password — instead of clicking the verification
+     * link. Completing that reset proves control of the mailbox exactly as the
+     * link would, so it has to finish the account: verified, no longer contested,
+     * and the password just chosen is the one that works. Before, the account
+     * stayed unverified; login answered 403 and mailed a link whose click wiped
+     * that password and sent yet another reset.
+     */
+    public function test_attacker_first_then_owner_resets_instead_of_verifying_and_can_sign_in(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Attacker', 'attacker1password');
+        $this->registerAs('Real Owner', 'owner1password');
+
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $staleLink = $this->latestVerificationLink($user);
+        $this->assertCannotSignIn('owner1password');
+
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/forgot-password', ['email' => 'victim@example.com'])->assertOk();
+        $reset = Notification::sent($user, ResetPasswordNotification::class)->sole();
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => 'victim@example.com',
+            'token' => $reset->token,
+            'password' => 'chosen1bythemailbox',
+            'password_confirmation' => 'chosen1bythemailbox',
+        ])->assertOk();
+
+        $user->refresh();
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertNull($user->registration_contested_at);
+
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'victim@example.com',
+            'password' => 'chosen1bythemailbox',
+        ])->assertOk();
+
+        // A verification link still sitting in the inbox is now inert: it must
+        // not wipe the password the owner just chose.
+        $this->get($staleLink)->assertRedirectContains('/verify-email?status=already');
+        $this->assertTrue(Hash::check('chosen1bythemailbox', $user->fresh()->password));
+        $this->assertCount(1, Notification::sent($user, ResetPasswordNotification::class));
+        $this->assertCannotSignIn('attacker1password');
+    }
+
+    /**
+     * Two hits on one contested link (a double click, a mail scanner and the
+     * owner) both read the account as contested. Only the one that actually
+     * flips it may settle: a second settlement mails a second reset link and
+     * kills the token in the first.
+     */
+    public function test_a_second_concurrent_hit_on_a_contested_link_does_not_settle_again(): void
+    {
+        Notification::fake();
+
+        $this->registerAs('Attacker', 'attacker1password');
+        $this->registerAs('Real Owner', 'owner1password');
+
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $link = $this->latestVerificationLink($user);
+
+        // The concurrent request wins between this request's read and its
+        // write: the controller is left holding a stale, still-contested model.
+        $raced = false;
+        User::retrieved(function (User $retrieved) use (&$raced): void {
+            if ($raced || $retrieved->email !== 'victim@example.com') {
+                return;
+            }
+            $raced = true;
+            DB::table('users')->where('id', $retrieved->id)->update([
+                'registration_contested_at' => null,
+                'email_verified_at' => now(),
+                'password' => Hash::make('the1winnerssetting'),
+            ]);
+        });
+
+        $this->get($link)->assertRedirectContains('/verify-email?status=already');
+
+        $this->assertTrue($raced);
+        Notification::assertNotSentTo($user, ResetPasswordNotification::class);
+        $this->assertTrue(Hash::check('the1winnerssetting', $user->fresh()->password));
+    }
+
     public function test_verifying_a_contested_account_revokes_its_tokens(): void
     {
         Notification::fake();

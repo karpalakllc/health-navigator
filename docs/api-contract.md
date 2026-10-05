@@ -61,8 +61,14 @@ mechanism for the Next.js web client and future mobile clients.
   link vs. "you already have an account"). This is what stops signup being
   usable to discover who has an account.
 - `GET /auth/email/verify/{id}/{hash}` is a **signed** link from that email. It
-  redirects to `{FRONTEND_URL}/verify-email?status=verified|already|invalid`;
-  an unsigned or expired link is `403`.
+  redirects to `{FRONTEND_URL}/verify-email?status=verified|verified_set_password|already|invalid`;
+  `verified_set_password` means the address was confirmed but the registration
+  had been contested (signed up for more than once), so the stored password was
+  discarded and a password-reset link was mailed instead. An unsigned or
+  expired link is `403`.
+- Completing `POST /auth/reset-password` also confirms the address (the reset
+  link proves control of the mailbox), so it finishes a pending or contested
+  registration.
 - `POST /auth/email/resend` re-sends the link and is equally non-committal (202).
 - **Login requires a verified address**: correct credentials on an unverified
   account return `403` with code `auth.email_unverified`. This is not an oracle —
