@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/guidance";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 const SESSION_KEY = "guidance_session_id";
 
@@ -198,7 +199,7 @@ export function GuidanceWizard({ flow }: Props) {
           />
           <span>{t("guidance.acceptLabel")}</span>
         </label>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button type="button" disabled={loading} onClick={handleStart}>
             {loading ? t("guidance.starting") : t("guidance.continue")}
@@ -255,7 +256,7 @@ export function GuidanceWizard({ flow }: Props) {
             </li>
           ))}
         </ul>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button
             type="button"
@@ -331,7 +332,7 @@ export function GuidanceWizard({ flow }: Props) {
             );
           })}
         </ul>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button type="button" disabled={loading} onClick={handleQuestionNext}>
             {loading

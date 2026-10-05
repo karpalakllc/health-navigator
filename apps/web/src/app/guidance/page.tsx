@@ -9,10 +9,13 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
-export const metadata: Metadata = pageMetadata(
-  t("guidance.title"),
-  t("guidance.description"),
-);
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("guidance.title"), t("guidance.description"), {
+    noIndex: !settings.public_guidance,
+  });
+}
 
 export default async function GuidancePage() {
   const settings = await fetchPublicSettings();

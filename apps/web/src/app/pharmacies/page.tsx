@@ -13,10 +13,13 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
-export const metadata: Metadata = pageMetadata(
-  t("pharmacies.title"),
-  t("pharmacies.description"),
-);
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("pharmacies.title"), t("pharmacies.description"), {
+    noIndex: !settings.public_pharmacies,
+  });
+}
 
 type PharmaciesPageProps = {
   searchParams: Promise<{

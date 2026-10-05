@@ -9,11 +9,14 @@ import { FacilitySidebarContact } from "@/components/directory/facility-sidebar-
 import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
 import { TagList } from "@/components/directory/tag-list";
 import { ProfileContentCard } from "@/components/design/profile-content-card";
+import { JsonLd } from "@/components/seo/json-ld";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchFacility } from "@/lib/api/facilities";
 import { pageMetadata } from "@/lib/metadata";
 import { ApiRequestError } from "@/lib/api/server";
+import { absoluteUrl } from "@/lib/site-url";
+import { facilitySchemaType, placeJsonLd } from "@/lib/structured-data";
 import { t } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
@@ -39,6 +42,7 @@ export async function generateMetadata({
     return pageMetadata(
       facility.name,
       description || t("facilities.description"),
+      { path: `/facilities/${slug}` },
     );
   } catch {
     return pageMetadata(t("facilities.title"));
@@ -68,6 +72,13 @@ export default async function FacilityDetailPage({
 
   return (
     <PageShell gap="loose" className="pb-16 pt-[18px]">
+      <JsonLd
+        data={placeJsonLd(
+          facilitySchemaType(facility.type),
+          facility,
+          absoluteUrl(`/facilities/${facility.slug}`),
+        )}
+      />
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },

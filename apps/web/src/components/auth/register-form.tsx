@@ -8,6 +8,7 @@ import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 type RegisterFormProps = {
   registrationsEnabled: boolean;
@@ -76,7 +77,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           <h2 className="text-lg font-semibold text-foreground">
             {t("auth.verifyCheckInbox")}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p role="status" className="text-sm text-muted-foreground">
             {t("auth.verifyCheckInboxBody")}
           </p>
           <PrivacyNote />
@@ -145,7 +146,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
             onChange={setPasswordConfirmation}
           />
         </label>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
           disabled={pending}

@@ -1,3 +1,5 @@
+import { ratingLabel } from "@/lib/rating";
+
 type StarRatingProps = {
   value: number;
   max?: number;
@@ -49,7 +51,7 @@ export function StarRating({
     <span
       className="inline-flex items-center gap-0.5"
       role="img"
-      aria-label={`${clamped} / ${max}`}
+      aria-label={ratingLabel(value, max)}
     >
       {Array.from({ length: max }, (_, index) => (
         <StarIcon
