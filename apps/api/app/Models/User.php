@@ -91,24 +91,13 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * Drives the `viewer.can_moderate` flag on the topic payload. Must stay in
-     * lockstep with ForumTopicPolicy::update, or the UI offers a moderation
-     * toolbar that the endpoint then rejects.
+     * Drives the `viewer.can_moderate` flag on the topic payload. Delegates to
+     * ForumTopicPolicy::update, the single implementation, so the UI never offers
+     * a moderation toolbar that the endpoint then rejects.
      */
     public function canModerateForumTopic(ForumTopic $topic): bool
     {
-        $category = $topic->category;
-
-        if ($category === null) {
-            return false;
-        }
-
-        if ($this->hasScopedForumModeration()) {
-            return $this->canModerateForumCategory($category);
-        }
-
-        return ($this->can('forum.moderate') && $this->canModerateForumCategory($category))
-            || $this->can('forum_topics.update');
+        return $this->can('update', $topic);
     }
 
     public function canModerateForumCategory(ForumCategory $category): bool
