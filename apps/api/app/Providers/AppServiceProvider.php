@@ -103,6 +103,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by('resend-ip:'.$request->ip());
         });
 
+        // The display name is what every review and forum post shows; renaming
+        // is occasional, so a burst of renames is someone cycling identities.
+        RateLimiter::for('api-profile', function (Request $request) {
+            return Limit::perHour(10)->by('profile:'.($request->user()?->id ?? $request->ip()));
+        });
+
         RateLimiter::for('api-reviews', function (Request $request) {
             $userId = $request->user()?->id;
 

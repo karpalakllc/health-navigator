@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -88,6 +89,90 @@ class DisplayNameTest extends TestCase
         }
     }
 
+    /**
+     * Names that would let a member pass as staff, a clinician or the
+     * platform itself next to a review or a forum answer.
+     *
+     * @return array<string, array{string, string}>
+     */
+    public static function impersonatingNames(): array
+    {
+        return [
+            'Cyrillic doctor title' => ['Д-р Марко', 'reserved'],
+            'title with a dot and no space' => ['Д-р.Марко', 'reserved'],
+            'Latin doctor title' => ['Dr. Marko', 'reserved'],
+            'upper-case title' => ['DR Marko', 'reserved'],
+            'title without punctuation' => ['Др Марко', 'reserved'],
+            'doctor spelled out' => ['Доктор Ана', 'reserved'],
+            'doctor in Latin' => ['Doktor Ana', 'reserved'],
+            'professor' => ['Проф. Ана', 'reserved'],
+            'Latin professor' => ['Prof Ana', 'reserved'],
+            'administrator' => ['Администратор', 'reserved'],
+            'admin in Latin' => ['Admin', 'reserved'],
+            'admin as a prefix' => ['Administrator Ana', 'reserved'],
+            'admin transliterated' => ['Админ', 'reserved'],
+            'moderator' => ['Модератор Тим', 'reserved'],
+            'Latin moderator' => ['moderator', 'reserved'],
+            'team' => ['Zdravje Team', 'reserved'],
+            'team alone in Cyrillic' => ['Тим за поддршка', 'reserved'],
+            'support' => ['Support', 'reserved'],
+            'platform name in Cyrillic' => ['Здравје', 'reserved'],
+            'platform name in Latin' => ['zdravje', 'reserved'],
+            'official' => ['Official Ana', 'reserved'],
+            'official in Macedonian' => ['Официјален профил', 'reserved'],
+            'hyphenated role' => ['Ана-Админ', 'reserved'],
+            'mixed-script admin' => ['Аdmin', 'mixed_script'],
+            'mixed-script name' => ['Mарија', 'mixed_script'],
+            'single letter' => ['x', 'too_short'],
+            'single letter and a dot' => ['Ј.', 'too_short'],
+        ];
+    }
+
+    #[DataProvider('impersonatingNames')]
+    public function test_display_names_cannot_claim_a_title_role_or_the_platform(string $name, string $reason): void
+    {
+        $this->assertSame($reason, DisplayName::rejection(DisplayName::normalize($name)));
+
+        $this->forgetRateLimits();
+        $this->withHeader('Accept-Language', 'mk')
+            ->postJson('/api/v1/auth/register', $this->registration(['display_name' => $name]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['display_name' => __("validation.custom.display_name.{$reason}", [], 'mk')]);
+    }
+
+    public function test_ordinary_names_that_resemble_reserved_terms_are_allowed(): void
+    {
+        foreach (['Драган', 'Dragan P.', 'Тимчо', 'Profirovski', 'Здравко', 'Админа'] as $name) {
+            if ($name === 'Админа') {
+                // "админ" is matched as a prefix on purpose.
+                $this->assertSame('reserved', DisplayName::rejection($name));
+
+                continue;
+            }
+
+            $this->assertNull(DisplayName::rejection($name), $name);
+        }
+
+        foreach (["O'Neil", 'Ана-Марија', 'Јован Ѓ.', 'Zoë M.', 'Марија К.', 'Ана Dimitrova', 'Ли'] as $name) {
+            $this->assertNull(DisplayName::rejection($name), $name);
+        }
+    }
+
+    public function test_reserved_name_errors_are_localised(): void
+    {
+        $this->forgetRateLimits();
+        $this->withHeader('Accept-Language', 'en')
+            ->postJson('/api/v1/auth/register', $this->registration(['display_name' => 'Dr Marko']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['display_name' => 'cannot contain a title or role']);
+
+        $this->forgetRateLimits();
+        $this->withHeader('Accept-Language', 'mk')
+            ->postJson('/api/v1/auth/register', $this->registration(['display_name' => 'x']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['display_name' => 'барем две букви']);
+    }
+
     public function test_display_names_do_not_have_to_be_unique(): void
     {
         $this->member();
@@ -129,6 +214,40 @@ class DisplayNameTest extends TestCase
             ->assertJsonValidationErrors('display_name');
 
         $this->assertSame('Марија К.', $member->fresh()->display_name);
+    }
+
+    public function test_the_profile_update_rejects_reserved_names(): void
+    {
+        $this->forgetRateLimits();
+        $member = $this->member();
+
+        $this->actingAs($member)
+            ->patchJson('/api/v1/me/profile', ['display_name' => 'Модератор Тим'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('display_name');
+
+        $this->assertSame('Марија К.', $member->fresh()->display_name);
+    }
+
+    public function test_profile_updates_are_throttled_per_member(): void
+    {
+        $this->forgetRateLimits();
+        $member = $this->member();
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->actingAs($member)
+                ->patchJson('/api/v1/me/profile', ['display_name' => 'Мара '.mb_chr(0x0410 + $i).'.'])
+                ->assertOk();
+        }
+
+        $this->actingAs($member)
+            ->patchJson('/api/v1/me/profile', ['display_name' => 'Мара Б.'])
+            ->assertStatus(429);
+
+        // Another member is unaffected.
+        $this->actingAs(User::factory()->create())
+            ->patchJson('/api/v1/me/profile', ['display_name' => 'Јана'])
+            ->assertOk();
     }
 
     // ---- public surfaces never carry the real name ----

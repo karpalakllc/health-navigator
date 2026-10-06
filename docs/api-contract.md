@@ -102,7 +102,10 @@ mechanism for the Next.js web client and future mobile clients.
   `PATCH /me/profile` (`{ "display_name": "…" }`, verified accounts) changes it
   and returns `{ user }` as `/me` does. Rules: trimmed with runs of whitespace
   collapsed, at most 40 characters, Unicode letters, spaces and `. - '` only,
-  starting with a letter. **Not unique.**
+  starting with a letter, at least two letters, no word mixing Cyrillic and
+  Latin, and no title, role or platform name in either script (д-р/dr, проф,
+  доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
+  `DisplayName::rejection()`). **Not unique.**
 
 **Web client:** Next.js stores the bearer token in an httpOnly cookie via route
 handlers under `/api/session/*`; the browser never reads the token. Mobile uses
@@ -119,6 +122,7 @@ limiters are layered on top:
 |---------|-----------|-------|
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
+| `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
@@ -167,7 +171,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
-| `PATCH` | `/me/profile` | `auth:sanctum`, `verified` |
+| `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
 | `POST` | `/auth/login` | `throttle:api-login` |

@@ -3,10 +3,13 @@
 namespace App\Http\Requests\Api\V1\Concerns;
 
 use App\Support\DisplayName;
+use Closure;
 
 /**
  * The public display name: trimmed and whitespace-collapsed before the rules
- * run, then letters, spaces and . - ' only. Deliberately NOT unique — two
+ * run, then letters, spaces and . - ' only, at least two letters, no word
+ * mixing Cyrillic and Latin, and no claimed title or role (DisplayName::
+ * rejection()). Deliberately NOT unique — two
  * "Марија К." are expected, and a uniqueness check would let anyone probe
  * which names are taken.
  */
@@ -20,10 +23,22 @@ trait ValidatesDisplayName
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, mixed>
      */
     protected function displayNameRules(): array
     {
-        return ['required', 'string', 'max:'.DisplayName::MAX_LENGTH, 'regex:'.DisplayName::PATTERN];
+        return [
+            'required',
+            'string',
+            'max:'.DisplayName::MAX_LENGTH,
+            'regex:'.DisplayName::PATTERN,
+            function (string $attribute, mixed $value, Closure $fail): void {
+                $reason = is_string($value) ? DisplayName::rejection($value) : null;
+
+                if ($reason !== null) {
+                    $fail("validation.custom.display_name.{$reason}")->translate();
+                }
+            },
+        ];
     }
 }
