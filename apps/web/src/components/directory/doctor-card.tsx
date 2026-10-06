@@ -92,6 +92,8 @@ function DoctorCardBody({
             <img
               src={avatarSrc}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-[62px] w-[62px] shrink-0 rounded-[1.25rem] border border-border object-cover"
             />
           ) : (
