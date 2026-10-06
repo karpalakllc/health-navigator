@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Http\Middleware\RejectInvalidUtf8;
 use App\Models\TriageFlow;
+use App\Models\User;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +30,22 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
+
+        // Staff sign in through the 2FA-protected panel, and API login refuses them
+        // (auth.staff_use_admin). Apply the same rule to tokens they already hold:
+        // one issued before the account gained admin.access is refused (not
+        // deleted) for as long as it holds it, and works again after demotion
+        // until it expires. Only requiresMultiFactorAuthentication() is consulted —
+        // a community moderator's opt-in second factor protects the panel only,
+        // and the secret need not be decrypted on every request. That check costs
+        // a constant two permission queries per token-authenticated request
+        // (Spatie resolves admin.access through the user's roles and direct
+        // permissions; the permission list itself is cached).
+        Sanctum::authenticateAccessTokensUsing(
+            fn (PersonalAccessToken $token, bool $isValid): bool => $isValid
+                && ! ($token->tokenable instanceof User
+                    && $token->tokenable->requiresMultiFactorAuthentication()),
+        );
 
         // Pushed here rather than in bootstrap/app.php: it joins the api group
         // after SetApiLocale, so its 422 message is already localised.

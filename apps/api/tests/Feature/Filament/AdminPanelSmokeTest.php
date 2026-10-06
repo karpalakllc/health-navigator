@@ -41,6 +41,9 @@ class AdminPanelSmokeTest extends TestCase
         $admin = User::factory()->create([
             'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
+            // Enrolled in two-factor: without it every page redirects to the
+            // MFA set-up page (StaffMultiFactorAuthenticationTest covers that).
+            'app_authentication_secret' => 'JBSWY3DPEHPK3PXP',
         ]);
         $admin->syncRoles(['Administrator']);
 

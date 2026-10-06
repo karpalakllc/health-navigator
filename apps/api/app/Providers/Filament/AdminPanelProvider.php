@@ -2,8 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\PendingModerationOverview;
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
+use App\Http\Middleware\IgnoreRememberMeCookie;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +33,22 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
+            // Authenticator-app TOTP with single-use recovery codes. "Required" here
+            // only registers the set-up page and attaches the middleware below to
+            // every panel page; the middleware decides per user, so staff holding
+            // admin.access must enrol and community moderators may.
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()],
+                isRequired: true,
+            )
+            ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)
+            // Re-checked on Livewire requests too, so a page opened before the
+            // account gained admin.access (or lost its second factor) stops
+            // working rather than acting until it is reloaded. Livewire applies
+            // it only where the page's own route had it, so the set-up page and
+            // the login challenge are unaffected.
+            ->persistentMiddleware([EnsureStaffMultiFactorAuthentication::class])
+            ->profile(EditProfile::class, isSimple: false)
             ->brandName('Zdravje360')
             ->colors([
                 // Align with public web --color-primary / --color-accent
@@ -48,6 +68,7 @@ class AdminPanelProvider extends PanelProvider
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
+                IgnoreRememberMeCookie::class,
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,

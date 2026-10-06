@@ -69,6 +69,22 @@ class ImageOptimizer
     public const MAX_SIDE_PIXELS = 10_000;
 
     /**
+     * Content-Type written with each stored extension. Sent explicitly because an
+     * object store serves whatever it was given: left to sniffing, an SVG can come
+     * back as text/xml or application/octet-stream and stop rendering in <img>.
+     *
+     * @var array<string, string>
+     */
+    private const CONTENT_TYPES = [
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'ico' => 'image/x-icon',
+    ];
+
+    /**
      * Store logo/favicon and other branding assets in their original format (SVG stays SVG).
      */
     public function storeBranding(UploadedFile $file, string $subdirectory): string
@@ -124,9 +140,7 @@ class ImageOptimizer
         }
 
         $path = $this->buildPath($subdirectory);
-        Storage::disk(config('media.disk'))->put($path, $binary, [
-            'visibility' => 'public',
-        ]);
+        $this->write($path, $binary, 'webp');
 
         return $path;
     }
@@ -248,12 +262,32 @@ class ImageOptimizer
     private function storeContents(string $contents, string $subdirectory, string $extension): string
     {
         $path = $this->buildPath($subdirectory, $extension);
-
-        Storage::disk(config('media.disk'))->put($path, $contents, [
-            'visibility' => 'public',
-        ]);
+        $this->write($path, $contents, $extension);
 
         return $path;
+    }
+
+    /**
+     * The options are Flysystem/S3 write options: the local disk honours only
+     * `visibility`, an object store also returns the rest as response headers.
+     * Filenames are random per upload and never overwritten (see buildPath()),
+     * which is what makes the long, immutable Cache-Control safe.
+     */
+    private function write(string $path, string $contents, string $extension): void
+    {
+        $stored = Storage::disk(config('media.disk'))->put($path, $contents, [
+            'visibility' => (string) config('media.visibility', 'public'),
+            'ContentType' => self::CONTENT_TYPES[$extension],
+            'ContentDisposition' => 'inline',
+            'CacheControl' => (string) config('media.cache_control'),
+        ]);
+
+        // A disk with `throw` off reports a failed write (bad credentials, missing
+        // bucket) only through this return value; without the check the caller
+        // saved a path to a file that does not exist.
+        if ($stored === false) {
+            throw new RuntimeException('Could not store media file.');
+        }
     }
 
     /**

@@ -12,8 +12,27 @@ export default defineConfig({
     },
   },
   test: {
-    // Pure logic only for now — no DOM environment, no React renderer.
-    environment: "node",
-    include: ["src/**/*.test.ts"],
+    // Two suites in one run: pure logic (*.test.ts) stays in the fast node
+    // environment; component tests (*.test.tsx) get a jsdom document,
+    // jest-dom matchers, Next.js router mocks and per-test cleanup.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: ["src/**/*.test.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: ["src/**/*.test.tsx"],
+          setupFiles: ["./test/setup-dom.ts"],
+        },
+      },
+    ],
   },
 });

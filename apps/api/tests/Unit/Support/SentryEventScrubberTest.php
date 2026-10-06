@@ -40,6 +40,118 @@ class SentryEventScrubberTest extends TestCase
         $this->assertSame('kept', $data['name']);
     }
 
+    public function test_livewire_updates_drop_two_factor_codes_and_recovery_codes(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/livewire/update',
+            'data' => [
+                'components' => [[
+                    'snapshot' => json_encode([
+                        'data' => ['data' => [[
+                            'email' => 'jane@example.com',
+                            'password' => 'correct-horse-battery',
+                            'multiFactor' => [[
+                                'app' => [['code' => '654321', 'recoveryCode' => 'wxyz-1234', 'useRecoveryCode' => false], ['s' => 'arr']],
+                            ], ['s' => 'arr']],
+                        ], ['s' => 'arr']]],
+                        'memo' => ['name' => 'app.filament.pages.auth.login'],
+                    ]),
+                    'updates' => [
+                        'data.multiFactor.app.code' => '123456',
+                        'data.multiFactor.app.recoveryCode' => 'abcd-efgh',
+                        'data.multiFactor.app.useRecoveryCode' => true,
+                    ],
+                    'calls' => [],
+                ]],
+            ],
+        ]);
+
+        $component = SentryEventScrubber::beforeSend($event)?->getRequest()['data']['components'][0];
+
+        $this->assertSame(SentryEventScrubber::FILTERED, $component['updates']['data.multiFactor.app.code']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $component['updates']['data.multiFactor.app.recoveryCode']);
+        $this->assertTrue($component['updates']['data.multiFactor.app.useRecoveryCode']);
+
+        // The snapshot is the component's previous state, as a JSON string.
+        $this->assertStringNotContainsString('654321', $component['snapshot']);
+        $this->assertStringNotContainsString('wxyz-1234', $component['snapshot']);
+        $this->assertStringNotContainsString('correct-horse-battery', $component['snapshot']);
+        $this->assertStringNotContainsString('jane@example.com', $component['snapshot']);
+        $this->assertStringContainsString('app.filament.pages.auth.login', $component['snapshot']);
+    }
+
+    public function test_mounted_action_codes_and_encrypted_arguments_are_dropped(): void
+    {
+        // Setting up app authentication from the profile mounts an action whose
+        // form takes the code and whose arguments carry the encrypted secret.
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/livewire/update',
+            'data' => [
+                'components' => [[
+                    'snapshot' => json_encode([
+                        'data' => [
+                            'mountedActions' => [[[
+                                'name' => 'setUpAppAuthentication',
+                                'arguments' => [['encrypted' => 'eyJpdiI6InNldC11cC1zZWNyZXQifQ'], ['s' => 'arr']],
+                                'data' => [['code' => '246810'], ['s' => 'arr']],
+                            ], ['s' => 'arr']]],
+                        ],
+                        'memo' => ['name' => 'filament.pages.edit-profile'],
+                    ]),
+                    'updates' => [
+                        'mountedActions.0.data.code' => '135790',
+                        'mountedActions.0.data.label' => 'kept',
+                    ],
+                    'calls' => [],
+                ]],
+            ],
+        ]);
+
+        $component = SentryEventScrubber::beforeSend($event)?->getRequest()['data']['components'][0];
+
+        $this->assertSame(SentryEventScrubber::FILTERED, $component['updates']['mountedActions.0.data.code']);
+        $this->assertSame('kept', $component['updates']['mountedActions.0.data.label']);
+        $this->assertStringNotContainsString('246810', $component['snapshot']);
+        $this->assertStringNotContainsString('eyJpdiI6InNldC11cC1zZWNyZXQifQ', $component['snapshot']);
+        $this->assertStringContainsString('setUpAppAuthentication', $component['snapshot']);
+    }
+
+    public function test_a_code_outside_two_factor_context_is_kept(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://api.example/api/v1/x', 'data' => ['code' => 'MK', 'encrypted' => 'opaque']]);
+
+        $data = SentryEventScrubber::beforeSend($event)?->getRequest()['data'];
+
+        $this->assertSame('MK', $data['code']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['encrypted']);
+    }
+
+    public function test_two_factor_keys_are_dropped_wherever_they_sit(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/admin/profile',
+            'data' => [
+                'recovery_codes' => ['one', 'two'],
+                'recovery_code' => 'one',
+                'app_authentication_recovery_codes' => ['one'],
+                'multi_factor' => ['app' => ['code' => '123456']],
+                'code' => 'kept: not under a multiFactor parent',
+            ],
+        ]);
+
+        $data = SentryEventScrubber::beforeSend($event)?->getRequest()['data'];
+
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['recovery_codes']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['recovery_code']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['app_authentication_recovery_codes']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['multi_factor']['app']['code']);
+        $this->assertSame('kept: not under a multiFactor parent', $data['code']);
+    }
+
     public function test_query_exception_message_keeps_the_sql_but_not_its_bindings(): void
     {
         $exception = new QueryException(

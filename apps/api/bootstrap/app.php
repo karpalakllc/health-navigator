@@ -5,13 +5,16 @@ use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\IgnoreRememberMeCookie;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
+use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Http\Responses\ApiResponse;
 use App\Support\FrontendUrl;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -63,6 +66,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // whose scheme decision it preserves, and before any route throttle.
         $middleware->append(TrustWebTierClientIp::class);
 
+        // Global rather than per group so error pages, 404s and the panel's
+        // Livewire endpoints carry them too.
+        $middleware->append(SetSecurityHeaders::class);
+
         // Constrain the Host header to APP_URL's domain outside local/testing.
         // This is what stops a request claiming an arbitrary host and having
         // URL::temporarySignedRoute() mint a verification link on it.
@@ -80,6 +87,17 @@ return Application::configure(basePath: dirname(__DIR__))
             SetApiLocale::class,
             EnsureNotInMaintenance::class,
         ]);
+
+        // The panel's own stack has it too; this covers the web group, which
+        // carries Livewire's update and upload endpoints (where the panel's forms
+        // submit). Appending alone is not enough: the router sorts priority
+        // middleware ahead of everything else, so ThrottleRequests on upload-file
+        // (which asks for $request->user() to key its limit) would run first and
+        // let the guard consume the remember cookie. In the priority list right
+        // after AddQueuedCookiesToResponse it runs before session, auth and any
+        // throttle, while its Cookie::queue() still reaches the response.
+        $middleware->web(append: [IgnoreRememberMeCookie::class]);
+        $middleware->appendToPriorityList(AddQueuedCookiesToResponse::class, IgnoreRememberMeCookie::class);
 
         // Baseline limit for every v1 route; the named limiters stay layered on top.
         $middleware->throttleApi('api');

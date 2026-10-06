@@ -55,3 +55,6 @@ dist/
 # Local infra artifacts (when added later)
 infra/.env
 infra/**/*.local
+
+# Playwright E2E reports and traces (apps/web/playwright.config.ts)
+.e2e-output/

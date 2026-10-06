@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import { mediaRemotePatterns, resolveMediaUrl } from "./src/lib/media-origin";
 
 /*
  * Content-Security-Policy is NOT set here. It is minted per request in
@@ -32,6 +33,17 @@ const localApiStoragePatterns =
         pathname: "/storage/**",
       }));
 
+/*
+ * Media on object storage (NEXT_PUBLIC_MEDIA_URL = the API's AWS_URL). A bad
+ * value fails the build: ignoring it would ship a site whose every logo and
+ * avatar is blocked, with nothing in the logs saying why.
+ */
+const isProduction = process.env.NODE_ENV === "production";
+const media = resolveMediaUrl(process.env.NEXT_PUBLIC_MEDIA_URL, isProduction);
+if (media.error) {
+  throw new Error(media.error);
+}
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -49,6 +61,7 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       ...localApiStoragePatterns,
+      ...mediaRemotePatterns(process.env.NEXT_PUBLIC_MEDIA_URL, isProduction),
     ],
   },
 };

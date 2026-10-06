@@ -176,9 +176,35 @@ This runs migrations, site settings, permissions, and ensures the admin user has
 
 Default seeded passwords in `.env.example` are for **local development only**. Change them before any shared or production environment.
 
+## Running E2E locally
+
+A Playwright suite ([`apps/web/e2e`](./apps/web/e2e), Chromium) drives the real stack: the Laravel API on PostgreSQL and a **production build** of the web app.
+
+**Prerequisites:** `composer install` in `apps/api`, Node 24 + `npm ci` in `apps/web`, `npx playwright install chromium` once, and an empty PostgreSQL database for the suite:
+
+```bash
+createdb -h 127.0.0.1 -U zdravje zdravje_e2e   # user zdravje / secret by default
+```
+
+**Run:**
+
+```bash
+./scripts/e2e.sh              # or: cd apps/web && npm run e2e
+./scripts/e2e.sh forum        # one spec file; any `playwright test` argument works
+cd apps/web && npm run e2e:report   # open the HTML report of the last run
+```
+
+What happens: Playwright builds the web app and starts the API on `127.0.0.1:8010` and `next start` on `127.0.0.1:3010` (so it can run beside the dev stack), runs `migrate:fresh` + `E2ESeeder` on `zdravje_e2e`, then the specs. The settings that matter to the run — app key and URLs, database, cache, session (driver, cookie domain, secure flag, encryption), queue, mailer, logging, filesystem, search, Sentry, CORS and the web-tier secret — are pinned in [`apps/web/e2e/support/env.ts`](./apps/web/e2e/support/env.ts) and override your `apps/api/.env`; anything not listed there still falls through from `.env`. Mail goes to `apps/api/storage/logs/e2e-mail.log`, where specs read verification and reset links. Results, traces and the report land in `.e2e-output/` at the repo root.
+
+- The run resets its database with `migrate:fresh`, so it refuses any database whose name does not end in `_e2e` or that is not on `127.0.0.1`/`localhost`/`::1`.
+- It also refuses to start while something listens on `:8010` or `:3010`; `E2E_REUSE=1` attaches to servers you started yourself instead (ignored in CI).
+- `E2E_SKIP_BUILD=1` reuses the current `apps/web/.next` build while iterating on specs. The build bakes in the E2E URLs, so run `npm run build` again before using `npm start` for anything else.
+- Different database credentials: `E2E_DB_HOST`, `E2E_DB_PORT`, `E2E_DB_DATABASE`, `E2E_DB_USERNAME`, `E2E_DB_PASSWORD`.
+- Fixtures (accounts, slugs, module flags) are documented in [`E2ESeeder`](./apps/api/database/seeders/E2ESeeder.php) and mirrored in `apps/web/e2e/support/fixtures.ts`. The seeder refuses to run outside `local` and `testing`.
+
 ## CI
 
-On push/PR to `main`, [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs Laravel tests and Next.js lint + build.
+On push/PR, [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs Laravel tests (SQLite and PostgreSQL), Next.js lint + types + unit tests + build, and the E2E suite (job `e2e`; the HTML report and traces are uploaded as an artifact when it fails).
 
 ## Documentation
 

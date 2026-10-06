@@ -2,8 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Support\DeploymentEnvironment;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Facades\Filament;
 use Illuminate\Console\Command;
 
 /**
@@ -31,6 +34,9 @@ class PlatformPreflightCommand extends Command
     private const UNSHARED_CACHE_STORES = ['array', 'file', 'null'];
 
     private const SHARED_CACHE_STORES = ['redis', 'database', 'memcached', 'dynamodb'];
+
+    /** The admin panel's idle timeout ceiling, in minutes (config/session.php). */
+    public const MAX_SESSION_LIFETIME = 60;
 
     /** @var list<array{level: string, check: string, message: string}> */
     private array $findings = [];
@@ -72,6 +78,7 @@ class PlatformPreflightCommand extends Command
         $this->checkMail();
         $this->checkQueueAndCache();
         $this->checkSessionAndAuth();
+        $this->checkAdminMultiFactorAuthentication();
         $this->checkCors();
         $this->checkSeeding();
         $this->checkMedia();
@@ -176,8 +183,47 @@ class PlatformPreflightCommand extends Command
             $this->addError('session.secure', 'SESSION_SECURE_COOKIE is not true, so the admin session cookie can be sent over plain HTTP.');
         }
 
+        $lifetime = (int) config('session.lifetime');
+
+        if ($lifetime < 1 || $lifetime > self::MAX_SESSION_LIFETIME) {
+            $this->addError('session.lifetime', "SESSION_LIFETIME is {$lifetime} minutes. It is the admin panel's idle timeout; keep it between 1 and ".self::MAX_SESSION_LIFETIME.'.');
+        }
+
+        $sameSite = config('session.same_site');
+
+        if (! in_array(is_string($sameSite) ? strtolower($sameSite) : $sameSite, ['lax', 'strict'], true)) {
+            $this->addError('session.same_site', 'SESSION_SAME_SITE is "'.($sameSite ?? 'null').'". Use "lax" or "strict" so the admin session cookie is not sent on cross-site requests.');
+        }
+
+        if (config('session.http_only') !== true) {
+            $this->addError('session.http_only', 'SESSION_HTTP_ONLY is not true, so page scripts can read the admin session cookie.');
+        }
+
         if (config('sanctum.expiration') === null) {
             $this->addError('sanctum.expiration', 'SANCTUM_TOKEN_EXPIRATION_MINUTES is null: API tokens never expire.');
+        }
+    }
+
+    /**
+     * Reads the panel as registered, not a config value: there is deliberately no
+     * switch for this, so the risk is the wiring being removed or replaced.
+     */
+    private function checkAdminMultiFactorAuthentication(): void
+    {
+        $panel = Filament::getPanel('admin');
+        $providers = $panel->getMultiFactorAuthenticationProviders();
+        $app = $providers['app'] ?? null;
+
+        $problem = match (true) {
+            ! $app instanceof AppAuthentication => 'has no authenticator-app provider',
+            ! $app->isRecoverable() => 'does not issue recovery codes',
+            ! $panel->isMultiFactorAuthenticationRequired() => 'does not require it',
+            $panel->getMultiFactorAuthenticationRequiredMiddlewareName() !== EnsureStaffMultiFactorAuthentication::class => 'is not enforced by EnsureStaffMultiFactorAuthentication',
+            default => null,
+        };
+
+        if ($problem !== null) {
+            $this->addError('filament.admin.mfa', "The admin panel's two-factor authentication {$problem}. Staff holding admin.access must be made to enrol (AdminPanelProvider).");
         }
     }
 
@@ -225,6 +271,45 @@ class PlatformPreflightCommand extends Command
 
         if ($disk === 'public') {
             $this->addWarning('media.disk', 'MEDIA_DISK is "public" (local storage). On an ephemeral PaaS filesystem every uploaded logo and avatar is lost on redeploy — use object storage, or a persistent volume plus `php artisan storage:link`.');
+        }
+
+        if (config("filesystems.disks.{$disk}.driver") === 's3') {
+            $this->checkObjectStorageDisk($disk);
+        }
+    }
+
+    /**
+     * The s3 disk is built lazily, and with `throw` off a write to a bucket it
+     * cannot reach just returns false — so a missing credential surfaces as the
+     * first admin's logo upload failing, not as a boot error.
+     */
+    private function checkObjectStorageDisk(string $disk): void
+    {
+        $prefix = "filesystems.disks.{$disk}";
+        $required = [
+            'bucket' => 'AWS_BUCKET',
+            'region' => 'AWS_DEFAULT_REGION',
+            'key' => 'AWS_ACCESS_KEY_ID',
+            'secret' => 'AWS_SECRET_ACCESS_KEY',
+        ];
+
+        foreach ($required as $key => $variable) {
+            if (blank(config("{$prefix}.{$key}"))) {
+                $this->addError("{$prefix}.{$key}", "MEDIA_DISK \"{$disk}\" is object storage but {$variable} is unset.");
+            }
+        }
+
+        $url = config("{$prefix}.url");
+
+        if (filled($url)) {
+            // Media URLs go into https pages; an http base is blocked as mixed content.
+            if (parse_url((string) $url, PHP_URL_SCHEME) !== 'https') {
+                $this->addError("{$prefix}.url", 'AWS_URL (the public media base) must be an https URL.');
+            }
+        } elseif (filled(config("{$prefix}.endpoint"))) {
+            // An R2/B2/MinIO API endpoint is not a public read URL, so every media
+            // URL built from it is unreachable for visitors.
+            $this->addWarning("{$prefix}.url", 'AWS_ENDPOINT is set but AWS_URL is not: media URLs will point at the S3 API endpoint, which providers such as R2 do not serve publicly. Set AWS_URL to the bucket\'s public domain or CDN.');
         }
     }
 

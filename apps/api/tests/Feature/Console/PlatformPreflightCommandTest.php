@@ -2,6 +2,11 @@
 
 namespace Tests\Feature\Console;
 
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -29,12 +34,21 @@ class PlatformPreflightCommandTest extends TestCase
             'queue.default' => 'redis',
             'cache.default' => 'redis',
             'session.secure' => true,
+            'session.lifetime' => 60,
+            'session.same_site' => 'lax',
+            'session.http_only' => true,
             'cors.allowed_origins' => ['https://zdravje360.mk'],
             'sanctum.expiration' => 43_200,
             'zdravje.admin.email' => 'ops@zdravje360.mk',
             'zdravje.seed.local_demo' => false,
             'sentry.dsn' => 'https://public@o0.ingest.sentry.io/0',
             'media.disk' => 's3',
+            'filesystems.disks.s3.bucket' => 'zdravje-media',
+            'filesystems.disks.s3.region' => 'eu-central-1',
+            'filesystems.disks.s3.key' => 'AKIAEXAMPLE',
+            'filesystems.disks.s3.secret' => 'secret',
+            'filesystems.disks.s3.url' => 'https://media.zdravje360.mk',
+            'filesystems.disks.s3.endpoint' => null,
             'scout.driver' => 'meilisearch',
             'scout.meilisearch.host' => 'https://search.zdravje360.mk',
             'scout.meilisearch.key' => 'secret',
@@ -88,6 +102,11 @@ class PlatformPreflightCommandTest extends TestCase
             'file cache' => [['cache.default' => 'file'], 'cache.default'],
             'array cache' => [['cache.default' => 'array'], 'cache.default'],
             'insecure session cookie' => [['session.secure' => null], 'session.secure'],
+            'admin idle timeout too long' => [['session.lifetime' => 120], 'session.lifetime'],
+            'admin session never idles out' => [['session.lifetime' => 0], 'session.lifetime'],
+            'cross-site session cookie' => [['session.same_site' => 'none'], 'session.same_site'],
+            'unset same-site' => [['session.same_site' => null], 'session.same_site'],
+            'script-readable session cookie' => [['session.http_only' => false], 'session.http_only'],
             'no cors origins' => [['cors.allowed_origins' => []], 'cors.allowed_origins'],
             'localhost cors origin' => [['cors.allowed_origins' => ['https://zdravje360.mk', 'http://localhost:3000']], 'cors.allowed_origins'],
             'wildcard cors origin' => [['cors.allowed_origins' => ['*']], 'cors.allowed_origins'],
@@ -95,6 +114,15 @@ class PlatformPreflightCommandTest extends TestCase
             'default admin email' => [['zdravje.admin.email' => 'admin@zdravje360.test'], 'zdravje.admin.email'],
             'demo seeding on' => [['zdravje.seed.local_demo' => true], 'zdravje.seed.local_demo'],
             'unknown media disk' => [['media.disk' => 'nope'], 'media.disk'],
+            's3 media without bucket' => [['filesystems.disks.s3.bucket' => null], 'filesystems.disks.s3.bucket'],
+            's3 media without region' => [['filesystems.disks.s3.region' => ''], 'filesystems.disks.s3.region'],
+            's3 media without access key' => [['filesystems.disks.s3.key' => null], 'filesystems.disks.s3.key'],
+            's3 media without secret' => [['filesystems.disks.s3.secret' => null], 'filesystems.disks.s3.secret'],
+            's3 media with http public url' => [['filesystems.disks.s3.url' => 'http://media.zdravje360.mk'], 'filesystems.disks.s3.url'],
+            'other s3-driver media disk without bucket' => [[
+                'media.disk' => 'r2',
+                'filesystems.disks.r2' => ['driver' => 's3', 'key' => 'k', 'secret' => 's', 'region' => 'auto', 'url' => 'https://media.zdravje360.mk'],
+            ], 'filesystems.disks.r2.bucket'],
             'meilisearch without key' => [['scout.meilisearch.key' => null], 'scout.meilisearch.key'],
             'meilisearch on localhost' => [['scout.meilisearch.host' => 'http://localhost:7700'], 'scout.meilisearch.host'],
         ];
@@ -112,12 +140,52 @@ class PlatformPreflightCommandTest extends TestCase
         $this->assertSame(1, $result['exit']);
     }
 
+    public function test_strict_same_site_is_accepted(): void
+    {
+        config(['session.same_site' => 'strict']);
+
+        $this->assertSame([], $this->preflight()['errors']);
+    }
+
+    /**
+     * The admin panel's MFA wiring has no config switch, so each way of
+     * undoing it is applied to the registered panel itself.
+     *
+     * @return array<string, array{\Closure(Panel): void}>
+     */
+    public static function weakenedAdminMultiFactorAuthentication(): array
+    {
+        return [
+            'no providers' => [fn (Panel $panel) => $panel->multiFactorAuthentication([])],
+            'no recovery codes' => [fn (Panel $panel) => $panel->multiFactorAuthentication([AppAuthentication::make()], isRequired: true)
+                ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)],
+            'not required' => [fn (Panel $panel) => $panel->requiresMultiFactorAuthentication(false)],
+            'stock middleware' => [fn (Panel $panel) => $panel->multiFactorAuthenticationRequiredMiddlewareName(EnsureMultiFactorAuthenticationIsEnabled::class)],
+        ];
+    }
+
+    /** @param  \Closure(Panel): void  $weaken */
+    #[DataProvider('weakenedAdminMultiFactorAuthentication')]
+    public function test_weakened_admin_mfa_fails_the_preflight(\Closure $weaken): void
+    {
+        $weaken(Filament::getPanel('admin'));
+
+        $result = $this->preflight();
+
+        $this->assertSame(['filament.admin.mfa'], $result['errors']);
+        $this->assertSame(1, $result['exit']);
+    }
+
     /** @return array<string, array{array<string, mixed>, string}> */
     public static function riskyConfigurations(): array
     {
         return [
             'no sentry dsn' => [['sentry.dsn' => null], 'sentry.dsn'],
             'public media disk' => [['media.disk' => 'public'], 'media.disk'],
+            's3 endpoint without public url' => [[
+                'filesystems.disks.s3.endpoint' => 'https://account.r2.cloudflarestorage.com',
+                'filesystems.disks.s3.url' => null,
+            ], 'filesystems.disks.s3.url'],
             'unrecognised cache store' => [['cache.default' => 'octane'], 'cache.default'],
         ];
     }
@@ -147,6 +215,13 @@ class PlatformPreflightCommandTest extends TestCase
     public function test_meilisearch_credentials_are_only_required_when_it_is_the_driver(): void
     {
         config(['scout.driver' => 'database', 'scout.meilisearch.key' => null]);
+
+        $this->assertSame([], $this->preflight()['errors']);
+    }
+
+    public function test_object_storage_credentials_are_only_required_for_an_s3_media_disk(): void
+    {
+        config(['media.disk' => 'public', 'filesystems.disks.s3.bucket' => null, 'filesystems.disks.s3.key' => null]);
 
         $this->assertSame([], $this->preflight()['errors']);
     }

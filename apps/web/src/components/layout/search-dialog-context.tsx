@@ -45,6 +45,9 @@ export function useSearchDialog(): SearchDialogContextValue {
   return ctx;
 }
 
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 function SearchModal({
   open,
   onClose,
@@ -68,23 +71,54 @@ function SearchModal({
       return;
     }
 
+    // aria-modal promises assistive tech that nothing outside the panel is
+    // reachable, so focus is kept inside while open and handed back to
+    // whatever opened the dialog once it closes.
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const focusables = () =>
+      Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
+      );
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+
+      if (e.key !== "Tab") {
+        return;
+      }
+
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      const inside = panelRef.current?.contains(active) ?? false;
+
+      if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault();
+        first?.focus();
       }
     };
 
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
 
-    const focusable = panelRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    focusable?.focus();
+    focusables()[0]?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      if (opener?.isConnected) {
+        opener.focus();
+      }
     };
   }, [open, onClose]);
 
