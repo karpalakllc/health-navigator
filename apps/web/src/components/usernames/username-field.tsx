@@ -127,11 +127,14 @@ export function UsernameField({
         type="text"
         name="username"
         required
-        autoComplete="username"
+        // Login is by e-mail: "username" would make password managers save
+        // this public handle as the login name.
+        autoComplete="nickname"
         autoCapitalize="none"
         spellCheck={false}
         maxLength={USERNAME_MAX_LENGTH}
         value={value}
+        aria-invalid={shown?.state === "unavailable" ? true : undefined}
         aria-describedby={statusId}
         onChange={(event) => onChange(event.target.value)}
       />
