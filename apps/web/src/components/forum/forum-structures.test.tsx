@@ -5,7 +5,7 @@ import {
   isSameAuthor,
 } from "@/components/forum/forum-post-card";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
-import { ForumStatusTag } from "@/components/forum/forum-status-tag";
+import { ModerationStatusTag } from "@/components/account/moderation-status-tag";
 import { ForumTopicList } from "@/components/forum/forum-topic-row";
 import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
 import { t } from "@/i18n/t";
@@ -203,13 +203,13 @@ describe("isSameAuthor", () => {
   });
 });
 
-describe("ForumStatusTag", () => {
+describe("ModerationStatusTag (forum activity)", () => {
   it.each([
     ["pending", t("account.statusPending")],
     ["approved", t("account.statusApproved")],
     ["rejected", t("account.statusRejected")],
   ])("labels %s", (status, label) => {
-    render(<ForumStatusTag status={status} />);
+    render(<ModerationStatusTag status={status} />);
 
     expect(screen.getByText(label)).toBeInTheDocument();
   });

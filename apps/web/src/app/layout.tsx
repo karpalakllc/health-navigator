@@ -89,8 +89,8 @@ export default async function RootLayout({
               <PlausibleAnalytics />
               <SkipLink />
               <SiteHeader />
-              {/* The one <main> of the page (PageShell is a <div>), so it also
-                  covers the hero; tabIndex lets the skip link move focus here. */}
+              {/* The one <main> of the page, so it also covers the hero;
+                  tabIndex lets the skip link move focus here. */}
               <main
                 id={MAIN_CONTENT_ID}
                 tabIndex={-1}

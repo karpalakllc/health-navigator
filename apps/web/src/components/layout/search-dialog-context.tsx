@@ -15,7 +15,6 @@ import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-
 import { HEADER_SEARCH_INPUT_ID } from "@/components/layout/header-search";
 import { Button, IconButton, buttonClassName } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
-import { SEARCH_QUERY_HINT } from "@/components/directory/filter-form";
 import { directorySearchHref } from "@/lib/search";
 import { cn } from "@/lib/cn";
 import { t, tFormat } from "@/i18n/t";
@@ -189,7 +188,7 @@ function SearchModal({
               autoComplete="off"
             />
           </div>
-          <p className="type-meta text-ink-2">{SEARCH_QUERY_HINT}</p>
+          <p className="type-meta text-ink-2">{t("search.queryHint")}</p>
         </div>
 
         <div className="mt-6 space-y-3">

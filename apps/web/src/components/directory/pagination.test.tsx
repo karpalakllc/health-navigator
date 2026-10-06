@@ -26,4 +26,36 @@ describe("Pagination", () => {
       `/doctors?city=${encodeURIComponent("Скопје")}&page=3`,
     );
   });
+
+  it("takes its own name when a page has two (Мој форум)", () => {
+    render(
+      <>
+        <Pagination
+          basePath="/account/forum"
+          currentPage={1}
+          lastPage={2}
+          total={20}
+          searchParams={{}}
+          pageParam="topics_page"
+          label="Теми: страници"
+        />
+        <Pagination
+          basePath="/account/forum"
+          currentPage={1}
+          lastPage={2}
+          total={20}
+          searchParams={{}}
+          pageParam="posts_page"
+          label="Одговори: страници"
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "Теми: страници" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Одговори: страници" }),
+    ).toBeInTheDocument();
+  });
 });

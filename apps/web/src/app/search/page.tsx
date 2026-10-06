@@ -101,9 +101,7 @@ function SearchLayout({
         className="mx-3 mt-1 rounded-sheet bg-apricot px-5 pb-5 pt-7 lg:mx-0 lg:mt-6 lg:px-14 lg:pb-10 lg:pt-12"
       >
         {eyebrow ? (
-          <p className="mb-2 font-ui text-[0.9375rem] font-semibold leading-[1.375rem] text-ink lg:text-base lg:leading-6">
-            {eyebrow}
-          </p>
+          <p className="mb-2 type-meta font-semibold text-ink">{eyebrow}</p>
         ) : null}
         <h1 id="search-title" className="type-h1 break-words text-ink">
           {title}

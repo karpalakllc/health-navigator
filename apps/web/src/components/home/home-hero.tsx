@@ -27,7 +27,7 @@ export function HomeHero({
     >
       <div className="lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-6">
         <div className="lg:col-span-7">
-          <p className="font-ui text-[0.9375rem] font-semibold leading-[1.375rem] text-ink lg:text-base lg:leading-6">
+          <p className="type-meta font-semibold text-ink">
             {t("nav.wordmark")}
           </p>
           <h1
@@ -95,7 +95,7 @@ function HeroSearchForm() {
           type="search"
           autoComplete="off"
           placeholder={t("nav.searchWhatPlaceholder")}
-          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 text-[1.0625rem] text-ink placeholder:text-ink-2"
+          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 type-body text-ink placeholder:text-ink-2"
         />
       </div>
       <div aria-hidden="true" className="mx-3 h-px bg-line" />
@@ -110,7 +110,7 @@ function HeroSearchForm() {
           type="text"
           autoComplete="address-level2"
           placeholder={t("nav.searchWherePlaceholder")}
-          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 text-[1.0625rem] text-ink placeholder:text-ink-2"
+          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 type-body text-ink placeholder:text-ink-2"
         />
       </div>
       <Button

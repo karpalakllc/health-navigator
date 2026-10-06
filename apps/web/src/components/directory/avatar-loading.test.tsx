@@ -4,7 +4,6 @@ import type { ReactElement } from "react";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { DoctorCard } from "@/components/directory/doctor-card";
 import { FacilityCard } from "@/components/directory/facility-card";
-import { HomeFacilityCard } from "@/components/directory/home-facility-card";
 import type { DoctorListItem, FacilityListItem } from "@/lib/api/types";
 
 /**
@@ -46,7 +45,6 @@ const facility: FacilityListItem = {
 const cases: [string, ReactElement][] = [
   ["doctor card", <DoctorCard key="d" doctor={doctor} />],
   ["facility card", <FacilityCard key="f" facility={facility} />],
-  ["home facility card", <HomeFacilityCard key="h" facility={facility} />],
   [
     "directory avatar",
     <DirectoryAvatar key="a" kind="doctor" avatarUrl={AVATAR} name="Ана" />,

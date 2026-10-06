@@ -30,7 +30,7 @@ export function HeaderSearch() {
         type="search"
         autoComplete="off"
         placeholder={t("nav.searchWhatPlaceholder")}
-        className="h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent p-0 text-[1.0625rem] text-ink"
+        className="h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent p-0 type-body text-ink"
       />
       <span aria-hidden="true" className="h-7 w-px shrink-0 bg-line" />
       <Icon name="map-pin" size={20} className="text-ink-2" />
@@ -43,7 +43,7 @@ export function HeaderSearch() {
         type="text"
         autoComplete="address-level2"
         placeholder={t("nav.searchWherePlaceholder")}
-        className="h-11 w-24 rounded-md border-0 bg-transparent p-0 text-[1.0625rem] text-ink"
+        className="h-11 w-24 rounded-md border-0 bg-transparent p-0 type-body text-ink"
       />
       <button
         type="submit"

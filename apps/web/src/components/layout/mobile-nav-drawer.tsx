@@ -26,7 +26,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const accountLinkClass =
-  "flex min-h-12 items-center rounded-xl px-2 text-[1.0625rem] text-ink no-underline hover:bg-sand";
+  "flex min-h-12 items-center rounded-xl px-2 type-body text-ink no-underline hover:bg-sand";
 
 /**
  * The full section list on mobile (the bottom bar holds only the five main
@@ -147,7 +147,7 @@ export function MobileNavDrawer({
           <Link
             href="/search"
             onClick={onClose}
-            className="mt-1 flex min-h-14 items-center gap-3 rounded-2xl px-2 text-[1.0625rem] font-medium text-ink no-underline hover:bg-sand"
+            className="mt-1 flex min-h-14 items-center gap-3 rounded-2xl px-2 type-body font-medium text-ink no-underline hover:bg-sand"
           >
             <span className="inline-flex size-10 items-center justify-center rounded-full bg-sand">
               <Icon name="search" size={22} />
