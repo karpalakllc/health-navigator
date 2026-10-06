@@ -54,6 +54,11 @@ const DATA_SOURCES: Array<{
     name: "dataSources.komoraName",
     body: "dataSources.komoraBody",
   },
+  {
+    icon: "globe",
+    name: "dataSources.websitesName",
+    body: "dataSources.websitesBody",
+  },
   { icon: "user", name: "dataSources.ownName", body: "dataSources.ownBody" },
 ];
 
@@ -432,7 +437,7 @@ function DataSources() {
   return (
     <TextCard id="izvori" title={t("dataSources.title")}>
       <p className="measure type-reading text-ink">{t("dataSources.lead")}</p>
-      <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-3 lg:gap-6">
+      <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:gap-6">
         {DATA_SOURCES.map((source) => (
           <li key={source.name} className="flex items-start gap-3">
             <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">

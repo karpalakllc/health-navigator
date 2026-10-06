@@ -141,7 +141,21 @@ https://azlp.mk/en/contact/, read 2026-10-06).
   чл. 116) holds ЕМБГ and addresses and is **not** public. Never use it as a
   source. Private clinic websites and aggregators are not copied (database
   maker's right, ЗАПСП чл. 118–128; photos and bios are copyrighted).
-- **Information duty (чл. 18):** the privacy page names both sources, says
+
+  **Owner decision 2026-10-07 (implemented in W6, open for counsel):** from
+  each institution's **own** website, a hand-run import
+  (`import:institutions-json`) takes the facility's contact details, its
+  logo, cover photos of the building or premises, and the physicians and
+  dentists it lists with their specialty (as hidden drafts, licence to be
+  verified before publishing). Every image keeps its source URL and is
+  removed in one click on the institution's request, never to be
+  re-imported; photos of people and bios are not taken; the website only
+  fills gaps on a register record. This departs from the line above for
+  logos and photos: **counsel to confirm** the basis (trademark use to
+  identify the institution; copyright in the cover photos — licence,
+  implied consent or takedown-on-request as the mitigation).
+- **Information duty (чл. 18):** the privacy page names both sources (and
+  the institutions' own websites), says
   they are publicly available (чл. 18(2) т. 6) and lists what is not taken.
   Writing to every listed doctor is arguably
   disproportionate effort (чл. 18(5) т. 2). The fallback is a public notice,

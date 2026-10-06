@@ -184,6 +184,10 @@ describe("TransparencyContent", () => {
     expect(sources).toHaveTextContent("ФЗОМ");
     expect(sources).toHaveTextContent("Лекарска комора");
     expect(sources).toHaveTextContent(t("dataSources.excluded3"));
+    // Logos and cover photos come from the institutions' own websites and
+    // are removed on request.
+    expect(sources).toHaveTextContent(t("dataSources.websitesName"));
+    expect(sources).toHaveTextContent("на барање на установата");
     expect(sources).toHaveTextContent("15 дена");
     expect(sources).toHaveTextContent("30 дена");
     expect(
