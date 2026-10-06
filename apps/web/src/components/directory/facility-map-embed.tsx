@@ -8,7 +8,11 @@ import {
 } from "@/lib/maps";
 import { t, tFormat } from "@/i18n/t";
 
-/** OpenStreetMap embed when coordinates exist; the sand stand-in otherwise. */
+/**
+ * OpenStreetMap embed when coordinates exist; the sand stand-in otherwise.
+ * OpenStreetMap sees the visitor's IP (disclosed in the privacy policy) but
+ * no referrer: the profile URL stays ours.
+ */
 export function FacilityMapEmbed({
   latitude,
   longitude,
@@ -35,7 +39,7 @@ export function FacilityMapEmbed({
           src={openStreetMapEmbedUrl(lat, lng)}
           className="aspect-[16/10] w-full border-0"
           loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
+          referrerPolicy="no-referrer"
         />
       </div>
       <div className="flex flex-wrap gap-2">
