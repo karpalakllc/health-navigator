@@ -1,9 +1,11 @@
 import type { ForumPost, ForumTopicDetail } from "@/lib/api/forum";
-import type {
-  DoctorDetail,
-  FacilityType,
-  PharmacyDetail,
-  ReviewSummary,
+import {
+  isRemovedItem,
+  type DoctorDetail,
+  type FacilityType,
+  type PharmacyDetail,
+  type RemovedItem,
+  type ReviewSummary,
 } from "@/lib/api/types";
 
 /**
@@ -218,17 +220,6 @@ type CommentSource = Pick<
 >;
 
 /**
- * A reply taken down by moderation, kept in the thread as a placeholder
- * ({ id, removed: true, … }). Its author and text are gone, so it is not a
- * Comment. Structural on purpose: the list may hold either shape.
- */
-type RemovedPlaceholder = { id: number; removed: boolean };
-
-function isRemoved(post: object): post is RemovedPlaceholder {
-  return "removed" in post && (post as { removed?: unknown }).removed === true;
-}
-
-/**
  * A forum topic as Google's DiscussionForumPosting, replies as Comment.
  *
  * Not QAPage: topics here are experiences and discussions („Искуства со…“),
@@ -250,7 +241,7 @@ export function forumTopicJsonLd(input: {
     | "tags"
   >;
   /** Replies on this page; removed-reply placeholders are skipped. */
-  posts: readonly (CommentSource | RemovedPlaceholder)[];
+  posts: readonly (CommentSource | RemovedItem)[];
   url: string;
   category: { name: string; url: string };
 }): Record<string, unknown> | null {
@@ -261,7 +252,7 @@ export function forumTopicJsonLd(input: {
   }
 
   const comments = posts
-    .filter((post): post is CommentSource => !isRemoved(post))
+    .filter((post): post is CommentSource => !isRemovedItem(post))
     .filter((post) => post.published_at)
     .map((post) => ({
       "@type": "Comment",

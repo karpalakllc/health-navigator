@@ -105,7 +105,15 @@ describe("forumTopicJsonLd", () => {
   it("skips removed-reply placeholders (no author, no text)", () => {
     const data = forumTopicJsonLd({
       topic,
-      posts: [{ id: 99, removed: true }, posts[1]],
+      posts: [
+        {
+          id: 99,
+          removed: true,
+          removed_at: "2026-10-01T10:00:00+02:00",
+          removal_category: "spam",
+        },
+        posts[1],
+      ],
       url,
       category,
     });
