@@ -236,6 +236,24 @@ class ContentReportTest extends TestCase
             ->assertJsonPath('data.posts.0.id', $kept->id);
     }
 
+    public function test_two_moderators_hiding_the_same_reply_count_it_once(): void
+    {
+        Mail::fake();
+        $category = ForumCategory::factory()->create();
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id]);
+        ForumPost::factory()->create(['forum_topic_id' => $topic->id]);
+        $reply = ForumPost::factory()->create(['forum_topic_id' => $topic->id]);
+        // Two queue rows loaded side by side, each still seeing the reply as published.
+        $first = ContentReport::factory()->about($reply)->create()->load('reportable');
+        $second = ContentReport::factory()->about($reply)->create()->load('reportable');
+
+        $first->hideContent(User::factory()->moderator()->create());
+        $second->hideContent(User::factory()->moderator()->create());
+
+        $this->assertSame(1, $topic->fresh()->replies_count);
+        Mail::assertQueued(UgcRejectedMail::class, 1);
+    }
+
     public function test_keeping_reported_content_leaves_it_published(): void
     {
         $review = $this->approvedReview();

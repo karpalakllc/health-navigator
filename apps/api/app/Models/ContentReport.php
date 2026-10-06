@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -120,13 +121,7 @@ class ContentReport extends Model
      */
     public function contentIsPublished(): bool
     {
-        $content = $this->reportable;
-
-        return match (true) {
-            $content instanceof Review => $content->status === ReviewStatus::Approved,
-            $content instanceof ForumTopic, $content instanceof ForumPost => $content->status === ForumContentStatus::Approved,
-            default => false,
-        };
+        return self::isPublished($this->reportable);
     }
 
     /**
@@ -136,15 +131,22 @@ class ContentReport extends Model
      * email, with the note (a neutral default when the moderator leaves it
      * empty), which doubles as the statement of reasons in
      * docs/notice-and-action.md.
+     *
+     * The item is re-read under a row lock: two moderators hiding it from two
+     * reports at once must not reject it (and mail its author, and lower the
+     * topic's reply count) twice.
      */
     public function hideContent(User $moderator, ?string $note = null): void
     {
         $note = filled($note) ? trim((string) $note) : __('api.report.hidden_default_note', [], 'mk');
 
         DB::transaction(function () use ($moderator, $note): void {
-            $content = $this->reportable;
+            $type = Relation::getMorphedModel($this->reportable_type) ?? $this->reportable_type;
+            $content = is_a($type, Model::class, true)
+                ? $type::query()->whereKey($this->reportable_id)->lockForUpdate()->first()
+                : null;
 
-            if ($this->contentIsPublished()) {
+            if (self::isPublished($content)) {
                 if ($content instanceof Review) {
                     $content->reject($moderator, $note, afterReport: true);
                 } elseif ($content instanceof ForumPost) {
@@ -157,6 +159,15 @@ class ContentReport extends Model
 
             $this->closeOpenReports(ReportStatus::Hidden, $moderator);
         });
+    }
+
+    private static function isPublished(?Model $content): bool
+    {
+        return match (true) {
+            $content instanceof Review => $content->status === ReviewStatus::Approved,
+            $content instanceof ForumTopic, $content instanceof ForumPost => $content->status === ForumContentStatus::Approved,
+            default => false,
+        };
     }
 
     /**
