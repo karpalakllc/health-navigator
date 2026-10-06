@@ -123,6 +123,15 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        // Outbox for the Playwright suite (MAIL_MAILER=log, MAIL_LOG_CHANNEL=e2e-mail):
+        // apps/web/e2e reads verification and reset links back out of this file.
+        // Kept apart from laravel.log so a spec never parses application logs.
+        'e2e-mail' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/e2e-mail.log'),
+            'level' => 'debug',
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
