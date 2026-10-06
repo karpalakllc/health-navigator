@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { fetchForumCategories, fetchForumTopicSearch } from "@/lib/api/forum";
+import { fetchPharmacies } from "@/lib/api/pharmacies";
+import { fetchProducts } from "@/lib/api/products";
 import {
   SettingsUnavailableError,
   shouldAbortSitemap,
@@ -64,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // A partial sitemap is better than a 500 for a crawler: collectPages stops a
   // listing at its first failing page instead of throwing.
-  const [doctors, facilities] = await Promise.all([
+  const [doctors, facilities, pharmacies, products] = await Promise.all([
     collectPages(
       (page) => fetchDoctors({ page, per_page: PER_PAGE }, CACHE),
       MAX_PAGES,
@@ -73,6 +75,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       (page) => fetchFacilities({ page, per_page: PER_PAGE }, CACHE),
       MAX_PAGES,
     ),
+    // Like their list pages, only while the module is on (503 otherwise).
+    settings.public_pharmacies
+      ? collectPages(
+          (page) => fetchPharmacies({ page, per_page: PER_PAGE }, CACHE),
+          MAX_PAGES,
+        )
+      : [],
+    settings.public_products
+      ? collectPages(
+          (page) => fetchProducts({ page, per_page: PER_PAGE }, CACHE),
+          MAX_PAGES,
+        )
+      : [],
   ]);
 
   entries.push(
@@ -85,6 +100,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: absoluteUrl(`/facilities/${slug}`),
       changeFrequency: "weekly" as const,
       priority: 0.8,
+    })),
+    ...pharmacies.map(({ slug }) => ({
+      url: absoluteUrl(`/pharmacies/${slug}`),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
+    ...products.map(({ slug }) => ({
+      url: absoluteUrl(`/products/${slug}`),
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
     })),
   );
 
