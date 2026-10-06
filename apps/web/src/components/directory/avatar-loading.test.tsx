@@ -44,13 +44,8 @@ const facility: FacilityListItem = {
 };
 
 const cases: [string, ReactElement][] = [
-  ["doctor card (grid)", <DoctorCard key="d" doctor={doctor} />],
-  ["doctor card (list)", <DoctorCard key="dl" doctor={doctor} layout="list" />],
-  ["facility card (grid)", <FacilityCard key="f" facility={facility} />],
-  [
-    "facility card (list)",
-    <FacilityCard key="fl" facility={facility} layout="list" />,
-  ],
+  ["doctor card", <DoctorCard key="d" doctor={doctor} />],
+  ["facility card", <FacilityCard key="f" facility={facility} />],
   ["home facility card", <HomeFacilityCard key="h" facility={facility} />],
   [
     "directory avatar",

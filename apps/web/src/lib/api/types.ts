@@ -82,6 +82,12 @@ export type DoctorListItem = {
     city: string | null;
   } | null;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type ReviewSummary = {
@@ -144,6 +150,12 @@ export type FacilityListItem = {
   is_featured: boolean;
   departments_count: number;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type FacilityDetail = {
@@ -177,6 +189,12 @@ export type PharmacyListItem = {
   city: string | null;
   avatar_url: string | null;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type PharmacyDetail = {

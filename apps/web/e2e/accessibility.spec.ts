@@ -34,10 +34,6 @@ const KNOWN: Record<string, Record<string, string>> = {
       'The hero search box (home-hero-search-client.tsx) is role="tablist" ' +
       "but also wraps the input and submit button, which are not tabs.",
   },
-  doctors: {
-    "color-contrast": CONTRAST,
-  },
-  "doctor profile": { "color-contrast": CONTRAST },
   login: { "color-contrast": CONTRAST },
   register: { "color-contrast": CONTRAST },
   forum: { "color-contrast": CONTRAST },
