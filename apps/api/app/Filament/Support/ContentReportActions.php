@@ -6,7 +6,6 @@ use App\Enums\ReportStatus;
 use App\Models\ContentReport;
 use App\Models\User;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,14 +22,8 @@ final class ContentReportActions
             ->color('danger')
             ->icon('heroicon-o-eye-slash')
             ->visible(fn (ContentReport $record): bool => self::canHide($record))
-            ->modalDescription('Unpublishes the reported content and closes every open report on it. The author is emailed the note below.')
-            ->form([
-                Textarea::make('note')
-                    ->label('Note to the author (optional)')
-                    ->helperText('Sent to the author in the removal email and shown in their account. Write it in Macedonian. Left empty, a neutral default is used.')
-                    ->maxLength(500)
-                    ->rows(3),
-            ])
+            ->modalDescription('Unpublishes the reported content and closes every open report on it. The author is emailed the reason below.')
+            ->form(ModerationBulkActions::rejectionNoteFields('note'))
             ->requiresConfirmation()
             ->action(function (ContentReport $record, array $data): void {
                 // Re-checked at execution: visibility alone is not authorization.

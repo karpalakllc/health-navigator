@@ -56,9 +56,7 @@ class ReviewsTable
                 Action::make('reject')
                     ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
                         && auth()->user()?->can('update', $record))
-                    ->form([
-                        ModerationBulkActions::rejectionNoteField(),
-                    ])
+                    ->form(ModerationBulkActions::rejectionNoteFields())
                     ->requiresConfirmation()
                     ->action(fn (Review $record, array $data) => $record->reject(
                         auth()->user(),

@@ -9,8 +9,10 @@ use App\Models\ForumTopic;
 use App\Models\Review;
 use Closure;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -111,15 +113,52 @@ final class ModerationBulkActions
     }
 
     /**
-     * The note is not internal: it goes into the rejection email and is returned
-     * to the author by the My* API resources, so the label must say so.
+     * Reasons a moderator can pick instead of typing one. Written to the
+     * author, in Macedonian; the first is the default.
+     *
+     * @var list<string>
      */
-    public static function rejectionNoteField(): Textarea
+    public const PRESET_REASONS = [
+        'Содржината не е во согласност со правилата на заедницата.',
+        'Содржи лични или здравствени податоци за друго лице.',
+        'Содржи навреди, закани или вознемирување.',
+        'Изнесува обвинувања како факти.',
+        'Содржи реклама или врски кон други страници.',
+        'Не се однесува на профилот или на темата.',
+    ];
+
+    /**
+     * The reason given to the author. The terms promise authors the reason a
+     * review is refused or a post removed, so it is required: prefilled with
+     * a general reason and replaceable from a list or by typing.
+     *
+     * It is not internal: it goes into the rejection email and is returned to
+     * the author by the My* API resources, so the label must say so.
+     *
+     * @return array{Select, Textarea}
+     */
+    public static function rejectionNoteFields(string $name = 'rejection_note', ?string $default = null): array
     {
-        return Textarea::make('rejection_note')
-            ->label('Rejection note (shown to the author, optional)')
-            ->helperText('Sent to the author in the rejection email and shown in their account. Write it in Macedonian.')
-            ->rows(3);
+        return [
+            Select::make($name.'_preset')
+                ->label('Common reasons')
+                ->options(array_combine(self::PRESET_REASONS, self::PRESET_REASONS))
+                ->placeholder('Pick one to fill in the reason below')
+                ->live()
+                ->dehydrated(false)
+                ->afterStateUpdated(function (Set $set, ?string $state) use ($name): void {
+                    if (filled($state)) {
+                        $set($name, $state);
+                    }
+                }),
+            Textarea::make($name)
+                ->label('Reason (shown to the author)')
+                ->helperText('Sent to the author in the email and shown in their account. Write it in Macedonian, without naming whoever reported it.')
+                ->default($default ?? self::PRESET_REASONS[0])
+                ->required()
+                ->maxLength(500)
+                ->rows(3),
+        ];
     }
 
     /**
@@ -149,9 +188,7 @@ final class ModerationBulkActions
         return BulkAction::make('reject_selected')
             ->label($label)
             ->requiresConfirmation()
-            ->form([
-                self::rejectionNoteField(),
-            ])
+            ->form(self::rejectionNoteFields())
             ->action(function (EloquentCollection $records, array $data) use ($reject): void {
                 $note = $data['rejection_note'] ?? null;
 
