@@ -239,7 +239,16 @@ questions and are edited separately:
 | Used by | `import:fzom`, `import:institutions-json` (which specialty links a doctor gets; who is skipped) | `import:komora-licences` (whether a name match is accepted) |
 | Edited in | **Data import → Specialty aliases** (`imports.manage`) | **Data import → Licence specialty mapping** (`licences.manage`) |
 
-A doctor's groups come from their specialties: a mapping row linked to the
+Mapping an alias (or marking it excluded) takes effect on the next import:
+the doctors whose source record uses the wording are re-linked — the import
+replaces only the specialty links it made itself, never staff-made ones. The
+navigation badge counts unmapped wordings. Aliases are neither created nor
+deleted by hand (a deleted one would come back with the catalogue default).
+
+The two tables are kept apart on purpose: an alias picks exactly one of our
+specialties, while the licence mapping groups wordings of two sources and
+lets a licence fit several groups (a cardiologist contracted as an
+internist). A doctor's groups come from their specialties: a mapping row linked to the
 specialty, the specialty's name read as either source's wording (imported
 specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 
@@ -251,7 +260,7 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 | Changed | an imported value replaced the old one on a **published** profile (one item per profile per run) | Mark seen |
 | Conflict | the source disagrees with a value someone else set, or two records claim the same key (licence number); nothing was overwritten | Use imported value, Keep current and lock |
 | Missing | absent from consecutive snapshots | Hide profile (reviews kept), Dismiss |
-| Unmatched | ambiguous match, unmapped specialty wording, licence row without a single fitting doctor, partial name match | Dismiss after fixing by hand |
+| Unmatched | ambiguous match, unmapped specialty wording, licence row without a single fitting doctor, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
 
 1. Check each draft against the source before publishing: imported data is
    not verified. **Publish selected drafts** (bulk) once a batch is checked;
