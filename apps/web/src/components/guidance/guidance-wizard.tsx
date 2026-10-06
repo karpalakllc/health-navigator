@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { EmergencyCallLinks } from "@/components/guidance/emergency-call-links";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,9 @@ const SESSION_KEY = "guidance_session_id";
 const emergencyButtonClass =
   "border-destructive/40 text-destructive hover:bg-destructive/5";
 
+const stepHeadingClass =
+  "scroll-mt-24 text-lg font-semibold text-foreground focus:outline-none";
+
 type Phase = "intro" | "red_flags" | "questions" | "result" | "emergency";
 
 type Props = {
@@ -40,6 +44,26 @@ export function GuidanceWizard({ flow }: Props) {
   const [loading, setLoading] = useState(false);
 
   const currentStep = flow.steps[stepIndex];
+  const optionIdPrefix = useId();
+
+  // Each new step replaces the panel in place; without this the viewport
+  // stayed where the previous step's button was (often the footer) and focus
+  // was lost on the removed button. The heading takes focus and is scrolled
+  // to, so both sighted and screen-reader users start at the new question.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+
+      return;
+    }
+
+    const heading = headingRef.current;
+    heading?.scrollIntoView?.({ block: "start" });
+    heading?.focus({ preventScroll: true });
+  }, [phase, stepIndex]);
 
   const ensureSession = useCallback(async (): Promise<string> => {
     if (sessionId) {
@@ -144,6 +168,18 @@ export function GuidanceWizard({ flow }: Props) {
     });
   }
 
+  function handleQuestionBack() {
+    setError(null);
+
+    if (stepIndex > 0) {
+      setStepIndex((i) => i - 1);
+
+      return;
+    }
+
+    setPhase("red_flags");
+  }
+
   async function handleQuestionNext() {
     if (!currentStep) {
       return;
@@ -222,7 +258,7 @@ export function GuidanceWizard({ flow }: Props) {
     return (
       <div className="flex flex-col gap-6">
         <GuidanceSafetyNotice compact />
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {t("guidance.safetyCheck")}
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -241,6 +277,8 @@ export function GuidanceWizard({ flow }: Props) {
               >
                 <input
                   type="checkbox"
+                  id={`${optionIdPrefix}-flag-${flag.code}`}
+                  value={flag.code}
                   checked={redFlags.includes(flag.code)}
                   onChange={() => {
                     setRedFlags((prev) =>
@@ -276,7 +314,11 @@ export function GuidanceWizard({ flow }: Props) {
 
   if ((phase === "result" || phase === "emergency") && outcome) {
     return (
-      <OutcomeView outcome={outcome} isEmergency={phase === "emergency"} />
+      <OutcomeView
+        outcome={outcome}
+        isEmergency={phase === "emergency"}
+        headingRef={headingRef}
+      />
     );
   }
 
@@ -300,7 +342,7 @@ export function GuidanceWizard({ flow }: Props) {
             />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {currentStep.label}
         </h2>
         <ul className="space-y-2">
@@ -320,6 +362,8 @@ export function GuidanceWizard({ flow }: Props) {
                   <input
                     type={multi ? "checkbox" : "radio"}
                     name={currentStep.key}
+                    id={`${optionIdPrefix}-${currentStep.key}-${option.value}`}
+                    value={option.value}
                     checked={isSelected}
                     onChange={() =>
                       selectOption(currentStep.key, option.value, multi)
@@ -334,6 +378,14 @@ export function GuidanceWizard({ flow }: Props) {
         </ul>
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={handleQuestionBack}
+          >
+            {t("common.back")}
+          </Button>
           <Button type="button" disabled={loading} onClick={handleQuestionNext}>
             {loading
               ? t("guidance.saving")
@@ -376,19 +428,25 @@ function EmergencyShortcutButton({
 function OutcomeView({
   outcome,
   isEmergency,
+  headingRef,
 }: {
   outcome: GuidanceOutcome;
   isEmergency: boolean;
+  headingRef: React.Ref<HTMLHeadingElement>;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <GuidanceSafetyNotice />
+      {/* The emergency outcome leads with what to do; the general disclaimer
+          follows it instead of pushing the call buttons down. */}
+      {isEmergency ? null : <GuidanceSafetyNotice />}
       <Card className="space-y-3 p-5">
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {outcome.title}
         </h2>
         <p className="text-sm text-muted-foreground">{outcome.body}</p>
+        {isEmergency ? <EmergencyCallLinks /> : null}
       </Card>
+      {isEmergency ? <GuidanceSafetyNotice /> : null}
       {isEmergency ? (
         <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           {t("guidance.emergencyResultNote")} <strong>194</strong> /{" "}
@@ -421,7 +479,14 @@ function HandoffLink({
   if (handoff.type === "emergency") {
     return (
       <span className="text-sm font-medium text-destructive">
-        {t("footer.emergency")} <strong>194</strong> / <strong>112</strong>
+        {t("footer.emergency")}{" "}
+        <a href="tel:194" className="font-bold underline">
+          194
+        </a>{" "}
+        /{" "}
+        <a href="tel:112" className="font-bold underline">
+          112
+        </a>
       </span>
     );
   }
