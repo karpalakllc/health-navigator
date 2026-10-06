@@ -62,7 +62,8 @@ export function DoctorsDirectory({
       search={{
         name: "q",
         label: t("doctors.queryLabel"),
-        placeholder: t("doctors.namePlaceholder"),
+        // The short form: the long one is cut off in the 390px strip.
+        placeholder: t("doctors.queryLabel"),
       }}
       activeFilters={activeFilters}
       quickChips={popular.map((s) => ({
