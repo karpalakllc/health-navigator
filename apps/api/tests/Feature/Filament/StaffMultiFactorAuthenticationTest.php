@@ -3,13 +3,19 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
+use App\Filament\Auth\AppAuthentication as PanelAppAuthentication;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Actions\Action;
 use Filament\Actions\Testing\TestAction;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Pages\SetUpRequiredMultiFactorAuthentication;
+use Filament\Facades\Filament;
+use Filament\Schemas\Components\Actions;
+use Filament\Support\Enums\Size;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -415,6 +421,56 @@ class StaffMultiFactorAuthenticationTest extends TestCase
         $moderator->saveAppAuthenticationSecret($this->secret());
 
         $this->assertSame(1, $moderator->tokens()->count());
+    }
+
+    // --- the set-up action -------------------------------------------------
+
+    /**
+     * Stock Filament renders "Set up" as a small link that staff overlooked;
+     * the panel's provider makes it a large, labelled button.
+     */
+    private function assertSetUpIsAProminentButton(string $page): void
+    {
+        Livewire::test($page)->assertActionExists(
+            TestAction::make('setUpAppAuthentication')->schemaComponent('app', schema: 'content'),
+            fn (Action $action): bool => $action->isButton()
+                && ! $action->isLink()
+                && $action->getSize() === Size::Large
+                && $action->getLabel() === 'Set up authenticator app',
+        );
+    }
+
+    public function test_the_set_up_page_shows_set_up_as_a_prominent_button(): void
+    {
+        $this->actingAs($this->administrator());
+
+        $this->assertInstanceOf(
+            PanelAppAuthentication::class,
+            Filament::getPanel('admin')->getMultiFactorAuthenticationProviders()['app'],
+        );
+        $this->assertSetUpIsAProminentButton(SetUpRequiredMultiFactorAuthentication::class);
+        $this->get($this->setUpUrl())->assertOk()->assertSee('Set up authenticator app');
+    }
+
+    public function test_the_profile_page_shows_set_up_as_the_same_button(): void
+    {
+        $this->actingAs($this->communityModerator());
+
+        $this->assertSetUpIsAProminentButton(EditProfile::class);
+    }
+
+    public function test_the_actions_span_the_width_only_while_set_up_is_the_only_one(): void
+    {
+        $isFullWidth = function (User $user): bool {
+            $this->actingAs($user);
+            $actions = PanelAppAuthentication::make()->getManagementSchemaComponents()[0];
+            $this->assertInstanceOf(Actions::class, $actions);
+
+            return $actions->isFullWidth();
+        };
+
+        $this->assertTrue($isFullWidth($this->administrator()));
+        $this->assertFalse($isFullWidth($this->administrator($this->secret())));
     }
 
     // --- the profile page --------------------------------------------------
