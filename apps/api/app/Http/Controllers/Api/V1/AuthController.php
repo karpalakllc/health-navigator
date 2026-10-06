@@ -22,6 +22,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -447,6 +449,18 @@ class AuthController extends Controller
             },
         );
 
+        if ($status === Password::INVALID_USER || $status === Password::INVALID_TOKEN) {
+            $this->equaliseRejectedResetTiming($request, $status);
+
+            // One answer for "no such account" and "bad or expired link". The
+            // broker's own messages differ ("we sent you a link" vs "the link is
+            // invalid"), so any made-up token used to reveal whether an address
+            // has an account on a health platform.
+            throw ValidationException::withMessages([
+                'email' => [__(Password::INVALID_TOKEN)],
+            ]);
+        }
+
         if ($status !== Password::PASSWORD_RESET) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
@@ -454,6 +468,31 @@ class AuthController extends Controller
         }
 
         return ApiResponse::success(['message' => __($status)]);
+    }
+
+    /**
+     * Pay for exactly one bcrypt check on every rejected reset.
+     *
+     * The broker only hashes when the address belongs to an account that holds an
+     * unexpired token row; an unknown address returns straight after the user
+     * lookup. Both paths here also run the same token-row lookup, so the
+     * rejection costs the same whichever way it went.
+     */
+    private function equaliseRejectedResetTiming(ResetPasswordRequest $request, string $status): void
+    {
+        $brokerConfig = config('auth.passwords.'.config('auth.defaults.passwords'));
+
+        $record = DB::table($brokerConfig['table'])
+            ->where('email', $request->string('email')->toString())
+            ->first();
+
+        $brokerHashed = $status === Password::INVALID_TOKEN
+            && $record !== null
+            && ! Carbon::parse($record->created_at)->addMinutes($brokerConfig['expire'])->isPast();
+
+        if (! $brokerHashed) {
+            Hash::check($request->string('token')->toString(), self::TIMING_EQUALISER_HASH);
+        }
     }
 
     public function logout(Request $request): JsonResponse

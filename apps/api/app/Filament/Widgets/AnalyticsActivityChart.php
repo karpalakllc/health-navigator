@@ -11,6 +11,9 @@ class AnalyticsActivityChart extends ChartWidget
 
     protected static ?int $sort = 3;
 
+    // Day-level trends and directory totals: reloading the page is enough.
+    protected ?string $pollingInterval = null;
+
     protected ?string $maxHeight = '280px';
 
     protected function getType(): string

@@ -35,6 +35,8 @@ export function HomeFacilityCard({
             <img
               src={avatarSrc}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-full w-full rounded-3xl border border-accent/10 object-cover"
             />
           ) : (
