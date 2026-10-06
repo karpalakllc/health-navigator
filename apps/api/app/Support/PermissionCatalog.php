@@ -18,6 +18,7 @@ final class PermissionCatalog
             self::member(),
             self::usernames(),
             self::doctorAccountsAndAudit(),
+            self::imports(),
         );
     }
 
@@ -150,6 +151,23 @@ final class PermissionCatalog
         return [
             'doctors.assign_owner',
             'audit.view',
+        ];
+    }
+
+    /**
+     * Data import (W6): imports.view reads import runs, their diff summaries
+     * and the review queue; imports.manage resolves review items, publishes
+     * imported drafts in bulk, locks fields against re-imports and starts a
+     * run from the panel. Administrator only by default; added after launch,
+     * so a migration grants them to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function imports(): array
+    {
+        return [
+            'imports.view',
+            'imports.manage',
         ];
     }
 

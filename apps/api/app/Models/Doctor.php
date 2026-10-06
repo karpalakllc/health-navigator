@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Import\NameKey;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
@@ -58,6 +59,13 @@ class Doctor extends Model
     protected static function booted(): void
     {
         static::saving(function (Doctor $doctor): void {
+            // Matching keys for imports (App\Support\Import\NameKey), kept
+            // current whoever renames the doctor.
+            if ($doctor->isDirty('full_name') || $doctor->name_key === null) {
+                $doctor->name_key = NameKey::for((string) $doctor->full_name);
+                $doctor->name_key_sorted = NameKey::sorted((string) $doctor->full_name);
+            }
+
             if ($doctor->is_featured && $doctor->is_sponsored) {
                 throw ValidationException::withMessages([
                     'is_featured' => [self::EXCLUSIVE_FLAGS_MESSAGE],
@@ -99,7 +107,10 @@ class Doctor extends Model
         return LogOptions::defaults()
             ->useLogName('doctor_profile')
             ->logAll()
-            ->logExcept(['id', 'reviews_count', 'rating_avg'])
+            // Import bookkeeping: derived name keys, seen/missing counters,
+            // and the ФЗО facsimile (an internal matching key, kept out of
+            // every log and export).
+            ->logExcept(['id', 'reviews_count', 'rating_avg', 'name_key', 'name_key_sorted', 'import_last_seen_at', 'import_missing_runs', 'fzo_facsimile'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
