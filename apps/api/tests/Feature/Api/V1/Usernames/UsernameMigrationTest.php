@@ -21,6 +21,8 @@ class UsernameMigrationTest extends TestCase
         $this->assertCount(1, $files);
         $migration = require $files[0];
 
+        // The later unique index on the skeleton goes first, as a rollback would.
+        (require database_path('migrations/2026_10_14_150002_make_username_skeleton_unique.php'))->down();
         $migration->down();
         $this->assertFalse(Schema::hasColumn('users', 'username'));
 

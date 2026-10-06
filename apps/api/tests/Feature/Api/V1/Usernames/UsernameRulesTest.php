@@ -6,9 +6,14 @@ use App\Enums\UsernameMatchType;
 use App\Enums\UsernameTermKind;
 use App\Models\User;
 use App\Models\UsernameTerm;
+use App\Support\Usernames\TemporaryUsername;
 use App\Support\Usernames\UsernameTermMatcher;
 use App\Support\Usernames\UsernameValidator;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -178,6 +183,13 @@ class UsernameRulesTest extends TestCase
             'glued docpetrov' => ['docpetrov'],
             'glued mjekfatmir' => ['mjekfatmir'],
             'glued in a second word' => ['ana.DrMarko'],
+            // Letter pairs that look like one letter, and other spellings.
+            'rn for m in admin' => ['adrnin'],
+            'rn for m in moderator' => ['rnoderator'],
+            'platform with ie' => ['zdravie'],
+            'platform with w' => ['zdrawje'],
+            'deleted user without h' => ['izbrisankorisnik'],
+            'physician ijekavian' => ['ljekar'],
         ];
     }
 
@@ -307,6 +319,47 @@ class UsernameRulesTest extends TestCase
         // Cyrillic „рара“ reads "rara" but looks like Latin „papa“.
         $this->assertSame('taken', UsernameValidator::problem('рара'));
         $this->assertNull(UsernameValidator::problem('marko_t'));
+
+        // „rn“ looks like „m“.
+        User::factory()->create(['username' => 'Bemard']);
+        $this->assertSame('taken', UsernameValidator::problem('Bernard'));
+    }
+
+    public function test_look_alike_uniqueness_is_enforced_by_the_database(): void
+    {
+        User::factory()->create(['username' => 'papa']);
+
+        // Past the validator, as two concurrent sign-ups would be.
+        $this->expectException(UniqueConstraintViolationException::class);
+        User::factory()->create(['username' => 'рара']);
+    }
+
+    public function test_the_migration_resolves_existing_look_alikes_deterministically(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropUnique(['username_skeleton']);
+            $table->index('username_skeleton');
+        });
+
+        $temporary = User::factory()->create(['username' => 'papa', 'must_choose_username' => true, 'created_at' => now()->subYears(2)]);
+        $chosen = User::factory()->create(['username' => 'рара', 'created_at' => now()->subYear()]);
+        $bernard = User::factory()->create(['username' => 'Bernard', 'created_at' => now()->subMonth()]);
+        $bemard = User::factory()->create(['username' => 'Bemard', 'created_at' => now()->subWeek()]);
+        // Stored before skeletons folded „rn“.
+        DB::table('users')->where('id', $bernard->id)->update(['username_skeleton' => 'bernard']);
+
+        (require database_path('migrations/2026_10_14_150002_make_username_skeleton_unique.php'))->up();
+
+        $this->assertSame('рара', $chosen->refresh()->username);
+        $this->assertSame('Bernard', $bernard->refresh()->username);
+        foreach ([$temporary, $bemard] as $user) {
+            $user->refresh();
+            $this->assertTrue(TemporaryUsername::isTemporary($user->username), $user->username);
+            $this->assertTrue($user->must_choose_username);
+        }
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        User::factory()->create(['username' => 'Bernard_']);
     }
 
     public function test_the_message_never_says_which_list_matched(): void

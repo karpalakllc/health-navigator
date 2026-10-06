@@ -16,11 +16,12 @@ final class TemporaryUsername
     public const PREFIX = 'clen-';
 
     /**
-     * Lower-case letters without the easily confused i l o, and only the
-     * digits that leetspeak folding leaves alone — so two placeholders that
-     * differ as strings also differ in their folded (unique) form.
+     * Lower-case letters without the easily confused i l o, without r and v
+     * (the skeleton reads „rn“ as m and „vv“ as w), and only the digits that
+     * leetspeak folding leaves alone — so two placeholders that differ as
+     * strings also differ in both folded (unique) forms.
      */
-    private const ALPHABET = 'abcdefghjkmnpqrstuvwxyz2689';
+    private const ALPHABET = 'abcdefghjkmnpqstuwxyz2689';
 
     public static function candidate(): string
     {

@@ -17,9 +17,10 @@ use App\Support\MacedonianSearchVariants;
  *   Stored in `users.username_normalized`, which carries the unique index.
  * - skeleton(): what the name *looks like*. Cyrillic letters that look like a
  *   Latin letter become that letter (Cyrillic „рара“ = Latin „papa“, „СОСК“ =
- *   „COCK“), and l, 1 and I become i. Transliteration cannot catch these: р is
- *   "r" when read but "p" when seen. Stored in `users.username_skeleton` and
- *   checked as well, so nobody can take a visual copy of someone else's name.
+ *   „COCK“), l, 1 and I become i, rn becomes m and vv w. Transliteration
+ *   cannot catch these: р is "r" when read but "p" when seen. Stored in
+ *   `users.username_skeleton`, which carries a unique index too, so nobody
+ *   can take a visual copy of someone else's name.
  */
 final class UsernameNormalizer
 {
@@ -111,6 +112,18 @@ final class UsernameNormalizer
     }
 
     public static function skeleton(string $value): string
+    {
+        // r n side by side read as m, and v v as w („adrnin“, „rnoderator“).
+        return strtr(self::termSkeleton($value), ['rn' => 'm', 'vv' => 'w']);
+    }
+
+    /**
+     * The skeleton of a list term: the same, but without folding letter
+     * pairs, which would turn terms into other words („porn“ into „pom“,
+     * refusing „pomosh“). A username's „rn“ still meets a term's „m“ through
+     * the username's own skeleton.
+     */
+    public static function termSkeleton(string $value): string
     {
         $s = mb_strtolower(self::prepare($value));
         $s = strtr($s, self::LATIN_VISUAL);

@@ -103,7 +103,7 @@ final class UsernameTermSeedList
         return [
             'term' => $term,
             'term_normalized' => UsernameNormalizer::key($term),
-            'term_skeleton' => UsernameNormalizer::skeleton(UsernameNormalizer::key($term)),
+            'term_skeleton' => UsernameNormalizer::termSkeleton(UsernameNormalizer::key($term)),
             'kind' => $kind,
             'language' => $language,
             'match_type' => $type,

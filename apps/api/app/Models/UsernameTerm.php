@@ -85,7 +85,7 @@ class UsernameTerm extends Model
         static::saving(function (UsernameTerm $term): void {
             $term->term = mb_strtolower(UsernameNormalizer::prepare((string) $term->term));
             $term->term_normalized = UsernameNormalizer::key($term->term);
-            $term->term_skeleton = UsernameNormalizer::skeleton($term->term_normalized);
+            $term->term_skeleton = UsernameNormalizer::termSkeleton($term->term_normalized);
         });
 
         // The matcher caches the active lists; any change must be visible to

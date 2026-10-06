@@ -448,7 +448,7 @@ return [
             'zyrtar', 'system', 'sysop', 'security', 'безбедност', 'siguria', 'noreply', 'donotreply', 'postmaster',
             'webmaster', 'hostmaster', 'superuser', 'helpdesk', 'verified', 'верификуван', 'verifikuvan',
             'verifikuar', 'staffmember', 'teammember', 'customerservice', 'корисничкаподдршка',
-            'korisnichkapoddrshka', 'izbrishan', 'избришан', 'deletedaccount', 'deleteduser', 'anonymous', 'анонимен',
+            'korisnichkapoddrshka', 'izbrishan', 'izbrisan', 'избришан', 'deletedaccount', 'deleteduser', 'anonymous', 'анонимен',
             'anonimen', 'anonim', 'moderacija', 'модерација', 'moderim', 'kontrolor', 'контролор',
         ],
         'exact' => [
@@ -466,7 +466,7 @@ return [
     [
         'kind' => 'reserved', 'category' => 'brand', 'language' => 'any',
         'contains' => [
-            'zdravje', 'здравје', 'zdravje360', 'здравје360', 'shendeti360', 'shëndeti360', 'health360',
+            'zdravje', 'здравје', 'zdravie', 'zdrawje', 'zdravje360', 'здравје360', 'shendeti360', 'shëndeti360', 'health360',
         ],
         'exact' => [
             'z360', 'zd360', 'zdr360', 'shendeti', 'shëndeti',
@@ -479,7 +479,7 @@ return [
             'doktor', 'доктор', 'doctor', 'doktoresh', 'professor', 'profesor', 'професор', 'docent', 'доцент',
             'akademik', 'академик', 'primarius', 'примариус', 'primarijus',
             // professions
-            'лекар', 'lekar', 'specijalist', 'специјалист', 'specialist', 'specijalizant', 'специјализант',
+            'лекар', 'lekar', 'ljekar', 'specijalist', 'специјалист', 'specialist', 'specijalizant', 'специјализант',
             'specializant', 'medicinskasestra', 'медицинскасестра', 'medsestra', 'медсестра', 'infermier',
             'infermjer', 'hirurg', 'хирург', 'kirurg', 'surgeon', 'stomatolog', 'стоматолог', 'dentist', 'забоекар',
             'zaboekar', 'farmacevt', 'фармацевт', 'pharmacist', 'farmacist', 'apotekar', 'аптекар', 'aptekar',
