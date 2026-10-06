@@ -104,6 +104,22 @@ class InstitutionsJsonImportTest extends TestCase
         return ImportRun::query()->latest('id')->firstOrFail();
     }
 
+    public function test_published_website_images_reach_the_public_profile_as_logo_and_cover(): void
+    {
+        $this->runImport($this->dataset());
+        $facility = Facility::query()->where('website', 'https://www.bolnica.invalid/')->firstOrFail();
+
+        $this->getJson('/api/v1/facilities/'.$facility->slug)->assertNotFound();
+
+        $facility->forceFill(['is_published' => true, 'published_at' => now()])->save();
+        $data = $this->getJson('/api/v1/facilities/'.$facility->slug)->assertOk()->json('data');
+
+        $this->assertSame(Storage::disk('public')->url((string) $facility->avatar_url), $data['avatar_url']);
+        $this->assertSame(Storage::disk('public')->url((string) $facility->cover_path), $data['cover_url']);
+        // Where the image came from stays internal.
+        $this->assertStringNotContainsString('bolnica.invalid/zgrada', (string) json_encode($data));
+    }
+
     public function test_it_creates_hidden_drafts_with_images_and_provenance(): void
     {
         $run = $this->runImport($this->dataset());
