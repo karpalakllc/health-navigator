@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
-import { OpenStatusLine } from "@/components/directory/open-status";
+import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
@@ -51,7 +51,7 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
         ) : null}
         <RatingLine summary={facility.review_summary} showStars={false} />
         {facility.office_hours ? (
-          <OpenStatusLine hours={facility.office_hours} />
+          <LiveOpenStatusLine hours={facility.office_hours} />
         ) : null}
       </div>
 

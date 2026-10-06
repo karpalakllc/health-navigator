@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
-import { OpenStatusLine } from "@/components/directory/open-status";
+import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
@@ -71,7 +71,7 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
         ) : null}
         <RatingLine summary={doctor.review_summary} showStars={false} />
         {doctor.office_hours ? (
-          <OpenStatusLine hours={doctor.office_hours} />
+          <LiveOpenStatusLine hours={doctor.office_hours} />
         ) : null}
       </div>
 
