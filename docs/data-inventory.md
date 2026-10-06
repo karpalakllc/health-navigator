@@ -4,8 +4,9 @@ Factual inventory of where the platform holds or sends personal data, written
 for legal counsel reviewing the privacy notice
 (`apps/web/src/content/legal/privacy.tsx`, which this document does **not**
 change). It describes the code as of 2026-10-06, including the privacy-by-default
-changes of that date. Where something is *not* done (no deletion endpoint, no
-pruning), that is stated rather than implied.
+changes of that date and the account data-rights work (export, deletion,
+devices, suspension — §5). Where something is *not* done, that is stated
+rather than implied.
 
 Defaults quoted below are the shipped defaults; an operator can change the ones
 marked *(configurable)*.
@@ -18,7 +19,7 @@ public API exposes only what is listed under "Public".
 
 | Table | Personal data held | Purpose | Retention | Access |
 |---|---|---|---|---|
-| `users` | `name` (real name, **private**), `display_name` (public name the person chooses; default "first name + last initial."), `email`, `password` (bcrypt hash), `email_verified_at`, `registration_contested_at`, `avatar_path` (uploaded photo), `role`/`user_kind`, `app_authentication_secret` and `app_authentication_recovery_codes` (staff second factor; encrypted with `APP_KEY`, codes also hashed), `remember_token`, timestamps | Accounts for reviews and the forum; staff accounts for moderation | Until the account is deleted. **There is no self-service account deletion or data-export endpoint.** Reviews and forum content reference the user with `restrict` foreign keys, so a user with content cannot be deleted without first deleting the content. | Own account: `GET /me` (name, display name, email, role, avatar). Panel: `clients.view` / `clients.update` (members), `staff.*` (staff). **Public: `display_name` and avatar image only.** |
+| `users` | `name` (real name, **private**), `display_name` (public name the person chooses; default "first name + last initial."), `email`, `password` (bcrypt hash), `email_verified_at`, `registration_contested_at`, `avatar_path` (uploaded photo), `role`/`user_kind`, `app_authentication_secret` and `app_authentication_recovery_codes` (staff second factor; encrypted with `APP_KEY`, codes also hashed), `remember_token`, `suspended_at` / `suspension_reason` / `suspended_by_id` (staff suspension; the reason is staff-only), `anonymised_at` (set when the member deleted the account), timestamps | Accounts for reviews and the forum; staff accounts for moderation | Until the member deletes the account (`DELETE /me`, §5). Reviews and forum content reference the user with `restrict` foreign keys and stay public, so deletion **anonymises the row in place** rather than removing it: every personal field above is cleared or replaced (see §5) and only `id`, `user_kind`, timestamps and `anonymised_at` remain. | Own account: `GET /me` (name, display name, email, role, avatar). Panel: `clients.view` / `clients.update` (members), `staff.*` (staff). **Public: `display_name` and avatar image only.** |
 | `reviews` | `user_id`, `rating`, `body` (free text about a doctor, facility or pharmacy — may describe treatment), `status`, `rejection_note`, `moderated_by_id`, timestamps | Public ratings of providers; moderation | Indefinite (no purge) | Public once approved: rating, body, `display_name`, date. Pending/rejected: the author (`/me/reviews`) and panel `reviews.view`. |
 | `forum_topics`, `forum_posts` | `user_id`, `title`/`body` (free text; health questions are the forum's purpose), `status`, `rejection_note`, `moderated_by_id`, timestamps. `forum_topics.community_rules_accepted_at`: when the author ticked the single consent (community rules, no diagnosis, call 194/112 in an emergency) while creating the topic; null for topics from before 2026-10-06 and for staff- or seeder-created topics | Community forum; moderation; record of the author's consent | Indefinite (no purge); the consent time lives and is deleted with its topic | Public once approved: title, body, author `display_name`, author's join date and post counts, staff/moderator badge. Pending: the author and `forum_topics.view` / `forum_posts.view` / `forum.moderate`. Consent time: panel `forum_topics.view` only (topic view page); never in the public or `/me` API. |
 | `forum_category_moderator` | `user_id` ↔ category | Scoped community-moderator rights | Until changed | Panel `clients.assign_roles` |
@@ -27,7 +28,7 @@ public API exposes only what is listed under "Public".
 | `triage_session_answers` | Structured answers (option codes only, no free text) per session | Rule-based guidance outcome | Deleted with their session (cascade) | As above |
 | `search_term_daily` | **No user, session or time of day.** `date`, normalised search term (lower-cased, max 64 chars), `count` | "Top searches" on the admin dashboard | **365 days** *(configurable: `--search-days`)*, purged by `analytics:purge-old-events` (daily 03:45) | Panel `analytics.view` |
 | `analytics_events` | `event` name, `user_id`, optional `properties`, `occurred_at`. Events still recorded **with** `user_id`: `user.login`, `user.registration_started`, `user.registered`, `review.submitted` (properties: reviewable type/id), `forum.topic_created`, `forum.post_created` (properties: topic/category ids). Searches are no longer events. | Dashboard counts (registrations, logins, contributions) | **180 days** *(configurable: `--days`)*, same purge command | Panel `analytics.view` sees aggregated counts only; rows are not listed in the UI |
-| `personal_access_tokens` | Hashed API bearer tokens per user, `last_used_at`, `expires_at` | Web/mobile sign-in | Tokens expire after 30 days *(configurable: `SANCTUM_TOKEN_EXPIRATION_MINUTES`)* but expired rows are **not pruned** (no scheduled `sanctum:prune-expired`) | Not exposed |
+| `personal_access_tokens` | Hashed API bearer tokens per user, `name` (device label: the web tier sends a coarse "browser · OS" such as „Chrome · macOS“, derived from the user agent — the user agent itself is not stored), `created_at`, `last_used_at`, `expires_at` | Web/mobile sign-in; the member's device list | Tokens expire after 30 days *(configurable: `SANCTUM_TOKEN_EXPIRATION_MINUTES`)*; expired rows are deleted daily at 04:15 by `sanctum:prune-expired --hours=24` (so at most a day after expiry). The member can revoke any of them sooner (§5); logout, password reset and account deletion delete them. | Own tokens: `GET /me/tokens` (name, created, last used, expiry, current flag). Not in the panel. |
 | `password_reset_tokens` | Email, hashed reset token, `created_at` | Password reset | Token valid 60 minutes; rows are **not pruned** on a schedule (replaced on the next request for the same address) | Not exposed |
 | `sessions` | `user_id`, IP address, user agent, session payload | Admin-panel (Filament) web sessions only; the public site uses API tokens | Lifetime 60 minutes *(configurable: `SESSION_LIFETIME`)*; expired rows removed by Laravel's session garbage collection (probabilistic) | Not exposed |
 | `cache` / Redis | Rate-limiter keys derived from IP address and, for login lockout, email + IP; mail cooldown keys | Abuse prevention | Minutes (limiter windows) | Not exposed |
@@ -66,13 +67,27 @@ No other cookies or storage are set for analytics (Plausible is cookieless).
 4. Guidance sessions are never linked to an account; existing links were
    removed and the column dropped.
 
-## 5. Open points for counsel / the owner
+## 5. Data subject rights in the product
 
-- No self-service account deletion or export of one's own data.
+| Right | How | Notes |
+|---|---|---|
+| Access / portability | Account page → „Ваши податоци“ → download (`GET /me/export`, through the web tier so the token never reaches the browser) | One JSON file: profile (name, display name, email, verification and sign-up time, avatar URL, roles, moderated categories), every review / forum topic / reply in any moderation state with its rejection note, consents (the forum community-rules acceptance per topic, with its time), devices (token names and times) and the member's own `analytics_events`. Never another member's data: replies name another member's topic only while it is public; moderators are not identified. Limited to 5 per hour. |
+| Erasure | Account page → delete, confirmed by re-entering the password (`DELETE /me`) | Anonymisation in place (`App\Actions\AnonymiseUser`): `name` emptied, `display_name` cleared, `email` replaced with a unique `…@deleted.invalid` placeholder (the real address is free to register again), password replaced with an unusable random hash, `email_verified_at`, `remember_token`, second-factor secrets, suspension fields and `registration_contested_at` cleared, avatar file deleted from the media disk, all API tokens, roles, direct permissions and community-moderation scopes removed, `sessions` rows and the `password_reset_tokens` row for the old address deleted, and the account's `analytics_events` unlinked (`user_id` set to null). Reviews and forum topics/replies **stay public** with the author shown as „Избришан корисник“ (no join date or post counts, so a deleted author's posts cannot be linked to each other); pending items can still be moderated but no mail is sent. Staff accounts cannot delete themselves through the API; an administrator handles them. Mail already queued before deletion may still be delivered. |
+| Restriction of sessions | Account page → „Уреди“ | Lists active sign-ins (device label, created, last used); the member can sign out one or all others. |
+| Suspension (staff) | Admin panel → Clients → Suspend (permission `clients.suspend`, Administrator by default) | Reason required, visible to staff only; sign-in is refused with a generic message and existing tokens stop working until the suspension is lifted. Content is not touched. |
+
+## 6. Open points for counsel / the owner
+
+- Erasure keeps the member's public reviews and forum content (under „Избришан
+  корисник“). Whether members must also be able to remove that content on
+  request, and what to do with their pending or rejected items (kept today,
+  including rejection notes), is a legal/owner decision.
+- A suspended member cannot sign in, so cannot use self-service export or
+  deletion; such requests go through an administrator (no panel action for
+  anonymisation yet).
 - `analytics_events` still links logins, registrations and contributions to a
-  user id for 180 days (list in §1).
-- Expired API tokens, password-reset rows and failed jobs are not pruned on a
-  schedule.
+  user id for 180 days (list in §1); deletion unlinks them.
+- Password-reset rows and failed jobs are not pruned on a schedule.
 - Reviews and forum posts are kept indefinitely, also after moderation
   rejection.
 - Referrer caveat for Plausible (§3).
