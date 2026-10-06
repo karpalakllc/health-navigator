@@ -169,6 +169,20 @@ class ImageOptimizerBrandingTest extends TestCase
         app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
     }
 
+    public function test_store_branding_refuses_an_svg_with_more_elements_than_a_logo_needs(): void
+    {
+        // Validation walks every in-scope namespace of every element; 40 prefixes
+        // over 200k elements exhausted 512M before any check could refuse it.
+        $prefixes = implode(' ', array_map(fn (int $i) => "xmlns:p{$i}=\"urn:x:{$i}\"", range(1, 40)));
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" '.$prefixes.'>'.str_repeat('<g/>', 200_000).'</svg>';
+        $file = UploadedFile::fake()->createWithContent('logo.svg', $svg, 'image/svg+xml');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/^SVG contains /');
+
+        app(ImageOptimizer::class)->storeBranding($file, 'site/logo');
+    }
+
     public function test_store_branding_still_accepts_internal_references(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10">'
@@ -252,7 +266,7 @@ class ImageOptimizerBrandingTest extends TestCase
     public function test_store_branding_skips_namespace_cleanup_on_an_svg_no_editor_touched(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-            .str_repeat('<g/>', 200_000).'</svg>';
+            .str_repeat('<g/>', 9_000).'</svg>';
         $file = UploadedFile::fake()->createWithContent('logo.svg', $svg, 'image/svg+xml');
 
         $optimizer = new class extends ImageOptimizer

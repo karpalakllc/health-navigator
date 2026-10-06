@@ -9,6 +9,9 @@ use RuntimeException;
 
 class ImageOptimizer
 {
+    /** Far above any real logo or icon; see parseSvg(). */
+    private const MAX_SVG_ELEMENTS = 10_000;
+
     /**
      * Elements that can execute, fetch, or embed foreign content inside an SVG.
      *
@@ -320,6 +323,14 @@ class ImageOptimizer
         // Belt and braces for the textual check above (e.g. odd encodings).
         if ($document->doctype !== null) {
             throw new RuntimeException('SVG contains a DOCTYPE or entity declaration.');
+        }
+
+        // Validation evaluates every in-scope namespace of every element, so its
+        // memory grows with elements × declarations: a 2 MB file of empty <g/>s
+        // under a few dozen prefixes exhausts the PHP memory limit. A logo has a
+        // few hundred elements; refuse anything far beyond that before walking it.
+        if ($document->getElementsByTagName('*')->length > self::MAX_SVG_ELEMENTS) {
+            throw new RuntimeException('SVG contains more than '.self::MAX_SVG_ELEMENTS.' elements.');
         }
 
         return $document;
