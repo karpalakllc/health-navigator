@@ -69,6 +69,14 @@ export type ViewerReview = {
   rating: number;
   body: string | null;
   status: "pending" | "approved" | "rejected";
+  /** Why it was refused; only on the author's own rejected review. */
+  rejection_note?: string | null;
+  /** Taken down after publication: a placeholder, never resent. */
+  removed?: boolean;
+  /** Refused before publication and not yet resent: one more try allowed. */
+  can_resubmit?: boolean;
+  /** The aspect ratings it carried, by code. */
+  aspects?: Record<string, number>;
   created_at: string | null;
   published_at: string | null;
 };

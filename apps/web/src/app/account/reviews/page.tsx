@@ -150,6 +150,14 @@ export default async function AccountReviewsPage({
                       {review.rejection_note}
                     </Notice>
                   ) : null}
+                  {review.can_resubmit && href ? (
+                    <Link
+                      href={`${href}#review-form`}
+                      className="link-underline self-start type-body font-semibold text-ink"
+                    >
+                      {t("account.resubmitLink")}
+                    </Link>
+                  ) : null}
                 </Card>
               );
             })}

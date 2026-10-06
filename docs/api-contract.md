@@ -354,6 +354,15 @@ nobody can hold an account locked by merely sending traffic.
   reviews in that time. All of these count approved reviews only.
 - `POST …/reviews` accepts optional `aspects` (`{code: 1–5 or null}`); a code
   the profile type does not have is a 422 on `aspects`.
+- One review per member per profile, with one second chance: when the
+  member's review of the profile was refused before publication and not yet
+  resent, `POST …/reviews` replaces it (rating, body, aspects), sends it back
+  to `pending` and answers **200** with `resubmitted: true` (201 stays for a
+  new review). A second refusal is final (422 on `review`,
+  `api.review.resubmission_used`); a pending, published or removed-after-
+  publication review is the usual 422 duplicate. `meta.viewer_review` carries
+  `rejection_note` (rejected only), `removed`, `can_resubmit` and `aspects`;
+  `GET /me/reviews` rows carry `can_resubmit`.
 - A topic's `posts` list keeps a removed reply as
   `{id, removed: true, removed_at, removal_category}` in its place.
 - `GET /transparency` returns `{generated_at, months: [...]}`: twelve calendar

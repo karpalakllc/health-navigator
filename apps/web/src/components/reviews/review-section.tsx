@@ -81,7 +81,7 @@ export async function ReviewSection({
         kind={kind}
         slug={slug}
         isLoggedIn={isLoggedIn}
-        canWrite={!viewerReview || viewerReview.status === "rejected"}
+        canWrite={!viewerReview || viewerReview.can_resubmit === true}
       />
       <ReviewInsights
         aspects={reviews.meta.aspects}

@@ -39,6 +39,8 @@ export type MyReview = {
   body: string | null;
   status: string;
   rejection_note: string | null;
+  /** Refused before publication and not yet resent: one more try allowed. */
+  can_resubmit?: boolean;
   created_at: string | null;
   reviewable: {
     kind: "doctor" | "facility" | "pharmacy";

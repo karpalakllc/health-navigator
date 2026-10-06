@@ -26,14 +26,17 @@ export function AspectRatingInput({
   value,
   onChange,
   disabled,
+  defaultOpen = false,
 }: {
   kind: keyof typeof REVIEW_ASPECTS;
   value: AspectRatings;
   onChange: (next: AspectRatings) => void;
   disabled?: boolean;
+  /** Start unfolded, e.g. when editing a review that carried aspect ratings. */
+  defaultOpen?: boolean;
 }) {
   const aspects = REVIEW_ASPECTS[kind];
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const rows = useRef<Partial<Record<ReviewAspectKey, HTMLLIElement | null>>>(
     {},
   );

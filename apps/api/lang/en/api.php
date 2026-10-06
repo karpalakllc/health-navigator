@@ -78,6 +78,7 @@ return [
         'helpful_own' => 'You cannot mark your own review as helpful.',
         'aspect_unknown' => 'One of the extra ratings does not exist for this profile.',
         'own_profile' => 'You cannot review the profile you manage.',
+        'resubmission_used' => 'You have already edited and resent this review once, and it was not published again. This decision is final.',
     ],
 
     'report' => [

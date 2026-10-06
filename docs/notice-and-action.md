@@ -84,6 +84,20 @@ Each resolution is also written to the audit log (**Platform → Activity
 log**, `audit.view`, kept 365 days), with review moderation and reply
 changes, doctor-profile edits and featured/sponsored toggles.
 
+## Refused reviews: one edit and resend
+
+A review refused **before** it was published (pre-moderation) is not the end:
+its author sees the reason on the profile and in „Мои рецензии“ and may edit
+the review and send it **once** more (`POST` to the same profile's reviews
+endpoint replaces the refused review, `resubmission_count` 0 → 1, status back
+to `pending`; the old note and moderator are cleared, the audit log keeps
+them). The panel marks it „Resent after a refusal“. Moderate it like any other
+review; refusing it again is **final** — the API answers 422
+`api.review.resubmission_used` and the web shows the decision with the
+reason instead of a form. A review **removed after publication** (through a
+report or by a moderator) keeps its placeholder and can never be resent.
+The terms („Правила за рецензии“) say the same.
+
 ## Turnaround
 
 The terms promise one goal: **every report reviewed within 24 hours.** Take

@@ -10,6 +10,7 @@ import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewList } from "@/components/reviews/review-list";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
+import { Notice } from "@/components/ui/notice";
 import { StarRating } from "@/components/ui/star-rating";
 import { Tag } from "@/components/ui/tag";
 import { loginHref } from "@/lib/auth/login-href";
@@ -177,14 +178,21 @@ export function ReviewsPanel({
         <PendingReviewCard review={viewerReview} />
       ) : null}
 
-      {isLoggedIn && (!viewerReview || viewerReview.status === "rejected") ? (
+      {isLoggedIn && (!viewerReview || viewerReview.can_resubmit) ? (
         <ReviewForm
           kind={kind}
           slug={slug}
+          previous={viewerReview}
           onSubmitted={() => {
             justSubmitted.current = true;
           }}
         />
+      ) : null}
+
+      {viewerReview?.status === "rejected" &&
+      !viewerReview.can_resubmit &&
+      !viewerReview.removed ? (
+        <FinalRejectionCard review={viewerReview} />
       ) : null}
 
       {!isLoggedIn ? (
@@ -208,6 +216,21 @@ export function ReviewsPanel({
         </Card>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The member's review was refused a second time (after the one edit allowed):
+ * say so once, with the reason, instead of offering a form the API refuses.
+ */
+function FinalRejectionCard({ review }: { review: ViewerReview }) {
+  return (
+    <Notice tone="info" title={t("reviews.finalTitle")}>
+      <p>{t("reviews.finalBody")}</p>
+      {review.rejection_note ? (
+        <p className="mt-2 whitespace-pre-line">{review.rejection_note}</p>
+      ) : null}
+    </Notice>
   );
 }
 

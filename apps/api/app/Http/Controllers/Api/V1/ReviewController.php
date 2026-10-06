@@ -170,6 +170,7 @@ class ReviewController extends Controller
         if ($request->user()) {
             $viewerReview = $reviewable->reviews()
                 ->where('user_id', $request->user()->id)
+                ->with('aspectRatings')
                 ->first();
 
             if ($viewerReview) {
@@ -225,16 +226,14 @@ class ReviewController extends Controller
             ]);
         }
 
-        if (
-            Review::query()
-                ->where('user_id', $user->id)
-                ->where('reviewable_type', $reviewable::class)
-                ->where('reviewable_id', $reviewable->id)
-                ->exists()
-        ) {
-            throw ValidationException::withMessages([
-                'review' => [__('api.review.duplicate')],
-            ]);
+        $existing = Review::query()
+            ->where('user_id', $user->id)
+            ->where('reviewable_type', $reviewable::class)
+            ->where('reviewable_id', $reviewable->id)
+            ->first();
+
+        if ($existing !== null) {
+            return $this->resubmitReview($existing, $reviewable, $request);
         }
 
         $aspects = $this->validatedAspects($reviewable, $request);
@@ -277,6 +276,65 @@ class ReviewController extends Controller
             'status' => $review->status->value,
             'created_at' => $review->created_at?->toIso8601String(),
         ], 201);
+    }
+
+    /**
+     * One review per member per profile, with one second chance: a review
+     * refused before publication may be edited and sent to moderation again
+     * once (owner decision 2026-10-14). A second refusal is final, and a
+     * review removed after publication keeps its placeholder and is never
+     * resent.
+     */
+    private function resubmitReview(Review $existing, Doctor|Facility $reviewable, StoreReviewRequest $request): JsonResponse
+    {
+        if (! $existing->canBeResubmitted()) {
+            $final = $existing->status === ReviewStatus::Rejected
+                && $existing->removed_at === null
+                && $existing->published_at === null;
+
+            throw ValidationException::withMessages([
+                'review' => [__($final ? 'api.review.resubmission_used' : 'api.review.duplicate')],
+            ]);
+        }
+
+        $aspects = $this->validatedAspects($reviewable, $request);
+
+        $review = DB::transaction(function () use ($existing, $request, $aspects): ?Review {
+            /** @var Review $locked */
+            $locked = Review::query()->whereKey($existing->getKey())->lockForUpdate()->firstOrFail();
+
+            // Two tabs sending at once: only the first one resends it.
+            if (! $locked->canBeResubmitted()) {
+                return null;
+            }
+
+            $locked->resubmit($request->integer('rating'), $request->input('body'), $aspects);
+
+            return $locked;
+        });
+
+        if ($review === null) {
+            throw ValidationException::withMessages([
+                'review' => [__('api.review.duplicate')],
+            ]);
+        }
+
+        UgcMailer::notifySubmitted($review);
+
+        $this->analytics->record('review.resubmitted', $request->user(), [
+            'reviewable_type' => $reviewable::class,
+            'reviewable_id' => $reviewable->id,
+            'rating' => $review->rating,
+        ]);
+
+        return ApiResponse::success([
+            'rating' => $review->rating,
+            'body' => $review->body,
+            'aspects' => (object) $aspects,
+            'status' => $review->status->value,
+            'resubmitted' => true,
+            'created_at' => $review->created_at?->toIso8601String(),
+        ]);
     }
 
     /**

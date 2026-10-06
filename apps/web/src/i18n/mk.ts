@@ -445,6 +445,7 @@ export const mk = {
     noTopicsYet: "Сè уште немате теми.",
     noRepliesYet: "Сè уште немате одговори.",
     rejectionNote: "Белешка од модераторот",
+    resubmitLink: "Измени и испрати повторно",
     topicsHeading: "Теми",
     repliesHeading: "Одговори",
     navOverview: "Преглед",
@@ -729,6 +730,15 @@ export const mk = {
     helpfulCount: "Корисно ({count})",
     helpfulError: "Гласот не е зачуван. Обидете се повторно.",
     actions: "Дејства за рецензијата од {name}",
+    // A review refused before publication may be edited and sent once more.
+    resubmitTitle: "Изменете ја рецензијата",
+    resubmitReasonTitle: "Зошто рецензијата не е објавена",
+    resubmitLastChance:
+      "Можете да ја измените и да ја испратите уште еднаш. Повторно ќе ја прегледа модератор, и ако и таа не се објави, одлуката е конечна.",
+    resubmitSubmit: "Испрати ја повторно",
+    finalTitle: "Рецензијата не е објавена",
+    finalBody:
+      "Рецензијата веќе еднаш е изменета и повторно испратена, но не е објавена. Оваа одлука е конечна.",
   },
   reviewResponse: {
     title: "Одговор од {name}",

@@ -53,6 +53,13 @@ class Review extends Model
     ];
 
     /**
+     * How many times a member may edit and resend a review refused before
+     * publication. A refusal after that is final; a review removed after
+     * publication is never resent (its placeholder stays).
+     */
+    public const MAX_RESUBMISSIONS = 1;
+
+    /**
      * Whether the signed-in viewer marked this review „Корисно“. Not a column:
      * set per request by the review list (ReviewHelpfulVotes::votedBy), null
      * when nobody resolved it.
@@ -111,6 +118,7 @@ class Review extends Model
                 'status',
                 'moderated_by_id',
                 'rejection_note',
+                'resubmission_count',
                 'response_body',
                 'response_by_id',
                 'response_source',
@@ -134,6 +142,8 @@ class Review extends Model
             'removed_at' => 'datetime',
             'removal_category' => RemovalCategory::class,
             'burst_flagged_at' => 'datetime',
+            'resubmission_count' => 'integer',
+            'resubmitted_at' => 'datetime',
             'response_source' => ReviewResponseSource::class,
             'response_status' => ReviewResponseStatus::class,
             'response_moderated_at' => 'datetime',
@@ -211,6 +221,45 @@ class Review extends Model
             ->orWhere(fn (Builder $removed) => $removed
                 ->where('status', ReviewStatus::Rejected)
                 ->whereNotNull('removed_at')));
+    }
+
+    /**
+     * Refused before it was ever published, and not yet resent the one time
+     * allowed: its author may edit it and send it to moderation again.
+     */
+    public function canBeResubmitted(): bool
+    {
+        return $this->status === ReviewStatus::Rejected
+            && $this->removed_at === null
+            && $this->published_at === null
+            && (int) $this->resubmission_count < self::MAX_RESUBMISSIONS;
+    }
+
+    /**
+     * Send a refused review to moderation again with the member's edits. The
+     * previous decision's note and moderator are cleared (the audit log keeps
+     * them); the aspect ratings are replaced by the new ones.
+     *
+     * @param  array<string, int>  $aspects
+     */
+    public function resubmit(int $rating, ?string $body, array $aspects): void
+    {
+        $this->forceFill([
+            'rating' => $rating,
+            'body' => $body,
+            'status' => ReviewStatus::Pending,
+            'rejection_note' => null,
+            'moderated_by_id' => null,
+            'moderated_at' => null,
+            'resubmission_count' => (int) $this->resubmission_count + 1,
+            'resubmitted_at' => now(),
+        ])->save();
+
+        $this->aspectRatings()->delete();
+
+        foreach ($aspects as $aspect => $value) {
+            $this->aspectRatings()->create(['aspect' => $aspect, 'rating' => $value]);
+        }
     }
 
     /** Published once, then taken down: shown publicly as a placeholder only. */

@@ -78,6 +78,11 @@ class ReviewInfolist
                     ->label('Public reason')
                     ->formatStateUsing(fn (?RemovalCategory $state): string => $state?->label() ?? '—')
                     ->visible(fn (Review $record): bool => $record->removed_at !== null),
+                TextEntry::make('resubmitted_at')
+                    ->label('Resent after a refusal')
+                    ->helperText('The author edited a refused review and sent it again. They get one second chance: refusing it now is final.')
+                    ->dateTime()
+                    ->visible(fn (Review $record): bool => $record->resubmitted_at !== null),
                 TextEntry::make('burst_flagged_at')
                     ->label('Review burst')
                     ->badge()
