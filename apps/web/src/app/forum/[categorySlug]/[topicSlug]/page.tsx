@@ -101,7 +101,7 @@ export default async function TopicDetailPage({
   )?.topics_count;
   const viewer = session?.user
     ? {
-        name: session.user.display_name,
+        name: session.user.username,
         initials: session.user.avatar_initials || undefined,
       }
     : null;

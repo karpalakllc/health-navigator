@@ -19,7 +19,10 @@ function placeholderUser(): AuthUser {
   return {
     id: 0,
     name: t("nav.account"),
-    display_name: t("nav.account"),
+    username: t("nav.account"),
+    must_choose_username: false,
+    username_changed_at: null,
+    username_change_available_at: null,
     email: "",
     role: "member",
     avatar_url: null,

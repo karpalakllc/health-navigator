@@ -7,10 +7,10 @@ import { readUpstream } from "@/lib/api/upstream";
 import { t } from "@/i18n/t";
 
 type ProfilePayload = {
-  display_name?: unknown;
+  username?: unknown;
 };
 
-/** Changes the signed-in member's public display name (PATCH /me/profile). */
+/** Chooses or changes the signed-in member's username (PATCH /me/profile). */
 export async function PATCH(request: Request) {
   const token = await getSessionToken();
 
@@ -38,7 +38,7 @@ export async function PATCH(request: Request) {
         "Accept-Language": "mk",
         ...forwardedForHeaders(request),
       },
-      body: JSON.stringify({ display_name: guarded.value.display_name }),
+      body: JSON.stringify({ username: guarded.value.username }),
     }),
   );
 

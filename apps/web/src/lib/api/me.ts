@@ -10,8 +10,13 @@ export type AuthUser = {
   id: number;
   /** Private: the account page only. Never render it next to public content. */
   name: string;
-  /** Shown publicly next to reviews and forum posts. */
-  display_name: string;
+  /** Unique; shown publicly next to reviews and forum posts. */
+  username: string;
+  /** Still a temporary „clen-…“ name: ask the member to choose one. */
+  must_choose_username: boolean;
+  username_changed_at: string | null;
+  /** From when the member may change it again (once every 90 days); null = now. */
+  username_change_available_at: string | null;
   email: string;
   role: string;
   community_roles: string[];

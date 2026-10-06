@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RegisterForm } from "@/components/auth/register-form";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
@@ -13,7 +13,8 @@ import {
 async function fillAndSubmit({
   password = "lozinka12345",
   confirmation,
-}: { password?: string; confirmation?: string } = {}) {
+  acceptTerms = true,
+}: { password?: string; confirmation?: string; acceptTerms?: boolean } = {}) {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText(t("auth.registerName")), "Ана");
   await user.type(screen.getByLabelText(t("auth.email")), "ana@example.mk");
@@ -22,54 +23,130 @@ async function fillAndSubmit({
     screen.getByLabelText(t("auth.registerPasswordConfirm")),
     confirmation ?? password,
   );
+  if (acceptTerms) {
+    await user.click(screen.getByRole("checkbox"));
+  }
+  // Last, so the submit (not the debounced availability check) is the
+  // first request the tests inspect.
+  await user.type(screen.getByLabelText(t("usernames.label")), "ana_bt");
   await user.click(screen.getByRole("button", { name: t("auth.register") }));
 }
 
 describe("RegisterForm", () => {
-  it("suggests a public display name from the name and sends it", async () => {
+  it("asks for a public username, separately from the private name", () => {
+    render(<RegisterForm registrationsEnabled />);
+
+    const username = screen.getByLabelText(t("usernames.label"));
+    expect(username).toHaveValue("");
+    expect(username).toHaveAccessibleDescription(
+      new RegExp(t("usernames.registerHelp").slice(0, 40)),
+    );
+    expect(
+      screen.getByLabelText(t("auth.registerName")),
+    ).toHaveAccessibleDescription(t("auth.registerNameHelp"));
+  });
+
+  it("checks the username's format before sending", async () => {
     const fetch = mockFetch({ status: 202, body: { data: {} } });
     const user = userEvent.setup();
     render(<RegisterForm registrationsEnabled />);
 
-    await user.type(
-      screen.getByLabelText(t("auth.registerName")),
-      "Марија Костовска",
-    );
-
-    const displayName = screen.getByLabelText(t("auth.registerDisplayName"));
-    expect(displayName).toHaveValue("Марија К.");
-    // The field says, in its description, that it is the public one.
-    expect(displayName).toHaveAccessibleDescription(
-      t("auth.registerDisplayNameHelp"),
-    );
-
-    await user.type(screen.getByLabelText(t("auth.email")), "m@example.mk");
-    await user.type(screen.getByLabelText(t("auth.password")), "lozinka12345");
-    await user.type(
-      screen.getByLabelText(t("auth.registerPasswordConfirm")),
-      "lozinka12345",
-    );
+    await user.type(screen.getByLabelText(t("usernames.label")), "Аdmin");
     await user.click(screen.getByRole("button", { name: t("auth.register") }));
 
-    expect(requestBody(fetch)).toMatchObject({
-      name: "Марија Костовска",
-      display_name: "Марија К.",
-    });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText(t("usernames.label")),
+    ).toHaveAccessibleDescription(new RegExp(t("usernames.errorMixedScript")));
   });
 
-  it("stops following the name once the display name is edited", async () => {
-    const user = userEvent.setup();
+  it("says quietly whether the username is free once typing pauses", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const fetch = mockFetch({
+      status: 200,
+      body: {
+        data: {
+          available: false,
+          message: "Ова корисничко име веќе се користи.",
+        },
+      },
+    });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<RegisterForm registrationsEnabled />);
 
-    const name = screen.getByLabelText(t("auth.registerName"));
-    const displayName = screen.getByLabelText(t("auth.registerDisplayName"));
+    await user.type(screen.getByLabelText(t("usernames.label")), "Marija.Bt");
+    expect(fetch).not.toHaveBeenCalled();
 
-    await user.type(name, "Марија");
-    await user.clear(displayName);
-    await user.type(displayName, "Мара");
-    await user.type(name, " Костовска");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
 
-    expect(displayName).toHaveValue("Мара");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(String(fetch.mock.calls[0][0])).toBe(
+      "/api/usernames/availability?username=Marija.Bt",
+    );
+    const status = await screen.findByText(
+      "Ова корисничко име веќе се користи.",
+    );
+    expect(status.closest('[role="status"]')).toBeInTheDocument();
+
+    // Submitting a name already known to be taken stops at the field.
+    await user.click(screen.getByRole("button", { name: t("auth.register") }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(t("usernames.label"))).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    vi.useRealTimers();
+  });
+
+  it("requires the 14+ and terms checkbox, with links to both texts", async () => {
+    const fetch = mockFetch({ status: 202, body: { data: {} } });
+    render(<RegisterForm registrationsEnabled />);
+
+    const consent = screen.getByRole("checkbox");
+    expect(consent).toBeRequired();
+    expect(consent).toHaveAccessibleName(
+      new RegExp(t("usernames.termsBefore").trim()),
+    );
+    expect(
+      screen.getByRole("link", { name: new RegExp(t("usernames.termsLink")) }),
+    ).toHaveAttribute("href", "/terms");
+    expect(
+      screen.getByRole("link", {
+        name: new RegExp(t("usernames.privacyLink")),
+      }),
+    ).toHaveAttribute("href", "/privacy");
+
+    await fillAndSubmit({ acceptTerms: false });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(consent).toHaveAttribute("aria-invalid", "true");
+    expect(
+      within(screen.getByRole("alert")).getByRole("link", {
+        name: t("usernames.termsSummaryLabel"),
+      }),
+    ).toHaveAttribute("href", `#${consent.id}`);
+  });
+
+  it("shows the API's username refusal under the field", async () => {
+    mockFetch({
+      status: 422,
+      body: {
+        message: "Ова корисничко име не е дозволено.",
+        errors: { username: ["Ова корисничко име не е дозволено."] },
+      },
+    });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Ова корисничко име не е дозволено.",
+    );
+    expect(
+      screen.getByLabelText(t("usernames.label")),
+    ).toHaveAccessibleDescription(/Ова корисничко име не е дозволено\./);
   });
 
   it("shows only the disabled notice when registration is closed", () => {
@@ -84,7 +161,7 @@ describe("RegisterForm", () => {
 
     for (const label of [
       t("auth.registerName"),
-      t("auth.registerDisplayName"),
+      t("usernames.label"),
       t("auth.email"),
       t("auth.password"),
       t("auth.registerPasswordConfirm"),
@@ -104,10 +181,11 @@ describe("RegisterForm", () => {
 
     expect(requestBody(fetch)).toEqual({
       name: "Ана",
-      display_name: "Ана",
+      username: "ana_bt",
       email: "ana@example.mk",
       password: "lozinka12345",
       password_confirmation: "lozinka12345",
+      accept_terms: true,
     });
   });
 
@@ -291,9 +369,9 @@ describe("RegisterForm", () => {
         within(summary).getByRole("link", { name: label }),
       ).toHaveAttribute("href", `#${field.id}`);
     }
-    expect(
-      screen.getByLabelText(t("auth.registerDisplayName")),
-    ).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText(t("usernames.label"))).not.toHaveAttribute(
+      "aria-invalid",
+    );
   });
 
   it("links every rejected field from the error summary", async () => {

@@ -166,7 +166,7 @@ export function MobileNavDrawer({
                       initials={user.avatar_initials}
                     />
                     <span className="type-body font-semibold text-ink">
-                      {user.display_name}
+                      {user.username}
                     </span>
                   </div>
                 ) : null}
