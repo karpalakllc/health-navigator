@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Filament\Support\ModerationBulkActions;
 use App\Filament\Support\ModerationTableColumns;
 use App\Filament\Support\ReviewableLabel;
+use App\Filament\Support\ReviewResponseActions;
 use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -63,6 +64,8 @@ class ReviewsTable
                         auth()->user(),
                         $data['rejection_note'] ?? null,
                     )),
+                ReviewResponseActions::respond(),
+                ReviewResponseActions::remove(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make(ModerationBulkActions::forReviews()),

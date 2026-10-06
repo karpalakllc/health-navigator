@@ -35,6 +35,17 @@ class ReviewInfolist
                 TextEntry::make('rejection_note')
                     ->visible(fn (Review $record): bool => filled($record->rejection_note))
                     ->columnSpanFull(),
+                TextEntry::make('response_body')
+                    ->label('Official response')
+                    ->visible(fn (Review $record): bool => $record->hasResponse())
+                    ->columnSpanFull(),
+                TextEntry::make('responseBy.name')
+                    ->label('Response entered by')
+                    ->visible(fn (Review $record): bool => $record->hasResponse()),
+                TextEntry::make('response_at')
+                    ->label('Response date')
+                    ->dateTime()
+                    ->visible(fn (Review $record): bool => $record->hasResponse()),
                 TextEntry::make('created_at')
                     ->dateTime(),
                 TextEntry::make('published_at')

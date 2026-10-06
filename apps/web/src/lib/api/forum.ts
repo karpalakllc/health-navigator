@@ -60,6 +60,8 @@ export type ForumPost = {
   author_name: string;
   author: ForumAuthor;
   published_at: string | null;
+  /** Written by the topic's opener (the API decides; no ids are exposed). */
+  is_topic_author?: boolean;
 };
 
 export type ForumTopicPage = {

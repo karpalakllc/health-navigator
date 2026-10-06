@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\ReviewHelpfulController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
@@ -131,4 +133,29 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
             ->middleware(['module:pharmacies', 'can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
     });
+
+    // Member reports of published content (docs/notice-and-action.md). Two
+    // windows, each with its own key prefix so they count separately: a burst
+    // limit and a daily ceiling per account. One report per item is enforced
+    // by the table, so the limits only bound how many items one account flags.
+    Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily'])
+        ->group(function (): void {
+            Route::post('/reviews/{review}/reports', [ContentReportController::class, 'storeForReview'])
+                ->whereNumber('review');
+            Route::middleware('module:forum')->group(function (): void {
+                Route::post('/forum/categories/{category}/topics/{topic}/reports', [ContentReportController::class, 'storeForForumTopic']);
+                Route::post('/forum/posts/{post}/reports', [ContentReportController::class, 'storeForForumPost'])
+                    ->whereNumber('post');
+            });
+        });
+
+    // „Корисно“ on a published review: members only (the Member role's
+    // reviews.create, as for writing one), one vote each, toggled.
+    Route::middleware(['auth:sanctum', 'verified', 'can:create,'.Review::class, 'throttle:60,10,api-review-helpful'])
+        ->group(function (): void {
+            Route::put('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'store'])
+                ->whereNumber('review');
+            Route::delete('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'destroy'])
+                ->whereNumber('review');
+        });
 });

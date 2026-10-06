@@ -126,6 +126,8 @@ limiters are layered on top:
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
+| `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
+| `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -141,6 +143,7 @@ nobody can hold an account locked by merely sending traffic.
 <!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
+| `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | `cache.public:60` |
@@ -184,11 +187,15 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
+| `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
 <!-- END generated route table -->
 
@@ -241,8 +248,25 @@ nobody can hold an account locked by merely sending traffic.
   `Authorization` header gets the default `no-cache, private`, and the public
   answer carries `Vary: Authorization, Accept-Language`. Review lists and
   `/search` are never marked.
-- Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
+- Review lists accept `sort` (`newest|oldest|rating_high|rating_low|helpful`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
+  `meta.rating_counts` is `{"1": n, …, "5": n}` over **approved** reviews of the
+  profile, independent of the `rating` filter and the page. Each review carries
+  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at}`:
+  the doctor's or facility's official reply, plain text) and, **only on a
+  signed-in request**, `viewer.has_voted_helpful`; anonymous payloads carry no
+  viewer state.
+- `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
+  helpful (Member role, verified; idempotent; your own review is a 422) and
+  return `{helpful_count, has_voted_helpful}`.
+- Reports: `POST /reviews/{id}/reports`, `POST /forum/posts/{id}/reports` and
+  `POST /forum/categories/{category}/topics/{topic}/reports` take `reason`
+  (`spam|abuse|false_information|personal_data|other`) and an optional `note`
+  (≤ 500). Only publicly visible content can be reported (otherwise 404). The
+  first report answers 201, a repeat by the same account 200 with the same body
+  and no new row. Process: [notice-and-action.md](./notice-and-action.md).
+- Forum replies carry `is_topic_author` (written by the topic's opener); the
+  payload never includes account ids.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.

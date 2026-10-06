@@ -1,10 +1,31 @@
+import { ReportButton } from "@/components/reports/report-button";
+import { ReviewHelpfulButton } from "@/components/reviews/review-helpful-button";
 import { StarRating } from "@/components/ui/star-rating";
 import { Monogram } from "@/components/ui/user-avatar";
-import type { PublicReview } from "@/lib/api/types";
+import type { PublicReview, ReviewResponse } from "@/lib/api/types";
 import { formatMkDate } from "@/lib/mk-date";
+import { t, tFormat } from "@/i18n/t";
 
-/** Review cards: monogram, display name, date, amber stars, reading body. */
-export function ReviewList({ reviews }: { reviews: PublicReview[] }) {
+type ReviewListProps = {
+  reviews: PublicReview[];
+  isLoggedIn?: boolean;
+  /** The viewer's own review: no „Корисно“ on it (the API refuses). */
+  viewerReviewId?: number | null;
+  /** Where sign-in returns to from „Корисно“ / „Пријави“. */
+  returnTo?: string;
+};
+
+/**
+ * Review cards: monogram, display name, date, amber stars, reading body, the
+ * profile's official response when there is one, then the quiet actions
+ * („Корисно“, „Пријави“).
+ */
+export function ReviewList({
+  reviews,
+  isLoggedIn = false,
+  viewerReviewId = null,
+  returnTo = "/",
+}: ReviewListProps) {
   if (reviews.length === 0) {
     return null;
   }
@@ -13,6 +34,7 @@ export function ReviewList({ reviews }: { reviews: PublicReview[] }) {
     <ul className="m-0 grid list-none gap-3 p-0 lg:grid-cols-2 lg:gap-5">
       {reviews.map((review) => {
         const date = formatMkDate(review.published_at);
+        const own = viewerReviewId !== null && review.id === viewerReviewId;
 
         return (
           <li key={review.id ?? `${review.author_name}-${review.published_at}`}>
@@ -41,10 +63,68 @@ export function ReviewList({ reviews }: { reviews: PublicReview[] }) {
               {review.body ? (
                 <p className="type-reading text-ink">{review.body}</p>
               ) : null}
+              {review.response ? (
+                <OfficialResponse response={review.response} />
+              ) : null}
+              {typeof review.id === "number" ? (
+                <div
+                  role="group"
+                  aria-label={tFormat("reviews.actions", {
+                    name: review.author_name,
+                  })}
+                  className="mt-auto flex flex-wrap items-start justify-between gap-2 pt-1"
+                >
+                  {own ? (
+                    <span />
+                  ) : (
+                    <ReviewHelpfulButton
+                      reviewId={review.id}
+                      count={review.helpful_count ?? 0}
+                      voted={review.viewer?.has_voted_helpful ?? false}
+                      isLoggedIn={isLoggedIn}
+                      returnTo={returnTo}
+                    />
+                  )}
+                  <ReportButton
+                    target={{ kind: "review", id: review.id }}
+                    label={tFormat("reports.actionReview", {
+                      name: review.author_name,
+                    })}
+                    isLoggedIn={isLoggedIn}
+                    returnTo={returnTo}
+                  />
+                </div>
+              ) : null}
             </article>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * The reviewed profile's reply, on a sand inset under the review: labelled
+ * with the profile's name, plain text (line breaks kept, never HTML).
+ */
+export function OfficialResponse({ response }: { response: ReviewResponse }) {
+  const date = formatMkDate(response.responded_at);
+
+  return (
+    <section className="flex flex-col gap-1.5 rounded-2xl border-l-4 border-line-strong bg-sand p-4">
+      <h3 className="type-label text-ink">
+        {response.responder_name
+          ? tFormat("reviewResponse.title", { name: response.responder_name })
+          : t("reviewResponse.titleGeneric")}
+      </h3>
+      {date && response.responded_at ? (
+        <time dateTime={response.responded_at} className="type-meta text-ink-2">
+          {date}
+        </time>
+      ) : null}
+      <p className="whitespace-pre-line break-words type-reading text-ink">
+        {response.body}
+      </p>
+    </section>
   );
 }

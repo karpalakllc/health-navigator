@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Review extends Model
@@ -31,6 +32,16 @@ class Review extends Model
         'moderated_at',
         'rejection_note',
     ];
+
+    /**
+     * Whether the signed-in viewer marked this review „Корисно“. Not a column:
+     * set per request by the review list (ReviewHelpfulVotes::votedBy), null
+     * when nobody resolved it.
+     */
+    public ?bool $viewerHasVotedHelpful = null;
+
+    /** Longest official response staff can attach (characters). */
+    public const RESPONSE_MAX_LENGTH = 2000;
 
     /**
      * Every path that changes what counts as an approved review — approve(),
@@ -75,9 +86,11 @@ class Review extends Model
     {
         return [
             'rating' => 'integer',
+            'helpful_count' => 'integer',
             'status' => ReviewStatus::class,
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
+            'response_at' => 'datetime',
         ];
     }
 
@@ -103,6 +116,22 @@ class Review extends Model
     public function moderatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'moderated_by_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function responseBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'response_by_id');
+    }
+
+    /**
+     * @return MorphMany<ContentReport, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ContentReport::class, 'reportable');
     }
 
     /**
@@ -138,5 +167,42 @@ class Review extends Model
         ]);
 
         UgcMailer::notifyRejected($this->fresh());
+    }
+
+    /**
+     * Attach (or replace) the official response of the reviewed doctor or
+     * facility, entered by staff on their behalf. Stored as plain text: any
+     * markup is stripped, line breaks are kept (at most one blank line).
+     */
+    public function respond(User $staff, string $body): void
+    {
+        $this->forceFill([
+            'response_body' => self::plainResponse($body),
+            'response_by_id' => $staff->getKey(),
+            'response_at' => now(),
+        ])->save();
+    }
+
+    public function removeResponse(): void
+    {
+        $this->forceFill([
+            'response_body' => null,
+            'response_by_id' => null,
+            'response_at' => null,
+        ])->save();
+    }
+
+    public function hasResponse(): bool
+    {
+        return filled($this->response_body);
+    }
+
+    public static function plainResponse(string $body): string
+    {
+        $text = strip_tags(str_replace(["\r\n", "\r"], "\n", $body));
+        $text = preg_replace('/[ \t]+\n/u', "\n", $text) ?? $text;
+        $text = preg_replace('/\n{3,}/u', "\n\n", $text) ?? $text;
+
+        return trim($text);
     }
 }

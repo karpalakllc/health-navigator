@@ -1,9 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  ForumPostCard,
-  isSameAuthor,
-} from "@/components/forum/forum-post-card";
+import { ForumPostCard } from "@/components/forum/forum-post-card";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ModerationStatusTag } from "@/components/account/moderation-status-tag";
 import { ForumTopicList } from "@/components/forum/forum-topic-row";
@@ -219,25 +216,6 @@ describe("ForumPostCard", () => {
     const article = screen.getByRole("article");
     expect(article).toHaveClass("card-edge");
     expect(article).toHaveTextContent(t("forum.authorBadge"));
-  });
-});
-
-describe("isSameAuthor", () => {
-  it("needs the same public name and the same account creation time", () => {
-    expect(isSameAuthor(member, { ...member })).toBe(true);
-    expect(
-      isSameAuthor(member, {
-        ...member,
-        member_since: "2025-04-01T10:00:00+00:00",
-      }),
-    ).toBe(false);
-    expect(isSameAuthor(member, { ...member, name: "Ана Т." })).toBe(false);
-    expect(
-      isSameAuthor(
-        { ...member, member_since: null },
-        { ...member, member_since: null },
-      ),
-    ).toBe(false);
   });
 });
 

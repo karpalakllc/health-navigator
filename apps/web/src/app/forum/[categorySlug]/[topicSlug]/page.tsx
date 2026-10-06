@@ -2,13 +2,11 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { Pagination } from "@/components/directory/pagination";
 import { ForumColumns, forumPageClass } from "@/components/forum/forum-layout";
-import {
-  ForumPostCard,
-  isSameAuthor,
-} from "@/components/forum/forum-post-card";
+import { ForumPostCard } from "@/components/forum/forum-post-card";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
+import { ReportButton } from "@/components/reports/report-button";
 import { BackLink } from "@/components/ui/back-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -116,12 +114,25 @@ export default async function TopicDetailPage({
     published_at: topic.published_at,
   };
 
-  const canReply = !topic.is_locked && Boolean(token);
-  const replyAction = canReply ? (
-    <Button href={`#${REPLY_FORM_ID}`} variant="soft" leadingIcon="reply">
-      {t("forum.replyToTopic")}
-    </Button>
-  ) : null;
+  const isLoggedIn = Boolean(token);
+  const canReply = !topic.is_locked && isLoggedIn;
+  const topicActions = (
+    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+      {canReply ? (
+        <Button href={`#${REPLY_FORM_ID}`} variant="soft" leadingIcon="reply">
+          {t("forum.replyToTopic")}
+        </Button>
+      ) : (
+        <span />
+      )}
+      <ReportButton
+        target={{ kind: "forum_topic", categorySlug, topicSlug }}
+        label={t("reports.actionTopic")}
+        isLoggedIn={isLoggedIn}
+        returnTo={redirectPath}
+      />
+    </div>
+  );
 
   return (
     <div className={`${forumPageClass} gap-6`}>
@@ -179,7 +190,7 @@ export default async function TopicDetailPage({
               post={originalPost}
               isOriginalPost
               isTopicAuthor
-              actions={replyAction}
+              actions={topicActions}
             />
 
             <section
@@ -199,7 +210,19 @@ export default async function TopicDetailPage({
                     <li key={post.id}>
                       <ForumPostCard
                         post={post}
-                        isTopicAuthor={isSameAuthor(post.author, topic.author)}
+                        isTopicAuthor={post.is_topic_author === true}
+                        actions={
+                          <div className="flex w-full justify-end">
+                            <ReportButton
+                              target={{ kind: "forum_post", id: post.id }}
+                              label={tFormat("reports.actionPost", {
+                                name: post.author.name,
+                              })}
+                              isLoggedIn={isLoggedIn}
+                              returnTo={redirectPath}
+                            />
+                          </div>
+                        }
                       />
                     </li>
                   ))}
