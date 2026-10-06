@@ -44,7 +44,7 @@ type AccountSubNavProps = {
 export function AccountSubNav({ current, className }: AccountSubNavProps) {
   return (
     <nav aria-label={t("account.subNavAria")} className={className}>
-      <ul className="scroll-row -mx-5 flex gap-2 px-5 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0">
+      <ul className="scroll-row -mx-5 -my-2.5 flex gap-2 px-5 py-2.5 lg:mx-0 lg:my-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:py-0">
         {sections.map((item) => {
           const active = item.id === current;
 

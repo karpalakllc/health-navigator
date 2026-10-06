@@ -26,6 +26,15 @@ describe("AccountSubNav", () => {
     ).toHaveLength(1);
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
+
+  it("leaves room for the focus ring inside the scrolling row", () => {
+    render(<AccountSubNav current="reviews" />);
+
+    // A scroller clips its overflow: the 2px ring 2px off each pill needs
+    // vertical padding, cancelled by a negative margin so nothing moves.
+    const row = screen.getByRole("list").className.split(/\s+/);
+    expect(row).toEqual(expect.arrayContaining(["py-2.5", "-my-2.5"]));
+  });
 });
 
 describe("ModerationStatusTag", () => {

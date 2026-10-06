@@ -147,7 +147,7 @@ export async function UnifiedSearchResults({
 
         {cityParam || sections.length > 1 ? (
           <nav aria-label={t("search.sectionsNav")}>
-            <ul className="scroll-row -mx-5 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:px-0">
+            <ul className="scroll-row -mx-5 -my-2.5 flex gap-2 overflow-x-auto px-5 py-2.5 lg:mx-0 lg:flex-wrap lg:px-0">
               {cityParam ? (
                 <li className="flex-none">
                   <RemovableChip

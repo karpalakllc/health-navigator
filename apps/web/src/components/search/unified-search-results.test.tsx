@@ -127,6 +127,14 @@ describe("UnifiedSearchResults (/search)", () => {
     expect(
       screen.queryByRole("region", { name: t("search.sectionDoctors") }),
     ).not.toBeInTheDocument();
+
+    // The chip row scrolls and so clips: padding keeps the focus ring whole.
+    const chips = within(
+      screen.getByRole("navigation", { name: t("search.sectionsNav") }),
+    )
+      .getByRole("list")
+      .className.split(/\s+/);
+    expect(chips).toEqual(expect.arrayContaining(["py-2.5", "-my-2.5"]));
   });
 
   it("shows the empty state when no vertical has hits", async () => {

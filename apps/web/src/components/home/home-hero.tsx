@@ -49,7 +49,7 @@ export function HomeHero({
           {quickLinks.length > 0 ? (
             <ul
               aria-label={t("home.quickLinksAria")}
-              className="scroll-row -mx-5 mt-4 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0"
+              className="scroll-row -mx-5 -mb-2.5 mt-1.5 flex gap-2 overflow-x-auto px-5 py-2.5 lg:mx-0 lg:mb-0 lg:mt-4 lg:flex-wrap lg:overflow-visible lg:px-0 lg:py-0"
             >
               {quickLinks.map((link) => (
                 <li key={link.href} className="flex-none">

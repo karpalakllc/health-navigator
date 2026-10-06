@@ -177,7 +177,7 @@ export function DirectoryListView({
       <div
         role="group"
         aria-label={t("directory.filters")}
-        className="scroll-row -mx-5 flex gap-2 px-5 py-1 lg:mx-0 lg:flex-wrap lg:px-0"
+        className="scroll-row -mx-5 -my-1.5 flex gap-2 px-5 py-2.5 lg:mx-0 lg:flex-wrap lg:px-0"
       >
         {quickChips.map((chip) => {
           const selected = values[chip.name] === chip.value;

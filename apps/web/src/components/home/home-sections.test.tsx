@@ -120,6 +120,10 @@ describe("HomeHero", () => {
     expect(
       within(quick).getByRole("link", { name: "Кардиологија" }),
     ).toHaveAttribute("href", "/doctors?specialty=kardiologija");
+    // The phone row scrolls and so clips: padding keeps the focus ring whole.
+    expect(quick.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["py-2.5", "-mb-2.5"]),
+    );
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
