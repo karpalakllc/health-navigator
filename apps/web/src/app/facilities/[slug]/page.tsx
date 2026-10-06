@@ -9,6 +9,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
   ProfileSection,
@@ -132,6 +133,15 @@ export default async function FacilityDetailPage({
 
   return (
     <>
+      <RecordRecentlyViewed
+        kind="facility"
+        slug={facility.slug}
+        name={facility.name}
+        subtitle={[facilityKindLabel(facility.type), facility.city]
+          .filter(Boolean)
+          .join(" · ")}
+        avatarUrl={facility.avatar_url}
+      />
       <JsonLd
         data={placeJsonLd(
           facilitySchemaType(facility.type),

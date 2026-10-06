@@ -4,11 +4,14 @@ import { describe, expect, it } from "vitest";
 import { CommunityTopicCard } from "@/components/home/community-topic-card";
 import { HomeDirectoryTiles } from "@/components/home/home-directory-tiles";
 import { HomeGuidanceCard } from "@/components/home/home-guidance-card";
+import { HomeFeaturedDoctorsRail } from "@/components/home/home-featured-doctors";
 import { HomeHero } from "@/components/home/home-hero";
+import { buildHeroStats, buildHomeTiles } from "@/components/home/home-tiles";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
 import { HEADER_SEARCH_INPUT_ID } from "@/components/layout/header-search";
 import type { ForumTopicSearchItem } from "@/lib/api/forum";
+import type { DoctorListItem } from "@/lib/api/types";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 
@@ -127,6 +130,40 @@ describe("HomeHero", () => {
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
+  it("opens with the value line and a decorative illustration, not the wordmark", () => {
+    const { container } = render(
+      <HomeHero
+        quickLinks={[]}
+        stats={[
+          { icon: "stethoscope", label: "14 лекари" },
+          { icon: "building", label: "6 установи" },
+        ]}
+      />,
+    );
+
+    const stats = screen.getByRole("list", { name: t("home.heroStatsAria") });
+    expect(
+      within(stats)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["14 лекари", "6 установи"]);
+    // The old „Здравје360“ eyebrow repeated the logo right above it.
+    expect(screen.queryByText(t("nav.wordmark"))).toBeNull();
+
+    const art = container.querySelector("svg[data-hero-illustration]");
+    expect(art).toHaveAttribute("aria-hidden", "true");
+    expect(art).toHaveAttribute("focusable", "false");
+    // A fixed viewBox reserves the box before paint (no layout shift).
+    expect(art).toHaveAttribute("viewBox", "0 0 480 360");
+  });
+
+  it("leaves the value line out when no totals are known", () => {
+    render(<HomeHero quickLinks={[]} />);
+    expect(
+      screen.queryByRole("list", { name: t("home.heroStatsAria") }),
+    ).toBeNull();
+  });
+
   it("the desktop prompt moves focus into the header search", async () => {
     render(
       <>
@@ -173,6 +210,164 @@ describe("HomeDirectoryTiles", () => {
     expect(
       screen.getByRole("link", { name: t("nav.facilities") }),
     ).toHaveAttribute("href", "/facilities");
+  });
+
+  it("paints exactly the tiles flagged `feature` apricot", () => {
+    render(<HomeDirectoryTiles tiles={buildHomeTiles(allModules, {})} />);
+
+    const featured = screen
+      .getAllByRole("link")
+      .filter((link) => link.className.split(/\s+/).includes("bg-apricot"))
+      .map((link) => link.getAttribute("href"));
+    expect(featured).toEqual(["/doctors", "/forum"]);
+  });
+});
+
+const allModules = {
+  pharmacies: true,
+  products: true,
+  guidance: true,
+  forum: true,
+};
+
+describe("buildHomeTiles (owner: highlight Лекари and Форум)", () => {
+  const featuredHrefs = (tiles: ReturnType<typeof buildHomeTiles>) =>
+    tiles.filter((tile) => tile.feature).map((tile) => tile.href);
+
+  it("features Лекари and Форум, not Насоки за симптоми", () => {
+    const tiles = buildHomeTiles(allModules, { doctors: 14, forumTopics: 2 });
+
+    expect(tiles.map((tile) => tile.href)).toEqual([
+      "/doctors",
+      "/facilities",
+      "/pharmacies",
+      "/products",
+      "/guidance",
+      "/forum",
+    ]);
+    expect(featuredHrefs(tiles)).toEqual(["/doctors", "/forum"]);
+    expect(tiles.find((tile) => tile.href === "/guidance")?.feature).toBe(
+      false,
+    );
+    expect(tiles[0].sub).toBe("14 профили");
+  });
+
+  it("keeps the highlight on the destination when modules shift the grid", () => {
+    // Pharmacies, products and guidance off: Форум moves to the third slot
+    // but stays highlighted; nothing else picks the highlight up.
+    const tiles = buildHomeTiles(
+      { pharmacies: false, products: false, guidance: false, forum: true },
+      {},
+    );
+    expect(tiles.map((tile) => tile.href)).toEqual([
+      "/doctors",
+      "/facilities",
+      "/forum",
+    ]);
+    expect(featuredHrefs(tiles)).toEqual(["/doctors", "/forum"]);
+
+    expect(
+      featuredHrefs(buildHomeTiles({ ...allModules, forum: false }, {})),
+    ).toEqual(["/doctors"]);
+  });
+});
+
+describe("buildHeroStats", () => {
+  it("lists only the totals that are known, in Macedonian plural forms", () => {
+    expect(
+      buildHeroStats({ doctors: 14, facilities: 1, pharmacies: undefined }).map(
+        (stat) => stat.label,
+      ),
+    ).toEqual(["14 лекари", "1 установа"]);
+    expect(buildHeroStats({})).toEqual([]);
+  });
+});
+
+const doctor: DoctorListItem = {
+  slug: "elena-dimitrova",
+  full_name: "д-р Елена Димитрова",
+  title: null,
+  subspecialty: null,
+  city: "Битола",
+  avatar_url: null,
+  years_experience: null,
+  accepts_new_patients: true,
+  is_featured: true,
+  is_sponsored: false,
+  primary_specialty: { slug: "ortopedija", name: "Ортопедија" },
+  primary_facility: null,
+  review_summary: { count: 2, average_rating: 4.5 },
+} as DoctorListItem;
+
+describe("HomeFeaturedDoctorsRail", () => {
+  const plain: DoctorListItem = {
+    ...doctor,
+    slug: "ana-petrovska",
+    full_name: "д-р Ана Петровска",
+    is_featured: false,
+  };
+
+  it("gives each doctor a card: band, identity, rating, own-line tag, CTA", async () => {
+    const { container } = render(
+      <HomeFeaturedDoctorsRail doctors={[doctor, plain]} />,
+    );
+
+    const section = screen.getByRole("region", {
+      name: t("home.featuredDoctors"),
+    });
+    const cards = within(section).getAllByRole("article");
+    expect(cards).toHaveLength(2);
+
+    const [featured, other] = cards;
+    // „Истакнат“ sits in the apricot band, as on /doctors — only for a
+    // featured doctor.
+    const band = featured.querySelector("[data-featured-band]");
+    expect(band).not.toBeNull();
+    expect(
+      within(band as HTMLElement).getByText(t("ui.featured")),
+    ).toBeVisible();
+    expect(other.querySelector("[data-featured-band]")).toBeNull();
+    expect(within(other).queryByText(t("ui.featured"))).toBeNull();
+
+    for (const card of cards) {
+      // The accepting tag is on its own row, never in the photo row
+      // (where it overflowed the card at 390px).
+      const identity = card.querySelector("[data-doctor-identity]")!;
+      const tag = within(card).getByText(t("doctors.acceptingPatients"));
+      expect(identity).not.toContainElement(tag);
+      expect(card.querySelector("[data-doctor-tags]")).toContainElement(tag);
+      expect(
+        within(identity as HTMLElement).getByRole("heading", { level: 3 }),
+      ).toBeInTheDocument();
+    }
+
+    // A clear but secondary CTA: the outlined pill, not the beige blob.
+    const cta = within(featured).getByRole("link", {
+      name: `${t("doctors.viewProfile")}: д-р Елена Димитрова`,
+    });
+    expect(cta).toHaveAttribute("href", "/doctors/elena-dimitrova");
+    expect(cta.className.split(/\s+/)).toContain("btn-secondary");
+    expect(cta.className.split(/\s+/)).not.toContain("btn-soft");
+
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("lays the rail out as a snapping row with room for shadows", () => {
+    render(<HomeFeaturedDoctorsRail doctors={[doctor, plain]} />);
+
+    const list = screen.getAllByRole("list")[0];
+    const classes = list.className.split(/\s+/);
+    expect(classes).toEqual(
+      expect.arrayContaining(["snap-x", "snap-mandatory", "pb-6", "pt-2"]),
+    );
+    for (const item of within(list).getAllByRole("listitem")) {
+      expect(item.className.split(/\s+/)).toContain("snap-start");
+    }
+  });
+
+  it("renders nothing without doctors", () => {
+    const { container } = render(<HomeFeaturedDoctorsRail doctors={[]} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

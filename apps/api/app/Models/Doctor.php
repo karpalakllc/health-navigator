@@ -44,13 +44,14 @@ class Doctor extends Model
     ];
 
     /**
-     * GET /specialties embeds published-doctor counts.
+     * GET /specialties embeds published-doctor counts; GET /home/highlights
+     * counts doctors per specialty and city and names review targets.
      *
      * @return list<string>
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::SPECIALTIES];
+        return [TaxonomyCache::SPECIALTIES, TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
     /**

@@ -31,7 +31,7 @@ class Specialty extends Model
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::SPECIALTIES];
+        return [TaxonomyCache::SPECIALTIES, TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
     protected function casts(): array

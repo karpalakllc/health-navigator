@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ReviewAggregates;
+use App\Support\TaxonomyCache;
 use App\Support\UgcMailer;
 use Database\Factories\ReviewFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class Review extends Model
 {
     /** @use HasFactory<ReviewFactory> */
-    use HasFactory;
+    use HasFactory, InvalidatesTaxonomyCache;
 
     protected $fillable = [
         'user_id',
@@ -56,6 +58,17 @@ class Review extends Model
         });
 
         static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
+    }
+
+    /**
+     * GET /home/highlights lists the latest approved reviews: approving,
+     * rejecting, editing or deleting one must not wait out the cache.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
     protected function casts(): array

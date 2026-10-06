@@ -1,32 +1,27 @@
 import type { Metadata } from "next";
-import {
-  HomeCommunity,
-  HomePopularSpecialties,
-  HomeTrustRow,
-} from "@/components/home/home-community";
-import {
-  HomeDirectoryTiles,
-  type HomeTile,
-} from "@/components/home/home-directory-tiles";
-import {
-  HomeFeaturedDoctorsCard,
-  HomeFeaturedDoctorsRail,
-} from "@/components/home/home-featured-doctors";
+import { HomeCities } from "@/components/home/home-cities";
+import { HomeCommunity, HomeTrustRow } from "@/components/home/home-community";
+import { HomeDirectoryTiles } from "@/components/home/home-directory-tiles";
+import { HomeFeaturedDoctorsRail } from "@/components/home/home-featured-doctors";
 import { HomeGuidanceCard } from "@/components/home/home-guidance-card";
 import { HomeHero } from "@/components/home/home-hero";
+import { HomeRecentReviews } from "@/components/home/home-recent-reviews";
+import { HomeRecentlyViewed } from "@/components/home/home-recently-viewed";
+import { HomeSpecialties } from "@/components/home/home-specialties";
+import { buildHeroStats, buildHomeTiles } from "@/components/home/home-tiles";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
 import type { ForumCategory, ForumTopicSearchItem } from "@/lib/api/forum";
 import { fetchForumCategories, fetchForumRecentTopics } from "@/lib/api/forum";
-import type { DoctorListItem, Specialty } from "@/lib/api/types";
+import type { DoctorListItem } from "@/lib/api/types";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
+import { EMPTY_HOME_HIGHLIGHTS, fetchHomeHighlights } from "@/lib/api/home";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
-import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
-import { t, tCount, type MessageKey } from "@/i18n/t";
+import { t } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
   t("home.heroHeading"),
@@ -37,7 +32,6 @@ export const metadata: Metadata = pageMetadata(
 const TOP_RATED_MIN_REVIEWS = 2;
 const FEATURED_LIMIT = 6;
 const QUICK_LINKS = 3;
-const POPULAR_SPECIALTIES = 8;
 const COMMUNITY_TOPICS = 3;
 
 /** A list endpoint's total, or undefined when the module is off or it fails. */
@@ -76,7 +70,7 @@ export default async function Home() {
   const [
     topRated,
     featured,
-    specialties,
+    highlights,
     topics,
     forumCategories,
     doctorsTotal,
@@ -102,7 +96,9 @@ export default async function Home() {
         (await fetchDoctors({ featured: true, per_page: FEATURED_LIMIT })).data,
       [] as DoctorListItem[],
     ),
-    settle(true, fetchSpecialties, [] as Specialty[]),
+    // Popular specialties (also the hero's quick links), cities and the
+    // latest reviews, in one cached call.
+    settle(true, fetchHomeHighlights, EMPTY_HOME_HIGHLIGHTS),
     settle(
       forumOn,
       async () => (await fetchForumRecentTopics(COMMUNITY_TOPICS)).data,
@@ -116,73 +112,38 @@ export default async function Home() {
   ]);
 
   const doctors = mergeHomeDoctors(topRated, featured, FEATURED_LIMIT);
-  const bySize = [...specialties]
-    .filter((s) => s.doctors_count > 0)
-    .sort((a, b) => b.doctors_count - a.doctors_count);
   const forumTotal = forumCategories.length
     ? forumCategories.reduce((sum, c) => sum + (c.topics_count ?? 0), 0)
     : undefined;
 
-  const tiles: HomeTile[] = [
+  const totals = {
+    doctors: doctorsTotal,
+    facilities: facilitiesTotal,
+    pharmacies: pharmaciesTotal,
+    products: productsTotal,
+    forumTopics: forumTotal,
+  };
+  const tiles = buildHomeTiles(
     {
-      href: "/doctors",
-      label: t("nav.doctors"),
-      icon: "stethoscope",
-      sub: countLine("home.tileDoctorsCount", doctorsTotal),
-      feature: true,
+      pharmacies: pharmaciesOn,
+      products: productsOn,
+      guidance: guidanceOn,
+      forum: forumOn,
     },
-    {
-      href: "/facilities",
-      label: t("nav.facilities"),
-      icon: "building",
-      sub: countLine("home.tileFacilitiesCount", facilitiesTotal),
-    },
-  ];
-  if (pharmaciesOn) {
-    tiles.push({
-      href: "/pharmacies",
-      label: t("nav.pharmacies"),
-      icon: "pill",
-      sub: countLine("home.tilePharmaciesCount", pharmaciesTotal),
-    });
-  }
-  if (productsOn) {
-    tiles.push({
-      href: "/products",
-      label: t("nav.products"),
-      icon: "package",
-      sub: countLine("home.tileProductsCount", productsTotal),
-    });
-  }
-  if (guidanceOn) {
-    tiles.push({
-      href: "/guidance",
-      label: t("nav.guidance"),
-      icon: "compass",
-      sub: t("home.tileGuidanceSub"),
-      feature: true,
-    });
-  }
-  if (forumOn) {
-    tiles.push({
-      href: "/forum",
-      label: t("nav.forum"),
-      icon: "message-circle",
-      sub: countLine("home.tileForumCount", forumTotal),
-    });
-  }
+    totals,
+  );
+  const heroStats = buildHeroStats(totals);
 
   const hasCommunity = forumOn && topics.length > 0;
-  const popular = bySize.slice(0, POPULAR_SPECIALTIES);
 
   return (
     <div className="mx-auto w-full max-w-[1240px] lg:px-6">
       <HomeHero
-        quickLinks={bySize.slice(0, QUICK_LINKS).map((s) => ({
+        quickLinks={highlights.specialties.slice(0, QUICK_LINKS).map((s) => ({
           href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,
           label: s.name,
         }))}
-        aside={<HomeFeaturedDoctorsCard doctors={doctors} />}
+        stats={heroStats}
       />
 
       <div data-reveal="">
@@ -192,10 +153,33 @@ export default async function Home() {
         />
       </div>
 
-      <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:hidden" />
+      {/* Personal, so right after the tiles; on-device only and absent
+          until hydration (and when empty), hence no data-reveal. */}
+      <HomeRecentlyViewed
+        pharmaciesOn={pharmaciesOn}
+        className="px-5 pt-10 lg:px-0 lg:pt-20"
+      />
 
-      {/* Mobile: guidance, community, trust stacked. Desktop: community (7)
-          beside guidance + popular specialties (5), as in the D2a mockup. */}
+      <div data-reveal="">
+        <HomeSpecialties
+          specialties={highlights.specialties}
+          className="px-5 pt-10 lg:px-0 lg:pt-20"
+        />
+      </div>
+
+      <div data-reveal="">
+        <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:pt-20" />
+      </div>
+
+      <div data-reveal="">
+        <HomeRecentReviews
+          reviews={highlights.recent_reviews}
+          className="px-5 pt-10 lg:px-0 lg:pt-20"
+        />
+      </div>
+
+      {/* Mobile: guidance, then community. Desktop: community (7) beside
+          guidance (5). */}
       <div
         data-reveal=""
         className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-0 lg:px-0"
@@ -214,11 +198,14 @@ export default async function Home() {
           }
         >
           {guidanceOn ? <HomeGuidanceCard /> : null}
-          <HomePopularSpecialties
-            specialties={popular}
-            className="hidden lg:block"
-          />
         </div>
+      </div>
+
+      <div data-reveal="">
+        <HomeCities
+          cities={highlights.cities}
+          className="mt-10 px-5 lg:mt-20 lg:px-0"
+        />
       </div>
 
       <div data-reveal="">
@@ -243,10 +230,6 @@ export default async function Home() {
       />
     </div>
   );
-}
-
-function countLine(key: MessageKey, total: number | undefined) {
-  return total === undefined ? undefined : tCount(key, total);
 }
 
 function mergeHomeDoctors(

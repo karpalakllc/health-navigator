@@ -9,7 +9,10 @@ export type HomeTile = {
   icon: IconName;
   /** Count line („1.240 профили“) or a short prompt; omitted when unknown. */
   sub?: string;
-  /** Apricot feature tile (Лекари, Насоки) instead of white. */
+  /**
+   * Apricot feature tile instead of white. Set per tile by the page (today
+   * Лекари and Форум), never inferred from a tile's position.
+   */
   feature?: boolean;
 };
 

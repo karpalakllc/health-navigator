@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -30,6 +31,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/departments', [DepartmentController::class, 'index']);
         Route::get('/specialties', [SpecialtyController::class, 'index']);
         Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+        // Top specialties and cities plus the latest approved reviews; reviews
+        // of pharmacies only while that module is on (keyed into the cache).
+        Route::get('/home/highlights', HomeHighlightsController::class);
     });
     Route::get('/doctors', [DoctorController::class, 'index']);
     // Optional auth so meta.viewer_review resolves: without it a signed-in user who
