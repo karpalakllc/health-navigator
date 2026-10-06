@@ -100,6 +100,20 @@ describe("ForumNewTopicComposer", () => {
     expect(submitButton()).toBeEnabled();
   });
 
+  it("keeps the disabled submit legible instead of fading white on coral", () => {
+    renderComposer();
+
+    const classes = submitButton().className.split(/\s+/);
+    // opacity-60 left white text on pale coral at about 2:1.
+    expect(classes).not.toContain("disabled:opacity-60");
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "disabled:bg-muted",
+        "disabled:text-secondary-foreground",
+      ]),
+    );
+  });
+
   it("submits for moderation and sends the author to their forum page", async () => {
     const fetch = mockFetch({
       status: 201,
