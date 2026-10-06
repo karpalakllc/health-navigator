@@ -116,12 +116,20 @@ mechanism for the Next.js web client and future mobile clients.
   - `POST /auth/register` requires `username` and `accept_terms` (accepted: „I am
     at least 14 and accept the Terms of Use and the Privacy Policy“, stored as
     `terms_accepted_at` + `terms_version`). A taken username is refused whether or
-    not the address is registered, so it reveals nothing about addresses.
+    not the address is registered, so it reveals nothing about addresses. The
+    name is **held only once the address is verified**: until then the account
+    carries a temporary `clen-…` name and keeps the chosen one privately
+    (`requested_username`), so neither the availability check nor a second
+    sign-up with the same name tells a new address from a registered one.
+    Verifying (the link, a contested settlement or a password reset) gives the
+    account its name, or — when someone took it meanwhile — leaves
+    `must_choose_username: true`. Never-verified sign-ups are deleted after 7
+    days (`accounts:prune-unverified`).
   - `GET /usernames/availability?username=…` (optional auth; `api-username-check`)
     returns `{ available, message }` — the same message registration would give,
     nothing about the holder. A signed-in member's own name is available to them.
   - `PATCH /me/profile` (`{ "username": "…" }`, verified accounts) changes it and
-    returns `{ user }` as `/me` does. Once every 90 days (`422` on `username` with
+    returns `{ user }` as `/me` does, without `managed_doctor`. Once every 90 days (`422` on `username` with
     the next date); choosing the first username, replacing a temporary
     `clen-…` one, is not limited.
   - Accounts from before usernames, and those staff create without one, have a
@@ -190,6 +198,9 @@ limiters are layered on top:
 | `api-forum-posts` | reply creation | 30/day |
 | `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
 | `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
+| `api-doctor-dashboard` | everything under `/me/doctor` (inline `throttle:`) | 120/min per user |
+| `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
+| `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -367,11 +378,14 @@ nobody can hold an account locked by merely sending traffic.
 - A topic's `posts` list keeps a removed reply as
   `{id, removed: true, removed_at, removal_category}` in its place.
 - `GET /transparency` returns `{generated_at, months: [...]}`: twelve calendar
-  months (UTC), newest first, each with `reviews` and `forum` (`received`,
+  months (UTC), newest first, each with `month` (`YYYY-MM`), `reviews` and `forum` (`received`,
   `published`, `rejected` before publication, `removed`,
   `removed_by_category`, `moderated` (decisions the average covers),
   `average_moderation_hours` or `null`) and `reports`
-  (`received`, `resolved`, `removed`, `kept`). Cached for an hour.
+  (`received`, `resolved`, `removed`, `kept`). Cached for an hour. `rejected`
+  counts moderators' refusals only (not content withdrawn by account
+  deletion), a resent review's first refusal included; a removed topic still
+  counts in the month it was published.
 - `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
   helpful (Member role, verified; idempotent; your own review is a 422) and
   return `{helpful_count, has_voted_helpful}`.
@@ -436,6 +450,22 @@ nobody can hold an account locked by merely sending traffic.
   `claim_already_yours` or `claim_already_manager`; 429
   `doctor_account.claim_limit` beyond 3 open requests. Staff verify the person
   outside the platform and assign the account in the admin panel.
+- **Forum keywords (tags).** `POST …/topics` accepts optional `tags` (up to 5
+  strings, 2–40 characters each once normalised; 422 `api.forum.tag_invalid`
+  otherwise); unknown tags are created. Topic detail payloads carry `tags`
+  (`[{name, slug, latin}]`). `GET /forum/tags` (`min_topics` 1–100, `per_page`
+  ≤ 100) lists tags that visible topics carry, most used first, with
+  `topics_count` and `last_activity_at`. `GET /forum/tags/{slug}` returns
+  `{tag, topics}` (topics newest activity first, `per_page` ≤ 50) and a 404 for a
+  tag only pending or hidden topics carry. `GET
+  /forum/topics/related?doctor={slug}` or `?facility={slug}` (`limit` 1–10,
+  default 5) lists visible topics related to a published profile. All three
+  are anonymous and `cache.public:60`.
+- `GET /locations/cities` lists every city with at least one published
+  profile (doctors, clinical facilities, and pharmacies while that module is
+  on) as `[{name, doctors_count, facilities_count}]`; spellings differing only
+  in script, case or spaces are merged. `cache.public:60`, and the API's own
+  copy is dropped with the home highlights.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.
@@ -479,8 +509,9 @@ Authorization uses **Spatie roles and permissions** only. Built-in roles:
   the admin panel.
 
 - `doctors.assign_owner` (link or unlink a doctor's account, handle profile
-  claims) and `audit.view` (the admin activity log) are held by the
-  Administrator only by default. Deciding a doctor's change request needs
+  claims), `audit.view` (the admin activity log) and `usernames.manage`
+  (rename a member's username, edit the blocked and reserved lists) are held
+  by the Administrator only by default. Deciding a doctor's change request needs
   `doctors.update`; moderating a doctor's reply needs `reviews.respond`.
 
 See [community-moderator-onboarding.md](./community-moderator-onboarding.md).

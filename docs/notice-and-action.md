@@ -81,8 +81,10 @@ is re-read under a row lock).
 Who resolved each report and when is stored on the report
 (`resolved_by_id`, `resolved_at`); reports are never deleted from the panel.
 Each resolution is also written to the audit log (**Platform → Activity
-log**, `audit.view`, kept 365 days), with review moderation and reply
-changes, doctor-profile edits and featured/sponsored toggles.
+log**, `audit.view`, kept 365 days), with review moderation decisions
+(not the refusal note's text), resent reviews, reply changes, doctor-profile
+edits and the doctors' featured/sponsored toggles. Facilities' featured
+toggles are not logged yet.
 
 ## Refused reviews: one edit and resend
 
@@ -102,9 +104,11 @@ The terms („Правила за рецензии“) say the same.
 
 The terms promise one goal: **every report reviewed within 24 hours.** Take
 `personal_data` (someone's identity or health information), threats and
-harassment first. When unsure, hide and review with a second moderator; a
-hidden item can be restored by approving it again from Reviews or Forum
-(that also clears its placeholder).
+harassment first. When unsure, ask a second moderator **before** hiding: a
+hidden item **cannot be restored from the panel yet** — every Approve action
+is offered on pending items only, and there is no Restore action. Undoing a
+mistaken removal needs a developer (and would re-date a review's
+publication, `Review::approve()`), so treat hiding as final.
 
 ## Contested reviews (doctor or facility disagrees)
 

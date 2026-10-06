@@ -35,7 +35,7 @@ The gaps that hurt crawlers were in the HTML they receive, not in server speed. 
 
 ### Measurements (local, `next start` against the API on :8024)
 
-The script is `scratchpad/w5s/measure.sh`: curl, median of 5 runs, `Accept-Encoding: identity`.
+Measured with a throwaway curl script (not kept in the repo): median of 5 runs, `Accept-Encoding: identity`.
 
 - *HTML title in head*: y = title and canonical, t = title only, n = neither.
 - `hidden S:` is the number of streamed segments.
@@ -65,7 +65,7 @@ The script is `scratchpad/w5s/measure.sh`: curl, median of 5 runs, `Accept-Encod
 
 ### Core Web Vitals (lab, 390×844 mobile, DPR 2, CPU throttled 4×)
 
-The script is `scratchpad/w5s/vitals.mjs`: Playwright Chromium 153, median run.
+Measured with a throwaway Playwright script (not kept in the repo): Chromium 153, median run.
 
 - Lighthouse is not installed, and adding it would be a new package, so lab LCP, CLS and TBT come from `PerformanceObserver`.
 - **Chromium 153 headless ignored CDP network throttling** (both `emulateNetworkConditions` and `…ByRule`; verified). These numbers are therefore CPU-bound, and transfer size is reported separately.
@@ -97,10 +97,10 @@ All builders are in `src/lib/structured-data.ts` and rendered by `components/seo
 Source: https://developers.google.com/search/docs/appearance/structured-data/discussion-forum
 
 - Required on both the posting and each `Comment`: `author.name`, `datePublished`, and one of `text`/`image`/`video`. All are present.
-- Replies are nested as `comment` items of type `Comment`, with `url` `#post-N`; the page renders matching `id`s.
+- Replies are nested as `comment` items of type `Comment`, with `url` `<this page's URL>#post-N` (page N's own URL on later pages); the page renders matching `id`s.
 - `author` is a `Person` with `name` only. `author.url` is recommended, not required, and members have no public profile pages, so we do not invent one.
 - We also emit:
-  - `headline`, `url` / `mainEntityOfPage`, and `dateModified` (latest reply)
+  - `headline`, `url` / `mainEntityOfPage` (no `dateModified`: Google reads it as the post's own edit time, and topics have none)
   - `isPartOf` (the category page)
   - `keywords` (the topic's tags)
   - `interactionStatistic` (`CommentAction`, the reply count)
@@ -130,7 +130,7 @@ Sources: https://schema.org/Physician, https://schema.org/IndividualPhysician
 - The rating is shown on the page and comes from members.
 - Featured or sponsored status does not give the doctor control over reviews.
 
-We emit the rating only when at least one published review exists *(inference: eligible; stars are never guaranteed)*. If doctors ever get the power to hide reviews (see W5-C doctor claim), revisit this.
+We emit the rating only when at least one published review exists *(inference: eligible; stars are never guaranteed)*. Doctor accounts (W5-C, shipped) can reply to reviews but not hide, edit or remove them; if that ever changes, revisit this.
 
 ### Other types
 
@@ -190,10 +190,9 @@ All are allowed on `/`. Disallowed: `/api/`, `/account`, `/admin`, `/login`, `/r
 | Applebot / Applebot-Extended | Siri, Spotlight, Safari / training opt-out token only | https://support.apple.com/en-us/119829 |
 | CCBot | Common Crawl dataset (widely used for training) | https://commoncrawl.org/ccbot |
 
-**Owner decision to confirm:** allowing the *training* crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended) means members' forum posts may end up in model training data.
+**Owner decision (2026-10):** all listed crawlers are allowed, the *training* crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended) included. The legal texts deliberately do not mention AI crawlers.
 
-- This helps answers mention us, but it is a privacy and terms question. The legal memo should say so (see `docs/legal/`).
-- Opting out is a one-line change in `AI_CRAWLERS`, with a separate `disallow: "/"` group for those tokens.
+- Opting out is one line in `AI_CRAWLERS`, with a separate `disallow: "/"` group for those tokens.
 - The search and user-fetch bots are what ChatGPT, Claude and Perplexity answers cite.
 
 ### llms.txt (`src/app/llms.txt/route.ts`, built by `src/lib/llms-txt.ts`)
@@ -238,6 +237,5 @@ Follows https://llmstxt.org: an H1, a blockquote summary, H2 link lists (section
 
 - **True 404 status** for missing slugs: needs a proxy-level existence check (see §1).
 - **Network-throttled lab metrics:** Chromium 153 headless ignored CDP throttling. Run Lighthouse or PageSpeed Insights once the site has a public URL.
-- **Training-crawler opt-in:** an owner and legal decision (§5).
 - **IndividualPhysician vs Physician** (§2): revisit if Google documents support.
 - **Member profile pages with ProfilePage markup** would let `author.url` be filled.

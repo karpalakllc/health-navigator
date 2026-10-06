@@ -26,7 +26,7 @@ romanisation.
   <https://en.wikipedia.org/wiki/Municipalities_of_North_Macedonia>.
 
 Seats are recorded only where they differ from the municipality's name and
-are well established (Дебрца → Белчишта, Дојран → Стар Дојран, Маврово и
+are well established (Дебарца → Белчишта, Дојран → Стар Дојран, Маврово и
 Ростуше → Ростуше, Чешиново-Облешево → Облешево).
 
 `apps/web/src/lib/mk-places.test.ts` guards the counts (8 regions, 80
