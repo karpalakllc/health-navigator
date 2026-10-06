@@ -121,6 +121,23 @@ export type UnifiedSearchResult = {
   grand_total: number;
 };
 
+/**
+ * Whether a profile's data is confirmed by an official source or our team.
+ * `basis` / `basis_label` are null while unverified; the evidence behind a
+ * decision is never in the API.
+ */
+export type Verification = {
+  status: "verified" | "unverified";
+  basis:
+    | "official_registers"
+    | "licence_and_website"
+    | "website_and_register"
+    | "staff"
+    | "owner_claim"
+    | null;
+  basis_label: string | null;
+};
+
 export type DoctorListItem = {
   slug: string;
   full_name: string;
@@ -131,6 +148,8 @@ export type DoctorListItem = {
   years_experience: number | null;
   accepts_new_patients: boolean;
   is_featured: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   is_sponsored: boolean;
   primary_specialty: {
     slug: string;
@@ -196,6 +215,8 @@ export type DoctorDetail = {
   office_hours: Record<string, string>;
   accepts_new_patients: boolean;
   is_featured: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   is_sponsored: boolean;
   city: string | null;
   phone: string | null;
@@ -234,6 +255,8 @@ export type FacilityListItem = {
   cover_url?: string | null;
   has_emergency_services: boolean;
   is_featured: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   departments_count: number;
   review_summary: ReviewSummary;
   /**
@@ -261,6 +284,8 @@ export type FacilityDetail = {
   avatar_url: string | null;
   cover_url?: string | null;
   is_featured?: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   office_hours: Record<string, string>;
   doctors: {
     slug: string;
@@ -280,6 +305,8 @@ export type PharmacyListItem = {
   /** Cover photo, WebP ≤1600×900. */
   cover_url?: string | null;
   is_featured?: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   review_summary: ReviewSummary;
   /**
    * Not in the list payload yet: when the API adds it, cards get a
@@ -303,6 +330,8 @@ export type PharmacyDetail = {
   avatar_url: string | null;
   cover_url?: string | null;
   is_featured?: boolean;
+  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  verification?: Verification;
   office_hours: Record<string, string>;
   review_summary: ReviewSummary;
 };

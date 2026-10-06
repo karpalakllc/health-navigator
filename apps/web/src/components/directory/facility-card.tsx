@@ -8,6 +8,7 @@ import {
 } from "@/components/directory/cover-media";
 import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import { Tag } from "@/components/ui/tag";
@@ -56,6 +57,11 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
         <p className="type-meta mt-0.5 text-ink-2">
           {facilityKindLabel(facility.type)}
         </p>
+        <VerificationBadge
+          verification={facility.verification}
+          kind="facility"
+          className="mt-2 self-start"
+        />
 
         <div className="mt-4 flex flex-col gap-2">
           {facility.city ? (

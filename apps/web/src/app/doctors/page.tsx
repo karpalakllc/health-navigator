@@ -19,6 +19,7 @@ type DoctorsPageProps = {
     q?: string;
     sort?: string;
     min_reviews?: string;
+    verified?: string;
     page?: string;
   }>;
 };
@@ -37,6 +38,8 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const sort = params.sort === "rating" ? "rating" : "name";
   // „Има рецензии“: the only value the UI sends; anything else is ignored.
   const withReviews = params.min_reviews === "1";
+  // „Само верифицирани“: likewise only "1".
+  const onlyVerified = params.verified === "1";
 
   // The filter is optional: without the list, the page still renders.
   const languagesRequest = fetchLanguages().catch(() => []);
@@ -55,6 +58,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       q: params.q,
       sort,
       min_reviews: withReviews ? 1 : undefined,
+      verified: onlyVerified ? true : undefined,
       page,
     }),
   ]);
@@ -65,6 +69,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
     language: language ?? "",
     city: params.city ?? "",
     min_reviews: withReviews ? "1" : "",
+    verified: onlyVerified ? "1" : "",
     sort: sort === "rating" ? "rating" : "",
   };
   const hasFilters = Object.values(applied).some(Boolean);

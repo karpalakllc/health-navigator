@@ -23,6 +23,8 @@ export function ProfileHeader({
   cover,
   name,
   subtitle,
+  verification,
+  reportAction,
   summary,
   reviewsAnchor = "reviews",
   tags,
@@ -36,13 +38,30 @@ export function ProfileHeader({
   subtitle?: ReactNode;
   summary: ReviewSummary;
   reviewsAnchor?: string;
+  /** The VerificationBadge, shown right after the name. */
+  verification?: ReactNode;
+  /**
+   * Small actions about the profile itself, at the end of the title row
+   * (the „Пријави профил“ flag button). Keep them icon-sized.
+   */
+  reportAction?: ReactNode;
   tags?: ReactNode;
   details?: ReactNode;
 }) {
   const body = (
     <>
       <div>
-        <h1 className="type-h1 text-ink">{name}</h1>
+        {/* The title row: the name, the verification badge right after it,
+            and the profile's own actions (the report flag) at the end. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="type-h1 min-w-0 text-ink">{name}</h1>
+          {verification}
+          {reportAction ? (
+            <span data-slot="profile-actions" className="ml-auto shrink-0">
+              {reportAction}
+            </span>
+          ) : null}
+        </div>
         {subtitle ? (
           <p className="mt-1 type-body text-ink-2">{subtitle}</p>
         ) : null}

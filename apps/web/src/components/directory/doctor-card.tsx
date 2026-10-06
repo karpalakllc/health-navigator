@@ -5,6 +5,7 @@ import { FeaturedMark } from "@/components/directory/cover-media";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
@@ -80,6 +81,11 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
                 })}
               </p>
             ) : null}
+            <VerificationBadge
+              verification={doctor.verification}
+              kind="doctor"
+              className="mt-2"
+            />
           </div>
         </div>
 
