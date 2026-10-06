@@ -83,7 +83,7 @@ return [
     ],
 
     'profile_correction' => [
-        'received_correction' => 'Thank you. Your report has been received. The team will check it and correct the profile if the information is wrong, normally within 15 days.',
+        'received_correction' => 'Thank you. Your report has been received. The team will check it and correct the profile if the information is wrong, within 15 days.',
         'received_objection' => 'Your request has been received. The team will contact you to confirm the profile is yours and will reply with reasons within 30 days at the latest.',
     ],
 

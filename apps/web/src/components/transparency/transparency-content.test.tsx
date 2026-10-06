@@ -188,7 +188,9 @@ describe("TransparencyContent", () => {
     // are removed on request.
     expect(sources).toHaveTextContent(t("dataSources.websitesName"));
     expect(sources).toHaveTextContent("на барање на установата");
-    expect(sources).toHaveTextContent("15 дена");
+    // The statutory 15 days (ЗЗЛП чл. 20) — a deadline, not "as a rule".
+    expect(sources).toHaveTextContent("во рок од 15 дена");
+    expect(sources).not.toHaveTextContent("по правило");
     expect(sources).toHaveTextContent("30 дена");
     expect(
       within(sources).getByRole("link", { name: t("dataSources.privacyLink") }),

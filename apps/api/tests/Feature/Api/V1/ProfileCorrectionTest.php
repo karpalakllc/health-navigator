@@ -56,6 +56,10 @@ class ProfileCorrectionTest extends TestCase
             ->assertJsonPath('data.status', 'received')
             ->assertJsonPath('data.message', __('api.profile_correction.received_correction'));
 
+        // The statutory 15 days (ЗЗЛП чл. 20), worded as everywhere else.
+        $this->assertStringContainsString('во рок од 15 дена', trans('api.profile_correction.received_correction', [], 'mk'));
+        $this->assertStringNotContainsString('по правило', trans('api.profile_correction.received_correction', [], 'mk'));
+
         $request = ProfileCorrection::query()->sole();
         $this->assertSame(ProfileCorrectionType::Correction, $request->type);
         $this->assertSame(ProfileCorrectionStatus::Open, $request->status);
