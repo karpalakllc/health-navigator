@@ -39,6 +39,9 @@ const CYRILLIC: Record<string, string> = {
   ч: "c",
   џ: "dz",
   ш: "s",
+  // Not Cyrillic: „đ“ is how ѓ is often typed on a Serbo-Croatian keyboard,
+  // and NFD below cannot strip it to a plain letter.
+  đ: "g",
 };
 
 /** Longest first, so „dzh“ wins over „zh“. */
