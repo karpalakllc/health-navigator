@@ -23,6 +23,8 @@ class PharmacyController extends Controller
         $query = Facility::query()
             ->published()
             ->pharmacy()
+            // Featured first within the filters, then by name.
+            ->orderByDesc('is_featured')
             ->orderBy('name');
 
         if (! empty($validated['city'])) {
