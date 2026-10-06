@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AccountPageHero } from "@/components/account/account-page-hero";
+import { AccountDisplayNameForm } from "@/components/account/account-display-name-form";
 import { AccountProfilePhoto } from "@/components/account/account-profile-photo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AccountLayout } from "@/components/account/account-layout";
@@ -75,6 +76,9 @@ export default async function AccountPage() {
                 </dd>
               </div>
             </dl>
+          </ProfileContentCard>
+          <ProfileContentCard title={t("account.displayName")}>
+            <AccountDisplayNameForm displayName={user.display_name} />
           </ProfileContentCard>
           <div className="grid gap-4 sm:grid-cols-2">
             <HubLinkCard

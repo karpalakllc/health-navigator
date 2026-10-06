@@ -26,6 +26,52 @@ async function fillAndSubmit({
 }
 
 describe("RegisterForm", () => {
+  it("suggests a public display name from the name and sends it", async () => {
+    const fetch = mockFetch({ status: 202, body: { data: {} } });
+    const user = userEvent.setup();
+    render(<RegisterForm registrationsEnabled />);
+
+    await user.type(
+      screen.getByLabelText(t("auth.registerName")),
+      "Марија Костовска",
+    );
+
+    const displayName = screen.getByLabelText(t("auth.registerDisplayName"));
+    expect(displayName).toHaveValue("Марија К.");
+    // The field says, in its description, that it is the public one.
+    expect(displayName).toHaveAccessibleDescription(
+      t("auth.registerDisplayNameHelp"),
+    );
+
+    await user.type(screen.getByLabelText(t("auth.email")), "m@example.mk");
+    await user.type(screen.getByLabelText(t("auth.password")), "lozinka12345");
+    await user.type(
+      screen.getByLabelText(t("auth.registerPasswordConfirm")),
+      "lozinka12345",
+    );
+    await user.click(screen.getByRole("button", { name: t("auth.register") }));
+
+    expect(requestBody(fetch)).toMatchObject({
+      name: "Марија Костовска",
+      display_name: "Марија К.",
+    });
+  });
+
+  it("stops following the name once the display name is edited", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm registrationsEnabled />);
+
+    const name = screen.getByLabelText(t("auth.registerName"));
+    const displayName = screen.getByLabelText(t("auth.registerDisplayName"));
+
+    await user.type(name, "Марија");
+    await user.clear(displayName);
+    await user.type(displayName, "Мара");
+    await user.type(name, " Костовска");
+
+    expect(displayName).toHaveValue("Мара");
+  });
+
   it("shows only the disabled notice when registration is closed", () => {
     render(<RegisterForm registrationsEnabled={false} />);
 
@@ -38,6 +84,7 @@ describe("RegisterForm", () => {
 
     for (const label of [
       t("auth.registerName"),
+      t("auth.registerDisplayName"),
       t("auth.email"),
       t("auth.password"),
       t("auth.registerPasswordConfirm"),
@@ -60,6 +107,7 @@ describe("RegisterForm", () => {
 
     expect(requestBody(fetch)).toEqual({
       name: "Ана",
+      display_name: "Ана",
       email: "ana@example.mk",
       password: "lozinka12345",
       password_confirmation: "drugacija999",

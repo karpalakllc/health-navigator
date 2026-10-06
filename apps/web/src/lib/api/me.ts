@@ -8,7 +8,10 @@ export type ProfileAvatarMeta = {
 
 export type AuthUser = {
   id: number;
+  /** Private: the account page only. Never render it next to public content. */
   name: string;
+  /** Shown publicly next to reviews and forum posts. */
+  display_name: string;
   email: string;
   role: string;
   community_roles: string[];
