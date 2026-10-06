@@ -25,16 +25,6 @@ parameters:
     # A baselined error that no longer occurs fails the run, so fixes shrink
     # the baseline instead of leaving dead entries behind.
     reportUnmatchedIgnoredErrors: true
-    ignoreErrors:
-        # Pre-existing, and kept out of the baseline on purpose: PHPStan counts
-        # this trait error once under the trait and again under ForumPost.php
-        # ("in context of class"), but --generate-baseline records it once, so
-        # a regenerated baseline would fail its own run. Larastan reads `status`
-        # as the column's string, not the enum cast; fix both when the models
-        # get @property annotations, then delete this entry.
-        -
-            message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ForumContentStatus\:\:Approved will always evaluate to false\.$#'
-            identifier: identical.alwaysFalse
-            paths:
-                - app/Models/ForumPost.php
-                - app/Models/Concerns/ModeratesForumContent.php
+    # Read the models' casts() methods, so enum, datetime and array casts
+    # type the attributes instead of the migration's column type.
+    parseModelCastsMethod: true

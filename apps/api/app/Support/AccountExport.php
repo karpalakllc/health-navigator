@@ -85,7 +85,7 @@ final class AccountExport
         $this->writeList('activity', $this->activity(), fn (AnalyticsEvent $event): array => [
             'event' => $event->event,
             'properties' => $event->properties,
-            'occurred_at' => $event->occurred_at?->toIso8601String(),
+            'occurred_at' => $event->occurred_at->toIso8601String(),
         ]);
 
         echo '}';

@@ -79,7 +79,9 @@ cd /tmp/review-$PR/apps/api
 ```
 
 Level 5 (`apps/api/phpstan.neon`) against `apps/api/phpstan-baseline.neon`,
-which holds the errors that predate the analyser (305 when it was introduced).
+which holds the errors that predate the analyser (305 when it was introduced;
+239 once `parseModelCastsMethod` was turned on, which typed cast attributes and
+retired most of the enum/date false positives).
 The CI `larastan` job runs the same command and **fails if the baseline's error
 count grows** compared with the previous commit or the PR base.
 

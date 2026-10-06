@@ -259,12 +259,6 @@ parameters:
 			path: app/Filament/Resources/ForumPosts/ForumPostResource.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ForumContentStatus\:\:Pending will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Filament/Resources/ForumPosts/Tables/ForumPostsTable.php
-
-		-
 			message: '#^Method App\\Filament\\Resources\\ForumTopics\\ForumTopicResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\>\.$#'
 			identifier: return.type
 			count: 1
@@ -275,18 +269,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Filament/Resources/ForumTopics/ForumTopicResource.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ForumContentStatus\:\:Approved will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Filament/Resources/ForumTopics/Tables/ForumTopicsTable.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ForumContentStatus\:\:Pending will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Filament/Resources/ForumTopics/Tables/ForumTopicsTable.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
@@ -317,18 +299,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Filament/Resources/Products/Pages/EditProduct.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ReviewStatus\:\:Pending will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Filament/Resources/Reviews/Pages/ViewReview.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ReviewStatus\:\:Pending will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Filament/Resources/Reviews/Tables/ReviewsTable.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email_verified_at\.$#'
@@ -415,24 +385,6 @@ parameters:
 			path: app/Filament/Support/ModerationBulkActions.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between string and App\\Enums\\ForumContentStatus\:\:Pending will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 4
-			path: app/Filament/Support/ModerationBulkActions.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between string and App\\Enums\\ReviewStatus\:\:Pending will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 2
-			path: app/Filament/Support/ModerationBulkActions.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 6
-			path: app/Filament/Support/ModerationBulkActions.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$full_name\.$#'
 			identifier: property.notFound
 			count: 2
@@ -460,12 +412,6 @@ parameters:
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:visible\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: app/Http/Controllers/Api/V1/ForumController.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 2
 			path: app/Http/Controllers/Api/V1/ForumController.php
 
 		-
@@ -499,12 +445,6 @@ parameters:
 			path: app/Http/Controllers/Api/V1/PharmacyController.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/V1/ReviewController.php
-
-		-
 			message: '#^Instanceof between Illuminate\\Auth\\SessionGuard and Illuminate\\Auth\\SessionGuard will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 1
@@ -520,18 +460,6 @@ parameters:
 			message: '#^Access to an undefined property App\\Models\\Specialty\:\:\$pivot\.$#'
 			identifier: property.notFound
 			count: 2
-			path: app/Http/Resources/Api/V1/DoctorDetailResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/DoctorDetailResource.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Facility\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
 			path: app/Http/Resources/Api/V1/DoctorDetailResource.php
 
 		-
@@ -553,72 +481,6 @@ parameters:
 			path: app/Http/Resources/Api/V1/FacilityDetailResource.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/FacilityDetailResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/FacilityListResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/ForumPostResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/ForumTopicDetailResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/Http/Resources/Api/V1/ForumTopicListResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/Http/Resources/Api/V1/ForumTopicSearchResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/MyForumPostResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/MyForumTopicResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/Http/Resources/Api/V1/MyForumTopicResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/MyReviewResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/MyReviewResource.php
-
-		-
 			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PharmacyShelfProductResource\:\:\$pivot\.$#'
 			identifier: property.notFound
 			count: 3
@@ -635,12 +497,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Resources/Api/V1/ProductListResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/PublicReviewResource.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
@@ -685,18 +541,6 @@ parameters:
 			path: app/Http/Resources/Api/V1/TriageFlowResource.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/ViewerReviewResource.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Api/V1/ViewerReviewResource.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Doctor\>\|Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\>\:\:searchable\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -713,12 +557,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Models/ClinicalInterest.php
-
-		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 1
-			path: app/Models/Concerns/ModeratesForumContent.php
 
 		-
 			message: '#^Method App\\Models\\Department\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Department\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
@@ -763,12 +601,6 @@ parameters:
 			path: app/Models/Doctor.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Models/Facility.php
-
-		-
 			message: '#^Method App\\Models\\Facility\:\:scopeCityContains\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
 			identifier: return.type
 			count: 1
@@ -793,19 +625,13 @@ parameters:
 			path: app/Models/Facility.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			message: '#^Strict comparison using \!\=\= between App\\Enums\\FacilityType and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: app/Models/Facility.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\FacilityType\:\:Pharmacy will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/Facility.php
-
-		-
-			message: '#^Using nullsafe property access on non\-nullable type string\. Use \-\> instead\.$#'
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\FacilityType\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Models/Facility.php
@@ -823,12 +649,6 @@ parameters:
 			path: app/Models/ForumCategory.php
 
 		-
-			message: '#^Call to an undefined static method App\\Models\\ForumCategory\:\:restored\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: app/Models/ForumCategory.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 2
@@ -847,18 +667,6 @@ parameters:
 			path: app/Models/ForumPost.php
 
 		-
-			message: '#^Property App\\Models\\ForumPost\:\:\$status \(string\) does not accept App\\Enums\\ForumContentStatus\:\:Approved\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Models/ForumPost.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: app/Models/ForumPost.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 2
@@ -873,12 +681,6 @@ parameters:
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:markPublicationTimestamps\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: app/Models/ForumTopic.php
-
-		-
-			message: '#^Call to an undefined static method App\\Models\\ForumTopic\:\:restored\(\)\.$#'
-			identifier: staticMethod.notFound
 			count: 1
 			path: app/Models/ForumTopic.php
 
@@ -891,24 +693,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Models/ForumTopic.php
-
-		-
-			message: '#^Property App\\Models\\ForumTopic\:\:\$status \(string\) does not accept App\\Enums\\ForumContentStatus\:\:Approved\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Models/ForumTopic.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between string and App\\Enums\\ForumContentStatus\:\:Approved will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Models/ForumTopic.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
 			count: 1
 			path: app/Models/ForumTopic.php
 
@@ -953,18 +737,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Models/Product.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: app/Models/Review.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ReviewStatus\:\:Approved will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/Review.php
 
 		-
 			message: '#^Unsafe call to private method App\\Models\\SiteSetting\:\:defaults\(\) through static\:\:\.$#'
@@ -1021,30 +793,6 @@ parameters:
 			path: app/Models/TriageSession.php
 
 		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: app/Models/TriageStep.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\TriageStepType\:\:SingleSelect will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/TriageStep.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserKind\:\:Client will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/User.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserKind\:\:Staff will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/User.php
-
-		-
 			message: '#^PHPDoc tag @return with type array\<string, string\> is incompatible with native type string\.$#'
 			identifier: return.phpDocType
 			count: 1
@@ -1055,12 +803,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: app/Policies/Support/PrivilegeHierarchy.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Providers/AppServiceProvider.php
 
 		-
 			message: '#^Method App\\Services\\AnalyticsService\:\:eventCountByDay\(\) should return Illuminate\\Support\\Collection\<int, object\{day\: string, total\: int\}\> but returns Illuminate\\Support\\Collection\<int, object\{day\: string, total\: int\}&stdClass\>\.$#'
@@ -1081,26 +823,8 @@ parameters:
 			path: app/Services/Triage/TriageRuleEvaluator.php
 
 		-
-			message: '#^Offset ''all'' on string in isset\(\) does not exist\.$#'
-			identifier: isset.offset
-			count: 1
-			path: app/Services/Triage/TriageRuleEvaluator.php
-
-		-
-			message: '#^Parameter \#1 \$condition of method App\\Services\\Triage\\TriageRuleEvaluator\:\:matchesCondition\(\) expects array\<string, mixed\>, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Triage/TriageRuleEvaluator.php
-
-		-
 			message: '#^Parameter \#1 \$rule of method App\\Services\\Triage\\TriageRuleEvaluator\:\:matches\(\) expects App\\Models\\TriageRule, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Services/Triage/TriageRuleEvaluator.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
 			count: 1
 			path: app/Services/Triage/TriageRuleEvaluator.php
 
@@ -1297,12 +1021,6 @@ parameters:
 			path: app/Support/MeilisearchUnifiedSearch.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\FacilityType\:\:Pharmacy will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Support/PublicWebUrl.php
-
-		-
 			message: '#^Method App\\Support\\RoleCatalog\:\:ensure\(\) should return Spatie\\Permission\\Models\\Role but returns Spatie\\Permission\\Contracts\\Role\.$#'
 			identifier: return.type
 			count: 1
@@ -1463,12 +1181,6 @@ parameters:
 			identifier: generics.notSubtype
 			count: 1
 			path: app/Support/UnifiedSearch.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserKind\:\:Client will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: database/factories/UserFactory.php
 
 		-
 			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
