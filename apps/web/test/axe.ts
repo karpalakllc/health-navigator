@@ -1,9 +1,9 @@
 import axe from "axe-core";
 
 /**
- * Runs axe-core (shipped with @axe-core/playwright) over a rendered component
- * and returns only serious and critical violations, formatted for a readable
- * assertion failure. jsdom has no layout or computed colours, so rules that
+ * Runs axe-core (a direct devDependency, pinned to the version that
+ * @axe-core/playwright uses) over a rendered component and returns only
+ * serious and critical violations, formatted for a readable assertion failure. jsdom has no layout or computed colours, so rules that
  * need them (contrast) are left to the Playwright suite.
  */
 export async function seriousA11yViolations(
