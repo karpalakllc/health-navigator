@@ -5,7 +5,6 @@ namespace Tests\Feature\Import;
 use App\Enums\ImportRunStatus;
 use App\Models\Doctor;
 use App\Models\ImportRun;
-use App\Support\Import\RobotsTxt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -103,13 +102,36 @@ class FzomFetchTest extends TestCase
         Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'pzz.xml'));
     }
 
-    public function test_robots_txt_groups(): void
+    public function test_robots_txt_wildcards_are_honoured(): void
     {
-        $robots = "User-agent: Googlebot\nDisallow: /\n\nUser-agent: *\nDisallow: /private\nDisallow:\n";
+        $this->fakeRegistry(robots: "User-agent: *\nDisallow: /*.xml$\n");
 
-        $this->assertSame(['/private'], RobotsTxt::disallowedFor($robots, 'Zdravje360-DirectoryImport/1.0'));
-        $this->assertSame([], RobotsTxt::disallowedFor("User-agent: *\nDisallow:\n", 'Zdravje360-DirectoryImport/1.0'));
-        $this->assertSame(['/'], RobotsTxt::disallowedFor("User-agent: zdravje360-directoryimport\nDisallow: /\n", 'Zdravje360-DirectoryImport/1.0'));
+        $this->artisan('import:fzom')->assertFailed();
+
+        Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '.xml'));
+    }
+
+    public function test_a_robots_txt_server_error_means_not_fetching(): void
+    {
+        Http::fake(fn (Request $request) => str_ends_with($request->url(), '/robots.txt')
+            ? Http::response('', 503)
+            : Http::response((string) file_get_contents(base_path('tests/Fixtures/import/fzom/pzz.xml'))));
+
+        $this->artisan('import:fzom')->assertFailed();
+
+        Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '.xml'));
+    }
+
+    public function test_only_https_urls_on_the_configured_hosts_are_fetched_and_the_contact_is_sent_once(): void
+    {
+        config(['import.contact' => 'mailto:data@example.test']);
+        $this->fakeRegistry();
+        $this->artisan('import:fzom')->assertSuccessful();
+        Http::assertSent(fn (Request $request): bool => ($request->header('User-Agent')[0] ?? '') === 'Zdravje360-DirectoryImport/1.0 (+mailto:data@example.test)');
+
+        config(['import.fzom.files' => ['pzz' => 'http://169.254.169.254/XML/pzz.xml', 'spec' => 'https://registry.test/XML/spec.xml']]);
+        $this->artisan('import:fzom', ['--force' => true])->assertFailed();
+        Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), '169.254'));
     }
 
     public function test_stored_snapshots_never_hold_excluded_fields_or_pharmacy_rows(): void

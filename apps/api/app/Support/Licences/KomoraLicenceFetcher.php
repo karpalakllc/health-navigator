@@ -3,6 +3,8 @@
 namespace App\Support\Licences;
 
 use App\Models\KomoraLicenceDownload;
+use App\Support\Import\RobotsTxt;
+use App\Support\Import\SourcePolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -15,7 +17,8 @@ use RuntimeException;
  * links to (config licences.komora).
  *
  * Polite by construction: robots.txt is read first and honoured, every
- * request carries our User-Agent with a contact, requests are spaced out, and
+ * request carries our User-Agent with a contact (SourcePolicy), only https
+ * files on the list page's host are followed, requests are spaced out, and
  * a file we already hold is asked for conditionally (If-None-Match /
  * If-Modified-Since) — a 304 reuses the stored copy. Raw files go to the
  * private disk under imports/komora/<batch>/ and only the last few batches
@@ -147,7 +150,9 @@ final class KomoraLicenceFetcher
 
             $url = $this->absolute($href, $pageUrl);
 
-            if (isset($links[$url])) {
+            // Only https files on the list page's own host: an absolute link
+            // elsewhere (or to an IP address) is never followed.
+            if (isset($links[$url]) || ! SourcePolicy::isFetchable($url, $this->allowedHosts())) {
                 continue;
             }
 
@@ -189,25 +194,33 @@ final class KomoraLicenceFetcher
         return null;
     }
 
+    /**
+     * The list page's host (plus licences.komora.extra_hosts): list files
+     * elsewhere are never followed.
+     *
+     * @return list<string>
+     */
+    private function allowedHosts(): array
+    {
+        return array_values(array_unique(array_filter([
+            strtolower((string) parse_url((string) config('licences.komora.list_url'), PHP_URL_HOST)),
+            ...array_map('strtolower', (array) config('licences.komora.extra_hosts', [])),
+        ])));
+    }
+
     private function assertAllowed(string $url): void
     {
-        $scheme = (string) parse_url($url, PHP_URL_SCHEME);
+        SourcePolicy::assertFetchable($url, $this->allowedHosts());
+
         $host = (string) parse_url($url, PHP_URL_HOST);
         $path = (string) (parse_url($url, PHP_URL_PATH) ?: '/');
 
         if (! array_key_exists($host, $this->robots)) {
-            $response = $this->request("{$scheme}://{$host}/robots.txt");
-            // No robots.txt (404) means no restrictions; a server error means we cannot tell.
-            $this->robots[$host] = match (true) {
-                $response->successful() => $response->body(),
-                $response->status() >= 400 && $response->status() < 500 => '',
-                default => throw new RuntimeException("robots.txt of {$host} answered HTTP {$response->status()}."),
-            };
+            // No robots.txt (4xx) means no restrictions; a server error means we cannot tell.
+            $this->robots[$host] = SourcePolicy::robotsBody($this->request("https://{$host}/robots.txt"), $host);
         }
 
-        $token = strtok((string) config('licences.user_agent'), '/') ?: 'Zdravje360';
-
-        if (! RobotsTxt::allows($this->robots[$host], $token, $path)) {
+        if (! RobotsTxt::allows($this->robots[$host], SourcePolicy::agentToken(), $path)) {
             throw new RuntimeException("robots.txt of {$host} does not allow {$path}.");
         }
     }
@@ -217,7 +230,8 @@ final class KomoraLicenceFetcher
      */
     private function request(string $url, array $headers = []): Response
     {
-        return Http::withHeaders($headers + ['User-Agent' => (string) config('licences.user_agent')])
+        return Http::withHeaders($headers + ['User-Agent' => SourcePolicy::userAgent()])
+            ->withOptions(SourcePolicy::redirectOptions($this->allowedHosts()))
             ->timeout((int) config('licences.komora.timeout', 60))
             ->get($url);
     }

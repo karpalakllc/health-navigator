@@ -13,7 +13,9 @@ use RuntimeException;
 /**
  * Downloads public source files politely:
  *
- * - robots.txt of the host is read first and honoured (a missing file = allowed);
+ * - only https URLs on the configured hosts, redirects within them only;
+ * - robots.txt of the host is read first and honoured (a missing file =
+ *   allowed, a server error = not fetched; SourcePolicy, RobotsTxt);
  * - every request carries our User-Agent with a contact address;
  * - requests to one host are spaced by `import.request_delay_seconds`;
  * - conditional GET (If-None-Match / If-Modified-Since) from the previous
@@ -32,7 +34,7 @@ class SourceFetcher
     /** @var array<string, float> host => when the last request finished */
     private array $lastRequestAt = [];
 
-    /** @var array<string, list<string>> host => disallowed path prefixes for our agent */
+    /** @var array<string, string> host => robots.txt body ('' = no rules) */
     private array $robots = [];
 
     /**
@@ -189,7 +191,7 @@ class SourceFetcher
 
     public function userAgent(): string
     {
-        return sprintf('%s (+mailto:%s)', config('import.user_agent'), config('import.contact'));
+        return SourcePolicy::userAgent();
     }
 
     /**
@@ -203,6 +205,7 @@ class SourceFetcher
 
         $request = Http::withUserAgent($this->userAgent())
             ->withHeaders($headers)
+            ->withOptions(SourcePolicy::redirectOptions($this->allowedHosts()))
             ->timeout((int) config('import.timeout_seconds'));
 
         if ($sink !== null) {
@@ -236,22 +239,33 @@ class SourceFetcher
         }
     }
 
+    /**
+     * The hosts of the configured ФЗОМ files: the only ones we fetch from.
+     *
+     * @return list<string>
+     */
+    private function allowedHosts(): array
+    {
+        return array_values(array_unique(array_filter(array_map(
+            fn ($url): string => strtolower((string) parse_url((string) $url, PHP_URL_HOST)),
+            (array) config('import.fzom.files'),
+        ))));
+    }
+
     private function assertAllowedByRobots(string $url): void
     {
+        SourcePolicy::assertFetchable($url, $this->allowedHosts());
+
         $parts = parse_url($url);
         $host = (string) ($parts['host'] ?? '');
         $path = (string) ($parts['path'] ?? '/');
 
         if (! array_key_exists($host, $this->robots)) {
-            $robotsUrl = ($parts['scheme'] ?? 'https').'://'.$host.'/robots.txt';
-            $response = $this->request($robotsUrl, []);
-            $this->robots[$host] = $response->successful() ? RobotsTxt::disallowedFor($response->body(), (string) config('import.user_agent')) : [];
+            $this->robots[$host] = SourcePolicy::robotsBody($this->request('https://'.$host.'/robots.txt', []), $host);
         }
 
-        foreach ($this->robots[$host] as $prefix) {
-            if ($prefix !== '' && str_starts_with($path, $prefix)) {
-                throw new RuntimeException("robots.txt of {$host} disallows {$path}; not fetching.");
-            }
+        if (! RobotsTxt::allows($this->robots[$host], SourcePolicy::agentToken(), $path)) {
+            throw new RuntimeException("robots.txt of {$host} disallows {$path}; not fetching.");
         }
     }
 }

@@ -35,6 +35,8 @@ class KomoraLicenceFetcherTest extends TestCase
 
     private string $robots = "User-agent: *\nDisallow:\n";
 
+    private int $robotsStatus = 200;
+
     private string $pdf;
 
     private string $etag = '"v1"';
@@ -47,7 +49,8 @@ class KomoraLicenceFetcherTest extends TestCase
         config([
             'licences.komora.list_url' => self::PAGE,
             'licences.komora.request_delay_ms' => 0,
-            'licences.user_agent' => 'Zdravje360-DirectoryImport/1.0 (+mailto:test@example.invalid)',
+            'import.user_agent' => 'Zdravje360-DirectoryImport/1.0',
+            'import.contact' => 'mailto:test@example.invalid',
         ]);
 
         $this->pdf = KomoraListPdf::make([[
@@ -57,13 +60,17 @@ class KomoraLicenceFetcherTest extends TestCase
         $page = '<div><p>Листата содржи активни лиценци изготвени заклучно со 2.7.2026 година.</p>'
             .'<a href="/upload/documents/Other.pdf">Друго</a>'
             .'<a href="'.str_replace('https://lkm.example', '', self::FILE_A).'">Список А-В</a>'
-            .'<a href="'.self::FILE_B.'"> Список Г-Ж </a></div>';
+            .'<a href="'.self::FILE_B.'"> Список Г-Ж </a>'
+            // Never followed: another host, an IP address, plain http.
+            .'<a href="https://evil.example/upload/records/962/x.pdf">Список Х</a>'
+            .'<a href="http://169.254.169.254/upload/records/962/y.pdf">Список У</a>'
+            .'<a href="http://lkm.example/upload/records/962/z.pdf">Список З</a></div>';
 
         Http::fake(function (Request $request) use ($page) {
             $this->requests[] = $request;
 
             return match (true) {
-                str_ends_with($request->url(), '/robots.txt') => Http::response($this->robots),
+                str_ends_with($request->url(), '/robots.txt') => Http::response($this->robots, $this->robotsStatus),
                 $request->url() === self::PAGE => Http::response($page),
                 $request->hasHeader('If-None-Match', $this->etag) => Http::response('', 304),
                 default => Http::response($this->pdf, 200, ['ETag' => $this->etag, 'Last-Modified' => 'Mon, 06 Jul 2026 10:59:59 GMT']),
@@ -212,5 +219,15 @@ class KomoraLicenceFetcherTest extends TestCase
 
         // Now it is consumed.
         $this->artisan('import:komora-licences')->expectsOutputToContain('has not changed')->assertSuccessful();
+    }
+
+    public function test_a_robots_txt_server_error_stops_the_run(): void
+    {
+        $this->robotsStatus = 503;
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('robots.txt');
+
+        app(KomoraLicenceFetcher::class)->fetch();
     }
 }

@@ -24,8 +24,13 @@ Code: `apps/api/app/Support/Import/**` (import core, ФЗОМ, websites),
 
 Dentists come from ФЗОМ (and websites) only: there is no public dental licence
 list, so they never get a licence status. Both downloaders identify themselves
-with a User-Agent and contact address (`IMPORT_USER_AGENT`, `IMPORT_CONTACT` —
-**set a monitored address before the first real run**), honour `robots.txt`,
+with one User-Agent, `<IMPORT_USER_AGENT> (+mailto:<IMPORT_CONTACT>)`
+(`IMPORT_USER_AGENT` is the product token, `IMPORT_CONTACT` an e-mail
+address — **set a monitored address before the first real run**; both are in
+`.env.example`), honour `robots.txt` (wildcards and `$` included; a server
+error on `robots.txt` means nothing is fetched), fetch only https URLs on the
+configured hosts and follow redirects only within them (a Комора list link to
+another host or an IP address is ignored; `KOMORA_EXTRA_HOSTS` adds hosts),
 pause between requests and send conditional requests (`If-Modified-Since` /
 `ETag`). Downloads are kept on the **private** disk, never the public media
 disk and never in git, the newest three runs per source only (failed runs

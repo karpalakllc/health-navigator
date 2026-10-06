@@ -20,7 +20,9 @@ return [
     'snapshot_retention' => (int) env('IMPORT_SNAPSHOT_RETENTION', 3),
 
     /*
-    | Every request to a source identifies us. Set IMPORT_CONTACT to a
+    | Every request to a source (ФЗОМ and the Лекарска комора) identifies us:
+    | "<IMPORT_USER_AGENT> (+mailto:<IMPORT_CONTACT>)". IMPORT_USER_AGENT is
+    | the product token only; IMPORT_CONTACT an e-mail address. Set it to a
     | monitored address before the first real run.
     */
     'user_agent' => env('IMPORT_USER_AGENT', 'Zdravje360-DirectoryImport/1.0'),

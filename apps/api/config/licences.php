@@ -8,15 +8,19 @@
 | honoured, every request names us and a contact, requests are spaced out,
 | and an unchanged file is not downloaded again (ETag / Last-Modified). The
 | raw files are kept on the private disk for the last few runs only, for
-| audit, and never in git or on public storage.
+| audit, and never in git or on public storage. The User-Agent and contact
+| are the import's (config/import.php: IMPORT_USER_AGENT, IMPORT_CONTACT).
 */
 
 return [
     'komora' => [
         'list_url' => env('KOMORA_LIST_URL', 'https://lkm.org.mk/mk/record/121/962/lista-na-doktori-so-vazhechki-licenci'),
 
-        // Links to the list files on that page.
+        // Links to the list files on that page. Only https links on the
+        // page's own host are followed (plus these extra hosts, if the
+        // Комора ever moves the files to a CDN).
         'file_pattern' => '~/upload/records/962/[^"\'<>]+\.pdf~iu',
+        'extra_hosts' => array_values(array_filter(explode(',', (string) env('KOMORA_EXTRA_HOSTS', '')))),
 
         'disk' => 'local',
         'directory' => 'imports/komora',
@@ -29,13 +33,6 @@ return [
         'timeout' => 60,
         'max_bytes' => 20 * 1024 * 1024,
     ],
-
-    // Sent with every request. The contact is a placeholder until the owner
-    // sets a real address (IMPORT_CONTACT).
-    'user_agent' => env(
-        'IMPORT_USER_AGENT',
-        'Zdravje360-DirectoryImport/1.0 (+'.env('IMPORT_CONTACT', 'mailto:contact@example.invalid').')',
-    ),
 
     'match' => [
         // Only profiles the ФЗОМ import created are candidates (doctors.import_source);
