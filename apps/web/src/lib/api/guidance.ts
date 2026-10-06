@@ -42,6 +42,49 @@ export type GuidanceOutcome = {
   }>;
 };
 
+/**
+ * A guidance session is not tied to an account. Whoever started it proves so
+ * with the secret the API issued at creation, sent on every later call.
+ */
+export type GuidanceSessionHandle = {
+  id: string;
+  token: string;
+};
+
+export const GUIDANCE_TOKEN_HEADER = "X-Guidance-Token";
+
+/** Reads a handle back from sessionStorage; anything malformed (including the
+ * bare id stored before tokens existed) yields null so a fresh session starts. */
+export function parseStoredGuidanceSession(
+  raw: string | null,
+): GuidanceSessionHandle | null {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const value: unknown = JSON.parse(raw);
+
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      typeof (value as GuidanceSessionHandle).id === "string" &&
+      typeof (value as GuidanceSessionHandle).token === "string" &&
+      (value as GuidanceSessionHandle).id !== "" &&
+      (value as GuidanceSessionHandle).token !== ""
+    ) {
+      return {
+        id: (value as GuidanceSessionHandle).id,
+        token: (value as GuidanceSessionHandle).token,
+      };
+    }
+  } catch {
+    // Not JSON: a legacy bare id.
+  }
+
+  return null;
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   const body = await response.json();
 
@@ -58,7 +101,7 @@ async function parseJson<T>(response: Response): Promise<T> {
 
 export async function startGuidanceSession(
   acceptedTerms = true,
-): Promise<string> {
+): Promise<GuidanceSessionHandle> {
   const response = await fetch(apiUrl("/triage/sessions"), {
     method: "POST",
     headers: {
@@ -69,23 +112,26 @@ export async function startGuidanceSession(
     body: JSON.stringify({ accepted_terms: acceptedTerms }),
   });
 
-  const data = await parseJson<{ session_id: string }>(response);
+  const data = await parseJson<{ session_id: string; session_token: string }>(
+    response,
+  );
 
-  return data.session_id;
+  return { id: data.session_id, token: data.session_token };
 }
 
 export async function saveGuidanceAnswers(
-  sessionId: string,
+  session: GuidanceSessionHandle,
   answers: Array<{ step_key: string; values: string[] }>,
 ): Promise<{ emergency_stopped: boolean }> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/answers`),
+    apiUrl(`/triage/sessions/${pathSegment(session.id)}/answers`),
     {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
         "Accept-Language": "mk",
+        [GUIDANCE_TOKEN_HEADER]: session.token,
       },
       body: JSON.stringify({ answers }),
     },
@@ -95,13 +141,17 @@ export async function saveGuidanceAnswers(
 }
 
 export async function completeGuidanceEmergency(
-  sessionId: string,
+  session: GuidanceSessionHandle,
 ): Promise<GuidanceOutcome> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/emergency`),
+    apiUrl(`/triage/sessions/${pathSegment(session.id)}/emergency`),
     {
       method: "POST",
-      headers: { Accept: "application/json", "Accept-Language": "mk" },
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        [GUIDANCE_TOKEN_HEADER]: session.token,
+      },
     },
   );
 
@@ -111,13 +161,17 @@ export async function completeGuidanceEmergency(
 }
 
 export async function completeGuidanceSession(
-  sessionId: string,
+  session: GuidanceSessionHandle,
 ): Promise<GuidanceOutcome> {
   const response = await fetch(
-    apiUrl(`/triage/sessions/${pathSegment(sessionId)}/complete`),
+    apiUrl(`/triage/sessions/${pathSegment(session.id)}/complete`),
     {
       method: "POST",
-      headers: { Accept: "application/json", "Accept-Language": "mk" },
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        [GUIDANCE_TOKEN_HEADER]: session.token,
+      },
     },
   );
 

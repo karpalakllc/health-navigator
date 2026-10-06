@@ -9,15 +9,20 @@ import {
   completeGuidanceEmergency,
   completeGuidanceSession,
   saveGuidanceAnswers,
+  parseStoredGuidanceSession,
   startGuidanceSession,
   type GuidanceFlow,
+  type GuidanceSessionHandle,
   type GuidanceOutcome,
 } from "@/lib/api/guidance";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 import { FormError } from "@/components/ui/form-message";
 
-const SESSION_KEY = "guidance_session_id";
+// Holds {id, token}; the token is what lets this tab continue the session.
+const SESSION_KEY = "guidance_session";
+// Pre-token builds stored the bare id here; it can no longer continue anything.
+const LEGACY_SESSION_KEY = "guidance_session_id";
 
 const emergencyButtonClass =
   "border-destructive/40 text-destructive hover:bg-destructive/5";
@@ -30,7 +35,7 @@ type Props = {
 
 export function GuidanceWizard({ flow }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [session, setSession] = useState<GuidanceSessionHandle | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [redFlags, setRedFlags] = useState<string[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -41,28 +46,32 @@ export function GuidanceWizard({ flow }: Props) {
 
   const currentStep = flow.steps[stepIndex];
 
-  const ensureSession = useCallback(async (): Promise<string> => {
-    if (sessionId) {
-      return sessionId;
-    }
+  const ensureSession =
+    useCallback(async (): Promise<GuidanceSessionHandle> => {
+      if (session) {
+        return session;
+      }
 
-    const stored =
-      typeof window !== "undefined"
-        ? window.sessionStorage.getItem(SESSION_KEY)
-        : null;
+      const stored =
+        typeof window !== "undefined"
+          ? parseStoredGuidanceSession(
+              window.sessionStorage.getItem(SESSION_KEY),
+            )
+          : null;
 
-    if (stored) {
-      setSessionId(stored);
+      if (stored) {
+        setSession(stored);
 
-      return stored;
-    }
+        return stored;
+      }
 
-    const id = await startGuidanceSession();
-    window.sessionStorage.setItem(SESSION_KEY, id);
-    setSessionId(id);
+      window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
+      const started = await startGuidanceSession();
+      window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
+      setSession(started);
 
-    return id;
-  }, [sessionId]);
+      return started;
+    }, [session]);
 
   async function handleStart() {
     if (!accepted) {
@@ -89,13 +98,13 @@ export function GuidanceWizard({ flow }: Props) {
     setError(null);
 
     try {
-      const id = await ensureSession();
+      const current = await ensureSession();
 
       if (redFlags.length > 0) {
-        await saveGuidanceAnswers(id, [
+        await saveGuidanceAnswers(current, [
           { step_key: "red_flags", values: redFlags },
         ]);
-        const result = await completeGuidanceSession(id);
+        const result = await completeGuidanceSession(current);
         setOutcome(result);
         setPhase("emergency");
         window.sessionStorage.removeItem(SESSION_KEY);
@@ -103,7 +112,9 @@ export function GuidanceWizard({ flow }: Props) {
         return;
       }
 
-      await saveGuidanceAnswers(id, [{ step_key: "red_flags", values: [] }]);
+      await saveGuidanceAnswers(current, [
+        { step_key: "red_flags", values: [] },
+      ]);
       setPhase("questions");
     } catch (e) {
       setError(e instanceof Error ? e.message : t("guidance.saveError"));
@@ -117,8 +128,8 @@ export function GuidanceWizard({ flow }: Props) {
     setError(null);
 
     try {
-      const id = await ensureSession();
-      const result = await completeGuidanceEmergency(id);
+      const current = await ensureSession();
+      const result = await completeGuidanceEmergency(current);
       setOutcome(result);
       setPhase("emergency");
       window.sessionStorage.removeItem(SESSION_KEY);
@@ -161,8 +172,8 @@ export function GuidanceWizard({ flow }: Props) {
     setLoading(true);
 
     try {
-      const id = await ensureSession();
-      await saveGuidanceAnswers(id, [
+      const current = await ensureSession();
+      await saveGuidanceAnswers(current, [
         { step_key: currentStep.key, values: selected },
       ]);
 
@@ -172,7 +183,7 @@ export function GuidanceWizard({ flow }: Props) {
         return;
       }
 
-      const result = await completeGuidanceSession(id);
+      const result = await completeGuidanceSession(current);
       setOutcome(result);
       setPhase("result");
       window.sessionStorage.removeItem(SESSION_KEY);

@@ -5,8 +5,8 @@ namespace App\Services\Triage;
 use App\Models\TriageFlow;
 use App\Models\TriageSession;
 use App\Models\TriageSessionAnswer;
-use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TriageSessionService
@@ -32,7 +32,15 @@ class TriageSessionService
         return $flow->load(['steps.options', 'redFlags', 'outcomes', 'rules']);
     }
 
-    public function startSession(TriageFlow $flow, bool $acceptedTerms, ?User $user): TriageSession
+    /**
+     * Sessions are never linked to an account, signed in or not: what someone
+     * answered about their symptoms must not be tied to who they are. The
+     * caller proves it started the session with the returned secret instead,
+     * of which only a hash is stored.
+     *
+     * @return array{0: TriageSession, 1: string} the session and its plaintext token
+     */
+    public function startSession(TriageFlow $flow, bool $acceptedTerms): array
     {
         if (! $acceptedTerms) {
             throw ValidationException::withMessages([
@@ -40,11 +48,15 @@ class TriageSessionService
             ]);
         }
 
-        return TriageSession::query()->create([
+        $token = Str::random(64);
+
+        $session = TriageSession::query()->create([
             'triage_flow_id' => $flow->id,
-            'user_id' => $user?->id,
+            'token_hash' => TriageSession::hashToken($token),
             'terms_accepted_at' => Carbon::now(),
         ]);
+
+        return [$session, $token];
     }
 
     /**

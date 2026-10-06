@@ -194,8 +194,15 @@ nobody can hold an account locked by merely sending traffic.
   `forum.moderate` or the corresponding moderation setting is off; otherwise it
   is `pending`.
 - Replying to a locked topic returns **422**, not 403.
-- Guidance sessions are anonymous by default. A session created while
-  authenticated is bound to that user and returns 404 to anyone else.
+- Guidance sessions are **never linked to an account**, even when the caller
+  is signed in. `POST /triage/sessions` returns `session_id` and a secret
+  `session_token` (only its SHA-256 is stored); every later call on the session
+  (`answers`, `emergency`, `complete`) must send it as the
+  `X-Guidance-Token` header. A missing or wrong token is `404`, the same as an
+  unknown id.
+- `/search` does not record who searched. The normalised query (lower-cased,
+  whitespace collapsed, truncated to 64 characters) is counted per day in
+  `search_term_daily` after the response is sent; there is no per-search row.
 
 ## Roles and permissions
 
