@@ -1,4 +1,4 @@
-import { apiGet, TAXONOMY_CACHE } from "@/lib/api/client";
+import { apiGet, DIRECTORY_REVALIDATE_SECONDS } from "@/lib/api/client";
 
 export type HomeSpecialty = {
   slug: string;
@@ -42,12 +42,15 @@ export const EMPTY_HOME_HIGHLIGHTS: HomeHighlights = {
 };
 
 /**
- * GET /home/highlights: identical for every visitor, cached by the API for at
- * most five minutes and marked `public, max-age=300`, so the web tier shares
- * one copy for the same window.
+ * GET /home/highlights: identical for every visitor. The API drops its copy
+ * whenever a doctor, specialty, facility or review is saved; the web tier
+ * re-reads it at most once a minute, like the directory lists, so approving or
+ * hiding a review reaches the home page within about a minute.
  */
 export async function fetchHomeHighlights(): Promise<HomeHighlights> {
-  return apiGet<HomeHighlights>("/home/highlights", TAXONOMY_CACHE);
+  return apiGet<HomeHighlights>("/home/highlights", {
+    revalidate: DIRECTORY_REVALIDATE_SECONDS,
+  });
 }
 
 /** The public profile path for a review target. */

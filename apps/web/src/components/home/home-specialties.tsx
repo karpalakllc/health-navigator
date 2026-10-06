@@ -39,7 +39,7 @@ export function HomeSpecialties({
       <SectionHeader
         id="home-specialties-title"
         title={t("homeSections.specialtiesTitle")}
-        action={{ href: "/doctors", label: t("homeSections.specialtiesAll") }}
+        action={{ href: "/doctors", label: t("home.topRatedViewAll") }}
         className="items-center"
       />
       <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:mt-6 lg:grid-cols-4 lg:gap-6">

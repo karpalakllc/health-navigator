@@ -161,7 +161,6 @@ export const mk = {
     communityHeading: "Од заедницата",
     communityAll: "Сите теми",
     communityUnanswered: "Без одговор",
-    popularSpecialties: "Популарни специјалности",
     trustRowModerated: "Рецензиите и објавите се проверуваат пред објава",
     trustRowClarity: "Јасно каде да се обратите",
     trustRowLocal: "Создадено за корисници и установи во Македонија",
@@ -867,7 +866,6 @@ export const mk = {
   // „Последно прегледани“ list.
   homeSections: {
     specialtiesTitle: "Популарни специјалности",
-    specialtiesAll: "Сите специјалности",
     specialtyDoctors: "{count} лекари",
     specialtyDoctorsOne: "{count} лекар",
     citiesTitle: "Пребарај по град",

@@ -55,15 +55,41 @@ function text(value: unknown): string | null {
   return trimmed === "" ? null : trimmed.slice(0, MAX_TEXT);
 }
 
-/** Only same-site paths and http(s) URLs: the value ends up in an <img src>. */
+/** The API's origin: in local setups it serves media over plain http. */
+function apiOrigin(): string | null {
+  try {
+    const base = process.env.NEXT_PUBLIC_API_URL;
+    return base ? new URL(base).origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Only https URLs, same-site paths, and plain-http URLs on the API's own
+ * origin (local media): the value ends up in an <img src>, and storage is
+ * user-editable.
+ */
 function avatar(value: unknown): string | null {
   const url = text(value);
   if (!url) {
     return null;
   }
+  if (url.startsWith("/")) {
+    return url.startsWith("//") ? null : url;
+  }
 
-  return /^https?:\/\//i.test(url) ||
-    (url.startsWith("/") && !url.startsWith("//"))
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol === "https:") {
+    return url;
+  }
+
+  return parsed.protocol === "http:" && parsed.origin === apiOrigin()
     ? url
     : null;
 }

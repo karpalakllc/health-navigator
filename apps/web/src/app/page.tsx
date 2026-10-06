@@ -155,7 +155,10 @@ export default async function Home() {
 
       {/* Personal, so right after the tiles; on-device only and absent
           until hydration (and when empty), hence no data-reveal. */}
-      <HomeRecentlyViewed className="px-5 pt-10 lg:px-0 lg:pt-20" />
+      <HomeRecentlyViewed
+        pharmaciesOn={pharmaciesOn}
+        className="px-5 pt-10 lg:px-0 lg:pt-20"
+      />
 
       <div data-reveal="">
         <HomeSpecialties

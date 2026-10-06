@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   RECENTLY_VIEWED_KEY,
   RECENTLY_VIEWED_LIMIT,
@@ -170,6 +170,23 @@ describe("recently viewed storage", () => {
       ["ok2", null],
       ["ok3", "/storage/media/a.webp"],
     ]);
+  });
+
+  it("keeps only https or same-site avatars (plain http only from the API host)", () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "http://127.0.0.1:8021");
+    const avatarOf = (avatarUrl: string) =>
+      sanitizeEntry({ ...doctor, avatarUrl, viewedAt: 0 })!.avatarUrl;
+
+    expect(avatarOf("https://cdn.example/a.webp")).toBe(
+      "https://cdn.example/a.webp",
+    );
+    expect(avatarOf("/storage/media/a.webp")).toBe("/storage/media/a.webp");
+    expect(avatarOf("http://127.0.0.1:8021/storage/media/a.webp")).toBe(
+      "http://127.0.0.1:8021/storage/media/a.webp",
+    );
+    expect(avatarOf("http://tracker.example/pixel.gif")).toBeNull();
+    expect(avatarOf("data:image/png;base64,AAAA")).toBeNull();
+    vi.unstubAllEnvs();
   });
 
   it("trims and caps text fields", () => {

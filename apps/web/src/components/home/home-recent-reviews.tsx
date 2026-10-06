@@ -9,6 +9,7 @@ import {
   type HomeReviewTarget,
 } from "@/lib/api/home";
 import { cn } from "@/lib/cn";
+import { fitToColumns } from "@/lib/grid-fit";
 import { formatMkDate } from "@/lib/mk-date";
 import { formatRelativeDay } from "@/lib/relative-day";
 import { t } from "@/i18n/t";
@@ -19,8 +20,8 @@ const TARGET_ICON: Record<HomeReviewTarget["kind"], IconName> = {
   pharmacy: "pill",
 };
 
-/** Phones get three cards; the fourth joins from the lg breakpoint. */
-const MOBILE_COUNT = 3;
+/** Phones (one column) get at most three cards. */
+const PHONE_MAX = 3;
 
 /**
  * „Најнови рецензии“: the latest approved reviews (GET /home/highlights).
@@ -59,13 +60,19 @@ export function HomeRecentReviews({
         )}
       >
         {shown.map((review, index) => {
+          // Whole rows only: three stacked on phones, an even number in the
+          // two-column grid from md, all of them in one row from lg.
           const relative = formatRelativeDay(review.published_at, now);
           const absolute = formatMkDate(review.published_at);
 
           return (
             <li
               key={review.id}
-              className={cn("flex", index >= MOBILE_COUNT && "max-lg:hidden")}
+              className={cn(
+                "flex",
+                index >= PHONE_MAX && "max-md:hidden",
+                index >= fitToColumns(shown.length, 2, 4) && "md:max-lg:hidden",
+              )}
             >
               <article className="card hover-lift flex w-full flex-col gap-3 p-4 lg:p-5">
                 <header className="flex items-center gap-3">

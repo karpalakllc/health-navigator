@@ -41,7 +41,7 @@ describe("HomeSpecialties („Популарни специјалности“)"
     ).toBeInTheDocument();
     expect(
       within(section).getByRole("link", {
-        name: t("homeSections.specialtiesAll"),
+        name: t("home.topRatedViewAll"),
       }),
     ).toHaveAttribute("href", "/doctors");
     expect(await seriousA11yViolations(container)).toEqual([]);
@@ -196,16 +196,43 @@ describe("HomeRecentReviews („Најнови рецензии“)", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("keeps the fourth card for desktop only", () => {
+  /** Cards shown per layout: 1 column on phones, 2 from md, all on lg. */
+  function reviewCounts(items: HTMLElement[]) {
+    const shown = (hiddenClass: string) =>
+      items.filter((li) => !li.classList.contains(hiddenClass)).length;
+    return {
+      phone: shown("max-md:hidden"),
+      tablet: shown("md:max-lg:hidden"),
+      desktop: shown("lg:hidden"),
+    };
+  }
+
+  it("shows three on phones and all four in the two-column and desktop grids", () => {
     render(
       <HomeRecentReviews
         now={now}
         reviews={[1, 2, 3, 4].map((id) => review({ id }))}
       />,
     );
-    const items = screen.getAllByRole("listitem");
-    expect(items[3]!.className).toContain("max-lg:hidden");
-    expect(items[2]!.className).not.toContain("max-lg:hidden");
+    expect(reviewCounts(screen.getAllByRole("listitem"))).toEqual({
+      phone: 3,
+      tablet: 4,
+      desktop: 4,
+    });
+  });
+
+  it("never leaves a lone card in the two-column grid", () => {
+    render(
+      <HomeRecentReviews
+        now={now}
+        reviews={[1, 2, 3].map((id) => review({ id }))}
+      />,
+    );
+    expect(reviewCounts(screen.getAllByRole("listitem"))).toEqual({
+      phone: 3,
+      tablet: 2,
+      desktop: 3,
+    });
   });
 });
 
@@ -225,6 +252,52 @@ describe("HomeRecentlyViewed („Последно прегледани“)", () 
     render(<HomeRecentlyViewed />);
     expect(screen.queryByRole("region")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("leaves out pharmacies while that module is off", () => {
+    recordRecentlyViewed(entry);
+    recordRecentlyViewed({
+      kind: "pharmacy",
+      slug: "apteka-ohrid",
+      name: "Аптека Охрид",
+      subtitle: null,
+      avatarUrl: null,
+    });
+
+    render(<HomeRecentlyViewed pharmaciesOn={false} />);
+
+    expect(
+      screen.getAllByRole("link").map((l) => l.getAttribute("href")),
+    ).toEqual(["/doctors/ana-petrovska"]);
+  });
+
+  it("is hidden when the only stored profiles are pharmacies and the module is off", () => {
+    recordRecentlyViewed({
+      kind: "pharmacy",
+      slug: "apteka-ohrid",
+      name: "Аптека Охрид",
+      subtitle: null,
+      avatarUrl: null,
+    });
+
+    render(<HomeRecentlyViewed pharmaciesOn={false} />);
+
+    expect(screen.queryByRole("region")).toBeNull();
+  });
+
+  it("fills whole rows in the four-column desktop grid; the phone rail keeps all", () => {
+    for (let i = 0; i < 5; i++) {
+      recordRecentlyViewed({ ...entry, slug: `d-${i}` });
+    }
+
+    render(<HomeRecentlyViewed />);
+
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(5);
+    expect(
+      items.filter((li) => li.classList.contains("lg:hidden")),
+    ).toHaveLength(1);
+    expect(items.some((li) => li.className.includes("max-"))).toBe(false);
   });
 
   it("lists stored profiles newest first, linking to each profile", async () => {

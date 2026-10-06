@@ -6,6 +6,7 @@ import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { buttonClassName } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import { fitToColumns } from "@/lib/grid-fit";
 import {
   clearRecentlyViewed,
   getRecentlyViewedServerSnapshot,
@@ -27,14 +28,25 @@ const KIND_LABEL: Record<RecentlyViewedEntry["kind"], () => string> = {
  * from localStorage (lib/recently-viewed.ts). Renders nothing on the server,
  * during hydration and whenever the list is empty, so it can sit anywhere on
  * the home page. A rail on phones (expects the parent's 20px side padding,
- * which it bleeds into), a 4-column grid on desktop.
+ * which it bleeds into), a 4-column grid of whole rows on desktop. Stored
+ * pharmacies are skipped while that module is off (their pages 503).
  */
-export function HomeRecentlyViewed({ className }: { className?: string }) {
-  const entries = useSyncExternalStore(
+export function HomeRecentlyViewed({
+  pharmaciesOn = true,
+  className,
+}: {
+  pharmaciesOn?: boolean;
+  className?: string;
+}) {
+  const stored = useSyncExternalStore(
     subscribeRecentlyViewed,
     getRecentlyViewedSnapshot,
     getRecentlyViewedServerSnapshot,
   );
+  const entries = pharmaciesOn
+    ? stored
+    : stored.filter((entry) => entry.kind !== "pharmacy");
+  const desktopCount = fitToColumns(entries.length, 4, 8);
   const [status, setStatus] = useState("");
   // Clearing removes the section and the focused button with it; focus
   // lands on this always-present wrapper instead of falling to <body>.
@@ -82,10 +94,13 @@ export function HomeRecentlyViewed({ className }: { className?: string }) {
             {t("homeSections.recentLead")}
           </p>
           <ul className="scroll-row -mx-5 mt-3 flex gap-3 px-5 pb-4 pt-1 lg:mx-0 lg:mt-5 lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0">
-            {entries.map((entry) => (
+            {entries.map((entry, index) => (
               <li
                 key={`${entry.kind}:${entry.slug}`}
-                className="flex w-[240px] flex-none lg:w-auto"
+                className={cn(
+                  "flex w-[240px] flex-none lg:w-auto",
+                  index >= desktopCount && "lg:hidden",
+                )}
               >
                 <Link
                   href={recentlyViewedPath(entry)}
