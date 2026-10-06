@@ -12,8 +12,12 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\CountingHasher;
 use Tests\TestCase;
 
 /**
@@ -73,6 +77,78 @@ class SecurityRegressionTest extends TestCase
             ->assertOk();
 
         Notification::assertNothingSent();
+    }
+
+    // ---- completing a reset must not confirm whether an account exists either ----
+
+    /**
+     * The broker answers "no such account" and "bad token" with different
+     * messages (mk: "Испративме линк…" vs "Линкот … невалиден"), so a made-up
+     * token used to tell whether an address is registered.
+     */
+    public function test_reset_rejection_is_identical_for_unknown_email_and_bad_token(): void
+    {
+        $user = User::factory()->create(['email' => 'known@example.com']);
+        Password::createToken($user);
+
+        $payload = fn (string $email): array => [
+            'email' => $email,
+            'token' => str_repeat('a', 64),
+            'password' => 'brand1newpassword',
+            'password_confirmation' => 'brand1newpassword',
+        ];
+
+        $unknown = $this->postJson('/api/v1/auth/reset-password', $payload('nobody@example.com'));
+        $badToken = $this->postJson('/api/v1/auth/reset-password', $payload('known@example.com'));
+
+        $unknown->assertUnprocessable();
+        $badToken->assertUnprocessable();
+        $this->assertSame($badToken->json(), $unknown->json());
+        $this->assertSame([__('passwords.token')], $unknown->json('errors.email'));
+    }
+
+    /**
+     * Each rejected reset pays for exactly one bcrypt check, whether the broker
+     * hashed (a real account holding a live token row) or returned early.
+     *
+     * @return array<string, array{0: string, 1: bool, 2: bool}>
+     */
+    public static function rejectedResetCases(): array
+    {
+        return [
+            'unknown address' => ['nobody@example.com', false, false],
+            'account without a token row' => ['known@example.com', false, false],
+            'account with a live token row' => ['known@example.com', true, false],
+            'account with an expired token row' => ['known@example.com', true, true],
+        ];
+    }
+
+    #[DataProvider('rejectedResetCases')]
+    public function test_rejected_reset_pays_for_exactly_one_hash(string $email, bool $withToken, bool $expired): void
+    {
+        $user = User::factory()->create(['email' => 'known@example.com']);
+
+        if ($withToken) {
+            Password::createToken($user);
+        }
+
+        if ($expired) {
+            $this->travel(2)->hours();
+        }
+
+        $hasher = new CountingHasher(app('hash'));
+        Hash::swap($hasher);
+        app()->forgetInstance('auth.password');
+        Password::clearResolvedInstances();
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => str_repeat('a', 64),
+            'password' => 'brand1newpassword',
+            'password_confirmation' => 'brand1newpassword',
+        ])->assertUnprocessable();
+
+        $this->assertSame(1, $hasher->calls);
     }
 
     // ---- M2: expired tokens must not authenticate ----
