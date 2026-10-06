@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Licences;
 
+use App\Enums\ImportRunStatus;
+use App\Events\ImportRunFinished;
 use App\Models\Doctor;
+use App\Models\ImportRun;
 use App\Models\KomoraLicence;
 use App\Models\LicenceSpecialtyMapping;
 use App\Support\Import\Contracts\DoctorLicenceSink;
@@ -13,6 +16,7 @@ use App\Support\Licences\LicenceParseResult;
 use App\Support\Licences\ParsedLicenceRow;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Tests\Support\FakeDoctorLicenceSink;
 use Tests\Support\FakeLicenceCandidateSource;
@@ -243,5 +247,67 @@ class KomoraLicenceImportTest extends TestCase
         }
 
         $this->assertSame(0, KomoraLicence::query()->count());
+    }
+
+    public function test_the_command_records_an_import_run_links_review_items_to_it_and_announces_it(): void
+    {
+        Event::fake([ImportRunFinished::class]);
+        $directory = storage_path('framework/testing/komora-'.uniqid());
+        File::ensureDirectoryExists($directory);
+        $path = $directory.'/А-В 02.07.2026.pdf';
+        file_put_contents($path, KomoraListPdf::make([[
+            ['name' => 'АНА ТЕСТОВСКА', 'specialty' => 'педијатрија', 'date' => '01.02.2030', 'number' => '0000001'],
+            ['name' => 'ГОРАН ИСТОИМЕНОВСКИ', 'specialty' => ['доктор на медицина во', 'ПЗЗ'], 'date' => '15.03.2031', 'number' => '0000002'],
+        ]]));
+
+        try {
+            $this->artisan('import:komora-licences', ['--file' => [$path], '--dry-run' => true])->assertSuccessful();
+            $dry = ImportRun::query()->latest('id')->firstOrFail();
+            $this->assertTrue($dry->dry_run);
+            $this->assertSame('komora', $dry->source);
+            $this->assertSame(ImportRunStatus::Succeeded, $dry->status);
+            Event::assertNotDispatched(ImportRunFinished::class);
+
+            $this->artisan('import:komora-licences', ['--file' => [$path]])->assertSuccessful();
+        } finally {
+            File::deleteDirectory($directory);
+        }
+
+        $run = ImportRun::query()->latest('id')->firstOrFail();
+        $this->assertFalse($run->dry_run);
+        $this->assertSame(ImportRunStatus::Succeeded, $run->status);
+        $this->assertSame(1, $run->count('attached'));
+        $this->assertSame('2026-07-02', $run->source_meta['list_date'] ?? null);
+
+        // The run id travels with every record handed to the sink.
+        $this->assertSame($run->id, $this->sink->attached[$this->doctors['Ана Тестовска']]->importRunId);
+        $this->assertSame($run->id, $this->sink->review['0000002']['record']->importRunId);
+
+        Event::assertDispatched(ImportRunFinished::class, fn (ImportRunFinished $event): bool => $event->source === 'komora'
+            && $event->succeeded
+            && $event->runId === $run->id
+            && $event->seen === 2
+            && $event->created === 1
+            && $event->unmatched === 1);
+    }
+
+    public function test_a_failed_command_run_is_recorded_and_announced(): void
+    {
+        Event::fake([ImportRunFinished::class]);
+        $directory = storage_path('framework/testing/komora-'.uniqid());
+        File::ensureDirectoryExists($directory);
+        $path = $directory.'/empty 02.07.2026.pdf';
+        file_put_contents($path, KomoraListPdf::make([[]]));
+
+        try {
+            $this->artisan('import:komora-licences', ['--file' => [$path]])->assertFailed();
+        } finally {
+            File::deleteDirectory($directory);
+        }
+
+        $run = ImportRun::query()->latest('id')->firstOrFail();
+        $this->assertSame(ImportRunStatus::Failed, $run->status);
+        $this->assertStringContainsString('No licence rows', (string) $run->error);
+        Event::assertDispatched(ImportRunFinished::class, fn (ImportRunFinished $event): bool => $event->source === 'komora' && ! $event->succeeded);
     }
 }

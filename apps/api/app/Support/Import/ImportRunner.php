@@ -26,10 +26,14 @@ use Throwable;
  * - no search-index traffic and no activity-log rows per imported record
  *   (drafts are not searchable anyway; the run, its diff and field
  *   provenance are the audit trail). Publishing later goes through the
- *   normal model events, which index and log as usual.
+ *   normal model events, which index and log as usual;
+ * - a finished or failed apply is announced as ImportRunFinished
+ *   (ImportRunAnnouncer), which the data-ops alerts listen to.
  */
 final class ImportRunner
 {
+    public function __construct(private readonly ImportRunAnnouncer $announcer) {}
+
     /**
      * @param  Closure(ImportContext): (array<string, mixed>|null)  $work  returns source metadata to store on the run
      */
@@ -61,6 +65,7 @@ final class ImportRunner
             $this->writeDiff($run, $context);
             $run->fail($exception);
             report($exception);
+            $this->announcer->announce($run);
 
             return $run;
         }
@@ -82,6 +87,9 @@ final class ImportRunner
         if (! $dryRun) {
             TaxonomyCache::flush(TaxonomyCache::SPECIALTIES, TaxonomyCache::LANGUAGES, TaxonomyCache::HOME_HIGHLIGHTS);
         }
+
+        // Alerts (failed or unusually large runs); dry and not-modified runs are not announced.
+        $this->announcer->announce($run);
 
         return $run;
     }

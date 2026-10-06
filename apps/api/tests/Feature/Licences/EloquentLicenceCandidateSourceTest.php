@@ -8,38 +8,17 @@ use App\Support\Import\NameKey;
 use App\Support\Licences\Contracts\LicenceCandidate;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
 use App\Support\Licences\EloquentLicenceCandidateSource;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
  * Candidates from the doctors table, on the columns the import core (W6-A)
- * adds to it.
+ * adds to it (2026_10_15_100000_add_import_keys_to_directory_tables).
  */
 class EloquentLicenceCandidateSourceTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // INTEGRATION SHIM: the import core's migration
-        // (2026_10_15_100000_add_import_keys_to_directory_tables, branch
-        // feat/w6-import-core) adds these columns. Until both branches are
-        // merged this test adds the ones it needs; afterwards the check
-        // finds them and does nothing.
-        if (! Schema::hasColumn('doctors', 'name_key')) {
-            Schema::table('doctors', function (Blueprint $table): void {
-                $table->string('licence_number', 16)->nullable()->unique();
-                $table->string('name_key')->nullable()->index();
-                $table->string('name_key_sorted')->nullable()->index();
-                $table->string('import_source', 32)->nullable();
-            });
-        }
-    }
 
     private function doctor(string $name, string $importSource = 'fzom', array $specialties = [], ?string $licence = null): Doctor
     {

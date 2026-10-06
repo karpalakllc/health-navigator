@@ -28,6 +28,9 @@ use RuntimeException;
  */
 final class KomoraLicenceImporter
 {
+    /** import_runs.source and the provenance source of attached licences. */
+    public const SOURCE = 'komora';
+
     public function __construct(
         private readonly LicenceCandidateSource $candidates,
         private readonly ?DoctorLicenceSink $sink,
@@ -168,7 +171,7 @@ final class KomoraLicenceImporter
             fullName: $row->fullName,
             specialty: $row->specialty,
             observedAt: $listDate,
-            source: 'komora',
+            source: self::SOURCE,
             sourceReference: $row->sourceReference,
             importRunId: $importRunId,
         );

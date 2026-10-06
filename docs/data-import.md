@@ -91,9 +91,10 @@ php artisan import:institutions-json /path/<slice>/institutions.json
 marks licences missing unless you add `--complete` (the files are the whole
 list). Without `--list-date` the date is read from the file names.
 
-Each run writes an `import_runs` row (source, dry run or apply, status, counts,
-error) and, for ФЗОМ and website runs, a diff summary CSV on the private import
-disk. Both are under **Data import → Import runs** (`imports.view`).
+Each run — every source, dry run or apply — writes an `import_runs` row
+(source, mode, status, counts, error); ФЗОМ and website runs also write a diff
+summary CSV on the private import disk, and licence review items link back to
+their Комора run. Both are under **Data import → Import runs** (`imports.view`).
 
 Read the counts before applying:
 
@@ -315,15 +316,27 @@ short error line only — never names or numbers):
 
 - **Failed scheduled run**: the command exited non-zero (the scheduler's
   failure hook).
-- **ImportRunFinished**: dispatched when a run ends; `AlertOnImportRun` mails
-  on a failed run or a large diff. Contract: `source` (`fzom` / `komora`),
-  `succeeded`, `seen` (source records after filtering), `created`, `updated`,
-  `missing` (profiles or licence links), `conflicts`, `unmatched` (review
-  entries), optional `runId`, `error`, `reviewUrl`.
+- **ImportRunFinished**: dispatched by `ImportRunAnnouncer` when a real
+  (not dry, not *not modified*) `import:fzom` or `import:komora-licences` run
+  ends, by hand or scheduled; `AlertOnImportRun` mails on a failed run or a
+  large diff. Contract: `source` (`fzom` / `komora`), `succeeded`, `seen`
+  (source records after filtering), `created`, `updated`, `missing`
+  (profiles or licence links), `conflicts`, `unmatched` (review entries),
+  `runId`, `error`, `reviewUrl` (the run in **Import runs**). Website imports
+  are run by hand and not announced.
 
-**Integration note (open):** at the time of writing the import core does not
-dispatch `ImportRunFinished` yet. Until then only the scheduler's failure
-hook alerts.
+| Event field | ФЗОМ run counts | Комора run counts |
+|---|---|---|
+| `seen` | `doctors_in_source` + `facilities_in_source` | `rows_parsed` − `duplicate_numbers` |
+| `created` | `doctors_created` + `dentists_created` + `facilities_created` | `attached` |
+| `updated` | `review_changed` (published profiles changed) | 0 |
+| `missing` | `review_missing` | `missing_from_list` |
+| `conflicts` | `review_conflict` | `conflict` |
+| `unmatched` | `review_unmatched` | `ambiguous` + `no_match` + `specialty_mismatch` + `doctor_not_found` |
+
+A failed scheduled run can trigger both the failure hook and the event;
+the alert throttle (per source and kind) sends one mail. The very first
+apply of a source is a large diff by design: expect one alert.
 
 ## 11. Corrections and objections from the public
 

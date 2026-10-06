@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ImportRunStatus;
+use App\Models\ImportRun;
 use App\Support\Import\Contracts\DoctorLicenceSink;
+use App\Support\Import\ImportRunAnnouncer;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
 use App\Support\Licences\KomoraLicenceFetcher;
 use App\Support\Licences\KomoraLicenceImporter;
@@ -28,39 +31,48 @@ class ImportKomoraLicencesCommand extends Command
 
     protected $description = 'Import the Лекарска комора licence list: attach licence numbers and expiry to imported doctor profiles';
 
-    public function handle(KomoraLicenceListParser $parser, KomoraLicenceFetcher $fetcher, LicenceCandidateSource $candidates): int
+    public function handle(KomoraLicenceListParser $parser, KomoraLicenceFetcher $fetcher, LicenceCandidateSource $candidates, ImportRunAnnouncer $announcer): int
     {
         $dryRun = (bool) $this->option('dry-run');
         /** @var list<string> $localFiles */
         $localFiles = array_values(array_filter((array) $this->option('file'), 'is_string'));
+        $files = [];
+        $listDate = null;
+        $complete = true;
 
-        try {
-            if ($localFiles !== []) {
-                $files = [];
-
-                foreach ($localFiles as $path) {
-                    if (! is_file($path)) {
-                        $this->error("No such file: {$path}");
-
-                        return self::FAILURE;
-                    }
-
-                    $files[] = ['path' => $path, 'label' => pathinfo($path, PATHINFO_FILENAME)];
-                }
-
-                $listDate = $this->localListDate($localFiles);
-
-                if ($listDate === null) {
-                    $this->error('Give the list date with --list-date=dd.mm.yyyy.');
+        if ($localFiles !== []) {
+            foreach ($localFiles as $path) {
+                if (! is_file($path)) {
+                    $this->error("No such file: {$path}");
 
                     return self::FAILURE;
                 }
 
-                $complete = (bool) $this->option('complete');
-            } else {
+                $files[] = ['path' => $path, 'label' => pathinfo($path, PATHINFO_FILENAME)];
+            }
+
+            $listDate = $this->localListDate($localFiles);
+
+            if ($listDate === null) {
+                $this->error('Give the list date with --list-date=dd.mm.yyyy.');
+
+                return self::FAILURE;
+            }
+
+            $complete = (bool) $this->option('complete');
+        }
+
+        // One import_runs row per run, like every other source: staff see it
+        // under Data import → Import runs, review items link back to it, and
+        // a real run that ends is announced to the alerts.
+        $run = ImportRun::start(KomoraLicenceImporter::SOURCE, $dryRun);
+
+        try {
+            if ($localFiles === []) {
                 $fetched = $fetcher->fetch((bool) $this->option('force'));
 
                 if (! $fetched['changed']) {
+                    $run->finish([], ImportRunStatus::NotModified);
                     $this->info('The licence list has not changed since the last download; nothing to do (use --force to process it anyway).');
 
                     return self::SUCCESS;
@@ -72,8 +84,6 @@ class ImportKomoraLicencesCommand extends Command
                 if ($fetched['list_date'] === null) {
                     $this->warn('The list page states no date; using today as the list date.');
                 }
-
-                $complete = true;
             }
 
             $parsed = new LicenceParseResult;
@@ -83,28 +93,32 @@ class ImportKomoraLicencesCommand extends Command
             }
 
             if ($parsed->rows === []) {
-                $this->error('No licence rows could be read from the list files; nothing was changed.');
-
-                return self::FAILURE;
+                return $this->failRun($run, $announcer, 'No licence rows could be read from the list files; nothing was changed.');
             }
 
             $sink = app()->bound(DoctorLicenceSink::class) ? app(DoctorLicenceSink::class) : null;
 
             if ($sink === null && ! $dryRun) {
-                $this->error('No DoctorLicenceSink is bound (the import core provides it). Run with --dry-run.');
-
-                return self::FAILURE;
+                return $this->failRun($run, $announcer, 'No DoctorLicenceSink is bound (the import core provides it). Run with --dry-run.');
             }
 
-            $counts = (new KomoraLicenceImporter($candidates, $sink))->import($parsed, $listDate, $dryRun, $complete);
+            /** @var CarbonImmutable $listDate */
+            $counts = (new KomoraLicenceImporter($candidates, $sink))->import($parsed, $listDate, $dryRun, $complete, $dryRun ? null : (int) $run->getKey());
         } catch (Throwable $exception) {
             report($exception);
-            $this->error('Licence import failed: '.$exception->getMessage());
 
-            return self::FAILURE;
+            return $this->failRun($run, $announcer, 'Licence import failed: '.$exception->getMessage(), $exception);
         }
 
-        $this->line(($dryRun ? 'Dry run — nothing written. ' : '').'List of '.$listDate->format('d.m.Y').', '.count($files).' file(s).');
+        $run->forceFill(['source_meta' => [
+            'list_date' => $listDate->toDateString(),
+            'files' => array_map(fn (array $file): string => $file['label'], $files),
+            'complete_list' => $complete,
+        ]]);
+        $run->finish($counts);
+        $announcer->announce($run);
+
+        $this->line(($dryRun ? 'Dry run — nothing written. ' : '').'List of '.$listDate->format('d.m.Y').', '.count($files).' file(s). Run #'.$run->getKey().'.');
         $this->table(['', 'count'], array_map(
             fn (string $key, int $count): array => [str_replace('_', ' ', $key), $count],
             array_keys($counts),
@@ -116,6 +130,15 @@ class ImportKomoraLicencesCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function failRun(ImportRun $run, ImportRunAnnouncer $announcer, string $message, ?Throwable $exception = null): int
+    {
+        $run->fail($exception ?? $message);
+        $announcer->announce($run);
+        $this->error($message);
+
+        return self::FAILURE;
     }
 
     /**
