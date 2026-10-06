@@ -20,6 +20,7 @@ final class PermissionCatalog
             self::doctorAccountsAndAudit(),
             self::imports(),
             self::licences(),
+            self::profileCorrections(),
         );
     }
 
@@ -169,6 +170,23 @@ final class PermissionCatalog
         return [
             'imports.view',
             'imports.manage',
+        ];
+    }
+
+    /**
+     * The public correction and objection queue (W6-C): view it, and close a
+     * request with a note. Fixing the profile itself still needs
+     * doctors.update / facilities.update. Administrator only by default,
+     * since objections need the legal balancing test; added after launch, so
+     * a migration grants them to existing roles too.
+     *
+     * @return list<string>
+     */
+    public static function profileCorrections(): array
+    {
+        return [
+            'profile_corrections.view',
+            'profile_corrections.resolve',
         ];
     }
 
