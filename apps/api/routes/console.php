@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
 use Illuminate\Support\Facades\Schedule;
 
@@ -57,5 +58,19 @@ Schedule::command('model:prune', ['--model' => [UsernameHistory::class]])
 // activitylog.clean_after_days (365) are deleted.
 Schedule::command('activitylog:clean --force')
     ->dailyAt('04:45')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// W6-C: one summary of new profile corrections and objections at most every
+// 10 minutes, as for reports; the 15/30-day answer targets run from receipt.
+Schedule::command('corrections:alert-staff')
+    ->everyTenMinutes()
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Closed correction requests go zdravje.corrections.retention_days (365)
+// after they were closed; open ones stay.
+Schedule::command('model:prune', ['--model' => [ProfileCorrection::class]])
+    ->dailyAt('04:50')
     ->onOneServer()
     ->withoutOverlapping();

@@ -82,6 +82,11 @@ return [
         'resubmission_used' => 'You have already edited and resent this review once, and it was not published again. This decision is final.',
     ],
 
+    'profile_correction' => [
+        'received_correction' => 'Thank you. Your report has been received. The team will check it and correct the profile if the information is wrong, normally within 15 days.',
+        'received_objection' => 'Your request has been received. The team will contact you to confirm the profile is yours and will reply with reasons within 30 days at the latest.',
+    ],
+
     'report' => [
         'received' => 'Thank you. The report has been received and a moderator will review it.',
         'hidden_default_note' => 'The content was removed after a report and a moderator review because it does not follow the community rules.',

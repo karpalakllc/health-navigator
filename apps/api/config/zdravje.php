@@ -143,6 +143,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Profile corrections and objections
+    |--------------------------------------------------------------------------
+    |
+    | `corrections:alert-staff` (every 10 minutes) emails everyone who can see
+    | the corrections queue (profile_corrections.view) about requests that
+    | arrived since the last run, one summary per run. `alert_email` adds a
+    | shared inbox. Closed requests are deleted `retention_days` after they
+    | were closed (model:prune, daily); open ones are never pruned.
+    |
+    */
+
+    'corrections' => [
+        'alert_email' => env('CORRECTION_ALERT_EMAIL'),
+        'retention_days' => (int) env('CORRECTION_RETENTION_DAYS', 365),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Slow-query logging
     |--------------------------------------------------------------------------
     |

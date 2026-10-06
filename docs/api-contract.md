@@ -274,7 +274,9 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
 | `POST` | `/doctors/{slug}/claim-requests` | `auth:sanctum`, `verified`, `throttle:5,1440,api-doctor-claims` |
+| `POST` | `/doctors/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:20,1440,api-corrections-daily` |
 | `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:20,1440,api-corrections-daily` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |

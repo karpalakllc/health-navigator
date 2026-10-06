@@ -8,6 +8,7 @@ use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\ProfileCorrection;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UsernameHistory;
@@ -131,6 +132,10 @@ final class AnonymiseUser
             // Reports and helpful votes stay (queue history, counts) but their
             // free text could say who the member is.
             ContentReport::query()->where('user_id', $locked->getKey())->update(['note' => null]);
+
+            // Profile corrections are about a profile, not the member, so the
+            // request stays for staff; the link and the reply address go.
+            ProfileCorrection::query()->where('user_id', $locked->getKey())->update(['user_id' => null, 'contact' => null]);
 
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);

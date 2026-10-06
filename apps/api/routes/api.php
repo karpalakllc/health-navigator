@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProfileCorrectionController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReviewHelpfulController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -222,4 +223,16 @@ Route::prefix('v1')->group(function (): void {
 
     // Cities that hold published profiles, for the web's city picker (W5-H).
     Route::get('/locations/cities', [LocationController::class, 'cities'])->middleware('cache.public:60');
+
+    // W6-C: „Пријави грешка во профилот“ and the listed doctor's objection or
+    // removal request. Anyone may send one (optional auth only records the
+    // account). Two windows, each keyed by account or else by address: a
+    // burst limit and a daily ceiling. No IP address is stored with a request.
+    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-corrections-burst', 'throttle:20,1440,api-corrections-daily'])
+        ->group(function (): void {
+            Route::post('/doctors/{slug}/corrections', [ProfileCorrectionController::class, 'storeForDoctor'])
+                ->name('corrections.doctor');
+            Route::post('/facilities/{slug}/corrections', [ProfileCorrectionController::class, 'storeForFacility'])
+                ->name('corrections.facility');
+        });
 });
