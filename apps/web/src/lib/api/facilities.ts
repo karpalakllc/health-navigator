@@ -26,7 +26,9 @@ export type FacilityListParams = {
 function toQuery(params: FacilityListParams): string {
   const search = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, raw] of Object.entries(params)) {
+    // Whitespace-only text means "no filter" (see doctors.ts toQuery).
+    const value = typeof raw === "string" ? raw.trim() : raw;
     if (value === undefined || value === "") {
       continue;
     }

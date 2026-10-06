@@ -154,6 +154,22 @@ describe("directory list fetches", () => {
     expect(directoryCache({ q: "x" })).toEqual({});
   });
 
+  it.each([
+    ["doctors", () => fetchDoctors({ q: " ", city: "\u3000" })],
+    ["facilities", () => fetchFacilities({ q: "\t" })],
+    ["pharmacies", () => fetchPharmacies({ city: "  " })],
+    ["products", () => fetchProducts({ q: " " })],
+  ])(
+    "drops whitespace-only %s filters instead of minting a cache key per variant",
+    async (_name, load) => {
+      await load();
+
+      const url = String(fetchMock.mock.calls.at(-1)?.[0]);
+      expect(url).not.toMatch(/[?&](q|city)=/);
+      expect(lastInit().next).toEqual({ revalidate: 60 });
+    },
+  );
+
   it("does not cache products by pharmacy", () => {
     expect(directoryCache({ pharmacy: "zegin" })).toEqual({});
   });

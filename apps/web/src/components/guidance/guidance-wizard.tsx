@@ -377,7 +377,9 @@ export function GuidanceWizard({ flow }: Props) {
     return (
       <OutcomeView
         outcome={outcome}
-        isEmergency={phase === "emergency"}
+        isEmergency={
+          phase === "emergency" || outcome.outcome_code === "emergency"
+        }
         headingRef={headingRef}
       />
     );

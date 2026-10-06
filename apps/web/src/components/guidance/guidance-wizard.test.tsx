@@ -109,6 +109,27 @@ describe("GuidanceWizard", () => {
     ).toHaveAttribute("href", "tel:112");
   });
 
+  it("shows the call links when the normal flow ends in the emergency outcome", async () => {
+    // An admin-authored rule (or the API's fallback) can route the ordinary
+    // question path to the emergency outcome; it must look like one.
+    const user = await startQuestions();
+
+    await user.click(screen.getByRole("radio", { name: "18–64 години" }));
+    await user.click(screen.getByRole("button", { name: t("common.next") }));
+    await screen.findByRole("heading", {
+      name: "Колку се изразени симптомите денес?",
+    });
+    await user.click(screen.getByRole("radio", { name: "Благи" }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.seeGuidance") }),
+    );
+
+    await screen.findByRole("heading", { name: emergency.title });
+    expect(
+      screen.getByRole("link", { name: "Повикај 194 (Брза помош)" }),
+    ).toHaveAttribute("href", "tel:194");
+  });
+
   it("moves focus to the new step's heading on every step change", async () => {
     const user = await startQuestions();
 

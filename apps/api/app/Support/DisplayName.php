@@ -15,10 +15,14 @@ final class DisplayName
     public const MAX_LENGTH = 40;
 
     /**
-     * Unicode letters (with combining marks), spaces, and . - ' — starting
-     * with a letter, so it cannot be blank or pure punctuation.
+     * Cyrillic and Latin letters, spaces, and . - ' — starting with a letter,
+     * so it cannot be blank or pure punctuation. Applied after normalize()
+     * (NFKC), so every Macedonian and accented Latin letter arrives
+     * precomposed and no combining mark is needed. Excluding marks and other
+     * scripts shuts out lookalikes: an invisible combining grapheme joiner
+     * ("Ad͏min"), a Greek capital Alpha ("Αdmin").
      */
-    public const PATTERN = "/^\\p{L}\\p{M}*(?:[\\p{L}\\p{M} .'\\-])*$/u";
+    public const PATTERN = "/^[\\p{Cyrillic}\\p{Latin}][\\p{Cyrillic}\\p{Latin} .'\\-]*$/u";
 
     /** Fewer letters than this ("x", "А.") identify nobody. */
     public const MIN_LETTERS = 2;
@@ -110,10 +114,19 @@ final class DisplayName
         ]));
     }
 
-    /** Trim and collapse runs of whitespace to one space. */
+    /**
+     * NFKC, then trim and collapse runs of whitespace to one space.
+     *
+     * NFKC folds compatibility forms into the letters they imitate — full-width
+     * "Ａｄｍｉｎ" and mathematical "𝐀𝐝𝐦𝐢𝐧" become "Admin" — so the reserved-term
+     * check sees what a reader sees, and composes decomposed input ("е" + U+0301)
+     * into the precomposed letter PATTERN accepts.
+     */
     public static function normalize(string $value): string
     {
-        return trim((string) preg_replace('/\s+/u', ' ', $value));
+        $folded = \Normalizer::normalize($value, \Normalizer::FORM_KC);
+
+        return trim((string) preg_replace('/\s+/u', ' ', $folded === false ? $value : $folded));
     }
 
     /**

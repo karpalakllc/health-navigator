@@ -13,7 +13,9 @@ export type ProductListParams = {
 function toQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, raw] of Object.entries(params)) {
+    // Whitespace-only text means "no filter" (see doctors.ts toQuery).
+    const value = typeof raw === "string" ? raw.trim() : raw;
     if (value !== undefined && value !== "") {
       search.set(key, String(value));
     }

@@ -22,7 +22,10 @@ export type DoctorListParams = {
 function toQuery(params: DoctorListParams): string {
   const search = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, raw] of Object.entries(params)) {
+    // Whitespace-only text means "no filter"; sending it would also make every
+    // variant ("?q=%20", "?q=%20%20", …) its own shared cache entry.
+    const value = typeof raw === "string" ? raw.trim() : raw;
     if (value === undefined || value === "") {
       continue;
     }

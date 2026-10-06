@@ -140,6 +140,34 @@ class DisplayNameTest extends TestCase
             ->assertJsonValidationErrors(['display_name' => __("validation.custom.display_name.{$reason}", [], 'mk')]);
     }
 
+    /**
+     * Characters that render like a reserved term but are not its letters:
+     * an invisible combining mark, full-width and mathematical letters, a
+     * Greek capital Alpha.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function disguisedNames(): array
+    {
+        return [
+            'combining grapheme joiner in Latin' => ["Ad\u{034F}min"],
+            'combining grapheme joiner in Cyrillic' => ["Д\u{034F}-р Марко"],
+            'variation selector' => ["Admin\u{FE0F}"],
+            'full-width letters' => ['Ａｄｍｉｎ'],
+            'mathematical bold letters' => ['𝐀𝐝𝐦𝐢𝐧'],
+            'Greek capital alpha' => ['Αdmin'],
+        ];
+    }
+
+    #[DataProvider('disguisedNames')]
+    public function test_display_names_cannot_disguise_a_reserved_term(string $name): void
+    {
+        $this->forgetRateLimits();
+        $this->postJson('/api/v1/auth/register', $this->registration(['display_name' => $name]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('display_name');
+    }
+
     public function test_ordinary_names_that_resemble_reserved_terms_are_allowed(): void
     {
         foreach (['Драган', 'Dragan P.', 'Тимчо', 'Profirovski', 'Здравко', 'Админа'] as $name) {
