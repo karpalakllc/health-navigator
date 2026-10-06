@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ImportRunStatus;
 use App\Models\ImportRun;
 use App\Support\Import\Contracts\DoctorLicenceSink;
+use App\Support\Import\ImportAlreadyRunning;
 use App\Support\Import\ImportRunAnnouncer;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
 use App\Support\Licences\KomoraLicenceFetcher;
@@ -39,7 +40,6 @@ class ImportKomoraLicencesCommand extends Command
         $files = [];
         $listDate = null;
         $complete = true;
-        $hashes = null;
 
         if ($localFiles !== []) {
             foreach ($localFiles as $path) {
@@ -62,6 +62,39 @@ class ImportKomoraLicencesCommand extends Command
 
             $complete = (bool) $this->option('complete');
         }
+
+        // One run at a time (shared with the scheduler).
+        try {
+            $lock = ImportAlreadyRunning::lock(KomoraLicenceImporter::SOURCE);
+        } catch (ImportAlreadyRunning $exception) {
+            $this->warn($exception->getMessage());
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->runLocked($parser, $fetcher, $candidates, $announcer, $dryRun, $localFiles, $files, $listDate, $complete);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @param  list<string>  $localFiles
+     * @param  list<array{path: string, label: string}>  $files
+     */
+    private function runLocked(
+        KomoraLicenceListParser $parser,
+        KomoraLicenceFetcher $fetcher,
+        LicenceCandidateSource $candidates,
+        ImportRunAnnouncer $announcer,
+        bool $dryRun,
+        array $localFiles,
+        array $files,
+        ?CarbonImmutable $listDate,
+        bool $complete,
+    ): int {
+        $hashes = null;
 
         // One import_runs row per run, like every other source: staff see it
         // under Data import → Import runs, review items link back to it, and

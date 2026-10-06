@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ImportRunStatus;
 use App\Models\ImportRun;
 use App\Support\Import\Fzom\FzomImportJob;
+use App\Support\Import\ImportAlreadyRunning;
 use Illuminate\Console\Command;
 
 /**
@@ -40,7 +41,13 @@ class ImportFzomCommand extends Command
             }
         }
 
-        $run = $job->run((bool) $this->option('dry-run'), null, $local, (bool) $this->option('force'));
+        try {
+            $run = $job->run((bool) $this->option('dry-run'), null, $local, (bool) $this->option('force'));
+        } catch (ImportAlreadyRunning $exception) {
+            $this->warn($exception->getMessage());
+
+            return self::SUCCESS;
+        }
 
         return $this->report($run);
     }

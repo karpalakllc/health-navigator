@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\ImportRunStatus;
+use App\Support\Import\ImportAlreadyRunning;
 use App\Support\Import\ImportContext;
 use App\Support\Import\ImportRunner;
 use App\Support\Import\Website\InstitutionsJsonImporter;
@@ -30,11 +31,17 @@ class ImportInstitutionsJsonCommand extends Command
             return self::FAILURE;
         }
 
-        $run = $runner->run(InstitutionsJsonImporter::SOURCE, (bool) $this->option('dry-run'), null, function (ImportContext $context) use ($importer, $path): array {
-            $importer->import($context, $path);
+        try {
+            $run = $runner->run(InstitutionsJsonImporter::SOURCE, (bool) $this->option('dry-run'), null, function (ImportContext $context) use ($importer, $path): array {
+                $importer->import($context, $path);
 
-            return ['file' => basename(dirname($path)).'/'.basename($path), 'sha256' => hash_file('sha256', $path) ?: null];
-        });
+                return ['file' => basename(dirname($path)).'/'.basename($path), 'sha256' => hash_file('sha256', $path) ?: null];
+            });
+        } catch (ImportAlreadyRunning $exception) {
+            $this->warn($exception->getMessage());
+
+            return self::SUCCESS;
+        }
 
         $this->line(sprintf('Run #%d (%s): %s', $run->getKey(), $run->dry_run ? 'dry run' : 'apply', $run->status->value));
 

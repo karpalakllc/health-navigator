@@ -28,7 +28,9 @@ use Throwable;
  *   provenance are the audit trail). Publishing later goes through the
  *   normal model events, which index and log as usual;
  * - a finished or failed apply is announced as ImportRunFinished
- *   (ImportRunAnnouncer), which the data-ops alerts listen to.
+ *   (ImportRunAnnouncer), which the data-ops alerts listen to;
+ * - one run per source at a time (a cache lock): a second one stops at once
+ *   with ImportAlreadyRunning.
  */
 final class ImportRunner
 {
@@ -37,7 +39,24 @@ final class ImportRunner
     /**
      * @param  Closure(ImportContext): (array<string, mixed>|null)  $work  returns source metadata to store on the run
      */
+    /**
+     * @throws ImportAlreadyRunning when another run of the source is in progress
+     */
     public function run(string $source, bool $dryRun, ?User $by, Closure $work): ImportRun
+    {
+        $lock = ImportAlreadyRunning::lock($source);
+
+        try {
+            return $this->runLocked($source, $dryRun, $by, $work);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @param  Closure(ImportContext): (array<string, mixed>|null)  $work
+     */
+    private function runLocked(string $source, bool $dryRun, ?User $by, Closure $work): ImportRun
     {
         $run = ImportRun::start($source, $dryRun, $by);
         $context = new ImportContext($run, $source, $dryRun);

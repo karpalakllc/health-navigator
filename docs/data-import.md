@@ -84,7 +84,10 @@ without the minimised marker (`.minimised`) is deleted on the next run.
 
 ## 3. Running an import by hand
 
-Always start with a dry run.
+Always start with a dry run. Only one run per source runs at a time (a
+cache lock, `import:<source>`, shared with the scheduler): a second one
+prints „already running“ and stops without changing anything. A run that
+was killed frees the lock after two hours.
 
 ```sh
 php artisan import:fzom --dry-run
