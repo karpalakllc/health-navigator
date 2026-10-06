@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geologica, Source_Sans_3 } from "next/font/google";
 import { PlausibleAnalytics } from "@/components/layout/plausible-analytics";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
 import { SiteMaintenanceGate } from "@/components/layout/site-maintenance-gate";
 import { SitePlaceholdersProvider } from "@/components/layout/site-placeholders-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteHeader, SiteTabBar } from "@/components/layout/site-header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { mk } from "@/i18n/mk";
@@ -19,21 +19,30 @@ export const dynamic = "force-dynamic";
  * "latin" the text fell back to a system font. Basic "cyrillic" (U+0400–045F)
  * holds the whole alphabet, ѓ ќ ѕ љ њ џ ј included; "cyrillic-ext" covers other
  * languages' letters and would only add a preloaded file per face.
+ *
+ * Geologica: UI, headings, buttons, meta. Source Sans 3: reading text only
+ * (bios, reviews, posts, guidance body), via the `font-reading` /
+ * `type-reading` utilities. Both are variable fonts (weights 400–700 used).
  */
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const geologica = Geologica({
+  variable: "--font-geologica",
   subsets: ["latin", "cyrillic"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin", "cyrillic"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "cyrillic"],
-});
+export const viewport: Viewport = {
+  // env(safe-area-inset-bottom) is only non-zero with viewport-fit=cover;
+  // the bottom tab bar pads itself by it.
+  viewportFit: "cover",
+  themeColor: "#fbf6f1",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchPublicSettings();
@@ -62,17 +71,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const settings = await fetchPublicSettings();
-  const fontClass =
-    settings.site_font_family === "inter"
-      ? `${inter.variable} font-[family-name:var(--font-inter)]`
-      : settings.site_font_family === "system"
-        ? "font-sans"
-        : `${geistSans.variable} ${geistMono.variable}`;
 
+  // settings.site_font_family (geist/inter/system) is no longer honoured:
+  // the D2a type system is Geologica + Source Sans 3.
   return (
     <html
       lang="mk"
-      className={cn(fontClass, "h-full antialiased")}
+      className={cn(geologica.variable, sourceSans.variable, "h-full")}
       suppressHydrationWarning
     >
       {/* Extensions (e.g. ColorZilla) mutate <body> before hydrate — suppress only on body */}
@@ -80,7 +85,6 @@ export default async function RootLayout({
         className="relative flex min-h-full flex-col overflow-x-clip bg-background text-foreground"
         suppressHydrationWarning
       >
-        <div className="app-ambient" aria-hidden="true" />
         <SiteMaintenanceGate>
           <SitePlaceholdersProvider settings={settings}>
             <SearchDialogProvider>
@@ -92,11 +96,12 @@ export default async function RootLayout({
               <main
                 id={MAIN_CONTENT_ID}
                 tabIndex={-1}
-                className="flex-1 scroll-mt-20 outline-none"
+                className="flex-1 outline-none"
               >
                 {children}
               </main>
               <SiteFooter />
+              <SiteTabBar />
             </SearchDialogProvider>
           </SitePlaceholdersProvider>
         </SiteMaintenanceGate>
