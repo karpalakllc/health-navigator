@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Reviews\Pages;
 use App\Enums\ReviewStatus;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Filament\Support\ModerationBulkActions;
+use App\Filament\Support\ReviewResponseActions;
 use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
@@ -32,6 +33,8 @@ class ViewReview extends ViewRecord
                     auth()->user(),
                     $data['rejection_note'] ?? null,
                 )),
+            ReviewResponseActions::respond(),
+            ReviewResponseActions::remove(),
         ];
     }
 }

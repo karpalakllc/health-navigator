@@ -34,6 +34,15 @@ class ReviewPolicy
         return $user->can('reviews.update');
     }
 
+    /**
+     * Attach, edit or remove the official response of the reviewed doctor or
+     * facility (entered by staff on their behalf).
+     */
+    public function respond(User $user, Review $review): bool
+    {
+        return $user->can('reviews.respond');
+    }
+
     public function delete(User $user, Review $review): bool
     {
         return $user->can('reviews.delete');

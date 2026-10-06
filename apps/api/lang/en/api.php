@@ -56,6 +56,12 @@ return [
 
     'review' => [
         'duplicate' => 'You have already submitted a review for this profile.',
+        'helpful_own' => 'You cannot mark your own review as helpful.',
+    ],
+
+    'report' => [
+        'received' => 'Thank you. The report has been received and a moderator will review it.',
+        'hidden_default_note' => 'The content was removed after a report and a moderator review because it does not follow the community rules.',
     ],
 
     'avatar' => [

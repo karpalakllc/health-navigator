@@ -14,6 +14,7 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
 use App\Services\AnalyticsService;
+use App\Support\ReviewHelpfulVotes;
 use App\Support\UgcMailer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -117,16 +118,34 @@ class ReviewController extends Controller
             'oldest' => $query->oldest('published_at'),
             'rating_high' => $query->orderByDesc('rating')->latest('published_at'),
             'rating_low' => $query->orderBy('rating')->latest('published_at'),
+            'helpful' => $query->orderByDesc('helpful_count')->latest('published_at'),
             default => $query->latest('published_at'),
         };
 
         $paginator = $query->paginate($perPage)->withQueryString();
+
+        // Official responses are signed with the profile's name; every review
+        // here belongs to this profile, so no per-row lookup is needed.
+        $paginator->getCollection()->each(fn (Review $review) => $review->setRelation('reviewable', $reviewable));
+
+        // „Корисно“ state for the signed-in viewer only: anonymous lists stay
+        // identical for everyone (and so cacheable).
+        if ($request->user()) {
+            $voted = ReviewHelpfulVotes::votedBy(
+                $request->user(),
+                $paginator->getCollection()->map(fn (Review $review): int => (int) $review->getKey())->values()->all(),
+            );
+            $paginator->getCollection()->each(function (Review $review) use ($voted): void {
+                $review->viewerHasVotedHelpful = isset($voted[(int) $review->getKey()]);
+            });
+        }
 
         $meta = [
             'current_page' => $paginator->currentPage(),
             'per_page' => $paginator->perPage(),
             'total' => $paginator->total(),
             'last_page' => $paginator->lastPage(),
+            'rating_counts' => $this->ratingCounts($reviewable),
         ];
 
         if ($request->user()) {
@@ -143,6 +162,31 @@ class ReviewController extends Controller
             'data' => PublicReviewResource::collection($paginator),
             'meta' => $meta,
         ]);
+    }
+
+    /**
+     * How many approved reviews gave each star, for the profile's histogram.
+     * Independent of the list's own rating filter and page, so the bars stay
+     * put while the visitor filters. One grouped query.
+     *
+     * @return array<int, int>
+     */
+    private function ratingCounts(Doctor|Facility $reviewable): array
+    {
+        $counts = $reviewable->reviews()
+            ->approved()
+            ->toBase()
+            ->selectRaw('rating, count(*) as aggregate')
+            ->groupBy('rating')
+            ->pluck('aggregate', 'rating');
+
+        $result = [];
+
+        foreach ([1, 2, 3, 4, 5] as $stars) {
+            $result[$stars] = (int) ($counts[$stars] ?? 0);
+        }
+
+        return $result;
     }
 
     private function storeReview(Doctor|Facility $reviewable, StoreReviewRequest $request): JsonResponse

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ForumPost extends Model
 {
@@ -71,6 +72,14 @@ class ForumPost extends Model
     public function moderatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'moderated_by_id');
+    }
+
+    /**
+     * @return MorphMany<ContentReport, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ContentReport::class, 'reportable');
     }
 
     /**

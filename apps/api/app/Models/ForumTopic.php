@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
 
 class ForumTopic extends Model
@@ -95,6 +96,14 @@ class ForumTopic extends Model
     }
 
     /**
+     * @return MorphMany<ContentReport, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ContentReport::class, 'reportable');
+    }
+
+    /**
      * @param  Builder<ForumTopic>  $query
      * @return Builder<ForumTopic>
      */
@@ -134,6 +143,20 @@ class ForumTopic extends Model
     public function recordApprovedReply(): void
     {
         $this->increment('replies_count', 1, ['last_post_at' => now()]);
+    }
+
+    /**
+     * A published reply was taken down (a report hidden it). The floor keeps a
+     * counter that drifted earlier from going negative.
+     */
+    public function recordRemovedReply(): void
+    {
+        self::query()
+            ->whereKey($this->getKey())
+            ->where('replies_count', '>', 0)
+            ->decrement('replies_count');
+
+        $this->refresh();
     }
 
     /**

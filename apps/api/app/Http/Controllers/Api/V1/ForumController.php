@@ -155,6 +155,8 @@ class ForumController extends Controller
 
         $perPage = $validated['per_page'] ?? 20;
         $paginator = $postsQuery->paginate($perPage)->withQueryString();
+        // ForumPostResource compares each reply's author with the topic's.
+        $paginator->getCollection()->each(fn (ForumPost $post) => $post->setRelation('topic', $topicModel));
 
         $related = ForumTopic::query()
             ->where('forum_category_id', $categoryModel->id)

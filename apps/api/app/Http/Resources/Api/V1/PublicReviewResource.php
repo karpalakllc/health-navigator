@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\Doctor;
+use App\Models\Facility;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,6 +24,39 @@ class PublicReviewResource extends JsonResource
             'body' => $this->body,
             'author_name' => $this->user->publicName(),
             'published_at' => $this->published_at?->toIso8601String(),
+            'response' => $this->officialResponse(),
+            'helpful_count' => (int) $this->helpful_count,
+            // Only on a signed-in request whose controller resolved it; absent
+            // for anonymous visitors so their payload is the same for everyone.
+            'viewer' => $this->when(
+                $request->user() !== null && $this->viewerHasVotedHelpful !== null,
+                fn (): array => ['has_voted_helpful' => (bool) $this->viewerHasVotedHelpful],
+            ),
+        ];
+    }
+
+    /**
+     * The reviewed doctor's or facility's official response (entered by staff
+     * on their behalf), or null. Plain text; clients render it as text.
+     *
+     * @return array{body: string, responder_name: string|null, responded_at: string|null}|null
+     */
+    private function officialResponse(): ?array
+    {
+        if (! $this->hasResponse()) {
+            return null;
+        }
+
+        $reviewable = $this->reviewable;
+
+        return [
+            'body' => (string) $this->response_body,
+            'responder_name' => match (true) {
+                $reviewable instanceof Doctor => $reviewable->full_name,
+                $reviewable instanceof Facility => $reviewable->name,
+                default => null,
+            },
+            'responded_at' => $this->response_at?->toIso8601String(),
         ];
     }
 }

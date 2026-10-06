@@ -20,7 +20,7 @@ class ListReviewsRequest extends FormRequest
         return [
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-            'sort' => ['nullable', 'string', Rule::in(['newest', 'oldest', 'rating_high', 'rating_low'])],
+            'sort' => ['nullable', 'string', Rule::in(['newest', 'oldest', 'rating_high', 'rating_low', 'helpful'])],
             'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
         ];
     }
