@@ -2,6 +2,8 @@
 
 use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
+use App\Support\DataOps\ImportAlerter;
+use App\Support\DataOps\ImportSchedule;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('triage:purge-old-sessions')
@@ -74,3 +76,24 @@ Schedule::command('model:prune', ['--model' => [ProfileCorrection::class]])
     ->dailyAt('04:50')
     ->onOneServer()
     ->withoutOverlapping();
+
+// W6-C: source imports (docs/data-import.md). Both are OFF until the owner
+// sets IMPORT_FZOM_SCHEDULE / IMPORT_KOMORA_SCHEDULE, and each is skipped
+// while its command is not installed. A failed run mails the import alert
+// inbox; a finished run reports its counts through ImportRunFinished.
+// ФЗОМ: weekly, Monday early morning (the XML is regenerated daily).
+Schedule::command(ImportSchedule::command('fzom'))
+    ->weeklyOn(1, '05:30')
+    ->onOneServer()
+    ->withoutOverlapping(180)
+    ->when(fn (): bool => ImportSchedule::shouldRun('fzom'))
+    ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('fzom', ImportSchedule::command('fzom')));
+
+// Лекарска комора: monthly on the 3rd (the list changes about every four
+// months; the command re-imports only when the published list changed).
+Schedule::command(ImportSchedule::command('komora'))
+    ->monthlyOn(3, '06:00')
+    ->onOneServer()
+    ->withoutOverlapping(180)
+    ->when(fn (): bool => ImportSchedule::shouldRun('komora'))
+    ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora', ImportSchedule::command('komora')));
