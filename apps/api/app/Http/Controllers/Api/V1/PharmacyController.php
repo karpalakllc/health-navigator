@@ -59,7 +59,8 @@ class PharmacyController extends Controller
         $query = PharmacyCatalog::availableProductsRelation($pharmacy);
 
         if (! empty($validated['q'])) {
-            ScriptInsensitiveSearch::whereColumnMatches($query, 'products.name', $validated['q']);
+            // The relation's underlying builder: the helper takes an Eloquent Builder.
+            ScriptInsensitiveSearch::whereColumnMatches($query->getQuery(), 'products.name', $validated['q']);
         }
 
         if (! empty($validated['category'])) {
