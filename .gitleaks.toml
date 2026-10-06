@@ -1,0 +1,22 @@
+# gitleaks configuration (CI job "secrets" in .github/workflows/ci.yml).
+# The default rule set, plus an allowlist for values that are public on purpose.
+title = "Zdravje360"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Deliberately public test fixtures and placeholder templates"
+paths = [
+  # Fixed E2E credentials: TOTP secrets, the throwaway web-tier secret and
+  # seeded passwords exist only in the disposable zdravje_e2e database.
+  '''apps/web/e2e/''',
+  '''apps/api/database/seeders/E2ESeeder\.php''',
+  # Test suites build fake keys and secrets inline (str_repeat, base64 'k's).
+  '''apps/api/tests/''',
+  '''apps/web/src/.*\.test\.tsx?''',
+  # Templates hold placeholders and local-only defaults, never real values.
+  '''infra/env\.[a-z]+\.example''',
+  '''apps/api/\.env\.example''',
+  '''apps/web/\.env\.example''',
+]
