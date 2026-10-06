@@ -126,6 +126,57 @@ class AccountExportTest extends TestCase
         $this->assertSame('user.login', $export['activity'][0]['event']);
     }
 
+    public function test_the_export_holds_aspects_removals_and_resubmissions(): void
+    {
+        $member = User::factory()->create();
+        $doctor = Doctor::factory()->create();
+
+        $review = Review::factory()->rejected()->create([
+            'user_id' => $member->id,
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $doctor->id,
+        ]);
+        $review->aspectRatings()->create(['aspect' => 'communication', 'rating' => 5]);
+        $review->aspectRatings()->create(['aspect' => 'waiting_time', 'rating' => 2]);
+        $review->forceFill(['resubmission_count' => 1, 'resubmitted_at' => now()->subDay()])->save();
+
+        $removed = Review::factory()->rejected()->create([
+            'user_id' => $member->id,
+            'removed_at' => now()->subDays(2),
+            'removal_category' => 'spam',
+        ]);
+        $topic = ForumTopic::factory()->create([
+            'user_id' => $member->id,
+            'status' => ForumContentStatus::Rejected,
+            'removed_at' => now()->subDays(3),
+            'removal_category' => 'abuse',
+        ]);
+        ForumPost::factory()->create([
+            'user_id' => $member->id,
+            'forum_topic_id' => $topic->id,
+            'status' => ForumContentStatus::Rejected,
+            'removed_at' => now()->subDays(3),
+            'removal_category' => 'abuse',
+        ]);
+
+        $export = $this->download($member);
+
+        $resent = collect($export['reviews'])->firstWhere('id', $review->id);
+        $this->assertSame(['communication' => 5, 'waiting_time' => 2], $resent['aspects']);
+        $this->assertSame(1, $resent['resubmission_count']);
+        $this->assertNotNull($resent['resubmitted_at']);
+        $this->assertNull($resent['removed_at']);
+
+        $takenDown = collect($export['reviews'])->firstWhere('id', $removed->id);
+        $this->assertSame('spam', $takenDown['removal_category']);
+        $this->assertNotNull($takenDown['removed_at']);
+
+        $this->assertSame('abuse', $export['forum_topics'][0]['removal_category']);
+        $this->assertNotNull($export['forum_topics'][0]['removed_at']);
+        $this->assertSame('abuse', $export['forum_posts'][0]['removal_category']);
+        $this->assertNotNull($export['forum_posts'][0]['removed_at']);
+    }
+
     public function test_the_export_never_includes_another_members_data(): void
     {
         $member = User::factory()->create(['email' => 'mine@example.com']);
