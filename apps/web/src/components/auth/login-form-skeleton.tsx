@@ -1,19 +1,18 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Login form placeholder for Suspense / loading route. */
+/** Login form placeholder (inside the auth card) for Suspense / loading. */
 export function LoginFormSkeleton() {
   return (
-    <div className="grid gap-3 rounded-2xl border border-border bg-card p-5">
-      <div className="grid gap-2">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-10 w-full rounded-xl" />
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-14 w-full rounded-input" />
       </div>
-      <div className="grid gap-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-10 w-full rounded-xl" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-14 w-full rounded-input" />
       </div>
-      <Skeleton className="h-10 w-full rounded-xl sm:w-40" />
-      <Skeleton className="h-3 w-full max-w-sm" />
+      <Skeleton className="h-14 w-full rounded-pill" />
     </div>
   );
 }

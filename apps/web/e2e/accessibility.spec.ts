@@ -38,8 +38,6 @@ const KNOWN: Record<string, Record<string, string>> = {
     "color-contrast": CONTRAST,
   },
   "doctor profile": { "color-contrast": CONTRAST },
-  login: { "color-contrast": CONTRAST },
-  register: { "color-contrast": CONTRAST },
   forum: { "color-contrast": CONTRAST },
 };
 

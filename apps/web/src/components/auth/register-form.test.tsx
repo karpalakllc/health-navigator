@@ -220,6 +220,65 @@ describe("RegisterForm", () => {
     expect(confirmation).not.toHaveAttribute("aria-invalid");
   });
 
+  it("links every rejected field from the error summary", async () => {
+    mockFetch({
+      status: 422,
+      body: {
+        message: "Е-адресата мора да биде валидна. (и уште 1 грешка)",
+        errors: {
+          email: ["Е-адресата мора да биде валидна."],
+          password: ["Лозинката мора да има најмалку 10 знаци."],
+        },
+      },
+    });
+    const user = userEvent.setup();
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit({ password: "kratka" });
+    await screen.findByRole("alert");
+
+    // In form order, named by the field's label, pointing at the field.
+    const email = screen.getByRole("link", { name: t("auth.email") });
+    const password = screen.getByRole("link", { name: t("auth.password") });
+    expect(email).toHaveAttribute(
+      "href",
+      `#${screen.getByLabelText(t("auth.email")).id}`,
+    );
+    expect(
+      email.compareDocumentPosition(password) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(password);
+    expect(screen.getByLabelText(t("auth.password"))).toHaveFocus();
+  });
+
+  it("lists no summary links when only one field failed", async () => {
+    mockFetch({
+      status: 422,
+      body: {
+        message: "Е-адресата мора да биде валидна.",
+        errors: { email: ["Е-адресата мора да биде валидна."] },
+      },
+    });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit();
+    await screen.findByRole("alert");
+
+    expect(
+      screen.queryByRole("link", { name: t("auth.email") }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("states the password rules up front", () => {
+    render(<RegisterForm registrationsEnabled />);
+
+    expect(
+      screen.getByLabelText(t("auth.password")),
+    ).toHaveAccessibleDescription(t("auth.passwordRules"));
+  });
+
   it("moves focus to the check-your-inbox heading after registering", async () => {
     mockFetch({ status: 202, body: { data: {} } });
     render(<RegisterForm registrationsEnabled />);

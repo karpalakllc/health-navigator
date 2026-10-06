@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { Card } from "@/components/ui/card";
 
+/**
+ * A form on a white card. The auth pages now use AuthPage (the card holds the
+ * title too); kept for other forms that still wrap themselves in it (the forum
+ * new-topic composer).
+ */
 export function AuthFormCard({
   children,
   className,
@@ -9,10 +14,8 @@ export function AuthFormCard({
   className?: string;
 }) {
   return (
-    <div
-      className={cn("content-card rounded-[1.625rem] p-5 sm:p-7", className)}
-    >
+    <Card padding="md" className={className ? `lg:p-8 ${className}` : "lg:p-8"}>
       {children}
-    </div>
+    </Card>
   );
 }

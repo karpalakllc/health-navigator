@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { AuthFormCard } from "@/components/auth/auth-form-card";
-import { PasswordInput } from "@/components/auth/password-input";
+import { AuthStateHeader } from "@/components/auth/auth-page";
+import { PasswordField } from "@/components/auth/password-input";
 import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/auth/text-field";
+import { Button, TextLink } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-message";
+import { Notice } from "@/components/ui/notice";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
 import { t } from "@/i18n/t";
-import { FormError } from "@/components/ui/form-message";
 
 export function LoginForm() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [unverified, setUnverified] = useState(false);
   const [pending, setPending] = useState(false);
+  // Set by the reset-password form once the new password is saved.
+  const passwordWasReset = searchParams.get("reset") === "1";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -64,101 +67,77 @@ export function LoginForm() {
 
   if (unverified) {
     return (
-      <AuthFormCard>
-        <div className="grid gap-3">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("auth.verifyCheckInbox")}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t("auth.verifyUnverified")}
-          </p>
-          <ResendVerificationForm defaultEmail={email} />
-        </div>
-      </AuthFormCard>
+      <div className="flex flex-col gap-5">
+        <AuthStateHeader icon="mail" title={t("auth.verifyCheckInbox")} />
+        <p className="type-body text-ink">{t("auth.verifyUnverified")}</p>
+        <ResendVerificationForm defaultEmail={email} />
+      </div>
     );
   }
 
   return (
-    <AuthFormCard>
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <label className="grid gap-1.5 text-sm">
-          <span className="font-semibold text-foreground">
-            {t("auth.email")}
-          </span>
-          <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={filterInputClassName}
-          />
-        </label>
+    <div className="flex flex-col gap-6">
+      {passwordWasReset ? (
+        <Notice tone="success">{t("auth.resetPasswordDone")}</Notice>
+      ) : null}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <TextField
+          label={t("auth.email")}
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         {/*
           The forgot-password link sits beside the label, not inside it: a link
           inside a <label> makes the label's accessible name include the link
           text, and clicking it is ambiguous between focusing and navigating.
         */}
-        <div className="grid gap-1.5 text-sm">
-          <div className="flex items-center justify-between gap-2">
-            <label
-              htmlFor="login-password"
-              className="font-semibold text-foreground"
-            >
-              {t("auth.password")}
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
-            >
+        <PasswordField
+          id="login-password"
+          label={t("auth.password")}
+          name="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={setPassword}
+          labelAside={
+            <TextLink href="/forgot-password" className="type-meta">
               {t("auth.forgotPassword")}
-            </Link>
-          </div>
-          <PasswordInput
-            id="login-password"
-            name="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={setPassword}
-          />
-        </div>
+            </TextLink>
+          }
+        />
         {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
+          size="lg"
+          fullWidth
+          loading={pending}
           disabled={pending}
-          className="min-h-[44px] w-full sm:w-auto"
         >
           {pending ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
-        <p className="text-sm text-muted-foreground">
-          {t("auth.noAccount")}{" "}
-          <Link
-            href="/register"
-            className="font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            {t("auth.register")}
-          </Link>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {t("auth.termsNotice")}{" "}
-          <Link
-            href="/terms"
-            className="font-medium text-primary underline-offset-2 hover:underline"
-          >
-            {t("auth.termsLink")}
-          </Link>{" "}
-          {t("auth.and")}{" "}
-          <Link
-            href="/disclaimer"
-            className="font-medium text-primary underline-offset-2 hover:underline"
-          >
-            {t("auth.disclaimerLink")}
-          </Link>
-          .
-        </p>
       </form>
-    </AuthFormCard>
+      <p className="flex flex-wrap items-center gap-x-2 border-t border-line pt-4 type-body text-ink-2">
+        <span>{t("auth.noAccount")}</span>
+        <TextLink href="/register">{t("auth.register")}</TextLink>
+      </p>
+      <p className="type-meta text-ink-2">
+        {t("auth.termsNotice")}{" "}
+        <Link href="/terms" className="link-underline font-semibold text-ink">
+          {t("auth.termsLink")}
+        </Link>{" "}
+        {t("auth.and")}{" "}
+        <Link
+          href="/disclaimer"
+          className="link-underline font-semibold text-ink"
+        >
+          {t("auth.disclaimerLink")}
+        </Link>
+        .
+      </p>
+    </div>
   );
 }
