@@ -826,9 +826,9 @@ export const mk = {
     moderationError: "Промената не може да се зачува.",
     moderationErrorRetry:
       "Промената не може да се зачува. Обидете се повторно.",
-    authorTopics: "Теми",
-    authorPosts: "Пораки",
-    authorMemberSince: "Член од",
+    authorMemberSince: "Член од {year}",
+    authorPosts: "{count} објави",
+    authorPostsOne: "{count} објава",
     rulesTitle: "Правила на заедницата",
     rulesRespect:
       "Бидете учтиви. Не објавувајте лични податоци (ваши или туѓи) во јавни теми.",
