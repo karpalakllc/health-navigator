@@ -59,6 +59,7 @@ export const mk = {
     searchWhatPlaceholder: "Лекар, специјалност, аптека…",
     searchWherePlaceholder: "Град",
     searchSubmit: "Пребарај",
+    searchLandmark: "Пребарување низ сајтот",
     signedInAs: "Најавени сте како {name}",
   },
   footer: {
@@ -398,6 +399,7 @@ export const mk = {
     total: "вкупно",
     previous: "Претходна",
     next: "Следна",
+    label: "Страници со резултати",
   },
   account: {
     name: "Име",
@@ -823,6 +825,10 @@ export const mk = {
     unpinTopic: "Откачи тема",
     lockTopic: "Заклучи тема",
     unlockTopic: "Отклучи тема",
+    topicPinnedDone: "Темата е закачена.",
+    topicUnpinnedDone: "Темата е откачена.",
+    topicLockedDone: "Темата е заклучена.",
+    topicUnlockedDone: "Темата е отклучена.",
     moderationError: "Промената не може да се зачува.",
     moderationErrorRetry:
       "Промената не може да се зачува. Обидете се повторно.",

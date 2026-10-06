@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
@@ -53,6 +53,44 @@ describe("ForumTopicModerationToolbar", () => {
       is_pinned: true,
     });
     expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("keeps focus on the pressed button and announces the change", async () => {
+    let resolve: (value: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    renderToolbar();
+    const user = userEvent.setup();
+    const pin = screen.getByRole("button", { name: t("forum.pinTopic") });
+
+    await user.click(pin);
+
+    // While saving, the button is busy but still focused (not disabled).
+    expect(pin).toHaveFocus();
+    expect(pin).toHaveAttribute("aria-busy", "true");
+    expect(pin).not.toBeDisabled();
+
+    resolve(
+      new Response(
+        JSON.stringify({ data: { is_pinned: true, is_locked: false } }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    expect(await screen.findByText(t("forum.topicPinnedDone"))).toHaveAttribute(
+      "role",
+      "status",
+    );
+    expect(
+      screen.getByRole("button", { name: t("forum.unpinTopic") }),
+    ).toHaveFocus();
   });
 
   it("unlocks a locked topic", async () => {
