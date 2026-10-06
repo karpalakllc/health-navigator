@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -111,6 +112,25 @@ class MailCopyTest extends TestCase
 
         $this->assertStringContainsString('Имате 1 ставка што чека модерација', $text);
         $this->assertStringNotContainsString('ставки што чекаат', $text);
+    }
+
+    /**
+     * The brand link in the header pointed at APP_URL, the API host, whose
+     * root redirects to the admin sign-in.
+     */
+    public function test_the_header_brand_links_to_the_public_site(): void
+    {
+        config(['app.url' => 'https://api.example.test', 'zdravje.frontend_url' => 'https://www.example.test']);
+
+        $mail = new WelcomeMail('Ана', 'https://www.example.test/login');
+        $html = $mail->render();
+
+        $this->assertStringContainsString('href="https://www.example.test"', $html);
+        $this->assertStringNotContainsString('https://api.example.test', $html);
+
+        $text = (string) app(Markdown::class)->renderText((string) $mail->content()->markdown, $mail->buildViewData());
+        $this->assertStringContainsString('https://www.example.test', $text);
+        $this->assertStringNotContainsString('https://api.example.test', $text);
     }
 
     /** The rendered mail as plain text: no tags, whitespace collapsed. */

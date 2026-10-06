@@ -1,8 +1,8 @@
-{{-- Published only to translate the footer; see vendor/notifications/email.blade.php. --}}
+{{-- Published to translate the footer and to link the brand to the public site (APP_URL is the API); see vendor/notifications/email.blade.php. --}}
 <x-mail::layout>
     {{-- Header --}}
     <x-slot:header>
-        <x-mail::header :url="config('app.url')">
+        <x-mail::header :url="config('zdravje.frontend_url')">
             {{ config('app.name') }}
         </x-mail::header>
     </x-slot:header>
