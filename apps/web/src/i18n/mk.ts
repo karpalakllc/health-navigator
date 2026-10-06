@@ -233,6 +233,10 @@ export const mk = {
   ui: {
     errorPrefix: "Грешка:",
     required: "задолжително",
+    fieldRequired: "Пополнете го ова поле.",
+    emailRequired: "Внесете ја вашата е-пошта.",
+    emailInvalid: "Внесете валидна е-пошта, на пример ime@primer.mk.",
+    errorSummaryTitle: "Формуларот не е испратен. Поправете ги означените полиња.",
     removeFilter: "Отстрани филтер: {label}",
     featured: "Истакнат",
     verified: "Верификуван",
@@ -329,7 +333,9 @@ export const mk = {
     hidePassword: "Сокриј лозинка",
     passwordRules: "Најмалку 10 знаци, со барем една буква и една бројка.",
     resetPasswordDone: "Лозинката е променета. Најавете се со новата лозинка.",
-    errorSummaryIntro: "Поправете ги овие полиња:",
+    passwordMismatch: "Лозинките не се совпаѓаат.",
+    passwordTooWeak:
+      "Лозинката мора да има најмалку 10 знаци, со барем една буква и една бројка.",
     reviewsTitle: "Мои рецензии",
     forumTitle: "Мој форум",
   },

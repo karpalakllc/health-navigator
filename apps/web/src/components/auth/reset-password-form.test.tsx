@@ -90,18 +90,54 @@ describe("ResetPasswordForm", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("shows the API's mismatch message", async () => {
+  it("catches a mismatched confirmation before sending, under that field", async () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    const { container } = renderForm();
+
+    expect(container.querySelector("form")).toHaveAttribute("novalidate");
+    await submit("novaLozinka123", "drugaLozinka123");
+
+    expect(fetch).not.toHaveBeenCalled();
+    const confirmation = screen.getByLabelText(
+      t("auth.registerPasswordConfirm"),
+    );
+    expect(confirmation).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("auth.passwordMismatch")}`,
+    );
+    expect(confirmation).toHaveFocus();
+  });
+
+  it("files the API's password errors under the password fields", async () => {
     mockFetch({
       status: 422,
-      body: { message: "Потврдата на лозинката не се совпаѓа." },
+      body: {
+        message: "Потврдата на полето лозинка не се совпаѓа.",
+        errors: {
+          password: [
+            "Полето лозинка мора да има најмалку 10 знаци.",
+            "Потврдата на полето лозинка не се совпаѓа.",
+          ],
+        },
+      },
     });
     renderForm();
 
-    await submit("novaLozinka123", "drugaLozinka123");
+    await submit();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Потврдата на лозинката не се совпаѓа.",
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(t("auth.registerPasswordConfirm")),
+      ).toHaveAttribute("aria-invalid", "true"),
     );
+    expect(
+      screen.getByLabelText(t("auth.registerPasswordConfirm")),
+    ).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("auth.passwordMismatch")}`,
+    );
+    expect(screen.getByLabelText(t("auth.password"))).toHaveAccessibleDescription(
+      new RegExp(t("auth.passwordTooWeak")),
+    );
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("reports a network failure", async () => {

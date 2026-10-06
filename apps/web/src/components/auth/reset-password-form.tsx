@@ -7,7 +7,20 @@ import { TextField } from "@/components/auth/text-field";
 import { Button, TextLink } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
+import {
+  compactErrors,
+  focusField,
+  mapApiFieldErrors,
+  passwordConfirmationError,
+  requiredError,
+} from "@/lib/form-validation";
 import { t } from "@/i18n/t";
+
+type ResetField = "password" | "password_confirmation";
+const RESET_FIELDS: readonly ResetField[] = [
+  "password",
+  "password_confirmation",
+];
 
 type ResetPasswordFormProps = {
   email: string;
@@ -20,10 +33,35 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<ResetField, string>>
+  >({});
+
+  function reject(errors: Partial<Record<ResetField, string>>) {
+    setFieldErrors(errors);
+    focusField(
+      errors.password ? "reset-password" : "reset-password-confirm",
+    );
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const local = compactErrors<ResetField>({
+      password: requiredError(password),
+      password_confirmation: passwordConfirmationError(
+        password,
+        passwordConfirmation,
+      ),
+    });
+
+    if (local.password || local.password_confirmation) {
+      reject(local);
+      return;
+    }
+
+    setFieldErrors({});
     setPending(true);
 
     try {
@@ -41,6 +79,18 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
       const payload = await response.json();
 
       if (!response.ok) {
+        // Password problems go under their field; anything else (a stale
+        // token, the e-mail) stays the form-level message.
+        const mapped = mapApiFieldErrors(payload.errors, RESET_FIELDS, {
+          passwordField: "password",
+          confirmationField: "password_confirmation",
+        });
+
+        if (mapped.password || mapped.password_confirmation) {
+          reject(mapped);
+          return;
+        }
+
         setError(
           payload.message ??
             payload.errors?.email?.[0] ??
@@ -60,7 +110,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField
           label={t("auth.email")}
           type="email"
@@ -73,6 +123,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
           id="reset-password"
           label={t("auth.password")}
           hint={t("auth.passwordRules")}
+          error={fieldErrors.password}
           name="password"
           autoComplete="new-password"
           required
@@ -82,6 +133,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
         <PasswordField
           id="reset-password-confirm"
           label={t("auth.registerPasswordConfirm")}
+          error={fieldErrors.password_confirmation}
           name="password_confirmation"
           autoComplete="new-password"
           required

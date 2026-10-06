@@ -66,7 +66,31 @@ describe("LoginForm", () => {
       .click(screen.getByRole("button", { name: t("auth.signIn") }));
 
     expect(fetch).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(t("auth.email"))).toBeInvalid();
+    const email = screen.getByLabelText(t("auth.email"));
+    expect(email).toBeInvalid();
+    // Our Macedonian message under the field, not the browser's bubble.
+    expect(email.closest("form")).toHaveAttribute("novalidate");
+    expect(email).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailRequired")}`,
+    );
+    expect(
+      screen.getByLabelText(t("auth.password")),
+    ).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.fieldRequired")}`,
+    );
+    expect(email).toHaveFocus();
+  });
+
+  it("checks the e-mail shape before sending", async () => {
+    const fetch = mockFetch({ status: 200, body: {} });
+    render(<LoginForm />);
+
+    await fillAndSubmit("ana.example.mk");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(t("auth.email"))).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailInvalid")}`,
+    );
   });
 
   it("toggles password visibility with a named button", async () => {
