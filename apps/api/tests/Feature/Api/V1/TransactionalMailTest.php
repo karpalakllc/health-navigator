@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 class TransactionalMailTest extends TestCase
@@ -46,7 +47,6 @@ class TransactionalMailTest extends TestCase
 
         $user = User::factory()->create([
             'name' => 'Ana Member',
-            'display_name' => 'Нов Ч.',
             'email' => 'ana@example.com',
             'email_verified_at' => null,
         ]);
@@ -68,7 +68,8 @@ class TransactionalMailTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Ana Member',
-            'display_name' => 'Нов Ч.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'ana@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
@@ -171,5 +172,32 @@ class TransactionalMailTest extends TestCase
             return $mail->rejectionNote === 'Does not meet community guidelines.'
                 && $mail->actionUrl === FrontendUrl::to('/account/reviews');
         });
+    }
+
+    public function test_a_refused_review_mail_offers_the_one_resend_and_then_says_it_is_final(): void
+    {
+        Mail::fake();
+        $doctor = Doctor::factory()->create();
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
+        $review = Review::factory()->create([
+            'user_id' => $member->id,
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $doctor->id,
+            'status' => ReviewStatus::Pending,
+        ]);
+
+        $review->reject($moderator, 'Лични податоци.');
+
+        Mail::assertQueued(UgcRejectedMail::class, fn (UgcRejectedMail $mail): bool => $mail->canResubmit && ! $mail->finalRefusal
+            && str_contains($mail->render(), 'еднаш да ја измените и да ја испратите повторно'));
+
+        Mail::fake();
+        $review->fresh()->resubmit(4, 'Изменето.', []);
+        $review->fresh()->reject($moderator, 'Сè уште лични податоци.');
+
+        Mail::assertQueued(UgcRejectedMail::class, fn (UgcRejectedMail $mail): bool => ! $mail->canResubmit && $mail->finalRefusal
+            && str_contains($mail->render(), 'Оваа одлука е конечна.')
+            && ! str_contains($mail->render(), 'еднаш да ја измените'));
     }
 }

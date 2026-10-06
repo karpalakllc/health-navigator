@@ -64,6 +64,20 @@ class ReviewModerationAuthorizationTest extends TestCase
         $this->assertSame(ReviewStatus::Pending, $review->fresh()->status);
     }
 
+    public function test_a_resent_review_queues_by_when_it_was_resent(): void
+    {
+        $older = Review::factory()->create(['created_at' => now()->subDays(3)]);
+        $resent = Review::factory()->create([
+            'created_at' => now()->subDays(20),
+            'resubmission_count' => 1,
+            'resubmitted_at' => now()->subDay(),
+        ]);
+        $this->actingAs($this->reviewViewer());
+
+        Livewire::test(ListReviews::class)
+            ->assertCanSeeTableRecords([$resent, $older], inOrder: true);
+    }
+
     public function test_a_view_only_reviews_role_cannot_approve_or_reject_from_the_view_page(): void
     {
         $review = Review::factory()->create();

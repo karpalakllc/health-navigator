@@ -166,7 +166,7 @@ return [
                 'sortableAttributes' => ['is_featured'],
             ],
             ForumTopic::class => [
-                'searchableAttributes' => ['title', 'body', 'category_name'],
+                'searchableAttributes' => ['title', 'tags', 'body', 'category_name'],
                 'filterableAttributes' => ['forum_category_id', 'category_is_published'],
             ],
         ],

@@ -211,10 +211,15 @@ class ContentReportTest extends TestCase
             $this->assertNotNull($report->resolved_at);
         }
 
+        // The removed review stays only as a placeholder (W5-I): no rating, text or author.
         $this->getJson('/api/v1/doctors/ana-petrovska/reviews')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.rating', 5)
+            ->assertJsonPath('data.1.removed', true)
+            ->assertJsonMissingPath('data.1.rating')
+            ->assertJsonMissingPath('data.1.body')
+            ->assertJsonMissingPath('data.1.author_name')
             ->assertJsonPath('meta.rating_counts.1', 0);
         $this->getJson('/api/v1/doctors/ana-petrovska')
             ->assertJsonPath('data.review_summary.count', 1)
@@ -266,8 +271,12 @@ class ContentReportTest extends TestCase
         $this->assertSame(1, $topic->fresh()->replies_count);
         $this->getJson('/api/v1/forum/categories/nutrition/topics/water')
             ->assertOk()
-            ->assertJsonCount(1, 'data.posts')
-            ->assertJsonPath('data.posts.0.id', $kept->id);
+            ->assertJsonCount(2, 'data.posts')
+            ->assertJsonPath('data.posts.0.id', $kept->id)
+            // The removed reply stays only as a placeholder (W5-I).
+            ->assertJsonPath('data.posts.1.id', $hidden->id)
+            ->assertJsonPath('data.posts.1.removed', true)
+            ->assertJsonMissingPath('data.posts.1.body');
     }
 
     public function test_two_moderators_hiding_the_same_reply_count_it_once(): void

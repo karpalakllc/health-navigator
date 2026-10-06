@@ -63,6 +63,7 @@ class ManageSiteSettings extends Page implements HasSchemas
             'forum_rules_body' => $settings->forum_rules_body,
             'forum_topics_require_moderation' => $settings->forum_topics_require_moderation,
             'forum_posts_require_moderation' => $settings->forum_posts_require_moderation,
+            'doctor_replies_require_moderation' => (bool) ($settings->doctor_replies_require_moderation ?? true),
             'footer_emergency_text' => $settings->footer_emergency_text,
             'footer_disclaimer_text' => $settings->footer_disclaimer_text,
             'copyright_name' => $settings->copyright_name,
@@ -141,6 +142,12 @@ class ManageSiteSettings extends Page implements HasSchemas
                         Toggle::make('forum_posts_require_moderation')
                             ->label('Require admin approval for new replies')
                             ->helperText('When off, member replies publish immediately. Forum moderators always publish immediately.'),
+                    ]),
+                Section::make('Doctor accounts')
+                    ->schema([
+                        Toggle::make('doctor_replies_require_moderation')
+                            ->label('Require admin approval for doctor replies')
+                            ->helperText('When on, a reply a linked doctor writes under a review is public only after staff approve it (Community → Doctor replies).'),
                     ]),
                 Section::make('Public modules')
                     ->description('When disabled, the API returns “coming soon” and the web shows a blurred placeholder.')

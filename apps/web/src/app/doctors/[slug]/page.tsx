@@ -16,14 +16,20 @@ import {
   ProfileSection,
   ProfileTagList,
 } from "@/components/directory/profile-parts";
+import { DoctorClaimLink } from "@/components/doctor-dashboard/doctor-claim-link";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { FeaturedTag, Tag } from "@/components/ui/tag";
 import { fetchDoctor } from "@/lib/api/doctors";
+import { fetchRelatedForumTopics } from "@/lib/api/forum";
+import { isModuleOn } from "@/lib/api/public-settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
+import { ForumRelatedTopics } from "@/components/forum/forum-related-topics";
+import { breadcrumbJsonLd, physicianJsonLd } from "@/lib/structured-data";
 import { facilityPublicPath, facilityTypeLabel } from "@/lib/facility-labels";
 import { addressMapUrl } from "@/lib/maps";
-import { pageMetadata } from "@/lib/metadata";
+import { pageMetadata, profileMeta } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { ApiRequestError } from "@/lib/api/server";
@@ -48,18 +54,21 @@ export async function generateMetadata({
     const specialty =
       doctor.specialties.find((s) => s.is_primary)?.name ??
       doctor.specialties[0]?.name;
-    const description = [specialty, doctor.city, doctor.bio?.slice(0, 120)]
-      .filter(Boolean)
-      .join(" · ");
+    const { title, description } = profileMeta({
+      name: doctor.full_name,
+      kind: specialty,
+      city: doctor.city,
+      text: doctor.bio,
+      fallback: t("doctors.description"),
+    });
 
-    return pageMetadata(
-      doctor.full_name,
-      description || t("doctors.description"),
-      {
-        path: `/doctors/${slug}`,
-      },
-    );
-  } catch {
+    return pageMetadata(title, description, { path: `/doctors/${slug}` });
+  } catch (error) {
+    // The not-found metadata (noindex), not a generic indexable title.
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
     return pageMetadata(t("doctors.title"));
   }
 }
@@ -72,6 +81,15 @@ export default async function DoctorDetailPage({
   const reviewQuery = await searchParams;
 
   let doctor;
+  // Decorative: a failing forum lookup (or the forum switched off) only
+  // leaves the box out.
+  const forumTopicsPromise = fetchPublicSettings()
+    .then((settings) =>
+      isModuleOn(settings, "public_forum")
+        ? fetchRelatedForumTopics({ doctor: slug })
+        : [],
+    )
+    .catch(() => []);
 
   try {
     doctor = await fetchDoctor(slug);
@@ -82,6 +100,13 @@ export default async function DoctorDetailPage({
 
     throw error;
   }
+
+  const forumTopics = await forumTopicsPromise;
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: t("common.home"), url: absoluteUrl("/") },
+    { name: t("doctors.title"), url: absoluteUrl("/doctors") },
+    { name: doctor.full_name },
+  ]);
 
   const now = new Date();
   const primarySpecialty =
@@ -146,30 +171,16 @@ export default async function DoctorDetailPage({
         subtitle={[primarySpecialty, doctor.city].filter(Boolean).join(" · ")}
         avatarUrl={doctor.avatar_url}
       />
-      {/*
-        Only facts the database actually holds — no credentials, ratings or
-        affiliations we cannot substantiate. Overstating a clinician's
-        qualifications in structured data is a trust and regulatory problem,
-        not just an SEO one.
-      */}
+      {/* Only facts the database holds; see physicianJsonLd. */}
       <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Physician",
-          name: doctor.full_name,
-          url: absoluteUrl(`/doctors/${doctor.slug}`),
-          ...(primarySpecialty ? { medicalSpecialty: primarySpecialty } : {}),
-          ...(doctor.city
-            ? {
-                address: {
-                  "@type": "PostalAddress",
-                  addressLocality: doctor.city,
-                },
-              }
-            : {}),
-          ...(doctor.phone ? { telephone: doctor.phone } : {}),
-        }}
+        data={physicianJsonLd(
+          doctor,
+          absoluteUrl(`/doctors/${doctor.slug}`),
+          (facility) =>
+            absoluteUrl(facilityPublicPath(facility.type, facility.slug)),
+        )}
       />
+      {breadcrumbs ? <JsonLd data={breadcrumbs} /> : null}
       <DirectoryDetailLayout
         back={{ href: "/doctors", label: t("doctors.back") }}
         breadcrumbs={[
@@ -304,6 +315,16 @@ export default async function DoctorDetailPage({
               summary={doctor.review_summary}
               searchParams={reviewQuery}
             />
+
+            <ForumRelatedTopics
+              topics={forumTopics}
+              title={t("seo.doctorForumTitle")}
+              lead={t("seo.doctorForumLead")}
+              headingId="doctor-forum-heading"
+              hideWhenEmpty
+            />
+
+            <DoctorClaimLink slug={slug} />
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}

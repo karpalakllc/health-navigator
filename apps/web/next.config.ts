@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import { mediaRemotePatterns, resolveMediaUrl } from "./src/lib/media-origin";
+import { htmlLimitedBotsPattern } from "./src/lib/crawlers";
 import { securityHeaders } from "./src/lib/security-headers";
 
 /*
@@ -31,6 +32,9 @@ if (media.error) {
 }
 
 const nextConfig: NextConfig = {
+  // Search and AI crawlers get <title>/canonical in <head> and a real 404
+  // status (see src/lib/crawlers.ts, docs/seo.md).
+  htmlLimitedBots: htmlLimitedBotsPattern(),
   async headers() {
     return [
       {

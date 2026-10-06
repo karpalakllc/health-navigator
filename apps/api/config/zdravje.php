@@ -46,6 +46,39 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Legal texts
+    |--------------------------------------------------------------------------
+    |
+    | The version of the Terms of Use a member accepts at sign-up, stored with
+    | the acceptance (users.terms_version). The last-updated date of the terms
+    | page on the web (apps/web/src/content/legal/terms.tsx): change both
+    | together when the terms change.
+    |
+    */
+
+    'legal' => [
+        'terms_version' => '2026-10-06',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Never-verified sign-ups
+    |--------------------------------------------------------------------------
+    |
+    | `accounts:prune-unverified` (daily) deletes client sign-ups whose address
+    | was never verified, this many days after the sign-up — or after the last
+    | time a second sign-up contested the address, whichever is later. Their
+    | requested usernames were never held, but the rows (name, address, hashed
+    | password) are personal data kept for no purpose.
+    |
+    */
+
+    'accounts' => [
+        'unverified_prune_days' => (int) env('UNVERIFIED_ACCOUNT_PRUNE_DAYS', 7),
+    ],
+
     'seed' => [
         'local_demo' => filter_var(env('SEED_LOCAL_DEMO', false), FILTER_VALIDATE_BOOLEAN),
         'moderator' => [

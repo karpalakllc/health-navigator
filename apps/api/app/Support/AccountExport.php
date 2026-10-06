@@ -3,14 +3,19 @@
 namespace App\Support;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\ReviewResponseSource;
 use App\Models\AnalyticsEvent;
 use App\Models\ContentReport;
 use App\Models\Doctor;
+use App\Models\DoctorChangeRequest;
+use App\Models\DoctorClaimRequest;
 use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
+use App\Models\ReviewAspectRating;
 use App\Models\User;
+use App\Models\UsernameHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -87,6 +92,8 @@ final class AccountExport
             'properties' => $event->properties,
             'occurred_at' => $event->occurred_at->toIso8601String(),
         ]);
+        echo ',';
+        $this->writeDoctorAccount();
 
         echo '}';
     }
@@ -101,7 +108,28 @@ final class AccountExport
         return [
             'id' => $user->getKey(),
             'name' => $user->name,
+            'username' => $user->username,
+            'username_changed_at' => $user->username_changed_at?->toIso8601String(),
+            // Names the member gave up (or staff replaced), while they are
+            // still held back from others — never who at staff changed them.
+            'previous_usernames' => UsernameHistory::query()
+                ->where('user_id', $user->getKey())
+                ->orderBy('id')
+                ->get()
+                ->map(fn (UsernameHistory $entry): array => [
+                    'username' => $entry->username,
+                    'reason' => $entry->reason,
+                    'note' => $entry->note,
+                    'changed_at' => $entry->created_at?->toIso8601String(),
+                    'reserved_until' => $entry->reserved_until->toIso8601String(),
+                ])
+                ->all(),
+            // The public name before usernames (no longer shown; kept until dropped).
             'display_name' => $user->display_name,
+            // The sign-up consent: „14+ and I accept the Terms of Use and the
+            // Privacy Policy“. Null for accounts created before it was asked.
+            'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
+            'terms_version' => $user->terms_version,
             'email' => $user->email,
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
             'created_at' => $user->created_at?->toIso8601String(),
@@ -117,7 +145,7 @@ final class AccountExport
      */
     private function reviews(): Builder
     {
-        return Review::query()->where('user_id', $this->user->getKey())->with('reviewable');
+        return Review::query()->where('user_id', $this->user->getKey())->with(['reviewable', 'aspectRatings']);
     }
 
     /**
@@ -139,9 +167,19 @@ final class AccountExport
                 default => null,
             },
             'rating' => $review->rating,
+            // Aspect => 1–5, for the aspects the member rated.
+            'aspects' => $review->aspectRatings
+                ->mapWithKeys(fn (ReviewAspectRating $aspect): array => [$aspect->aspect->value => $aspect->rating])
+                ->all(),
             'body' => $review->body,
             'status' => $review->status->value,
             'rejection_note' => $review->rejection_note,
+            // Taken down after publication: when, and under which category.
+            'removed_at' => $review->removed_at?->toIso8601String(),
+            'removal_category' => $review->removal_category?->value,
+            // Edited and resent after a refusal (at most once).
+            'resubmission_count' => (int) $review->resubmission_count,
+            'resubmitted_at' => $review->resubmitted_at?->toIso8601String(),
             'created_at' => $review->created_at?->toIso8601String(),
             'updated_at' => $review->updated_at?->toIso8601String(),
             'published_at' => $review->published_at?->toIso8601String(),
@@ -168,6 +206,8 @@ final class AccountExport
             'body' => $topic->body,
             'status' => $topic->status->value,
             'rejection_note' => $topic->rejection_note,
+            'removed_at' => $topic->removed_at?->toIso8601String(),
+            'removal_category' => $topic->removal_category?->value,
             'community_rules_accepted_at' => $topic->community_rules_accepted_at?->toIso8601String(),
             'created_at' => $topic->created_at?->toIso8601String(),
             'updated_at' => $topic->updated_at?->toIso8601String(),
@@ -200,6 +240,8 @@ final class AccountExport
             'body' => $post->body,
             'status' => $post->status->value,
             'rejection_note' => $post->rejection_note,
+            'removed_at' => $post->removed_at?->toIso8601String(),
+            'removal_category' => $post->removal_category?->value,
             'created_at' => $post->created_at?->toIso8601String(),
             'updated_at' => $post->updated_at?->toIso8601String(),
             'published_at' => $post->published_at?->toIso8601String(),
@@ -212,6 +254,49 @@ final class AccountExport
     private function reports(): Builder
     {
         return ContentReport::query()->where('user_id', $this->user->getKey());
+    }
+
+    /**
+     * „Мој профил“: the doctor profile this account manages, its change
+     * requests and replies, and its „Ова е мој профил“ requests. Staff who
+     * decided them are not named.
+     */
+    private function writeDoctorAccount(): void
+    {
+        $managed = Doctor::withTrashed()->where('owner_user_id', $this->user->getKey())->first();
+
+        echo $this->member('managed_doctor', $managed ? [
+            'slug' => $managed->slug,
+            'full_name' => $managed->full_name,
+            'linked_at' => $managed->owner_linked_at?->toIso8601String(),
+        ] : null).',';
+
+        $this->writeList('doctor_change_requests', DoctorChangeRequest::query()->where('user_id', $this->user->getKey()), fn (DoctorChangeRequest $request): array => [
+            'changes' => $request->changes,
+            'message' => $request->message,
+            'status' => $request->status->value,
+            'rejection_reason' => $request->rejection_reason,
+            'created_at' => $request->created_at?->toIso8601String(),
+            'reviewed_at' => $request->reviewed_at?->toIso8601String(),
+        ]);
+        echo ',';
+        $this->writeList('doctor_claim_requests', DoctorClaimRequest::query()->where('user_id', $this->user->getKey()), fn (DoctorClaimRequest $claim): array => [
+            'doctor_slug' => $claim->doctor?->slug,
+            'message' => $claim->message,
+            'contact' => $claim->contact,
+            'status' => $claim->status->value,
+            'created_at' => $claim->created_at?->toIso8601String(),
+        ]);
+        echo ',';
+        $this->writeList('doctor_replies', Review::query()
+            ->where('response_by_id', $this->user->getKey())
+            ->where('response_source', ReviewResponseSource::Doctor), fn (Review $review): array => [
+                'review_id' => $review->getKey(),
+                'body' => $review->response_body,
+                'status' => $review->response_status?->value,
+                'rejection_note' => $review->response_rejection_note,
+                'responded_at' => $review->response_at?->toIso8601String(),
+            ]);
     }
 
     /**

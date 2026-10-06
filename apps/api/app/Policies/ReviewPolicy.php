@@ -2,9 +2,13 @@
 
 namespace App\Policies;
 
+use App\Enums\ReviewStatus;
+use App\Models\Doctor;
 use App\Models\Review;
 use App\Models\User;
 use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
+use App\Policies\Support\UsernameChoice;
+use Illuminate\Auth\Access\Response;
 
 class ReviewPolicy
 {
@@ -22,11 +26,16 @@ class ReviewPolicy
 
     /**
      * Held through the Member role, which registration assigns. Staff do not
-     * hold it unless an administrator grants it.
+     * hold it unless an administrator grants it. A member who still has a
+     * temporary username chooses one first (UsernameChoice).
      */
-    public function create(User $user): bool
+    public function create(User $user): Response|bool
     {
-        return $user->can('reviews.create');
+        if (! $user->can('reviews.create')) {
+            return false;
+        }
+
+        return UsernameChoice::gate($user);
     }
 
     public function update(User $user, Review $review): bool
@@ -41,6 +50,20 @@ class ReviewPolicy
     public function respond(User $user, Review $review): bool
     {
         return $user->can('reviews.respond');
+    }
+
+    /**
+     * A linked doctor's own reply: only under a published review of the
+     * profile their account manages. Hiding, editing or deleting the review
+     * itself stays with staff.
+     */
+    public function replyAsDoctor(User $user, Review $review): bool
+    {
+        $doctor = $review->reviewable;
+
+        return $review->status === ReviewStatus::Approved
+            && $doctor instanceof Doctor
+            && $user->can('manageOwnProfile', $doctor);
     }
 
     public function delete(User $user, Review $review): bool

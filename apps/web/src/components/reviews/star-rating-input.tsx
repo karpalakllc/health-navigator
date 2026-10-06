@@ -13,6 +13,12 @@ type StarRatingInputProps = {
   disabled?: boolean;
   invalid?: boolean;
   errorId?: string;
+  /** The group's accessible name; the overall rating's by default. */
+  label?: string;
+  /** Overall stars are required; the optional aspect ratings are not. */
+  required?: boolean;
+  /** Smaller star icons (still 48px targets) and no „x / 5“ line, for aspect rows. */
+  compact?: boolean;
 };
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -30,6 +36,9 @@ export function StarRatingInput({
   disabled,
   invalid,
   errorId,
+  label = t("reviews.rating"),
+  required = true,
+  compact = false,
 }: StarRatingInputProps) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -74,8 +83,8 @@ export function StarRatingInput({
         // (globals.css); the click still sets the value.
         className="star-input -ml-2 flex"
         role="radiogroup"
-        aria-label={t("reviews.rating")}
-        aria-required="true"
+        aria-label={label}
+        aria-required={required || undefined}
         aria-invalid={invalid || undefined}
         aria-describedby={invalid ? errorId : undefined}
       >
@@ -93,14 +102,15 @@ export function StarRatingInput({
             onClick={() => select(star)}
             onKeyDown={(event) => handleKeyDown(event, star)}
             className={cn(
-              "star-input-star inline-flex size-12 items-center justify-center rounded-full text-star transition-colors",
+              "star-input-star inline-flex items-center justify-center rounded-full text-star transition-colors",
+              "size-12",
               "hover:bg-sand disabled:cursor-not-allowed disabled:hover:bg-transparent",
             )}
             aria-label={starRatingLabel(star)}
           >
             <svg
-              width={32}
-              height={32}
+              width={compact ? 26 : 32}
+              height={compact ? 26 : 32}
               viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
@@ -120,11 +130,13 @@ export function StarRatingInput({
           </button>
         ))}
       </div>
-      <p className="type-meta text-ink-2" aria-hidden>
-        {value === null
-          ? t("reviews.ratingNone")
-          : `${value}${t("common.ratingOutOf")}`}
-      </p>
+      {compact ? null : (
+        <p className="type-meta text-ink-2" aria-hidden>
+          {value === null
+            ? t("reviews.ratingNone")
+            : `${value}${t("common.ratingOutOf")}`}
+        </p>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -37,7 +38,8 @@ class RegistrationPendingCopyTest extends TestCase
                 $message = $this->withHeader('Accept-Language', $locale)
                     ->postJson('/api/v1/auth/register', [
                         'name' => 'New Member',
-                        'display_name' => 'Нов Ч.',
+                        'username' => TestUsername::next(),
+                        'accept_terms' => true,
                         'email' => $email,
                         'password' => 'sufficiently1long',
                         'password_confirmation' => 'sufficiently1long',

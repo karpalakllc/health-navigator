@@ -39,8 +39,8 @@ const transparencyItems: Array<{
 
 /**
  * „Форум и искуства“ (community rules, three check chips, „Отвори форум“)
- * beside „Зошто ова е важно“ (three icon rows). White cards on cream: 7/5 on
- * desktop, stacked on mobile. `showForum` drops the forum card when the forum
+ * on an apricot card beside „Зошто ова е важно“ (three icon rows) on white:
+ * 7/5 on desktop, stacked on mobile. `showForum` drops the forum card when the forum
  * module is switched off.
  */
 export function HomeForumTransparency({
@@ -60,9 +60,14 @@ export function HomeForumTransparency({
       {showForum ? (
         <section
           aria-labelledby="home-forum-band-title"
-          className="card p-6 lg:col-span-7 lg:p-8"
+          data-band="forum"
+          className="relative isolate overflow-hidden rounded-card bg-apricot p-6 lg:col-span-7 lg:p-8"
         >
-          <p className="type-meta font-semibold text-ink-2">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-16 -right-12 -z-10 size-48 rounded-full border-[16px] border-white/45"
+          />
+          <p className="type-meta font-semibold text-ink">
             {t("home.forumBandEyebrow")}
           </p>
           <h2 id="home-forum-band-title" className="type-h2 mt-1 text-ink">
@@ -75,7 +80,7 @@ export function HomeForumTransparency({
             {forumPoints.map((key) => (
               <li
                 key={key}
-                className="tag min-h-11 bg-chip-tint px-4 text-base text-ink"
+                className="tag min-h-11 bg-white px-4 text-base text-ink"
               >
                 <Icon name="check" size={20} />
                 <span>{t(key)}</span>

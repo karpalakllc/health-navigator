@@ -156,8 +156,8 @@ class HomeHighlightsController extends Controller
                 },
             )
             ->with([
-                // `name` and `anonymised_at` only feed publicName(); neither is sent.
-                'user:id,name,display_name,anonymised_at',
+                // `anonymised_at` only feeds publicName(); it is not sent.
+                'user:id,username,anonymised_at',
                 'reviewable',
             ])
             ->latest('published_at')

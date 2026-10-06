@@ -20,17 +20,25 @@ import { ReviewSection } from "@/components/reviews/review-section";
 import { FeaturedTag, Tag } from "@/components/ui/tag";
 import { Monogram } from "@/components/ui/user-avatar";
 import { fetchFacility } from "@/lib/api/facilities";
+import { fetchRelatedForumTopics } from "@/lib/api/forum";
+import { isModuleOn } from "@/lib/api/public-settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
+import { ForumRelatedTopics } from "@/components/forum/forum-related-topics";
 import { facilityKindLabel } from "@/lib/facility-labels";
 import {
   googleMapsDirectionsUrl,
   hasMapCoordinates,
   addressMapUrl,
 } from "@/lib/maps";
-import { pageMetadata } from "@/lib/metadata";
+import { pageMetadata, profileMeta } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { ApiRequestError } from "@/lib/api/server";
 import { absoluteUrl } from "@/lib/site-url";
-import { facilitySchemaType, placeJsonLd } from "@/lib/structured-data";
+import {
+  breadcrumbJsonLd,
+  facilitySchemaType,
+  placeJsonLd,
+} from "@/lib/structured-data";
 import { t, tCount } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
@@ -49,16 +57,21 @@ export async function generateMetadata({
 
   try {
     const facility = await fetchFacility(slug);
-    const description = [facility.city, facility.description?.slice(0, 140)]
-      .filter(Boolean)
-      .join(" · ");
+    const { title, description } = profileMeta({
+      name: facility.name,
+      kind: facilityKindLabel(facility.type),
+      city: facility.city,
+      text: facility.description,
+      fallback: t("facilities.description"),
+    });
 
-    return pageMetadata(
-      facility.name,
-      description || t("facilities.description"),
-      { path: `/facilities/${slug}` },
-    );
-  } catch {
+    return pageMetadata(title, description, { path: `/facilities/${slug}` });
+  } catch (error) {
+    // The not-found metadata (noindex), not a generic indexable title.
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
     return pageMetadata(t("facilities.title"));
   }
 }
@@ -71,6 +84,15 @@ export default async function FacilityDetailPage({
   const reviewQuery = await searchParams;
 
   let facility;
+  // Decorative: a failing forum lookup (or the forum switched off) only
+  // leaves the box out.
+  const forumTopicsPromise = fetchPublicSettings()
+    .then((settings) =>
+      isModuleOn(settings, "public_forum")
+        ? fetchRelatedForumTopics({ facility: slug })
+        : [],
+    )
+    .catch(() => []);
 
   try {
     facility = await fetchFacility(slug);
@@ -81,6 +103,13 @@ export default async function FacilityDetailPage({
 
     throw error;
   }
+
+  const forumTopics = await forumTopicsPromise;
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: t("common.home"), url: absoluteUrl("/") },
+    { name: t("facilities.title"), url: absoluteUrl("/facilities") },
+    { name: facility.name },
+  ]);
 
   const now = new Date();
   const hasHours = officeHoursRows(facility.office_hours, now).length > 0;
@@ -149,6 +178,7 @@ export default async function FacilityDetailPage({
           absoluteUrl(`/facilities/${facility.slug}`),
         )}
       />
+      {breadcrumbs ? <JsonLd data={breadcrumbs} /> : null}
       <DirectoryDetailLayout
         back={{ href: "/facilities", label: t("facilities.back") }}
         breadcrumbs={[
@@ -228,6 +258,14 @@ export default async function FacilityDetailPage({
               slug={slug}
               summary={facility.review_summary}
               searchParams={reviewQuery}
+            />
+
+            <ForumRelatedTopics
+              topics={forumTopics}
+              title={t("seo.facilityForumTitle")}
+              lead={t("seo.facilityForumLead")}
+              headingId="facility-forum-heading"
+              hideWhenEmpty
             />
           </>
         }

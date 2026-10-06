@@ -115,21 +115,22 @@ class ClientUserFormTest extends TestCase
         $this->assertTrue($client->fresh()->hasRole('Forum Moderator'));
     }
 
-    public function test_staff_can_edit_the_public_display_name_within_its_rules(): void
+    public function test_the_username_is_shown_read_only_and_survives_saving_the_form(): void
     {
         $this->actingAs($this->clientEditor());
         $client = $this->client();
+        $username = $client->username;
 
         Livewire::test(EditClientUser::class, ['record' => $client->getKey()])
-            ->assertFormFieldExists('display_name')
-            ->assertFormSet(['display_name' => $client->display_name])
-            ->fillForm(['display_name' => 'Мара 123'])
-            ->call('save')
-            ->assertHasFormErrors(['display_name'])
-            ->fillForm(['display_name' => '  Мара   К. '])
+            ->assertFormFieldExists('username')
+            ->assertFormFieldIsDisabled('username')
+            ->assertFormSet(['username' => $username])
+            ->fillForm(['name' => 'Мара Нова', 'username' => 'something_else'])
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $this->assertSame('Мара К.', $client->fresh()->display_name);
+        $this->assertSame('Мара Нова', $client->fresh()->name);
+        // Renaming goes through „Rename username“, which keeps the history.
+        $this->assertSame($username, $client->fresh()->username);
     }
 }

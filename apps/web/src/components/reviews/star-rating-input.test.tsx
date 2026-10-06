@@ -148,6 +148,21 @@ describe("StarRatingInput", () => {
     expect(group).toHaveAccessibleDescription(t("reviews.ratingRequired"));
   });
 
+  it("keeps compact stars at a 48px touch target", () => {
+    render(
+      <StarRatingInput
+        compact
+        label="Љубезност"
+        value={null}
+        onChange={() => {}}
+      />,
+    );
+
+    for (const star of screen.getAllByRole("radio")) {
+      expect(star).toHaveClass("size-12");
+    }
+  });
+
   it("has no serious accessibility violations", async () => {
     const { container } = render(<Controlled initial={4} />);
 

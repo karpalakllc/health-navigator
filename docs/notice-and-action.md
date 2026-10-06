@@ -55,8 +55,18 @@ that item at once:
   as a general one and can be picked from a list of common reasons or typed. Also requires the right to
   moderate that content (`reviews.update` for reviews; forum moderation for
   topics and replies). Effects:
-  - the item disappears from every public list, profile, topic page and search
-    (forum topics leave the Meilisearch index on save);
+  - the moderator also picks the **public reason** (спам, навреда, лажни
+    информации, лични податоци, незаконска содржина, друго); it starts from
+    the most common report reason. A removed review stays in the profile's
+    list, and a removed reply in its thread, as a placeholder: „Рецензијата е
+    отстранета на {датум} — причина: {категорија}“. The placeholder never shows
+    the text, rating, author or the reason written to the author. Content
+    refused before it was ever published leaves no placeholder;
+  - otherwise the item disappears from every public list, profile, topic page
+    and search (a removed topic leaves no placeholder; forum topics leave the
+    Meilisearch index on save);
+  - the removal is counted on the public „Транспарентност“ page (`/transparency`,
+    monthly figures by public reason);
   - review averages and counts are recomputed; a hidden reply no longer counts
     in the topic's reply total;
   - the author receives the „Содржината е отстранета“ email with the reason —
@@ -70,13 +80,35 @@ is re-read under a row lock).
 
 Who resolved each report and when is stored on the report
 (`resolved_by_id`, `resolved_at`); reports are never deleted from the panel.
+Each resolution is also written to the audit log (**Platform → Activity
+log**, `audit.view`, kept 365 days), with review moderation decisions
+(not the refusal note's text), resent reviews, reply changes, doctor-profile
+edits and the doctors' featured/sponsored toggles. Facilities' featured
+toggles are not logged yet.
+
+## Refused reviews: one edit and resend
+
+A review refused **before** it was published (pre-moderation) is not the end:
+its author sees the reason on the profile and in „Мои рецензии“ and may edit
+the review and send it **once** more (`POST` to the same profile's reviews
+endpoint replaces the refused review, `resubmission_count` 0 → 1, status back
+to `pending`; the old note and moderator are cleared, the audit log keeps
+them). The panel marks it „Resent after a refusal“. Moderate it like any other
+review; refusing it again is **final** — the API answers 422
+`api.review.resubmission_used` and the web shows the decision with the
+reason instead of a form. A review **removed after publication** (through a
+report or by a moderator) keeps its placeholder and can never be resent.
+The terms („Правила за рецензии“) say the same.
 
 ## Turnaround
 
 The terms promise one goal: **every report reviewed within 24 hours.** Take
 `personal_data` (someone's identity or health information), threats and
-harassment first. When unsure, hide and review with a second moderator; a
-hidden item can be restored by approving it again from Reviews or Forum.
+harassment first. When unsure, ask a second moderator **before** hiding: a
+hidden item **cannot be restored from the panel yet** — every Approve action
+is offered on pending items only, and there is no Restore action. Undoing a
+mistaken removal needs a developer (and would re-date a review's
+publication, `Review::approve()`), so treat hiding as final.
 
 ## Contested reviews (doctor or facility disagrees)
 
@@ -91,6 +123,21 @@ this order:
    stripped), at most 2,000 characters. Check that the sender really
    represents the profile before publishing. Do not edit the meaning; fix
    only obvious typos, and never add a patient's personal or health data.
+   **Or the doctor writes it.** Staff can link a doctor's own member account
+   to their profile (admin panel → doctor → **Assign account**, after
+   verifying the person outside the platform, e.g. through the workplace or
+   the Лекарска комора register; members can ask with „Ова е мој профил“ on
+   the profile, queued under **Directory → Profile claims**). The doctor then
+   writes one reply per published review of their profile on „Мој профил“.
+   While *Settings → Doctor accounts → Require admin approval for doctor
+   replies* is on (the default) the reply waits in **Community → Doctor
+   replies**: approve it, or reject it with a reason the doctor sees. Check
+   it reveals or confirms nothing about a patient — not even that the
+   reviewer was one. An edit goes back to waiting. Approved, it shows as
+   „Одговор од лекарот“ signed with the profile name. The doctor cannot hide,
+   edit or delete reviews and sees reviewers only by their public name; they
+   can report a review like any member. A response staff entered stays
+   staff's (the doctor cannot overwrite it).
 2. **Takedown request.** A review is removed only if it breaks the rules:
    spam or advertising, abuse or harassment, statements of fact that are shown
    to be false (not opinions), personal or health data of anyone, or content
@@ -100,6 +147,15 @@ this order:
 
 Legal orders (court or authority) are handled by an administrator: hide the
 content immediately and keep a copy of the order outside the platform.
+
+## Review bursts (staff-only signal)
+
+When a profile receives 5 or more reviews (any status) within 24 hours, every
+review in that window is flagged: a „Burst“ badge in **Reviews** and a
+„Review bursts“ filter. Nothing happens automatically — no review is hidden,
+delayed or rejected because of the flag. Look at the burst before approving:
+similar wording, new accounts, the same day. One review per account per
+profile and a verified e-mail address are required to write a review.
 
 ## Helpful votes („Корисно“)
 

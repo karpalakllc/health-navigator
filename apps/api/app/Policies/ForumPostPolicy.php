@@ -5,6 +5,8 @@ namespace App\Policies;
 use App\Models\ForumPost;
 use App\Models\User;
 use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
+use App\Policies\Support\UsernameChoice;
+use Illuminate\Auth\Access\Response;
 
 class ForumPostPolicy
 {
@@ -32,11 +34,16 @@ class ForumPostPolicy
 
     /**
      * Held through the Member role, which registration assigns. Staff do not
-     * hold it unless an administrator grants it.
+     * hold it unless an administrator grants it. A member who still has a
+     * temporary username chooses one first (UsernameChoice).
      */
-    public function create(User $user): bool
+    public function create(User $user): Response|bool
     {
-        return $user->can('forum.post');
+        if (! $user->can('forum.post')) {
+            return false;
+        }
+
+        return UsernameChoice::gate($user);
     }
 
     public function update(User $user, ForumPost $forumPost): bool

@@ -4,12 +4,16 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
+use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
+use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -20,7 +24,9 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
+use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -143,11 +149,11 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily'])
         ->group(function (): void {
             Route::post('/reviews/{review}/reports', [ContentReportController::class, 'storeForReview'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
             Route::middleware('module:forum')->group(function (): void {
                 Route::post('/forum/categories/{category}/topics/{topic}/reports', [ContentReportController::class, 'storeForForumTopic']);
                 Route::post('/forum/posts/{post}/reports', [ContentReportController::class, 'storeForForumPost'])
-                    ->whereNumber('post');
+                    ->where('post', '[0-9]{1,18}');
             });
         });
 
@@ -156,9 +162,9 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'verified', 'can:create,'.Review::class, 'throttle:60,10,api-review-helpful'])
         ->group(function (): void {
             Route::put('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'store'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
             Route::delete('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'destroy'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
         });
 
     // Account data rights and devices (D5, D6).
@@ -167,6 +173,53 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
         Route::get('/tokens', [TokenController::class, 'index']);
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
-        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
+        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->where('token', '[0-9]{1,18}');
     });
+
+    // Usernames (W5-U): is a name free, while someone types it at sign-up or
+    // on the account page. Optional auth so a member's own name reads as free.
+    Route::get('/usernames/availability', UsernameAvailabilityController::class)
+        ->middleware(['auth.sanctum.optional', 'throttle:api-username-check']);
+
+    // W5-I: public moderation figures for /transparency (cached an hour server side).
+    Route::get('/transparency', TransparencyController::class)->middleware('cache.public');
+
+    // „Мој профил“ (W5-C): the doctor profile staff linked to this account.
+    // Practice details save at once; identity, qualifications, specialties
+    // and workplaces become a change request for staff; one reply per
+    // published review, pre-moderated by default. Per-account windows, as
+    // for reports above.
+    Route::middleware(['auth:sanctum', 'verified', 'throttle:120,1,api-doctor-dashboard'])
+        ->prefix('me/doctor')
+        ->group(function (): void {
+            Route::get('/', [DoctorDashboardController::class, 'show']);
+            Route::get('/reviews', [DoctorDashboardController::class, 'reviews']);
+            Route::get('/facilities', [DoctorDashboardController::class, 'facilities']);
+            Route::middleware('throttle:60,60,api-doctor-dashboard-writes')->group(function (): void {
+                Route::patch('/', [DoctorDashboardController::class, 'update']);
+                Route::post('/avatar', [DoctorDashboardController::class, 'updateAvatar']);
+                Route::post('/change-requests', [DoctorDashboardController::class, 'storeChangeRequest']);
+                Route::delete('/change-requests/{changeRequest}', [DoctorDashboardController::class, 'withdrawChangeRequest'])
+                    ->where('changeRequest', '[0-9]{1,18}');
+                Route::put('/reviews/{review}/reply', [DoctorDashboardController::class, 'upsertReply'])
+                    ->where('review', '[0-9]{1,18}');
+                Route::delete('/reviews/{review}/reply', [DoctorDashboardController::class, 'destroyReply'])
+                    ->where('review', '[0-9]{1,18}');
+            });
+        });
+
+    // „Ова е мој профил“: a member asks staff to link them to a profile.
+    Route::post('/doctors/{slug}/claim-requests', [DoctorClaimController::class, 'store'])
+        ->middleware(['auth:sanctum', 'verified', 'throttle:5,1440,api-doctor-claims']);
+
+    // Forum keywords and profile ↔ forum links (W5-S, docs/seo.md). Anonymous
+    // and identical for everyone, so shared caches may keep them for 60 s.
+    Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
+        Route::get('/forum/tags', [ForumTagController::class, 'index']);
+        Route::get('/forum/tags/{tag}', [ForumTagController::class, 'show']);
+        Route::get('/forum/topics/related', [ForumTagController::class, 'related']);
+    });
+
+    // Cities that hold published profiles, for the web's city picker (W5-H).
+    Route::get('/locations/cities', [LocationController::class, 'cities'])->middleware('cache.public:60');
 });

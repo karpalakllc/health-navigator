@@ -6,7 +6,7 @@ import {
   login,
   submitLogin,
 } from "./support/auth";
-import { freshEmail } from "./support/fixtures";
+import { freshEmail, uniqueSuffix } from "./support/fixtures";
 import { latestLink } from "./support/mail";
 
 async function register(
@@ -15,9 +15,13 @@ async function register(
 ): Promise<void> {
   await page.goto("/register");
   await page.locator('input[name="name"]').fill(name);
+  // Public and unique: a fresh one per sign-up („e2e_“ + time + random).
+  await page.locator('input[name="username"]').fill(`e2e_${uniqueSuffix()}`);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('input[name="password_confirmation"]').fill(password);
+  // „14+ and I accept the terms“ — required.
+  await page.locator('input[name="accept_terms"]').check();
   await page
     .getByRole("button", { name: mk.auth.register, exact: true })
     .click();

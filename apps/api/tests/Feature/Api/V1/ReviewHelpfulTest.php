@@ -101,6 +101,33 @@ class ReviewHelpfulTest extends TestCase
         $this->assertSame(0, $review->fresh()->helpful_count);
     }
 
+    public function test_the_doctor_who_manages_the_profile_cannot_vote_on_its_reviews(): void
+    {
+        $owner = User::factory()->create();
+        $this->doctor->forceFill(['owner_user_id' => $owner->id])->save();
+        $review = $this->review();
+        Sanctum::actingAs($owner);
+
+        $this->withHeader('Accept-Language', 'mk')
+            ->putJson("/api/v1/reviews/{$review->id}/helpful")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['review' => 'профилот што го уредувате']);
+        $this->assertSame(0, $review->fresh()->helpful_count);
+
+        // Reviews of other doctors are fine.
+        $other = Review::factory()->approved()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => Doctor::factory()->create()->id]);
+        $this->putJson("/api/v1/reviews/{$other->id}/helpful")->assertOk();
+    }
+
+    public function test_an_id_too_long_for_an_integer_is_not_found(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->putJson('/api/v1/reviews/12345678901234567890/helpful')->assertNotFound();
+        $this->deleteJson('/api/v1/reviews/12345678901234567890/helpful')->assertNotFound();
+        $this->postJson('/api/v1/reviews/12345678901234567890/reports', ['reason' => 'spam'])->assertNotFound();
+    }
+
     public function test_only_published_reviews_take_votes(): void
     {
         $pending = Review::factory()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => $this->doctor->id]);
@@ -191,7 +218,11 @@ class ReviewHelpfulTest extends TestCase
 
         ContentReport::factory()->about($review)->create()->hideContent(User::factory()->moderator()->create());
 
-        $this->getJson('/api/v1/doctors/ana-petrovska/reviews')->assertJsonCount(0, 'data');
+        // Only its placeholder remains (W5-I), without the vote count.
+        $this->getJson('/api/v1/doctors/ana-petrovska/reviews')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.removed', true)
+            ->assertJsonMissingPath('data.0.helpful_count');
         Sanctum::actingAs($member);
         $this->deleteJson("/api/v1/reviews/{$review->id}/helpful")->assertNotFound();
     }

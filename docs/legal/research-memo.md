@@ -28,7 +28,7 @@ The product facts used here come from the code and
 | R7 | **Reviews and posts are kept indefinitely; rejected content is kept.** Self-service deletion (anonymisation) and export now exist under Account → „Ваши податоци“. Deadlines are short: erasure within 30 days (чл. 21), rectification within 15 days (чл. 20). | Medium | Handle other requests by email within those deadlines (the privacy page says so). Set a retention period for rejected content. |
 | R8 | **DPO, records of processing, DPIA, high-risk notice.** Health-related content probably triggers the DPIA list (Сл. весник 122/20, т. 3) and removes the under-50-employees exemption from records of processing (чл. 34(5)). A DPO is arguably mandatory (чл. 41(1)(в)). | Medium | Appoint a DPO (an external contract is allowed, чл. 41(6)), notify AZLP, write the records of processing and a DPIA before launch, and check whether a чл. 71 high-risk notice is needed. |
 | R9 | **Operator identification:** Закон за електронска трговија чл. 7 requires the provider's name, address, registration and e-mail to be easy to find. | Low (easy) | Fill the placeholders in privacy and terms (list in §8). |
-| R10 | **No terms acceptance or age check at sign-up.** The children's consent age is 14 (ЗЗЛП чл. 12). | Low–medium | Add a "I accept the terms and confirm I am at least [age]" checkbox to registration. The pages leave the age as a placeholder for the owner (we suggest 16 for a health forum; the legal floor is 14). |
+| R10 | **No terms acceptance or age check at sign-up.** The children's consent age is 14 (ЗЗЛП чл. 12). | Done | Registration has a required "I accept the terms and confirm I am at least 14" checkbox, stored with the terms version and time. Terms and privacy state the minimum age of 14 (the legal floor). |
 
 **What must never be done**
 
@@ -516,7 +516,7 @@ gives no hidden advantage.
   correction within 15 days, objection and removal with balancing and reasons
   within 30 days, report and reply); cookies and storage (exact names and
   durations); processors and transfers; retention; security; rights with MK
-  deadlines; AZLP contact; minimum age placeholder.
+  deadlines; AZLP contact; minimum age (14).
 - **Terms:** operator imprint (e-commerce чл. 7); informational purpose;
   account rules; review rules (opinion vs factual accusation of a crime, no
   third-party health data, conflicts of interest, no paid reviews);
@@ -547,7 +547,8 @@ gives no hidden advantage.
    Комора code? Is it better limited to institutions?
 5. Does the Закон за заштита на потрошувачите apply to a free directory with
    paid placements?
-6. The minimum age for accounts: 14 (legal floor) or 16?
+6. The minimum age for accounts: the pages now say 14 (the legal floor);
+   should it be 16 for a health forum?
 7. Which notice-and-takedown turnaround should we promise?
 8. Is the directory a "медиум" under the Закон за медиуми (right of reply)? See §4.
 9. Does relying on чл. 18(5) т. 2 (public notice instead of individual
@@ -556,6 +557,7 @@ gives no hidden advantage.
 ### Placeholders in the pages
 
 `[НАЗИВ НА ОПЕРАТОР]`, `[АДРЕСА]`, `[ЕДБ]`, `[ЕМБС]`, `[Е-ПОШТА]`,
-`[ХОСТИНГ-ДАВАТЕЛ И ЛОКАЦИЈА]`, `[ДАВАТЕЛ НА Е-ПОШТА]`, `[МИНИМАЛНА ВОЗРАСТ]`,
-`[РОК ЗА ОДГОВОР НА ПРИЈАВА]`, `[КРИТЕРИУМИ ЗА ИСТАКНУВАЊЕ]`,
+`[ХОСТИНГ-ДАВАТЕЛ И ЛОКАЦИЈА]`, `[ДАВАТЕЛ НА Е-ПОШТА]`,
+`[РОК ЗА ОДГОВОР НА ПРИЈАВА]`, `[НАЦРТ: КРИТЕРИУМИТЕ ЧЕКААТ ОДОБРУВАЊЕ]` (the draft
+criteria are on `/transparency#kriteriumi`),
 `[ОФИЦЕР ЗА ЗАШТИТА НА ЛИЧНИТЕ ПОДАТОЦИ]`.

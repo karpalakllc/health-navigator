@@ -16,6 +16,8 @@ final class PermissionCatalog
             self::community(),
             self::guidance(),
             self::member(),
+            self::usernames(),
+            self::doctorAccountsAndAudit(),
         );
     }
 
@@ -135,11 +137,42 @@ final class PermissionCatalog
     }
 
     /**
+     * Doctor accounts (W5-C): assigning a member account to a doctor profile
+     * (and handling „Ова е мој профил“ requests), and reading the audit log.
+     * Administrator only by default. Approving a doctor's change request
+     * needs doctors.update; moderating a doctor's reply needs reviews.respond.
+     * Added after launch, so a migration grants them to existing roles too.
+     *
+     * @return list<string>
+     */
+    public static function doctorAccountsAndAudit(): array
+    {
+        return [
+            'doctors.assign_owner',
+            'audit.view',
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     public static function guidance(): array
     {
         return self::crudPermissions(['triage_flows']);
+    }
+
+    /**
+     * The blocked and reserved username lists, and renaming a member whose
+     * username slipped through (Filament). Administrator only by default;
+     * added after launch, so a migration grants it to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function usernames(): array
+    {
+        return [
+            'usernames.manage',
+        ];
     }
 
     /**

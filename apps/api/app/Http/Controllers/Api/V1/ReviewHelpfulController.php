@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
+use App\Models\Doctor;
 use App\Models\Review;
 use App\Support\ReviewHelpfulVotes;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,14 @@ class ReviewHelpfulController extends Controller
         if ((int) $model->user_id === (int) $request->user()->getKey()) {
             throw ValidationException::withMessages([
                 'review' => [__('api.review.helpful_own')],
+            ]);
+        }
+
+        // Nor the doctor whose profile it is: their votes would push the
+        // reviews they like up the „most helpful“ order of their own page.
+        if ($model->reviewable instanceof Doctor && $model->reviewable->isOwnedBy($request->user())) {
+            throw ValidationException::withMessages([
+                'review' => [__('api.review.helpful_own_profile')],
             ]);
         }
 

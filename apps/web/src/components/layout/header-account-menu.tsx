@@ -62,7 +62,7 @@ export function HeaderAccountMenu({ user }: { user: AuthUser }) {
           className="!size-9 !bg-white !text-[0.875rem]"
         />
         <span aria-hidden="true" className="max-w-[10rem] truncate">
-          {user.display_name}
+          {user.username}
         </span>
       </button>
       {open ? (

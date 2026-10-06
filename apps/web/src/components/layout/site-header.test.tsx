@@ -39,7 +39,10 @@ vi.mock("@sentry/nextjs", () => ({
 const ana: AuthUser = {
   id: 5,
   name: "Ана Петровска",
-  display_name: "Ана П.",
+  username: "ana_od_skopje",
+  must_choose_username: false,
+  username_changed_at: null,
+  username_change_available_at: null,
   email: "ana@example.mk",
   role: "member",
   community_roles: [],

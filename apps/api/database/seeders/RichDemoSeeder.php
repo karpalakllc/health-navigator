@@ -16,12 +16,13 @@ use App\Support\RoleCatalog;
 use App\Support\Slug;
 use Database\Seeders\Concerns\AttachesDemoImages;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
+use Database\Seeders\Concerns\SeedsUsernames;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class RichDemoSeeder extends Seeder
 {
-    use AttachesDemoImages, SeedsLocalDemoData;
+    use AttachesDemoImages, SeedsLocalDemoData, SeedsUsernames;
 
     public function run(): void
     {
@@ -88,6 +89,7 @@ class RichDemoSeeder extends Seeder
                 ['email' => $member['email']],
                 [
                     'name' => $member['name'],
+                    'username' => self::seededUsername($member['email']),
                     'password' => Hash::make($member['password']),
                     // Login refuses unverified accounts, and nothing sends these
                     // demo members a link — without this a fresh seed produces

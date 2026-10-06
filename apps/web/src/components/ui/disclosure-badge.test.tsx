@@ -100,10 +100,27 @@ describe("DisclosureBadge (featured / sponsored toggletip)", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByText(featuredInfo)).toBeInTheDocument();
 
+    // The explanation's own „Повеќе“ link is inside the badge: it stays open.
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Повеќе" })).toHaveFocus();
+    expect(screen.getByText(featuredInfo)).toBeInTheDocument();
+
     await user.tab();
     expect(screen.getByRole("link", { name: "следно" })).toHaveFocus();
     expect(screen.queryByText(featuredInfo)).not.toBeInTheDocument();
     expect(featuredButton()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("links „Повеќе“ to how results are ordered on the transparency page", async () => {
+    const user = userEvent.setup();
+    render(<FeaturedMark />);
+
+    await user.click(featuredButton());
+
+    expect(screen.getByRole("link", { name: "Повеќе" })).toHaveAttribute(
+      "href",
+      "/transparency#redosled",
+    );
   });
 
   it("gives the small „i“ button a 44px touch target", () => {

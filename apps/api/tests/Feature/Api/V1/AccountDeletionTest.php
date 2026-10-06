@@ -10,6 +10,7 @@ use App\Mail\AccountExistsMail;
 use App\Models\AnalyticsEvent;
 use App\Models\ContentReport;
 use App\Models\Doctor;
+use App\Models\DoctorChangeRequest;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -57,7 +59,7 @@ class AccountDeletionTest extends TestCase
 
         $this->member = User::factory()->create([
             'name' => 'Марија Костовска',
-            'display_name' => 'Марија К.',
+            'username' => 'marija_k',
             'email' => 'marija@example.com',
             'password' => self::PASSWORD,
         ]);
@@ -114,6 +116,8 @@ class AccountDeletionTest extends TestCase
         $this->assertTrue($user->isAnonymised());
         $this->assertSame('', $user->name);
         $this->assertNull($user->display_name);
+        $this->assertNull($user->username);
+        $this->assertNull($user->username_normalized);
         $this->assertNull($user->avatar_path);
         $this->assertNull($user->email_verified_at);
         $this->assertStringEndsWith('@deleted.invalid', $user->email);
@@ -191,7 +195,8 @@ class AccountDeletionTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Марија Нова',
-            'display_name' => 'Марија Н.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'Marija@Example.com',
             'password' => 'another1longpassword',
             'password_confirmation' => 'another1longpassword',
@@ -249,6 +254,44 @@ class AccountDeletionTest extends TestCase
         $this->assertSame(ReportReason::PersonalData, $report->reason);
         $this->assertSame('Друга белешка', $othersReport->fresh()->note);
         $this->assertSame(1, $review->fresh()->helpful_count);
+    }
+
+    public function test_a_doctor_accounts_change_request_notes_and_refused_replies_go(): void
+    {
+        $doctor = Doctor::factory()->create(['owner_user_id' => $this->member->id]);
+        $request = DoctorChangeRequest::query()->create([
+            'doctor_id' => $doctor->id,
+            'user_id' => $this->member->id,
+            'changes' => ['full_name' => ['old' => 'д-р Стара', 'new' => 'д-р Нова']],
+            'message' => 'Мојот приватен телефон е 070 123 456.',
+            'status' => 'approved',
+        ]);
+        $refused = Review::factory()->approved()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => $doctor->id]);
+        $refused->forceFill([
+            'response_body' => 'Пациентот лаже, го памтам добро.',
+            'response_by_id' => $this->member->id,
+            'response_at' => now(),
+            'response_source' => 'doctor',
+            'response_status' => 'rejected',
+            'response_rejection_note' => 'Открива дека авторот е пациент.',
+        ])->save();
+        $approved = Review::factory()->approved()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => $doctor->id]);
+        $approved->forceFill([
+            'response_body' => 'Ви благодарам.',
+            'response_by_id' => $this->member->id,
+            'response_at' => now(),
+            'response_source' => 'doctor',
+            'response_status' => 'approved',
+        ])->save();
+
+        $this->deleteAccount()->assertOk();
+
+        $this->assertNull($request->fresh()->message);
+        $this->assertSame(['full_name' => ['old' => 'д-р Стара', 'new' => 'д-р Нова']], $request->fresh()->changes);
+        $this->assertNull($refused->fresh()->response_body);
+        $this->assertNull($refused->fresh()->response_rejection_note);
+        // The doctor's public word stays.
+        $this->assertSame('Ви благодарам.', $approved->fresh()->response_body);
     }
 
     public function test_staff_accounts_cannot_delete_themselves_through_the_api(): void

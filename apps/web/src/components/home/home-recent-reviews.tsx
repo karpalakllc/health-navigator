@@ -52,6 +52,17 @@ export function HomeRecentReviews({
       <SectionHeader
         id="home-reviews-title"
         title={t("homeSections.reviewsTitle")}
+        description={
+          <span className="inline-flex items-center gap-2">
+            {/* A quiet, still „live“ dot (no endless ping: calm UI): these
+                are the newest approved reviews. */}
+            <span
+              aria-hidden="true"
+              className="size-2.5 shrink-0 rounded-full bg-care"
+            />
+            {t("homeSearch.reviewsLead")}
+          </span>
+        }
       />
       <ul
         className={cn(

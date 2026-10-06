@@ -168,7 +168,7 @@ class AuthController extends Controller
         $hashedPassword = Hash::make($password);
 
         $name = $request->string('name')->toString();
-        $displayName = $request->string('display_name')->toString();
+        $username = $request->string('username')->toString();
 
         $existing = User::query()->where('email', $email)->first();
 
@@ -181,30 +181,42 @@ class AuthController extends Controller
         try {
             // The Member role is what lets the account post reviews and forum
             // content; created together so no account exists without it.
-            $user = DB::transaction(function () use ($name, $displayName, $email, $hashedPassword): User {
-                $user = User::query()->create([
+            $user = DB::transaction(function () use ($name, $username, $email, $hashedPassword): User {
+                // The chosen name is only held once the address is verified
+                // (AssignRequestedUsername); until then the account carries a
+                // temporary one (User::booted()). Holding it now would make the
+                // availability check tell a new address from a registered one.
+                $user = User::query()->forceCreate([
                     'name' => $name,
-                    'display_name' => $displayName,
+                    'requested_username' => $username,
                     'email' => $email,
                     'password' => $hashedPassword,
                     'user_kind' => UserKind::Client,
                     'email_verified_at' => null,
+                    // „14+ and I accept the terms and the privacy policy“,
+                    // ticked on the form (RegisterRequest requires it).
+                    'terms_accepted_at' => now(),
+                    'terms_version' => (string) config('zdravje.legal.terms_version'),
                 ]);
 
                 $user->assignRole(RoleCatalog::ensure(RoleCatalog::MEMBER));
 
                 return $user;
             });
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $e) {
             // Lost a race with a concurrent signup for the same address. Treat it
             // exactly like the "already registered" branch above.
             $raced = User::query()->where('email', $email)->first();
 
             if ($raced !== null) {
                 $this->notifyExistingAccount($raced);
+
+                return $this->registrationAccepted();
             }
 
-            return $this->registrationAccepted();
+            // Nothing else is unique on a new account: the username is a
+            // fresh temporary one, so this is not a name collision to report.
+            throw $e;
         }
 
         VerificationMailer::sendVerificationLink($user);

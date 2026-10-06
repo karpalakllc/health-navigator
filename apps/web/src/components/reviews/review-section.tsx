@@ -1,3 +1,4 @@
+import { getShellSession } from "@/lib/auth/header-session";
 import { getSessionToken } from "@/lib/auth/session";
 import type { ReviewRatingCounts, ReviewSummary } from "@/lib/api/types";
 import {
@@ -5,6 +6,7 @@ import {
   fetchFacilityReviews,
   fetchPharmacyReviews,
 } from "@/lib/api/reviews";
+import { ReviewInsights } from "@/components/reviews/review-insights";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import {
   ReviewSummaryBlock,
@@ -64,6 +66,10 @@ export async function ReviewSection({
     summary.count > 0 ? ratingDistribution(reviews.meta.rating_counts) : null;
   const isLoggedIn = Boolean(token);
   const viewerReview = reviews.meta.viewer_review;
+  // Shared with the header (one /me per request).
+  const mustChooseUsername = isLoggedIn
+    ? (await getShellSession()).user?.must_choose_username === true
+    : false;
 
   return (
     <section
@@ -80,7 +86,11 @@ export async function ReviewSection({
         kind={kind}
         slug={slug}
         isLoggedIn={isLoggedIn}
-        canWrite={!viewerReview || viewerReview.status === "rejected"}
+        canWrite={!viewerReview || viewerReview.can_resubmit === true}
+      />
+      <ReviewInsights
+        aspects={reviews.meta.aspects}
+        trend={reviews.meta.trend}
       />
       <ReviewsPanel
         kind={kind}
@@ -88,6 +98,7 @@ export async function ReviewSection({
         initial={reviews}
         viewerReview={viewerReview}
         isLoggedIn={isLoggedIn}
+        mustChooseUsername={mustChooseUsername}
         page={page}
         sort={sort}
         rating={rating}

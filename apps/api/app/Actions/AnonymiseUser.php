@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Actions\DoctorAccount\ForgetDoctorAccountData;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
@@ -9,8 +10,11 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\User;
+use App\Models\UsernameHistory;
 use App\Support\Media\ImageOptimizer;
 use App\Support\TaxonomyCache;
+use App\Support\Usernames\TemporaryUsername;
+use App\Support\Usernames\UsernameNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -39,6 +43,7 @@ final class AnonymiseUser
 
     public function __construct(
         private readonly ImageOptimizer $images,
+        private readonly ForgetDoctorAccountData $doctorAccount,
     ) {}
 
     public function handle(User $user): void
@@ -54,9 +59,32 @@ final class AnonymiseUser
             $previousEmail = (string) $locked->email;
             $avatarPath = $locked->avatar_path;
 
+            // The username is cleared like the name, but held back for six
+            // months (unlinked from the account) so nobody can post under it
+            // straight away and be taken for the person who left. Earlier
+            // names stay held too, unlinked, without staff notes about them.
+            UsernameHistory::query()->where('user_id', $locked->getKey())->update([
+                'user_id' => null,
+                'note' => null,
+            ]);
+
+            if ($locked->username !== null && ! TemporaryUsername::isTemporary($locked->username)) {
+                UsernameHistory::query()->create([
+                    'user_id' => null,
+                    'username' => $locked->username,
+                    'username_normalized' => UsernameNormalizer::key($locked->username),
+                    'username_skeleton' => UsernameNormalizer::skeleton($locked->username),
+                    'reason' => 'anonymised',
+                    'reserved_until' => now()->addMonths(UsernameHistory::HOLD_MONTHS),
+                ]);
+            }
+
             $locked->forceFill([
                 'name' => '',
                 'display_name' => null,
+                'username' => null,
+                'username_changed_at' => null,
+                'must_choose_username' => false,
                 // Unique, lower-case (EmailAddress::normalize) and unguessable, so
                 // the original address is free and this one can never be claimed.
                 'email' => 'deleted-'.$locked->getKey().'-'.Str::lower(Str::random(16)).'@'.self::PLACEHOLDER_DOMAIN,
@@ -77,6 +105,7 @@ final class AnonymiseUser
             $locked->syncRoles([]);
             $locked->syncPermissions([]);
             $locked->moderatedForumCategories()->detach();
+            $this->doctorAccount->handle($locked);
 
             DB::table('sessions')->where('user_id', $locked->getKey())->delete();
             DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))

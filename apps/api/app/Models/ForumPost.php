@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\RemovalCategory;
 use App\Models\Concerns\ModeratesForumContent;
 use Database\Factories\ForumPostFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,7 +34,15 @@ class ForumPost extends Model
             'status' => ForumContentStatus::class,
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
+            'removed_at' => 'datetime',
+            'removal_category' => RemovalCategory::class,
         ];
+    }
+
+    /** Published once, then taken down: shown in its thread as a placeholder only. */
+    public function isRemoved(): bool
+    {
+        return $this->status === ForumContentStatus::Rejected && $this->removed_at !== null;
     }
 
     /**
@@ -89,5 +98,21 @@ class ForumPost extends Model
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ForumContentStatus::Approved);
+    }
+
+    /**
+     * What a thread shows: published replies, plus the placeholder of every
+     * reply that was published and later removed.
+     *
+     * @param  Builder<ForumPost>  $query
+     * @return Builder<ForumPost>
+     */
+    public function scopeInThread(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $thread) => $thread
+            ->where('status', ForumContentStatus::Approved)
+            ->orWhere(fn (Builder $removed) => $removed
+                ->where('status', ForumContentStatus::Rejected)
+                ->whereNotNull('removed_at')));
     }
 }

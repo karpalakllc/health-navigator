@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Actions\ChangeUsername;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReportReason;
 use App\Models\AnalyticsEvent;
@@ -58,8 +59,12 @@ class AccountExportTest extends TestCase
         $member = User::factory()->create([
             'name' => 'Марија Костовска',
             'display_name' => 'Марија К.',
+            'username' => 'marija_k',
             'email' => 'marija@example.com',
         ]);
+        $termsAcceptedAt = now()->subWeek()->startOfSecond();
+        $member->forceFill(['terms_accepted_at' => $termsAcceptedAt, 'terms_version' => '2026-10-06'])->save();
+        app(ChangeUsername::class)->handle($member, 'marija_bt');
         $member->createToken('Firefox · Linux');
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
 
@@ -93,6 +98,12 @@ class AccountExportTest extends TestCase
         $this->assertSame(1, $export['version']);
         $this->assertSame('Марија Костовска', $export['profile']['name']);
         $this->assertSame('Марија К.', $export['profile']['display_name']);
+        $this->assertSame('marija_bt', $export['profile']['username']);
+        $this->assertNotNull($export['profile']['username_changed_at']);
+        $this->assertSame('marija_k', $export['profile']['previous_usernames'][0]['username']);
+        $this->assertSame('changed', $export['profile']['previous_usernames'][0]['reason']);
+        $this->assertSame($termsAcceptedAt->toIso8601String(), $export['profile']['terms_accepted_at']);
+        $this->assertSame('2026-10-06', $export['profile']['terms_version']);
         $this->assertSame('marija@example.com', $export['profile']['email']);
         $this->assertSame(['Member'], $export['profile']['roles']);
 
@@ -115,14 +126,67 @@ class AccountExportTest extends TestCase
         $this->assertSame('user.login', $export['activity'][0]['event']);
     }
 
+    public function test_the_export_holds_aspects_removals_and_resubmissions(): void
+    {
+        $member = User::factory()->create();
+        $doctor = Doctor::factory()->create();
+
+        $review = Review::factory()->rejected()->create([
+            'user_id' => $member->id,
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $doctor->id,
+        ]);
+        $review->aspectRatings()->create(['aspect' => 'communication', 'rating' => 5]);
+        $review->aspectRatings()->create(['aspect' => 'waiting_time', 'rating' => 2]);
+        $review->forceFill(['resubmission_count' => 1, 'resubmitted_at' => now()->subDay()])->save();
+
+        $removed = Review::factory()->rejected()->create([
+            'user_id' => $member->id,
+            'removed_at' => now()->subDays(2),
+            'removal_category' => 'spam',
+        ]);
+        $topic = ForumTopic::factory()->create([
+            'user_id' => $member->id,
+            'status' => ForumContentStatus::Rejected,
+            'removed_at' => now()->subDays(3),
+            'removal_category' => 'abuse',
+        ]);
+        ForumPost::factory()->create([
+            'user_id' => $member->id,
+            'forum_topic_id' => $topic->id,
+            'status' => ForumContentStatus::Rejected,
+            'removed_at' => now()->subDays(3),
+            'removal_category' => 'abuse',
+        ]);
+
+        $export = $this->download($member);
+
+        $resent = collect($export['reviews'])->firstWhere('id', $review->id);
+        $this->assertSame(['communication' => 5, 'waiting_time' => 2], $resent['aspects']);
+        $this->assertSame(1, $resent['resubmission_count']);
+        $this->assertNotNull($resent['resubmitted_at']);
+        $this->assertNull($resent['removed_at']);
+
+        $takenDown = collect($export['reviews'])->firstWhere('id', $removed->id);
+        $this->assertSame('spam', $takenDown['removal_category']);
+        $this->assertNotNull($takenDown['removed_at']);
+
+        $this->assertSame('abuse', $export['forum_topics'][0]['removal_category']);
+        $this->assertNotNull($export['forum_topics'][0]['removed_at']);
+        $this->assertSame('abuse', $export['forum_posts'][0]['removal_category']);
+        $this->assertNotNull($export['forum_posts'][0]['removed_at']);
+    }
+
     public function test_the_export_never_includes_another_members_data(): void
     {
         $member = User::factory()->create(['email' => 'mine@example.com']);
         $other = User::factory()->create([
             'name' => 'Друг Корисник',
             'display_name' => 'Друг К.',
+            'username' => 'tugjinec',
             'email' => 'other@example.com',
         ]);
+        app(ChangeUsername::class)->handle($other, 'tugjinec_nov');
         $moderator = User::factory()->moderator()->create(['name' => 'Модератор Тим', 'email' => 'mod@example.com']);
 
         // Another member's topic that the member replied to, later taken down.
@@ -140,7 +204,7 @@ class AccountExportTest extends TestCase
 
         $raw = json_encode($this->download($member), JSON_UNESCAPED_UNICODE);
 
-        foreach (['Друг', 'other@example.com', 'Туѓа тема', 'Туѓ одговор', 'Туѓа рецензија', 'Туѓ уред', 'Модератор', 'mod@example.com'] as $foreign) {
+        foreach (['Друг', 'tugjinec', 'other@example.com', 'Туѓа тема', 'Туѓ одговор', 'Туѓа рецензија', 'Туѓ уред', 'Модератор', 'mod@example.com'] as $foreign) {
             $this->assertStringNotContainsString($foreign, (string) $raw);
         }
 

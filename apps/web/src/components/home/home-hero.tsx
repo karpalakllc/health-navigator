@@ -1,41 +1,67 @@
-import { HeroSearchPrompt } from "@/components/home/hero-search-prompt";
-import { ChipLink } from "@/components/ui/chip";
-import { Button } from "@/components/ui/button";
+import {
+  HeroMasterSearch,
+  type HeroSearchModules,
+} from "@/components/home/hero-master-search";
+import {
+  HeroSpecialtyChips,
+  type HeroSpecialty,
+} from "@/components/home/hero-specialty-chips";
 import { HomeHeroIllustration } from "@/components/home/home-hero-illustration";
 import { Icon, type IconName } from "@/components/ui/icons";
+import type { LocationCity } from "@/lib/api/locations";
 import { t } from "@/i18n/t";
-
-export type HomeQuickLink = { href: string; label: string };
 
 /** One „14 лекари“ line in the hero; counts come from the page’s totals. */
 export type HomeHeroStat = { icon: IconName; label: string };
 
+const ALL_MODULES: HeroSearchModules = {
+  pharmacies: true,
+  products: true,
+  forum: true,
+};
+
 /**
  * The apricot hero band. A short value line (what the directory holds, from
  * the totals the page already fetched) and the illustration open it; then the
- * display heading, the search and quick chips.
+ * display heading, the master search (query + city in one pill, every
+ * section at once) and the specialty chips with „Сите специјалности“.
  *
  * Mobile: the value line and a compact illustration share the first row, the
- * two-field search card („Што барате?“ / „Каде?“) sits right under the
- * heading. Desktop (lg): text on the left (the header pill is the search, so
- * a prompt focuses it), the illustration on the right.
+ * search sits right under the heading. Desktop (lg): text on the left, the
+ * illustration on the right. Two soft shapes sit behind it all (decorative,
+ * clipped to the band without clipping the city picker's popover).
  *
  * One illustration in the DOM: on mobile the text column is `display:
  * contents`, so its children join the band's two-column grid around it.
  */
 export function HomeHero({
-  quickLinks,
+  specialties = [],
+  allSpecialties = [],
   stats = [],
+  modules = ALL_MODULES,
+  knownCities = [],
 }: {
-  quickLinks: HomeQuickLink[];
+  specialties?: HeroSpecialty[];
+  allSpecialties?: HeroSpecialty[];
   stats?: HomeHeroStat[];
+  modules?: HeroSearchModules;
+  knownCities?: LocationCity[];
 }) {
   return (
     <section
       aria-labelledby="home-hero-title"
-      className="mx-3 mt-1 rounded-sheet bg-apricot px-4 pb-6 pt-5 sm:px-5 lg:mx-0 lg:mt-6 lg:px-14 lg:py-12"
+      className="relative mx-3 mt-1 rounded-sheet bg-apricot px-4 pb-6 pt-5 sm:px-5 lg:mx-0 lg:mt-6 lg:px-14 lg:py-12"
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 lg:grid-cols-12 lg:gap-x-8">
+      <div
+        aria-hidden="true"
+        data-hero-shapes=""
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-sheet"
+      >
+        <span className="absolute -bottom-24 -left-20 size-64 rounded-full bg-chip-tint/80 lg:-bottom-40 lg:-left-24 lg:size-[26rem]" />
+        <span className="absolute -right-10 -top-16 size-48 rounded-full border-[18px] border-white/45 lg:-right-16 lg:-top-24 lg:size-80 lg:border-[28px]" />
+      </div>
+
+      <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 lg:grid-cols-12 lg:gap-x-8">
         <div className="contents lg:col-span-7 lg:block">
           {stats.length > 0 ? (
             <ul
@@ -65,30 +91,9 @@ export function HomeHero({
             {t("home.heroLead")}
           </p>
 
-          <HeroSearchForm />
+          <HeroMasterSearch modules={modules} knownCities={knownCities} />
 
-          <div className="mt-8 hidden lg:block">
-            <HeroSearchPrompt />
-          </div>
-
-          {quickLinks.length > 0 ? (
-            <ul
-              aria-label={t("home.quickLinksAria")}
-              className="scroll-row col-span-2 -mx-4 -mb-2.5 mt-1.5 flex gap-2 overflow-x-auto px-4 py-2.5 sm:-mx-5 sm:px-5 lg:mx-0 lg:mb-0 lg:mt-4 lg:flex-wrap lg:overflow-visible lg:px-0 lg:py-0"
-            >
-              {quickLinks.map((link) => (
-                <li key={link.href} className="flex-none">
-                  <ChipLink
-                    href={link.href}
-                    icon="stethoscope"
-                    className="shadow-none"
-                  >
-                    {link.label}
-                  </ChipLink>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <HeroSpecialtyChips top={specialties} all={allSpecialties} />
         </div>
 
         <div className="col-start-2 row-start-1 w-[clamp(9.5rem,44vw,13rem)] lg:col-span-5 lg:col-start-8 lg:w-full">
@@ -96,57 +101,5 @@ export function HomeHero({
         </div>
       </div>
     </section>
-  );
-}
-
-/** Mobile/tablet search card: a GET form to /search, works without JS. */
-function HeroSearchForm() {
-  return (
-    <form
-      role="search"
-      aria-label={t("nav.searchLandmark")}
-      action="/search"
-      method="get"
-      className="col-span-2 mt-5 rounded-card bg-white p-2 shadow-card lg:hidden"
-    >
-      <div className="flex h-14 items-center gap-3 pl-2.5 pr-1">
-        <Icon name="search" className="shrink-0 text-ink-2" />
-        <label htmlFor="home-hero-q" className="sr-only">
-          {t("nav.searchWhat")}
-        </label>
-        <input
-          id="home-hero-q"
-          name="q"
-          type="search"
-          autoComplete="off"
-          placeholder={t("nav.searchWhatPlaceholderShort")}
-          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 type-body text-ink placeholder:text-ink-2"
-        />
-      </div>
-      <div aria-hidden="true" className="mx-3 h-px bg-line" />
-      <div className="flex h-14 items-center gap-3 pl-2.5 pr-1">
-        <Icon name="map-pin" className="shrink-0 text-ink-2" />
-        <label htmlFor="home-hero-city" className="sr-only">
-          {t("nav.searchWhere")}
-        </label>
-        <input
-          id="home-hero-city"
-          name="city"
-          type="text"
-          autoComplete="address-level2"
-          placeholder={t("nav.searchWherePlaceholder")}
-          className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 type-body text-ink placeholder:text-ink-2"
-        />
-      </div>
-      <Button
-        type="submit"
-        size="lg"
-        fullWidth
-        leadingIcon="search"
-        className="mt-2"
-      >
-        {t("nav.searchSubmit")}
-      </Button>
-    </form>
   );
 }

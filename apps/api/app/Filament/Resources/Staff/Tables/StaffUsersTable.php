@@ -13,6 +13,7 @@ class StaffUsersTable
         return $table
             ->columns([
                 TextColumn::make('name')->searchable(),
+                TextColumn::make('username')->label('Username (public)')->searchable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('roles.name')->badge()->label('Roles'),
             ])

@@ -113,6 +113,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   {t("footer.about")}
                 </Link>
               </li>
+              <li>
+                <Link href="/transparency" className={linkClass}>
+                  {t("integrity.footerLink")}
+                </Link>
+              </li>
               {isPathEnabled("/guidance", settings) ? (
                 <li>
                   <Link href="/guidance" className={linkClass}>

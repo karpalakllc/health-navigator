@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ReviewAspect;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListReviewsRequest;
 use App\Http\Requests\Api\V1\StoreReviewRequest;
 use App\Http\Resources\Api\V1\MyReviewResource;
 use App\Http\Resources\Api\V1\PublicReviewResource;
+use App\Http\Resources\Api\V1\RemovedContentResource;
 use App\Http\Resources\Api\V1\ViewerReviewResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
@@ -15,9 +17,11 @@ use App\Models\Facility;
 use App\Models\Review;
 use App\Services\AnalyticsService;
 use App\Support\ReviewHelpfulVotes;
+use App\Support\ReviewInsights;
 use App\Support\UgcMailer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReviewController extends Controller
@@ -106,21 +110,31 @@ class ReviewController extends Controller
         $validated = $request->validated();
         $perPage = $validated['per_page'] ?? 15;
 
+        // Published reviews plus the placeholder of every removed one, so a
+        // removal is never silent. A star filter is about the published
+        // ratings, so it leaves the placeholders out.
         $query = $reviewable->reviews()
-            ->approved()
-            ->with('user');
+            ->inPublicList()
+            ->with(['user', 'aspectRatings']);
 
         if (! empty($validated['rating'])) {
-            $query->where('rating', (int) $validated['rating']);
+            $query->approved()->where('rating', (int) $validated['rating']);
         }
 
-        // Every order ends on id, so equal values cannot swap rows between pages.
+        // A placeholder sorts by date where the review was (removed_at only
+        // for placeholders backfilled without a publication date) and after
+        // the published reviews in rating and helpfulness orders, which must
+        // not reveal its rating or votes. Every order ends on id, so equal
+        // values cannot swap rows between pages.
+        $date = 'coalesce(published_at, removed_at)';
+        $removedLast = 'case when removed_at is null then 0 else 1 end';
+
         match ($validated['sort'] ?? 'newest') {
-            'oldest' => $query->oldest('published_at')->orderBy('id'),
-            'rating_high' => $query->orderByDesc('rating')->latest('published_at')->orderByDesc('id'),
-            'rating_low' => $query->orderBy('rating')->latest('published_at')->orderByDesc('id'),
-            'helpful' => $query->orderByDesc('helpful_count')->latest('published_at')->orderByDesc('id'),
-            default => $query->latest('published_at')->orderByDesc('id'),
+            'oldest' => $query->orderByRaw("{$date} asc")->orderBy('id'),
+            'rating_high' => $query->orderByRaw($removedLast)->orderByDesc('rating')->orderByRaw("{$date} desc")->orderByDesc('id'),
+            'rating_low' => $query->orderByRaw($removedLast)->orderBy('rating')->orderByRaw("{$date} desc")->orderByDesc('id'),
+            'helpful' => $query->orderByRaw($removedLast)->orderByDesc('helpful_count')->orderByRaw("{$date} desc")->orderByDesc('id'),
+            default => $query->orderByRaw("{$date} desc")->orderByDesc('id'),
         };
 
         $paginator = $query->paginate($perPage)->withQueryString();
@@ -147,11 +161,16 @@ class ReviewController extends Controller
             'total' => $paginator->total(),
             'last_page' => $paginator->lastPage(),
             'rating_counts' => $this->ratingCounts($reviewable),
+            // Per-aspect averages (withheld below three ratings) and the
+            // twelve-month trend (null below five reviews); approved only.
+            'aspects' => ReviewInsights::aspects($reviewable),
+            'trend' => ReviewInsights::trend($reviewable),
         ];
 
         if ($request->user()) {
             $viewerReview = $reviewable->reviews()
                 ->where('user_id', $request->user()->id)
+                ->with('aspectRatings')
                 ->first();
 
             if ($viewerReview) {
@@ -160,7 +179,11 @@ class ReviewController extends Controller
         }
 
         return response()->json([
-            'data' => PublicReviewResource::collection($paginator),
+            'data' => $paginator->getCollection()
+                ->map(fn (Review $review): array => $review->isRemoved()
+                    ? RemovedContentResource::make($review)->resolve($request)
+                    : PublicReviewResource::make($review)->resolve($request))
+                ->values(),
             'meta' => $meta,
         ]);
     }
@@ -196,27 +219,42 @@ class ReviewController extends Controller
 
         $user = $request->user();
 
-        if (
-            Review::query()
-                ->where('user_id', $user->id)
-                ->where('reviewable_type', $reviewable::class)
-                ->where('reviewable_id', $reviewable->id)
-                ->exists()
-        ) {
+        // The doctor managing the profile cannot rate it („Мој профил“).
+        if ($reviewable instanceof Doctor && $reviewable->isOwnedBy($user)) {
             throw ValidationException::withMessages([
-                'review' => [__('api.review.duplicate')],
+                'review' => [__('api.review.own_profile')],
             ]);
         }
 
+        $existing = Review::query()
+            ->where('user_id', $user->id)
+            ->where('reviewable_type', $reviewable::class)
+            ->where('reviewable_id', $reviewable->id)
+            ->first();
+
+        if ($existing !== null) {
+            return $this->resubmitReview($existing, $reviewable, $request);
+        }
+
+        $aspects = $this->validatedAspects($reviewable, $request);
+
         try {
-            $review = Review::query()->create([
-                'user_id' => $user->id,
-                'reviewable_type' => $reviewable::class,
-                'reviewable_id' => $reviewable->id,
-                'rating' => $request->integer('rating'),
-                'body' => $request->input('body'),
-                'status' => ReviewStatus::Pending,
-            ]);
+            $review = DB::transaction(function () use ($user, $reviewable, $request, $aspects): Review {
+                $review = Review::query()->create([
+                    'user_id' => $user->id,
+                    'reviewable_type' => $reviewable::class,
+                    'reviewable_id' => $reviewable->id,
+                    'rating' => $request->integer('rating'),
+                    'body' => $request->input('body'),
+                    'status' => ReviewStatus::Pending,
+                ]);
+
+                foreach ($aspects as $aspect => $rating) {
+                    $review->aspectRatings()->create(['aspect' => $aspect, 'rating' => $rating]);
+                }
+
+                return $review;
+            });
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages([
                 'review' => [__('api.review.duplicate')],
@@ -234,8 +272,95 @@ class ReviewController extends Controller
         return ApiResponse::success([
             'rating' => $review->rating,
             'body' => $review->body,
+            'aspects' => (object) $aspects,
             'status' => $review->status->value,
             'created_at' => $review->created_at?->toIso8601String(),
         ], 201);
+    }
+
+    /**
+     * One review per member per profile, with one second chance: a review
+     * refused before publication may be edited and sent to moderation again
+     * once (owner decision 2026-10-14). A second refusal is final, and a
+     * review removed after publication keeps its placeholder and is never
+     * resent.
+     */
+    private function resubmitReview(Review $existing, Doctor|Facility $reviewable, StoreReviewRequest $request): JsonResponse
+    {
+        if (! $existing->canBeResubmitted()) {
+            $final = $existing->status === ReviewStatus::Rejected
+                && $existing->removed_at === null
+                && $existing->published_at === null;
+
+            throw ValidationException::withMessages([
+                'review' => [__($final ? 'api.review.resubmission_used' : 'api.review.duplicate')],
+            ]);
+        }
+
+        $aspects = $this->validatedAspects($reviewable, $request);
+
+        $review = DB::transaction(function () use ($existing, $request, $aspects): ?Review {
+            /** @var Review $locked */
+            $locked = Review::query()->whereKey($existing->getKey())->lockForUpdate()->firstOrFail();
+
+            // Two tabs sending at once: only the first one resends it.
+            if (! $locked->canBeResubmitted()) {
+                return null;
+            }
+
+            $locked->resubmit($request->integer('rating'), $request->input('body'), $aspects);
+
+            return $locked;
+        });
+
+        if ($review === null) {
+            throw ValidationException::withMessages([
+                'review' => [__('api.review.duplicate')],
+            ]);
+        }
+
+        UgcMailer::notifySubmitted($review);
+
+        $this->analytics->record('review.resubmitted', $request->user(), [
+            'reviewable_type' => $reviewable::class,
+            'reviewable_id' => $reviewable->id,
+            'rating' => $review->rating,
+        ]);
+
+        return ApiResponse::success([
+            'rating' => $review->rating,
+            'body' => $review->body,
+            'aspects' => (object) $aspects,
+            'status' => $review->status->value,
+            'resubmitted' => true,
+            'created_at' => $review->created_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * The sub-ratings the member gave, keyed by aspect code. Unrated aspects
+     * (null) are dropped; a code the profile's type does not have is refused.
+     *
+     * @return array<string, int>
+     */
+    private function validatedAspects(Doctor|Facility $reviewable, StoreReviewRequest $request): array
+    {
+        $given = $request->validated('aspects') ?? [];
+        $allowed = ReviewAspect::valuesFor($reviewable::class);
+        $aspects = [];
+
+        foreach ($given as $aspect => $rating) {
+            if (! in_array((string) $aspect, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    'aspects' => [__('api.review.aspect_unknown')],
+                ]);
+            }
+
+            if ($rating !== null) {
+                $aspects[(string) $aspect] = (int) $rating;
+            }
+        }
+
+        return $aspects;
     }
 }

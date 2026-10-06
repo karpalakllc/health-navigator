@@ -4,7 +4,6 @@ namespace Tests\Feature\Console;
 
 use App\Models\Doctor;
 use App\Models\User;
-use App\Support\DisplayName;
 use App\Support\RoleCatalog;
 use App\Support\TaxonomyCache;
 use Database\Seeders\PerfSeeder;
@@ -37,7 +36,7 @@ class PerfSeederTest extends TestCase
 
     /**
      * Seeded members must look like registered ones: the Member role (what
-     * permissions are checked against) and a display name (what public surfaces
+     * permissions are checked against) and a username (what public surfaces
      * render). Taxonomies written behind the models' backs must not be served
      * from a stale cache.
      */
@@ -51,11 +50,12 @@ class PerfSeederTest extends TestCase
 
         $members = User::query()->where('email', 'like', '%@perf.zdravje360.test');
         $this->assertSame(PerfSeeder::MEMBERS, $members->count());
-        $this->assertSame(0, (clone $members)->whereNull('display_name')->count());
+        $this->assertSame(0, (clone $members)->whereNull('username')->count());
         $this->assertSame(PerfSeeder::MEMBERS, User::role(RoleCatalog::MEMBER)->count());
 
         $member = (clone $members)->first();
-        $this->assertSame(DisplayName::suggest($member->name), $member->display_name);
+        $this->assertMatchesRegularExpression('/^perf_member\\d+$/', $member->username);
+        $this->assertSame($member->username, $member->publicName());
         $this->assertTrue($member->hasRole(RoleCatalog::MEMBER));
         $this->assertTrue($member->can('reviews.create'));
 

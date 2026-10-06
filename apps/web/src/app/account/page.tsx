@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AccountDisplayNameForm } from "@/components/account/account-display-name-form";
 import {
   AccountLayout,
   AccountPage,
@@ -12,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tag } from "@/components/ui/tag";
+import { AccountUsernameForm } from "@/components/usernames/account-username-form";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
@@ -68,7 +68,11 @@ export default async function AccountOverviewPage() {
               </ProfileRow>
             </dl>
             <div className="border-t border-line pt-6">
-              <AccountDisplayNameForm displayName={user.display_name} />
+              <AccountUsernameForm
+                username={user.username}
+                mustChoose={user.must_choose_username}
+                changeAvailableAt={user.username_change_available_at}
+              />
             </div>
           </div>
         </Card>

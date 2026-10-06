@@ -35,6 +35,7 @@ class SiteSetting extends Model
         'forum_rules_body',
         'forum_topics_require_moderation',
         'forum_posts_require_moderation',
+        'doctor_replies_require_moderation',
     ];
 
     protected function casts(): array
@@ -50,6 +51,7 @@ class SiteSetting extends Model
             'forum_rules_enabled' => 'boolean',
             'forum_topics_require_moderation' => 'boolean',
             'forum_posts_require_moderation' => 'boolean',
+            'doctor_replies_require_moderation' => 'boolean',
         ];
     }
 
@@ -139,6 +141,7 @@ class SiteSetting extends Model
             'profile_avatar_min_messages' => 10,
             'forum_topics_require_moderation' => true,
             'forum_posts_require_moderation' => true,
+            'doctor_replies_require_moderation' => true,
         ];
 
         $testingDefaults = [

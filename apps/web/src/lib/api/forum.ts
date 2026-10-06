@@ -9,7 +9,7 @@ import {
   apiFetch,
   apiGetPaginatedServer,
 } from "@/lib/api/server";
-import type { PaginatedEnvelope } from "@/lib/api/types";
+import type { PaginatedEnvelope, RemovedItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
 export type ForumAuthor = {
@@ -40,10 +40,25 @@ export type ForumTopicListItem = {
   published_at: string | null;
 };
 
+/** A forum keyword (docs/seo.md). latin: diacritic-free Latin spelling. */
+export type ForumTag = {
+  name: string;
+  slug: string;
+  latin: string;
+  /** Tag list and tag page only: publicly visible topics carrying it. */
+  topics_count?: number;
+  /** Tag list and tag page only: latest activity among those topics. */
+  last_activity_at?: string | null;
+};
+
 export type ForumTopicDetail = {
   slug: string;
   title: string;
   body: string;
+  /** Optional until every API serves it. */
+  tags?: ForumTag[];
+  /** Latest approved reply, or the publication itself. */
+  last_post_at?: string | null;
   author_name: string;
   author: ForumAuthor;
   category: { slug: string; name: string };
@@ -69,8 +84,10 @@ export type ForumPost = {
 
 export type ForumTopicPage = {
   topic: ForumTopicDetail;
-  posts: ForumPost[];
-  related_topics?: ForumTopicListItem[];
+  /** Replies, with a placeholder where a removed one was. */
+  posts: Array<ForumPost | RemovedItem>;
+  /** Shared keywords first, then the same category; may be cross-category. */
+  related_topics?: ForumTopicSearchItem[];
   meta: PaginatedEnvelope<ForumPost>["meta"];
 };
 
@@ -137,24 +154,103 @@ export async function fetchForumTopicSearch(
   );
 }
 
-export async function fetchForumRecentTopics(perPage = 8) {
+export async function fetchForumRecentTopics(
+  perPage = 8,
+  options?: ApiCacheOptions,
+) {
   return apiGetPaginated<ForumTopicSearchItem>(
     `/forum/topics/recent?per_page=${perPage}`,
+    options,
   );
 }
 
 export async function fetchForumTopics(
   categorySlug: string,
-  params: { q?: string; sort?: "latest" | "active"; page?: number } = {},
+  params: {
+    q?: string;
+    sort?: "latest" | "active";
+    page?: number;
+    per_page?: number;
+  } = {},
+  options?: ApiCacheOptions,
 ) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
   if (params.sort && params.sort !== "latest") search.set("sort", params.sort);
   if (params.page) search.set("page", String(params.page));
+  if (params.per_page) search.set("per_page", String(params.per_page));
   const query = search.toString();
 
   return apiGetPaginated<ForumTopicListItem>(
     `/forum/categories/${pathSegment(categorySlug)}/topics${query ? `?${query}` : ""}`,
+    options,
+  );
+}
+
+/** Tags with at least minTopics visible topics (sitemap, llms.txt). */
+export async function fetchForumTags(
+  params: { min_topics?: number; page?: number; per_page?: number } = {},
+  options?: ApiCacheOptions,
+) {
+  const search = new URLSearchParams();
+  if (params.min_topics) search.set("min_topics", String(params.min_topics));
+  if (params.page) search.set("page", String(params.page));
+  if (params.per_page) search.set("per_page", String(params.per_page));
+  const query = search.toString();
+
+  return apiGetPaginated<ForumTag>(
+    `/forum/tags${query ? `?${query}` : ""}`,
+    options,
+  );
+}
+
+export type ForumTagPage = {
+  tag: ForumTag;
+  topics: ForumTopicSearchItem[];
+  meta: PaginatedEnvelope<ForumTopicSearchItem>["meta"];
+};
+
+/** Throws ApiRequestError (404 for an unknown tag or one without topics). */
+export async function fetchForumTagPage(
+  slug: string,
+  page = 1,
+): Promise<ForumTagPage> {
+  const response = await apiFetch(
+    `/forum/tags/${pathSegment(slug)}?page=${page}`,
+  );
+
+  if (!response.ok) {
+    throw new ApiRequestError(
+      `API request failed (${response.status})`,
+      response.status,
+    );
+  }
+
+  const body = (await response.json()) as {
+    data: { tag: ForumTag; topics: ForumTopicSearchItem[] };
+    meta: ForumTagPage["meta"];
+  };
+
+  return { tag: body.data.tag, topics: body.data.topics, meta: body.meta };
+}
+
+/**
+ * Forum topics linked to a doctor (confirmed keywords only) or facility
+ * profile. Decorative on the profile, so callers treat a failure as none.
+ */
+export async function fetchRelatedForumTopics(
+  target: { doctor: string } | { facility: string },
+  limit = 5,
+): Promise<ForumTopicSearchItem[]> {
+  const [key, slug] =
+    "doctor" in target
+      ? (["doctor", target.doctor] as const)
+      : (["facility", target.facility] as const);
+  const search = new URLSearchParams({ [key]: slug, limit: String(limit) });
+
+  return apiGet<ForumTopicSearchItem[]>(
+    `/forum/topics/related?${search.toString()}`,
+    { revalidate: 300 },
   );
 }
 
@@ -181,8 +277,8 @@ export async function fetchForumTopicPage(
   const body = (await response.json()) as {
     data: {
       topic: ForumTopicDetail;
-      posts: ForumPost[];
-      related_topics?: ForumTopicListItem[];
+      posts: ForumTopicPage["posts"];
+      related_topics?: ForumTopicSearchItem[];
     };
     meta: ForumTopicPage["meta"];
   };

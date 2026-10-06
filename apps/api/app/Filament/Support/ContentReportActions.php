@@ -2,10 +2,12 @@
 
 namespace App\Filament\Support;
 
+use App\Enums\RemovalCategory;
 use App\Enums\ReportStatus;
 use App\Models\ContentReport;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,8 +24,17 @@ final class ContentReportActions
             ->color('danger')
             ->icon('heroicon-o-eye-slash')
             ->visible(fn (ContentReport $record): bool => self::canHide($record))
-            ->modalDescription('Unpublishes the reported content and closes every open report on it. The author is emailed the reason below.')
-            ->form(ModerationBulkActions::rejectionNoteFields('note'))
+            ->modalDescription('Unpublishes the reported content and closes every open report on it. The public sees only a placeholder with the date and the public reason; the author is emailed the reason below.')
+            ->form(fn (ContentReport $record): array => [
+                Select::make('removal_category')
+                    ->label('Public reason')
+                    ->helperText('Shown publicly in place of the removed content („Рецензијата е отстранета на … — причина: …“). Starts from the most common report reason.')
+                    ->options(RemovalCategory::options())
+                    ->default($record->suggestedRemovalCategory()->value)
+                    ->required()
+                    ->native(false),
+                ...ModerationBulkActions::rejectionNoteFields('note'),
+            ])
             ->requiresConfirmation()
             ->action(function (ContentReport $record, array $data): void {
                 // Re-checked at execution: visibility alone is not authorization.
@@ -31,7 +42,11 @@ final class ContentReportActions
                     return;
                 }
 
-                $record->hideContent(self::actor(), $data['note'] ?? null);
+                $record->hideContent(
+                    self::actor(),
+                    $data['note'] ?? null,
+                    RemovalCategory::tryFrom((string) ($data['removal_category'] ?? '')),
+                );
 
                 Notification::make()->title('Content hidden')->success()->send();
             });

@@ -3,6 +3,7 @@ import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { forumPageClass } from "@/components/forum/forum-layout";
 import { ForumNewTopicComposer } from "@/components/forum/forum-new-topic-composer";
 import { IconButton } from "@/components/ui/button";
+import { getShellSession } from "@/lib/auth/header-session";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
@@ -42,7 +43,10 @@ export default async function NewTopicPage({
   }
 
   const params = await searchParams;
-  const categories = await fetchForumCategories();
+  const [categories, session] = await Promise.all([
+    fetchForumCategories(),
+    getShellSession(),
+  ]);
 
   if (categories.length === 0) {
     redirect("/forum");
@@ -87,6 +91,7 @@ export default async function NewTopicPage({
         categories={categories}
         defaultCategorySlug={defaultCategory}
         settings={settings}
+        mustChooseUsername={session.user?.must_choose_username === true}
       />
     </div>
   );

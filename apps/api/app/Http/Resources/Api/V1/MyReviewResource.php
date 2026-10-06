@@ -39,6 +39,7 @@ class MyReviewResource extends JsonResource
             'body' => $this->body,
             'status' => $this->status->value,
             'rejection_note' => $this->rejection_note,
+            'can_resubmit' => $this->canBeResubmitted(),
             'reviewable' => $target,
             'created_at' => $this->created_at?->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),

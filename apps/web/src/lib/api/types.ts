@@ -12,7 +12,53 @@ export type PaginatedEnvelope<T> = {
     viewer_review?: ViewerReview | null;
     /** Review lists only: approved reviews per star, for the histogram. */
     rating_counts?: ReviewRatingCounts;
+    /** Review lists only: per-aspect averages (null below 3 ratings). */
+    aspects?: ReviewAspectSummary[];
+    /** Review lists only: 12-month trend, or null below 5 reviews. */
+    trend?: ReviewTrendPeriod[] | null;
   };
+};
+
+/** Public reason a published review or reply was later removed. */
+export type RemovalCategory =
+  | "spam"
+  | "abuse"
+  | "false_information"
+  | "personal_data"
+  | "illegal"
+  | "other";
+
+/**
+ * A review or forum reply that was published and later removed: it stays in
+ * its list as a placeholder with only the date and the public reason.
+ */
+export type RemovedItem = {
+  id: number;
+  removed: true;
+  removed_at: string | null;
+  removal_category: RemovalCategory | null;
+};
+
+export function isRemovedItem(item: object): item is RemovedItem {
+  return "removed" in item && item.removed === true;
+}
+
+/** A row of a profile's review list: a review or a removal placeholder. */
+export type ReviewListItem = PublicReview | RemovedItem;
+
+export type ReviewAspectSummary = {
+  key: string;
+  count: number;
+  /** Withheld (null) below 3 approved ratings. */
+  average: number | null;
+};
+
+/** One three-month period of the rating trend (dates are YYYY-MM-DD). */
+export type ReviewTrendPeriod = {
+  start: string;
+  end: string;
+  count: number;
+  average: number | null;
 };
 
 /** Approved reviews per star („1“…„5“), whatever the list's filter or page. */
@@ -23,6 +69,14 @@ export type ViewerReview = {
   rating: number;
   body: string | null;
   status: "pending" | "approved" | "rejected";
+  /** Why it was refused; only on the author's own rejected review. */
+  rejection_note?: string | null;
+  /** Taken down after publication: a placeholder, never resent. */
+  removed?: boolean;
+  /** Refused before publication and not yet resent: one more try allowed. */
+  can_resubmit?: boolean;
+  /** The aspect ratings it carried, by code. */
+  aspects?: Record<string, number>;
   created_at: string | null;
   published_at: string | null;
 };
@@ -62,6 +116,8 @@ export type UnifiedSearchResult = {
   pharmacies: PaginatedEnvelope<PharmacyListItem>;
   products: PaginatedEnvelope<ProductListItem>;
   forum_topics: PaginatedEnvelope<ForumTopicSearchItem>;
+  /** Specialties whose name matches: shortcuts to /doctors?specialty=. */
+  specialties?: Array<Pick<Specialty, "slug" | "name" | "doctors_count">>;
   grand_total: number;
 };
 
@@ -110,6 +166,8 @@ export type PublicReview = {
   response?: ReviewResponse | null;
   /** „Корисно“ votes. */
   helpful_count?: number;
+  /** Optional aspect sub-ratings by code (communication, waiting_time…). */
+  aspects?: Record<string, number>;
   /** Present only on signed-in requests. */
   viewer?: { has_voted_helpful: boolean };
 };
@@ -118,6 +176,8 @@ export type ReviewResponse = {
   body: string;
   responder_name: string | null;
   responded_at: string | null;
+  /** `doctor`: written by the linked doctor („Одговор од лекарот“); `staff`: entered on the profile's behalf. */
+  source?: "staff" | "doctor";
 };
 
 export type DoctorDetail = {

@@ -29,6 +29,30 @@ function props(
 }
 
 describe("ReviewsPanel", () => {
+  it("asks a member with a temporary name to choose one instead of offering the form", () => {
+    render(
+      <ReviewsPanel
+        {...props({ isLoggedIn: true, mustChooseUsername: true })}
+      />,
+    );
+
+    // The API refuses the review until a username is chosen: do not let the
+    // member write a whole review first.
+    expect(
+      screen.queryByRole("button", { name: t("reviews.submit") }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: t("usernames.accountNoticeCta") }),
+    ).toHaveAttribute(
+      "href",
+      `/account/username?redirect=${encodeURIComponent("/doctors/ana-petrovska#reviews")}`,
+    );
+    // „Напиши рецензија“ (#review-form) lands on the note.
+    expect(document.getElementById("review-form")).toHaveTextContent(
+      t("usernames.accountNotice"),
+    );
+  });
+
   it("sends a signed-out visitor to login and back to these reviews", () => {
     render(<ReviewsPanel {...props()} />);
 
@@ -119,5 +143,100 @@ describe("ReviewsPanel", () => {
     expect(
       screen.getByRole("article", { name: t("reviews.pendingTitle") }),
     ).not.toHaveFocus();
+  });
+
+  const rejected = {
+    id: 9,
+    rating: 2,
+    body: "Првиот текст со име на друг пациент.",
+    status: "rejected" as const,
+    rejection_note: "Наведовте име на друг пациент.",
+    removed: false,
+    can_resubmit: true,
+    aspects: { communication: 2 },
+    created_at: null,
+    published_at: null,
+  };
+
+  it("offers a refused review once more, prefilled, with the reason and the last-chance note", async () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    render(
+      <ReviewsPanel {...props({ isLoggedIn: true, viewerReview: rejected })} />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: t("reviews.resubmitTitle") }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("reviews.resubmitLastChance")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Наведовте име на друг пациент."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(t("reviews.body"))).toHaveValue(
+      "Првиот текст со име на друг пациент.",
+    );
+    // The overall stars come first; the unfolded aspects repeat the names.
+    expect(
+      screen.getAllByRole("radio", { name: "2 ѕвезди од 5" })[0],
+    ).toHaveAttribute("aria-checked", "true");
+
+    const user = userEvent.setup();
+    const body = screen.getByLabelText(t("reviews.body"));
+    await user.clear(body);
+    await user.type(body, "Изменет текст без лични податоци.");
+    await user.click(
+      screen.getByRole("button", { name: t("reviews.resubmitSubmit") }),
+    );
+
+    await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+    const sent = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body));
+    expect(sent).toMatchObject({
+      rating: 2,
+      body: "Изменет текст без лични податоци.",
+      aspects: { communication: 2 },
+    });
+  });
+
+  it("says a second refusal is final and offers no form", () => {
+    render(
+      <ReviewsPanel
+        {...props({
+          isLoggedIn: true,
+          viewerReview: {
+            ...rejected,
+            can_resubmit: false,
+            rejection_note: "Второ одбивање.",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: t("reviews.resubmitSubmit") }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(t("reviews.finalBody"))).toBeInTheDocument();
+    expect(screen.getByText("Второ одбивање.")).toBeInTheDocument();
+  });
+
+  it("offers nothing to resend for a review removed after publication", () => {
+    render(
+      <ReviewsPanel
+        {...props({
+          isLoggedIn: true,
+          viewerReview: {
+            ...rejected,
+            removed: true,
+            can_resubmit: false,
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("heading", { name: t("reviews.submitTitle") }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(t("reviews.finalBody"))).not.toBeInTheDocument();
   });
 });

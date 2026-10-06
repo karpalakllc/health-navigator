@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\UsernameHistory;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('triage:purge-old-sessions')
@@ -36,5 +37,25 @@ Schedule::command('sanctum:prune-expired --hours=24')
 // NotifyOnFailedJob has alerted on each long before then.
 Schedule::command('queue:prune-failed --hours=720')
     ->dailyAt('04:30')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Sign-ups never verified within zdravje.accounts.unverified_prune_days (7).
+Schedule::command('accounts:prune-unverified')
+    ->dailyAt('04:40')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Released usernames are held back from others for six months, then the
+// private record of them goes too.
+Schedule::command('model:prune', ['--model' => [UsernameHistory::class]])
+    ->dailyAt('04:45')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Audit log retention (docs/data-inventory.md): entries older than
+// activitylog.clean_after_days (365) are deleted.
+Schedule::command('activitylog:clean --force')
+    ->dailyAt('04:45')
     ->onOneServer()
     ->withoutOverlapping();

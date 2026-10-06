@@ -93,19 +93,50 @@ mechanism for the Next.js web client and future mobile clients.
   (30 days). Expired tokens are rejected — including on optional-auth routes.
 - `POST /auth/forgot-password` always returns the same success payload,
   whether or not the address is registered.
-- `GET /me` returns `id, name, display_name, email, role, community_roles,
-  can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+- `GET /me` returns `id, name, username, must_choose_username,
+  username_changed_at, username_change_available_at, display_name, email, role,
+  community_roles, can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+  `display_name` is a deprecated alias of `username` (the stored display name is
+  no longer shown anywhere; the column is dropped in a later release).
 - **Two names.** `name` is the person's real name and is **private** (only
-  `/me`, the admin panel and mail). `display_name` is what everything public
+  `/me`, the admin panel and mail). The **username** is what everything public
   shows: `author_name` on reviews and forum topics/posts, and `author.name` on
-  forum authors. `POST /auth/register` requires `display_name`;
-  `PATCH /me/profile` (`{ "display_name": "…" }`, verified accounts) changes it
-  and returns `{ user }` as `/me` does. Rules: trimmed with runs of whitespace
-  collapsed, at most 40 characters, Unicode letters, spaces and `. - '` only,
-  starting with a letter, at least two letters, no word mixing Cyrillic and
-  Latin, and no title, role or platform name in either script (д-р/dr, проф,
-  доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
-  `DisplayName::rejection()`). **Not unique.**
+  forum authors; a deleted account shows „Избришан корисник“. Usernames are
+  **unique** and replaced the „Име П.“ display name (owner decision
+  2026-10-14: initials can be enough to recognise a reviewer).
+  - Rules (`App\Support\Usernames\UsernameValidator`): 3–30 characters;
+    Latin letters (with ç ë č ć đ š ž) or Macedonian Cyrillic letters, not both;
+    digits and `. _ -`; starts with a letter; no two separators in a row; not on
+    the blocked or reserved lists (staff-curated, `username_terms`); not held by
+    anyone else after folding (case, Cyrillic→Latin, look-alikes, leetspeak,
+    separators — `UsernameNormalizer`), nor released by someone else in the last
+    six months (`username_history`). Errors are `422` on `username`, worded
+    without saying which list matched („Ова корисничко име не е дозволено.“ /
+    „Ова корисничко име веќе се користи.“).
+  - `POST /auth/register` requires `username` and `accept_terms` (accepted: „I am
+    at least 14 and accept the Terms of Use and the Privacy Policy“, stored as
+    `terms_accepted_at` + `terms_version`). A taken username is refused whether or
+    not the address is registered, so it reveals nothing about addresses. The
+    name is **held only once the address is verified**: until then the account
+    carries a temporary `clen-…` name and keeps the chosen one privately
+    (`requested_username`), so neither the availability check nor a second
+    sign-up with the same name tells a new address from a registered one.
+    Verifying (the link, a contested settlement or a password reset) gives the
+    account its name, or — when someone took it meanwhile — leaves
+    `must_choose_username: true`. Never-verified sign-ups are deleted after 7
+    days (`accounts:prune-unverified`).
+  - `GET /usernames/availability?username=…` (optional auth; `api-username-check`)
+    returns `{ available, message }` — the same message registration would give,
+    nothing about the holder. A signed-in member's own name is available to them.
+  - `PATCH /me/profile` (`{ "username": "…" }`, verified accounts) changes it and
+    returns `{ user }` as `/me` does, without `managed_doctor`. Once every 90 days (`422` on `username` with
+    the next date); choosing the first username, replacing a temporary
+    `clen-…` one, is not limited.
+  - Accounts from before usernames, and those staff create without one, have a
+    temporary `clen-…` name and `must_choose_username: true`. Until they choose,
+    review, forum topic/reply and „Корисно“ requests are `403` with the message
+    „Пред да објавувате, изберете корисничко име во вашата сметка.“; reading is
+    unaffected.
 
 **Account data rights and devices (D5, D6, D7):**
 
@@ -126,7 +157,8 @@ mechanism for the Next.js web client and future mobile clients.
   only while it is approved. `Cache-Control: no-store`. 5 per hour
   (`429`, code `account.export_throttled`).
 - `DELETE /me` with `{ "password": "…" }` deletes the account by
-  anonymisation: name, display name, email (replaced with a non-deliverable
+  anonymisation: name, display name, username (held back from others for six
+  months), email (replaced with a non-deliverable
   placeholder, so the address can register again), password, avatar (file
   removed), roles, community-moderation scopes, tokens, panel sessions and
   reset links are cleared; published reviews and forum content stay public
@@ -157,7 +189,8 @@ limiters are layered on top:
 |---------|-----------|-------|
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
-| `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
+| `api-profile` | `PATCH /me/profile` (username) | 10/hour per user |
+| `api-username-check` | `GET /usernames/availability` | 30/min and 500/day per IP |
 | `api-account-export` | `GET /me/export` | 5/hour per user |
 | `api-account-delete` | `DELETE /me` (password re-entry) | 5/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
@@ -165,6 +198,9 @@ limiters are layered on top:
 | `api-forum-posts` | reply creation | 30/day |
 | `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
 | `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
+| `api-doctor-dashboard` | everything under `/me/doctor` (inline `throttle:`) | 120/min per user |
+| `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
+| `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -181,6 +217,8 @@ nobody can hold an account locked by merely sending traffic.
 | Method | Path | Guards |
 |--------|------|--------|
 | `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
+| `DELETE` | `/me/doctor/change-requests/{changeRequest}` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `DELETE` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `DELETE` | `/me/tokens` | `auth:sanctum` |
 | `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
 | `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
@@ -195,12 +233,19 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
+| `GET` | `/forum/tags` | `module:forum`, `cache.public:60` |
+| `GET` | `/forum/tags/{tag}` | `module:forum`, `cache.public:60` |
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
+| `GET` | `/forum/topics/related` | `module:forum`, `cache.public:60` |
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
+| `GET` | `/locations/cities` | `cache.public:60` |
 | `GET` | `/me` | `auth:sanctum` |
+| `GET` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
+| `GET` | `/me/doctor/facilities` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
+| `GET` | `/me/doctor/reviews` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
@@ -216,8 +261,11 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/settings/public` | — |
 | `GET` | `/specialties` | `cache.public` |
 | `GET` | `/specialties/{slug}` | `cache.public` |
+| `GET` | `/transparency` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
+| `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `PATCH` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
@@ -225,6 +273,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/auth/logout` | `auth:sanctum` |
 | `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
+| `POST` | `/doctors/{slug}/claim-requests` | `auth:sanctum`, `verified`, `throttle:5,1440,api-doctor-claims` |
 | `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
@@ -232,11 +281,14 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
+| `POST` | `/me/doctor/avatar` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `POST` | `/me/doctor/change-requests` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
 <!-- END generated route table -->
@@ -294,10 +346,46 @@ nobody can hold an account locked by merely sending traffic.
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
   `meta.rating_counts` is `{"1": n, …, "5": n}` over **approved** reviews of the
   profile, independent of the `rating` filter and the page. Each review carries
-  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at}`:
-  the doctor's or facility's official reply, plain text) and, **only on a
+  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at,
+  source}`: the doctor's or facility's reply, plain text; `source` is `staff`
+  when staff entered it on the profile's behalf, `doctor` when the linked
+  doctor wrote it — shown only once approved) and, **only on a
   signed-in request**, `viewer.has_voted_helpful`; anonymous payloads carry no
-  viewer state.
+  viewer state. Each review also carries `aspects` (`{code: 1–5}`, possibly
+  empty). **Removed reviews** (published, then taken down) stay in the list as
+  `{id, removed: true, removed_at, removal_category}` and nothing else;
+  `removal_category` is `spam|abuse|false_information|personal_data|illegal|other`.
+  They sort by date where the review was, after the published reviews in the
+  rating and helpful orders, and a `rating` filter leaves them out. A review
+  refused before publication is never listed. `meta.aspects` is
+  `[{key, count, average}]` for the profile type's four aspects (doctor:
+  `communication|explanation|waiting_time|respect`; facility and pharmacy:
+  `cleanliness|organisation|waiting_time|staff`), `average` `null` below 3
+  ratings. `meta.trend` is four three-month periods over the last twelve
+  months, `[{start, end, count, average}]` oldest first, or `null` below 5
+  reviews in that time. All of these count approved reviews only.
+- `POST …/reviews` accepts optional `aspects` (`{code: 1–5 or null}`); a code
+  the profile type does not have is a 422 on `aspects`.
+- One review per member per profile, with one second chance: when the
+  member's review of the profile was refused before publication and not yet
+  resent, `POST …/reviews` replaces it (rating, body, aspects), sends it back
+  to `pending` and answers **200** with `resubmitted: true` (201 stays for a
+  new review). A second refusal is final (422 on `review`,
+  `api.review.resubmission_used`); a pending, published or removed-after-
+  publication review is the usual 422 duplicate. `meta.viewer_review` carries
+  `rejection_note` (rejected only), `removed`, `can_resubmit` and `aspects`;
+  `GET /me/reviews` rows carry `can_resubmit`.
+- A topic's `posts` list keeps a removed reply as
+  `{id, removed: true, removed_at, removal_category}` in its place.
+- `GET /transparency` returns `{generated_at, months: [...]}`: twelve calendar
+  months (UTC), newest first, each with `month` (`YYYY-MM`), `reviews` and `forum` (`received`,
+  `published`, `rejected` before publication, `removed`,
+  `removed_by_category`, `moderated` (decisions the average covers),
+  `average_moderation_hours` or `null`) and `reports`
+  (`received`, `resolved`, `removed`, `kept`). Cached for an hour. `rejected`
+  counts moderators' refusals only (not content withdrawn by account
+  deletion), a resent review's first refusal included; a removed topic still
+  counts in the month it was published.
 - `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
   helpful (Member role, verified; idempotent; your own review is a 422) and
   return `{helpful_count, has_voted_helpful}`.
@@ -314,6 +402,70 @@ nobody can hold an account locked by merely sending traffic.
   signed-in request the topic and each reply carry `viewer.is_own` (the web
   hides „Пријави“ on it), and the topic's `viewer.can_moderate` is present only
   when true; anonymous payloads carry no `viewer`.
+- **Doctor accounts („Мој профил“).** Staff link one member account to one
+  doctor profile (admin panel). `GET /me` then carries
+  `user.managed_doctor` (`{slug, full_name, is_published}`, else `null`).
+  Everything under `/me/doctor` (verified accounts) resolves the profile from
+  the account, never from the URL; an unlinked, suspended or deleted account
+  gets **404** `doctor_account.not_linked`.
+  `GET /me/doctor` returns `doctor` (current values; `specialties` and
+  `facilities` as `{id, name, is_primary}`, `language_ids`,
+  `clinical_interest_ids`, `procedure_ids`), `pending_change_request`,
+  `recent_change_requests`, `stats {review_count, average_rating,
+  unanswered_reviews, pending_replies}`, `settings.replies_require_moderation`
+  and the `options` the selects offer (published entries; `facilities` lists
+  only the profile's own workplaces and those its pending request names, as
+  `{id, name, city}`). `GET /me/doctor/facilities?q=` (2–100 characters,
+  script-insensitive like the public search) finds other published clinical
+  facilities by name, up to 20 `{id, name, city}`. `PATCH /me/doctor` saves `bio`, `phone`,
+  `email`, `consultation_fee_note`, `accepts_new_patients`, `office_hours`
+  (day → hours), `language_ids`, `clinical_interest_ids`, `procedure_ids`
+  at once (plain text; any other key is ignored — slug, publication,
+  featured and sponsored are never the doctor's). `POST /me/doctor/avatar`
+  (multipart `avatar`, ≤ 5 MB) re-encodes the photo to WebP.
+  `POST /me/doctor/change-requests` takes `full_name`, `title`,
+  `subspecialty`, `education`, `years_experience`, `city`, `specialty_ids` /
+  `primary_specialty_id`, `facility_ids` / `primary_facility_id` and an
+  optional `message`; it stores the field-level diff `{field: {old, new}}`
+  for staff (201), 422 `doctor_account.no_changes` when nothing differs, 409
+  `doctor_account.change_request_pending` while one waits. `DELETE
+  /me/doctor/change-requests/{id}` withdraws a pending one.
+  `GET /me/doctor/reviews?filter=all|unanswered` lists the profile's approved
+  reviews in the public list's order (`unanswered`: no reply, or the doctor's
+  reply was refused; public author name only) with `reply {body, source, status,
+  responded_at, rejection_note}` and `can_reply`; with `filter=all` a review
+  removed after publication is the same `{id, removed: true, removed_at,
+  removal_category}` placeholder as in the public list (no text, author or
+  reply; replying to it is 404). `PUT
+  /me/doctor/reviews/{id}/reply` (`body`, 2–2000, plain text) writes or
+  replaces the doctor's one reply — `pending` until staff approve while
+  `doctor_replies_require_moderation` is on (default), and an edit waits
+  again; 409 `doctor_account.reply_staff_exists` under a staff-entered
+  response. `DELETE` removes the doctor's own reply. A review of another
+  profile is 404. The linked doctor cannot review their own profile (422
+  `review`).
+- `POST /doctors/{slug}/claim-requests` („Ова е мој профил“; verified member)
+  takes `message` (10–1000) and `contact` (5–255). 201 on the first request,
+  200 for a repeat while it is pending; 409 `doctor_account.claim_taken`,
+  `claim_already_yours` or `claim_already_manager`; 429
+  `doctor_account.claim_limit` beyond 3 open requests. Staff verify the person
+  outside the platform and assign the account in the admin panel.
+- **Forum keywords (tags).** `POST …/topics` accepts optional `tags` (up to 5
+  strings, 2–40 characters each once normalised; 422 `api.forum.tag_invalid`
+  otherwise); unknown tags are created. Topic detail payloads carry `tags`
+  (`[{name, slug, latin}]`). `GET /forum/tags` (`min_topics` 1–100, `per_page`
+  ≤ 100) lists tags that visible topics carry, most used first, with
+  `topics_count` and `last_activity_at`. `GET /forum/tags/{slug}` returns
+  `{tag, topics}` (topics newest activity first, `per_page` ≤ 50) and a 404 for a
+  tag only pending or hidden topics carry. `GET
+  /forum/topics/related?doctor={slug}` or `?facility={slug}` (`limit` 1–10,
+  default 5) lists visible topics related to a published profile. All three
+  are anonymous and `cache.public:60`.
+- `GET /locations/cities` lists every city with at least one published
+  profile (doctors, clinical facilities, and pharmacies while that module is
+  on) as `[{name, doctors_count, facilities_count}]`; spellings differing only
+  in script, case or spaces are merged. `cache.public:60`, and the API's own
+  copy is dropped with the home highlights.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.
@@ -355,6 +507,12 @@ Authorization uses **Spatie roles and permissions** only. Built-in roles:
   role, optionally scoped to specific categories via `forum_category_moderator`.
   A scoped moderator is refused outside their categories, on both the API and
   the admin panel.
+
+- `doctors.assign_owner` (link or unlink a doctor's account, handle profile
+  claims), `audit.view` (the admin activity log) and `usernames.manage`
+  (rename a member's username, edit the blocked and reserved lists) are held
+  by the Administrator only by default. Deciding a doctor's change request needs
+  `doctors.update`; moderating a doctor's reply needs `reviews.respond`.
 
 See [community-moderator-onboarding.md](./community-moderator-onboarding.md).
 

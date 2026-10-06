@@ -12,6 +12,8 @@ type TopicPayload = {
   title?: string;
   body?: string;
   accepted_community_rules?: boolean;
+  /** Optional keyword suggestions; the API validates and normalises them. */
+  tags?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
           title: body.title,
           body: body.body,
           accepted_community_rules: body.accepted_community_rules ?? false,
+          ...(Array.isArray(body.tags) ? { tags: body.tags } : {}),
         }),
       },
     ),

@@ -25,6 +25,11 @@ class UgcRejectedMail extends Mailable implements ShouldQueue
         // Taken down after a report, i.e. it had been public: „отстранет(а)“,
         // not „не беше објавен(а)“.
         public readonly bool $removed = false,
+        // A review refused before publication that its author may still edit
+        // and resend once (Review::canBeResubmitted()).
+        public readonly bool $canResubmit = false,
+        // A resent review refused again: the decision is final.
+        public readonly bool $finalRefusal = false,
     ) {}
 
     public function envelope(): Envelope

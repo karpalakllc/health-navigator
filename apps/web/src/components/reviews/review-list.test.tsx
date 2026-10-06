@@ -35,6 +35,26 @@ afterEach(() => {
 });
 
 describe("ReviewList official response", () => {
+  it("sends a member with a temporary name to choose one before voting", () => {
+    render(
+      <ReviewList
+        reviews={[review()]}
+        isLoggedIn
+        mustChooseUsername
+        returnTo="/doctors/ana#reviews"
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: tFormat("reviews.helpfulCount", { count: 2 }),
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/account/username?redirect=${encodeURIComponent("/doctors/ana#reviews")}`,
+    );
+  });
+
   it("renders the response under the review, labelled with the profile", () => {
     render(
       <ReviewList
