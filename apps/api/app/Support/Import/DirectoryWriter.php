@@ -204,6 +204,76 @@ final class DirectoryWriter
     }
 
     /**
+     * Adds one facility link if missing (sources that see one workplace at a
+     * time, like an institution's website, only ever add).
+     */
+    public function linkFacility(Doctor $doctor, int $facilityId, ?string $workUnit, bool $isNew): bool
+    {
+        if (! $isNew && $this->provenance->isLocked($doctor, 'facilities')) {
+            return false;
+        }
+
+        $exists = DB::table('doctor_facility')->where('doctor_id', $doctor->getKey())->where('facility_id', $facilityId)->exists();
+
+        if ($exists) {
+            return false;
+        }
+
+        $hasPrimary = DB::table('doctor_facility')->where('doctor_id', $doctor->getKey())->where('is_primary', true)->exists();
+        DB::table('doctor_facility')->insert([
+            'doctor_id' => $doctor->getKey(),
+            'facility_id' => $facilityId,
+            'is_primary' => ! $hasPrimary,
+            'source' => $this->context->source,
+            'work_unit' => $workUnit !== null ? mb_substr($workUnit, 0, 255) : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if (! $isNew) {
+            $this->context->increment('relations_updated');
+            $this->context->record('doctor', 'link', $doctor, (string) $doctor->full_name, 'facilities', null, (string) $facilityId);
+            $this->provenance->noteChange($doctor, (string) $doctor->full_name, 'facilities', null, 'added '.$facilityId);
+        }
+
+        return true;
+    }
+
+    /**
+     * Adds specialty links if missing (additive, like linkFacility()).
+     *
+     * @param  list<int>  $specialtyIds
+     */
+    public function addSpecialties(Doctor $doctor, array $specialtyIds, bool $isNew): bool
+    {
+        if ($specialtyIds === [] || (! $isNew && $this->provenance->isLocked($doctor, 'specialties'))) {
+            return false;
+        }
+
+        $existing = DB::table('doctor_specialty')->where('doctor_id', $doctor->getKey())->pluck('specialty_id')->map(fn ($id): int => (int) $id)->all();
+        $add = array_values(array_diff($specialtyIds, $existing));
+
+        foreach ($add as $index => $specialtyId) {
+            DB::table('doctor_specialty')->insert([
+                'doctor_id' => $doctor->getKey(),
+                'specialty_id' => $specialtyId,
+                'is_primary' => $existing === [] && $index === 0,
+                'source' => $this->context->source,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        if ($add !== [] && ! $isNew) {
+            $this->context->increment('relations_updated');
+            $this->context->record('doctor', 'link', $doctor, (string) $doctor->full_name, 'specialties', null, implode(',', $add));
+            $this->provenance->noteChange($doctor, (string) $doctor->full_name, 'specialties', null, 'added '.implode(',', $add));
+        }
+
+        return $add !== [];
+    }
+
+    /**
      * The stored source record for a key, created or refreshed.
      *
      * @param  array<string, mixed>  $payload

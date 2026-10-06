@@ -46,7 +46,7 @@ return new class extends Migration
         Schema::create('source_records', function (Blueprint $table) {
             $table->id();
             $table->string('source', 32);
-            $table->string('external_key', 64);
+            $table->string('external_key', 191);
             $table->string('subject_type', 32);
             $table->unsignedBigInteger('subject_id')->nullable();
             $table->json('payload');

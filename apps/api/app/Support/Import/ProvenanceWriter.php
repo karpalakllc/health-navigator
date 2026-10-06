@@ -35,10 +35,23 @@ final class ProvenanceWriter
     /** @var array<string, array{subject: Model, label: string, fields: array<string, array{old: string|null, new: string|null}>}> */
     private array $changed = [];
 
-    /** @var array<int, array<string, array{0: string|null, 1: int|null}>> provenance of records not saved yet, by object id */
+    /** @var array<int, array<string, array{0: string|null, 1: int|null, 2: string|null}>> provenance of records not saved yet, by object id */
     private array $pending = [];
 
+    /** Page the next values were read from (web sources); stored per field. */
+    private ?string $sourceUrl = null;
+
     public function __construct(private readonly ImportContext $context) {}
+
+    /**
+     * Sets the page the following writes were read from (null for register files).
+     */
+    public function from(?string $sourceUrl): self
+    {
+        $this->sourceUrl = $sourceUrl !== null ? mb_substr($sourceUrl, 0, 2000) : null;
+
+        return $this;
+    }
 
     /**
      * Preloads provenance for many records at once (one query per batch).
@@ -130,6 +143,14 @@ final class ProvenanceWriter
     }
 
     /**
+     * The source that last wrote a field (null: nobody recorded, e.g. staff).
+     */
+    public function sourceOf(Model $subject, string $field): ?string
+    {
+        return $subject->exists ? $this->provenance($subject, $field)?->source : null;
+    }
+
+    /**
      * Records provenance for a relation the importer manages (sorted ids).
      *
      * @param  list<int|string>  $ids
@@ -197,7 +218,7 @@ final class ProvenanceWriter
     {
         if (! $subject->exists) {
             // Written after the first save; see rememberAfterCreate().
-            $this->pending[spl_object_id($subject)][$field] = [$value, $sourceRecordId];
+            $this->pending[spl_object_id($subject)][$field] = [$value, $sourceRecordId, $this->sourceUrl];
 
             return;
         }
@@ -205,7 +226,8 @@ final class ProvenanceWriter
         if ($existing !== null
             && $existing->source === $this->context->source
             && $existing->value === $value
-            && $existing->source_record_id === $sourceRecordId) {
+            && $existing->source_record_id === $sourceRecordId
+            && $existing->source_url === $this->sourceUrl) {
             return;
         }
 
@@ -218,6 +240,7 @@ final class ProvenanceWriter
         $row->fill([
             'source' => $this->context->source,
             'source_record_id' => $sourceRecordId,
+            'source_url' => $this->sourceUrl,
             'value' => $value,
             'observed_at' => $this->context->observedAt,
         ])->save();
@@ -240,13 +263,14 @@ final class ProvenanceWriter
         $now = now();
         $rows = [];
 
-        foreach ($fields as $field => [$value, $sourceRecordId]) {
+        foreach ($fields as $field => [$value, $sourceRecordId, $sourceUrl]) {
             $rows[] = [
                 'subject_type' => self::entity($subject),
                 'subject_id' => $subject->getKey(),
                 'field' => $field,
                 'source' => $this->context->source,
                 'source_record_id' => $sourceRecordId,
+                'source_url' => $sourceUrl,
                 'value' => $value,
                 'observed_at' => $this->context->observedAt,
                 'locked' => false,

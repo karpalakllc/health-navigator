@@ -27,6 +27,7 @@ class FieldProvenance extends Model
         'field',
         'source',
         'source_record_id',
+        'source_url',
         'value',
         'observed_at',
         'locked',
