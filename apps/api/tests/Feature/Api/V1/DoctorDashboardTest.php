@@ -264,6 +264,49 @@ class DoctorDashboardTest extends TestCase
         $this->assertSame([$clinic->id], $doctor->facilities->pluck('id')->all());
     }
 
+    public function test_the_dashboard_lists_only_its_own_workplaces_and_finds_others_by_name(): void
+    {
+        [$doctor, , $token] = $this->linkedDoctor();
+        $own = Facility::factory()->create(['name' => 'Клиника Центар', 'type' => FacilityType::Clinic]);
+        $requested = Facility::factory()->create(['name' => 'Болница Охрид', 'type' => FacilityType::Hospital]);
+        Facility::factory()->count(3)->create(['type' => FacilityType::Clinic]);
+        $other = Facility::factory()->create(['name' => 'Поликлиника Битола', 'type' => FacilityType::Clinic]);
+        Facility::factory()->unpublished()->create(['name' => 'Поликлиника Скриена', 'type' => FacilityType::Clinic]);
+        Facility::factory()->pharmacy()->create(['name' => 'Аптека Поликлиника']);
+        $doctor->facilities()->attach($own->id, ['is_primary' => true]);
+
+        $this->as($token)->getJson('/api/v1/me/doctor')
+            ->assertOk()
+            ->assertJsonPath('data.options.facilities.*.id', [$own->id]);
+
+        $this->as($token)->postJson('/api/v1/me/doctor/change-requests', [
+            'facility_ids' => [$own->id, $requested->id],
+        ])->assertCreated();
+
+        // Names for what the pending request asks for, still nothing else.
+        $this->as($token)->getJson('/api/v1/me/doctor')
+            ->assertJsonPath('data.options.facilities.*.id', [$requested->id, $own->id]);
+
+        $this->as($token)->getJson('/api/v1/me/doctor/facilities?q='.urlencode('поликлиника'))
+            ->assertOk()
+            ->assertExactJson(['data' => [['id' => $other->id, 'name' => 'Поликлиника Битола', 'city' => $other->city]]]);
+        // Script-insensitive, as the public search.
+        $this->as($token)->getJson('/api/v1/me/doctor/facilities?q=poliklinika')
+            ->assertJsonPath('data.*.id', [$other->id]);
+        $this->as($token)->getJson('/api/v1/me/doctor/facilities?q=п')->assertUnprocessable();
+    }
+
+    public function test_only_a_linked_account_searches_workplaces(): void
+    {
+        $this->getJson('/api/v1/me/doctor/facilities?q=klinika')->assertUnauthorized();
+
+        $member = User::factory()->create();
+
+        $this->as($member->createToken('web')->plainTextToken)
+            ->getJson('/api/v1/me/doctor/facilities?q=klinika')
+            ->assertNotFound();
+    }
+
     public function test_one_pending_request_at_a_time_and_no_empty_requests(): void
     {
         [, , $token] = $this->linkedDoctor();

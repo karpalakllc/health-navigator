@@ -194,6 +194,7 @@ Route::prefix('v1')->group(function (): void {
         ->group(function (): void {
             Route::get('/', [DoctorDashboardController::class, 'show']);
             Route::get('/reviews', [DoctorDashboardController::class, 'reviews']);
+            Route::get('/facilities', [DoctorDashboardController::class, 'facilities']);
             Route::middleware('throttle:60,60,api-doctor-dashboard-writes')->group(function (): void {
                 Route::patch('/', [DoctorDashboardController::class, 'update']);
                 Route::post('/avatar', [DoctorDashboardController::class, 'updateAvatar']);

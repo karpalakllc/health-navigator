@@ -49,6 +49,9 @@ class DoctorDashboardController extends Controller
     /** How many decided change requests the dashboard lists. */
     private const RECENT_DECISIONS = 5;
 
+    /** How many workplaces one facility search returns. */
+    private const FACILITY_RESULTS = 20;
+
     public function show(Request $request): JsonResponse
     {
         $doctor = $this->managedDoctor($request);
@@ -230,6 +233,36 @@ class DoctorDashboardController extends Controller
         ]);
     }
 
+    /**
+     * Workplaces to add in a change request, by name: the dashboard lists
+     * only the profile's own (options.facilities), not every facility.
+     */
+    public function facilities(Request $request): JsonResponse
+    {
+        $doctor = $this->managedDoctor($request);
+
+        if ($doctor instanceof JsonResponse) {
+            return $doctor;
+        }
+
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:100'],
+        ]);
+
+        return ApiResponse::success(
+            Facility::query()
+                ->published()
+                ->clinical()
+                ->searchName(trim((string) $validated['q']))
+                ->orderBy('name')
+                ->orderBy('id')
+                ->limit(self::FACILITY_RESULTS)
+                ->get(['id', 'name', 'city'])
+                ->map(fn (Facility $facility): array => self::facilityOption($facility))
+                ->all(),
+        );
+    }
+
     public function upsertReply(Request $request, int $review): JsonResponse
     {
         $target = $this->ownReview($request, $review);
@@ -382,17 +415,38 @@ class DoctorDashboardController extends Controller
             'settings' => [
                 'replies_require_moderation' => (bool) (SiteSetting::current()->doctor_replies_require_moderation ?? true),
             ],
-            'options' => $this->options(),
+            'options' => $this->options($doctor, $pending),
         ];
     }
 
     /**
-     * What the selects on the dashboard offer: published entries only.
+     * @return array{id: int, name: string, city: string|null}
+     */
+    private static function facilityOption(Facility $facility): array
+    {
+        return [
+            'id' => (int) $facility->id,
+            'name' => (string) $facility->name,
+            'city' => $facility->city,
+        ];
+    }
+
+    /**
+     * What the selects on the dashboard offer: published entries only. The
+     * taxonomies are short lists; workplaces are not, so only the profile's
+     * own ones (and those its pending request names) are listed — others are
+     * found by name through GET /me/doctor/facilities.
      *
      * @return array<string, mixed>
      */
-    private function options(): array
+    private function options(Doctor $doctor, ?DoctorChangeRequest $pending): array
     {
+        $facilityIds = $doctor->facilities()->pluck('facilities.id')
+            ->merge(collect($pending?->changes['facilities']['new'] ?? [])->pluck('id'))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
         $pairs = fn (string $model): array => $model::query()
             ->published()
             ->orderBy('name')
@@ -408,13 +462,10 @@ class DoctorDashboardController extends Controller
             'facilities' => Facility::query()
                 ->published()
                 ->clinical()
+                ->whereKey($facilityIds->all())
                 ->orderBy('name')
                 ->get(['id', 'name', 'city'])
-                ->map(fn (Facility $facility): array => [
-                    'id' => (int) $facility->id,
-                    'name' => (string) $facility->name,
-                    'city' => $facility->city,
-                ])
+                ->map(fn (Facility $facility): array => self::facilityOption($facility))
                 ->all(),
             'days' => array_values(OfficeHours::DAY_OPTIONS),
         ];

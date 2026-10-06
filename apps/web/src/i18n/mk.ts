@@ -1201,6 +1201,11 @@ export const mk = {
     primaryFacility: "Главна установа",
     noPrimary: "Без главна",
     facilityFilter: "Пребарај установа",
+    facilitySearchHint:
+      "Внесете барем две букви од името за да додадете установа.",
+    facilitySearching: "Се пребарува…",
+    facilitySearchEmpty: "Нема установа со тоа име.",
+    facilitySearchError: "Пребарувањето не успеа. Обидете се повторно.",
     requestMessage: "Порака за тимот (по желба)",
     submitRequest: "Испрати на проверка",
     submittingRequest: "Се испраќа…",

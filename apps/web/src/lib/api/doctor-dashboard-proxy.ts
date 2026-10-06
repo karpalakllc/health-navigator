@@ -17,7 +17,7 @@ export async function relayToApi(
     path,
     body,
   }: {
-    method: "POST" | "PUT" | "PATCH" | "DELETE";
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     path: string;
     body?: Record<string, unknown>;
   },

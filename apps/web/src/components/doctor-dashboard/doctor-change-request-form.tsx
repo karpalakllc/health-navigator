@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useChangeRequestAnnounce } from "@/components/doctor-dashboard/change-request-area";
+import { FacilityPicker } from "@/components/doctor-dashboard/facility-picker";
 import { OptionChecklist } from "@/components/doctor-dashboard/option-checklist";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
@@ -55,6 +56,7 @@ export function DoctorChangeRequestForm({
   const [primaryFacility, setPrimaryFacility] = useState(
     primaryOf(doctor.facilities),
   );
+  const [facilityNames, setFacilityNames] = useState(options.facilities);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -207,16 +209,11 @@ export function DoctorChangeRequestForm({
           ))}
         </Select>
       ) : null}
-      <OptionChecklist
-        legend={t("doctorDashboard.facilities")}
-        options={options.facilities}
+      <FacilityPicker
+        initial={options.facilities}
         selected={facilities}
         onChange={setFacilities}
-        filterLabel={t("doctorDashboard.facilityFilter")}
-        describe={(option) =>
-          options.facilities.find((facility) => facility.id === option.id)
-            ?.city ?? null
-        }
+        onNamesChange={setFacilityNames}
       />
       {facilities.length > 1 ? (
         <Select
@@ -232,7 +229,7 @@ export function DoctorChangeRequestForm({
           <option value="">{t("doctorDashboard.noPrimary")}</option>
           {facilities.map((id) => (
             <option key={id} value={id}>
-              {nameOf(options.facilities, id)}
+              {nameOf(facilityNames, id)}
             </option>
           ))}
         </Select>

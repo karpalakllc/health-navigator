@@ -127,6 +127,67 @@ describe("DoctorPracticeForm", () => {
 });
 
 describe("DoctorChangeRequestForm", () => {
+  it("finds workplaces by name and adds them to the request", async () => {
+    const fetch = mockFetch(
+      {
+        status: 200,
+        body: { data: [{ id: 31, name: "Болница Охрид", city: "Охрид" }] },
+      },
+      { status: 201, body: { data: {} } },
+    );
+    const user = userEvent.setup();
+    render(
+      <ChangeRequestArea>
+        <DoctorChangeRequestForm
+          doctor={{
+            ...doctor,
+            facilities: [{ id: 9, name: "Клиника Центар", is_primary: true }],
+          }}
+          options={options}
+        />
+      </ChangeRequestArea>,
+    );
+
+    // Only the profile's own workplace is listed until the doctor searches.
+    expect(screen.getByLabelText("Клиника Центар · Скопје")).toBeChecked();
+    expect(screen.queryByLabelText(/Болница Охрид/)).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText(t("doctorDashboard.facilityFilter")),
+      "охрид",
+    );
+    await user.click(await screen.findByLabelText("Болница Охрид · Охрид"));
+
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "/api/doctor-dashboard/facilities?q=%D0%BE%D1%85%D1%80%D0%B8%D0%B4",
+    );
+    expect(
+      within(
+        screen.getByLabelText(t("doctorDashboard.primaryFacility")),
+      ).getByRole("option", { name: "Болница Охрид" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: t("doctorDashboard.submitRequest") }),
+    );
+    expect(requestBody(fetch, 1)).toMatchObject({ facility_ids: [9, 31] });
+  });
+
+  it("says when no workplace has that name", async () => {
+    mockFetch({ status: 200, body: { data: [] } });
+    const user = userEvent.setup();
+    render(<DoctorChangeRequestForm doctor={doctor} options={options} />);
+
+    await user.type(
+      screen.getByLabelText(t("doctorDashboard.facilityFilter")),
+      "непостоечка",
+    );
+
+    expect(
+      await screen.findByText(t("doctorDashboard.facilitySearchEmpty")),
+    ).toBeInTheDocument();
+  });
+
   it("sends the sensitive fields for review", async () => {
     const fetch = mockFetch({ status: 201, body: { data: {} } });
     const user = userEvent.setup();

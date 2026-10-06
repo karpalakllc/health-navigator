@@ -17,6 +17,8 @@ const { POST: requestChange } =
 const { PUT: putReply, DELETE: deleteReply } =
   await import("@/app/api/doctor-dashboard/reviews/[id]/reply/route");
 const { POST: claim } = await import("@/app/api/doctor-dashboard/claim/route");
+const { GET: searchFacilities } =
+  await import("@/app/api/doctor-dashboard/facilities/route");
 
 const SITE = "https://zdravje.test";
 const fetchMock = vi.fn();
@@ -174,6 +176,44 @@ describe("POST /api/doctor-dashboard/claim", () => {
     );
 
     expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/doctor-dashboard/facilities", () => {
+  it("relays the name search with the token", async () => {
+    const response = await searchFacilities(
+      new Request(`${SITE}/api/doctor-dashboard/facilities?q=охрид`, {
+        headers: { origin: SITE },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const { url, init } = upstream();
+    expect(url).toBe(
+      "https://api.test/api/v1/me/doctor/facilities?q=%D0%BE%D1%85%D1%80%D0%B8%D0%B4",
+    );
+    expect(init.method).toBe("GET");
+    expect(new Headers(init.headers).get("authorization")).toBe(
+      "Bearer doctor-token",
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("answers too-short searches itself and refuses cross-site requests", async () => {
+    const short = await searchFacilities(
+      new Request(`${SITE}/api/doctor-dashboard/facilities?q=о`, {
+        headers: { origin: SITE },
+      }),
+    );
+    expect(await short.json()).toEqual({ data: [] });
+
+    const crossSite = await searchFacilities(
+      new Request(`${SITE}/api/doctor-dashboard/facilities?q=охрид`, {
+        headers: { origin: "https://evil.test" },
+      }),
+    );
+    expect(crossSite.status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

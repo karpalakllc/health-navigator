@@ -233,6 +233,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/locations/cities` | `cache.public:60` |
 | `GET` | `/me` | `auth:sanctum` |
 | `GET` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
+| `GET` | `/me/doctor/facilities` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/doctor/reviews` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
@@ -398,7 +399,11 @@ nobody can hold an account locked by merely sending traffic.
   `clinical_interest_ids`, `procedure_ids`), `pending_change_request`,
   `recent_change_requests`, `stats {review_count, average_rating,
   unanswered_reviews, pending_replies}`, `settings.replies_require_moderation`
-  and the `options` the selects offer. `PATCH /me/doctor` saves `bio`, `phone`,
+  and the `options` the selects offer (published entries; `facilities` lists
+  only the profile's own workplaces and those its pending request names, as
+  `{id, name, city}`). `GET /me/doctor/facilities?q=` (2–100 characters,
+  script-insensitive like the public search) finds other published clinical
+  facilities by name, up to 20 `{id, name, city}`. `PATCH /me/doctor` saves `bio`, `phone`,
   `email`, `consultation_fee_note`, `accepts_new_patients`, `office_hours`
   (day → hours), `language_ids`, `clinical_interest_ids`, `procedure_ids`
   at once (plain text; any other key is ignored — slug, publication,
@@ -412,7 +417,8 @@ nobody can hold an account locked by merely sending traffic.
   `doctor_account.change_request_pending` while one waits. `DELETE
   /me/doctor/change-requests/{id}` withdraws a pending one.
   `GET /me/doctor/reviews?filter=all|unanswered` lists the profile's approved
-  reviews (public author name only) with `reply {body, source, status,
+  reviews in the public list's order (`unanswered`: no reply, or the doctor's
+  reply was refused; public author name only) with `reply {body, source, status,
   responded_at, rejection_note}` and `can_reply`; with `filter=all` a review
   removed after publication is the same `{id, removed: true, removed_at,
   removal_category}` placeholder as in the public list (no text, author or
