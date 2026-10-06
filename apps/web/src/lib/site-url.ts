@@ -25,6 +25,31 @@ export function siteUrl(): string {
   return raw.replace(/\/$/, "");
 }
 
+/** Whether a configured origin is https. Unset or unparsable is not. */
+export function isHttpsOrigin(raw: string | undefined): boolean {
+  if (!raw) {
+    return false;
+  }
+
+  try {
+    return new URL(raw).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether cookies the app sets must carry `Secure`. Keyed on the public origin,
+ * not NODE_ENV: a non-production build served over https still needs it. With no
+ * origin configured it falls back to NODE_ENV (siteUrl() refuses that in a
+ * production build anyway).
+ */
+export function secureCookies(): boolean {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+
+  return raw ? isHttpsOrigin(raw) : process.env.NODE_ENV === "production";
+}
+
 export function absoluteUrl(path: string): string {
   return `${siteUrl()}${path.startsWith("/") ? path : `/${path}`}`;
 }

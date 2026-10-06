@@ -10,6 +10,8 @@
  * carries the token.
  */
 
+import { secureCookies } from "@/lib/site-url";
+
 export const RESET_COOKIE = "zdravje_password_reset";
 
 /** Where the form lives; the cookie is scoped to it (and the redirect to it). */
@@ -25,7 +27,7 @@ export function resetCookieOptions(
 ) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies(),
     // Lax, not strict: the cookie is set on a navigation that started in a mail
     // client, and strict would withhold it from the redirect that follows.
     sameSite: "lax" as const,
