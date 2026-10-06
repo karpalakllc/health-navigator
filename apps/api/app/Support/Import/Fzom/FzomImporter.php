@@ -256,7 +256,7 @@ final class FzomImporter
                 $records = SourceRecord::query()->where('source', self::SOURCE)
                     ->whereIn('external_key', array_map(fn ($key): string => 'facility:'.$key, array_keys($batch)))
                     ->get()->keyBy('external_key');
-                $allCodes = array_merge([], ...array_values(array_column($batch, 'codes')));
+                $allCodes = array_merge([], ...array_column($batch, 'codes'));
                 $byCode = Facility::withTrashed()->whereIn('fzo_code', $allCodes)->get()->keyBy('fzo_code');
                 $writer->provenance()->preload(FieldProvenance::SUBJECT_FACILITY, $byCode->pluck('id')->map(fn ($id): int => (int) $id)->all());
 
