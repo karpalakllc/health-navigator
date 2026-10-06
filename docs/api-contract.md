@@ -318,7 +318,8 @@ nobody can hold an account locked by merely sending traffic.
 - `GET /transparency` returns `{generated_at, months: [...]}`: twelve calendar
   months (UTC), newest first, each with `reviews` and `forum` (`received`,
   `published`, `rejected` before publication, `removed`,
-  `removed_by_category`, `average_moderation_hours` or `null`) and `reports`
+  `removed_by_category`, `moderated` (decisions the average covers),
+  `average_moderation_hours` or `null`) and `reports`
   (`received`, `resolved`, `removed`, `kept`). Cached for an hour.
 - `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
   helpful (Member role, verified; idempotent; your own review is a 422) and

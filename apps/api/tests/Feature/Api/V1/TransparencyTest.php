@@ -98,6 +98,7 @@ class TransparencyTest extends TestCase
         $this->assertSame(0, $september['reviews']['removed']);
         // (10 h + 2 h) / 2
         $this->assertEqualsWithDelta(6.0, $september['reviews']['average_moderation_hours'], 0.01);
+        $this->assertSame(2, $september['reviews']['moderated']);
 
         $october = $this->month($payload, '2026-10');
         $this->assertSame(0, $october['reviews']['received']);

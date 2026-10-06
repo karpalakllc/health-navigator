@@ -158,6 +158,8 @@ final class TransparencyStats
             'rejected' => (int) ($stats['rejected'][$key] ?? 0),
             'removed' => array_sum($byCategory),
             'removed_by_category' => $byCategory,
+            // How many decisions the average covers, so totals can weight it.
+            'moderated' => $moderated,
             'average_moderation_hours' => $moderated > 0
                 ? round($stats['moderation_seconds'][$key] / $moderated / 3600, 1)
                 : null,
