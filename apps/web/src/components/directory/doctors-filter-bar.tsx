@@ -81,7 +81,7 @@ export function DoctorsFilterBar({
           </FilterField>
 
           <FilterField
-            label={t("search.nameLabel")}
+            label={t("doctors.queryLabel")}
             hint={t("search.queryHint")}
           >
             <FilterInputWrap

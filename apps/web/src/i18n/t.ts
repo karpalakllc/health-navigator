@@ -38,6 +38,31 @@ export function t(key: MessageKey): string {
   return value;
 }
 
+/**
+ * Macedonian takes the singular for whole numbers ending in 1 except 11
+ * (CLDR `one`: 1, 21, 101 …); every other count takes the plural.
+ */
+export function isMacedonianOne(count: number): boolean {
+  return Number.isInteger(count) && count % 10 === 1 && count % 100 !== 11;
+}
+
+/**
+ * A count string in the right number: `{key}One` ("{count} тема") when the
+ * count is singular and that key exists, `{key}` ("{count} теми") otherwise.
+ */
+export function tCount(
+  key: MessageKey,
+  count: number,
+  vars: Record<string, string | number> = {},
+): string {
+  const oneKey = `${key}One`;
+  const useOne =
+    isMacedonianOne(count) &&
+    resolvePath(mk as unknown as Record<string, unknown>, oneKey) !== undefined;
+
+  return tFormat((useOne ? oneKey : key) as MessageKey, { ...vars, count });
+}
+
 /** Replace `{name}` placeholders in a translated string. */
 export function tFormat(
   key: MessageKey,

@@ -10,6 +10,9 @@ class DirectoryHealthStats extends StatsOverviewWidget
 {
     protected static ?int $sort = 2;
 
+    // Day-level trends and directory totals: reloading the page is enough.
+    protected ?string $pollingInterval = null;
+
     protected ?string $heading = 'Directory & moderation';
 
     /**

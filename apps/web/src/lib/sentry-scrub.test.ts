@@ -18,26 +18,45 @@ function hasSecret(value: unknown): boolean {
   return text.includes("secret-token") || text.includes("ana%40example.mk");
 }
 
+/** A directory search: what the visitor typed is health intent. */
+const SEARCH_URL =
+  "https://zdravje.test/doctors?q=%D0%BE%D0%BD%D0%BA%D0%BE%D0%BB%D0%BE%D0%B3&city=Bitola&specialty=onkologija&page=2";
+
+function hasSearch(value: unknown): boolean {
+  const text = JSON.stringify(value);
+  return (
+    text.includes("%D0%BE") ||
+    text.includes("Bitola") ||
+    text.includes("onkologija") ||
+    text.includes("онколог")
+  );
+}
+
 describe("scrubUrl", () => {
-  it("filters token and email from an absolute URL", () => {
-    const scrubbed = scrubUrl(RESET_URL);
-    expect(hasSecret(scrubbed)).toBe(false);
-    expect(scrubbed.startsWith("https://zdravje.test/reset-password?")).toBe(
-      true,
+  it("drops the whole query string from an absolute URL", () => {
+    expect(scrubUrl(RESET_URL)).toBe("https://zdravje.test/reset-password");
+    expect(scrubUrl(SEARCH_URL)).toBe("https://zdravje.test/doctors");
+  });
+
+  it("keeps a relative URL relative and drops its fragment", () => {
+    expect(scrubUrl("/reset-password?token=secret-token&page=2#x")).toBe(
+      "/reset-password",
+    );
+    expect(scrubUrl("/search#q=онколог")).toBe("/search");
+  });
+
+  it("drops credentials embedded in the authority", () => {
+    expect(scrubUrl("https://ana:pw@zdravje.test/x?y=1")).toBe(
+      "https://zdravje.test/x",
     );
   });
 
-  it("keeps a relative URL relative", () => {
-    const scrubbed = scrubUrl("/reset-password?token=secret-token&page=2#x");
-    expect(hasSecret(scrubbed)).toBe(false);
-    expect(scrubbed.startsWith("/reset-password?")).toBe(true);
-    expect(scrubbed).toContain("page=2");
-    expect(scrubbed.endsWith("#x")).toBe(true);
-  });
-
-  it("returns URLs without credentials untouched", () => {
-    expect(scrubUrl("/doctors?page=2")).toBe("/doctors?page=2");
-    expect(scrubUrl("not a url ::")).toBe("not a url ::");
+  it("returns URLs without a query untouched", () => {
+    expect(scrubUrl("/doctors")).toBe("/doctors");
+    expect(scrubUrl("https://zdravje.test/doctors/ana")).toBe(
+      "https://zdravje.test/doctors/ana",
+    );
+    expect(scrubUrl("not a url :: ?q=x")).toBe("not a url :: ");
   });
 });
 
@@ -47,41 +66,59 @@ describe("scrubEvent", () => {
       request: {
         url: RESET_URL,
         query_string: "token=secret-token&email=ana%40example.mk",
-        headers: { Referer: RESET_URL, "User-Agent": "x" },
+        headers: { Referer: SEARCH_URL, "User-Agent": "x" },
         data: { password: "hunter2", token: "secret-token", rating: 5 },
       },
     });
 
     expect(hasSecret(event)).toBe(false);
+    expect(hasSearch(event)).toBe(false);
     expect(JSON.stringify(event)).not.toContain("hunter2");
+    expect(event.request?.url).toBe("https://zdravje.test/reset-password");
+    expect(event.request?.headers?.Referer).toBe(
+      "https://zdravje.test/doctors",
+    );
     expect(event.request?.headers?.["User-Agent"]).toBe("x");
     expect((event.request?.data as Record<string, unknown>).rating).toBe(5);
   });
 
-  it("filters object and tuple query strings", () => {
-    expect(
-      hasSecret(
-        scrubEvent({ request: { query_string: { token: "secret-token" } } }),
-      ),
-    ).toBe(false);
-    expect(
-      hasSecret(
-        scrubEvent({ request: { query_string: [["token", "secret-token"]] } }),
-      ),
-    ).toBe(false);
+  it.each([
+    ["string", "q=онколог&city=Bitola"],
+    ["object", { q: "онколог", specialty: "onkologija" }],
+    ["tuple", [["q", "онколог"]] as Array<[string, string]>],
+  ])("drops a %s query string entirely", (_kind, query_string) => {
+    const event = scrubEvent({ request: { query_string } });
+
+    expect(event.request?.query_string).toBeUndefined();
+    expect(hasSearch(event)).toBe(false);
   });
 
-  it("filters navigation and fetch breadcrumbs", () => {
+  it("drops query strings from navigation and fetch breadcrumbs", () => {
     const event = scrubEvent({
       breadcrumbs: [
+        { data: { from: SEARCH_URL, to: "/doctors?q=онколог&page=3" } },
+        {
+          data: {
+            url: "http://api.test/api/v1/search?q=онколог&token=secret-token",
+            method: "GET",
+          },
+        },
         { data: { from: RESET_URL, to: "/reset-password/new" } },
-        { data: { url: `/api/x?token=secret-token`, method: "POST" } },
         {},
       ],
     });
 
     expect(hasSecret(event)).toBe(false);
-    expect(event.breadcrumbs?.[0].data?.to).toBe("/reset-password/new");
+    expect(hasSearch(event)).toBe(false);
+    expect(event.breadcrumbs?.[0].data).toEqual({
+      from: "https://zdravje.test/doctors",
+      to: "/doctors",
+    });
+    expect(event.breadcrumbs?.[1].data?.url).toBe(
+      "http://api.test/api/v1/search",
+    );
+    expect(event.breadcrumbs?.[1].data?.method).toBe("GET");
+    expect(event.breadcrumbs?.[2].data?.to).toBe("/reset-password/new");
   });
 });
 

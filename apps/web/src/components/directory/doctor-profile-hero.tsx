@@ -5,7 +5,7 @@ import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import type { DoctorDetail } from "@/lib/api/types";
 import { facilityPublicPath } from "@/lib/facility-labels";
-import { t, tFormat } from "@/i18n/t";
+import { t, tFormat, isMacedonianOne } from "@/i18n/t";
 
 export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
   const primarySpecialty =
@@ -87,7 +87,7 @@ export function DoctorProfileHero({ doctor }: { doctor: DoctorDetail }) {
               </span>
               <span className="text-sm text-muted-foreground">
                 ({doctor.review_summary.count}{" "}
-                {doctor.review_summary.count === 1
+                {isMacedonianOne(doctor.review_summary.count)
                   ? t("reviews.countOne")
                   : t("reviews.count")}
                 )

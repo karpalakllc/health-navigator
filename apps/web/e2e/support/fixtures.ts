@@ -58,8 +58,8 @@ export const forum = {
 
 /** TriageSeeder's red flags (the guidance flow the E2ESeeder reuses). */
 export const triage = {
-  redFlagLabel: "Severe chest pain or pressure",
-  emergencyOutcomeTitle: "Seek emergency care now",
+  redFlagLabel: "Силна болка или притисок во градите",
+  emergencyOutcomeTitle: "Веднаш побарајте итна помош",
 } as const;
 
 /**

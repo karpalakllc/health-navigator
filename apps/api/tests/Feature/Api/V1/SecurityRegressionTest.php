@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
+use App\Http\Controllers\Api\V1\TriageController;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
 use App\Models\TriageSession;
@@ -12,8 +12,15 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\CountingHasher;
 use Tests\TestCase;
 
 /**
@@ -75,6 +82,78 @@ class SecurityRegressionTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    // ---- completing a reset must not confirm whether an account exists either ----
+
+    /**
+     * The broker answers "no such account" and "bad token" with different
+     * messages (mk: "Испративме линк…" vs "Линкот … невалиден"), so a made-up
+     * token used to tell whether an address is registered.
+     */
+    public function test_reset_rejection_is_identical_for_unknown_email_and_bad_token(): void
+    {
+        $user = User::factory()->create(['email' => 'known@example.com']);
+        Password::createToken($user);
+
+        $payload = fn (string $email): array => [
+            'email' => $email,
+            'token' => str_repeat('a', 64),
+            'password' => 'brand1newpassword',
+            'password_confirmation' => 'brand1newpassword',
+        ];
+
+        $unknown = $this->postJson('/api/v1/auth/reset-password', $payload('nobody@example.com'));
+        $badToken = $this->postJson('/api/v1/auth/reset-password', $payload('known@example.com'));
+
+        $unknown->assertUnprocessable();
+        $badToken->assertUnprocessable();
+        $this->assertSame($badToken->json(), $unknown->json());
+        $this->assertSame([__('passwords.token')], $unknown->json('errors.email'));
+    }
+
+    /**
+     * Each rejected reset pays for exactly one bcrypt check, whether the broker
+     * hashed (a real account holding a live token row) or returned early.
+     *
+     * @return array<string, array{0: string, 1: bool, 2: bool}>
+     */
+    public static function rejectedResetCases(): array
+    {
+        return [
+            'unknown address' => ['nobody@example.com', false, false],
+            'account without a token row' => ['known@example.com', false, false],
+            'account with a live token row' => ['known@example.com', true, false],
+            'account with an expired token row' => ['known@example.com', true, true],
+        ];
+    }
+
+    #[DataProvider('rejectedResetCases')]
+    public function test_rejected_reset_pays_for_exactly_one_hash(string $email, bool $withToken, bool $expired): void
+    {
+        $user = User::factory()->create(['email' => 'known@example.com']);
+
+        if ($withToken) {
+            Password::createToken($user);
+        }
+
+        if ($expired) {
+            $this->travel(2)->hours();
+        }
+
+        $hasher = new CountingHasher(app('hash'));
+        Hash::swap($hasher);
+        app()->forgetInstance('auth.password');
+        Password::clearResolvedInstances();
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => str_repeat('a', 64),
+            'password' => 'brand1newpassword',
+            'password_confirmation' => 'brand1newpassword',
+        ])->assertUnprocessable();
+
+        $this->assertSame(1, $hasher->calls);
+    }
+
     // ---- M2: expired tokens must not authenticate ----
 
     public function test_expired_token_is_rejected_on_a_guarded_route(): void
@@ -105,7 +184,7 @@ class SecurityRegressionTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
 
         $category = ForumCategory::factory()->create(['is_published' => true]);
@@ -141,52 +220,98 @@ class SecurityRegressionTest extends TestCase
         return $token->plainTextToken;
     }
 
-    // ---- L4: a session that belongs to someone is only reachable by them ----
+    // ---- L4: a session is only reachable by whoever holds its secret ----
+    // (Sessions are no longer linked to accounts — owner decision 2026-10-06 —
+    // so the binding is the per-session token, not the user id.)
 
-    public function test_another_user_cannot_complete_an_owned_triage_session(): void
+    public function test_a_session_cannot_be_answered_or_completed_without_its_token(): void
     {
         $this->seed(TriageSeeder::class);
 
-        $owner = User::factory()->create();
-        $intruder = User::factory()->create();
+        $started = $this->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
+            ->assertCreated();
+        $sessionId = $started->json('data.session_id');
+        $token = $started->json('data.session_token');
 
-        // Real bearer tokens rather than actingAs(): the sanctum guard memoises
-        // its resolved user, and a test reuses one application instance across
-        // requests, so actingAs() would leave the first caller in place.
-        $ownerToken = $owner->createToken('owner')->plainTextToken;
-        $intruderToken = $intruder->createToken('intruder')->plainTextToken;
+        $this->assertIsString($token);
+        $this->assertGreaterThanOrEqual(64, strlen($token));
 
-        $sessionId = $this->withHeader('Authorization', "Bearer {$ownerToken}")
-            ->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
-            ->assertCreated()
-            ->json('data.session_id');
+        // Knowing the id is not enough: no token, or someone else's token.
+        $other = $this->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
+            ->json('data.session_token');
 
-        $this->assertSame($owner->id, TriageSession::query()->findOrFail($sessionId)->user_id);
+        foreach ([[], [TriageController::TOKEN_HEADER => $other]] as $headers) {
+            $this->withHeaders($headers)
+                ->putJson("/api/v1/triage/sessions/{$sessionId}/answers", [
+                    'answers' => [['step_key' => 'red_flags', 'values' => []]],
+                ])->assertNotFound();
+            $this->withHeaders($headers)
+                ->postJson("/api/v1/triage/sessions/{$sessionId}/complete")
+                ->assertNotFound();
+            $this->withHeaders($headers)
+                ->postJson("/api/v1/triage/sessions/{$sessionId}/emergency")
+                ->assertNotFound();
+        }
 
-        // A test reuses one application instance across requests, and the sanctum
-        // guard memoises its resolved user — so without this the second request
-        // would still be authenticated as the owner and the test would pass for
-        // the wrong reason. Production rebuilds the container per request.
-        $this->app['auth']->forgetGuards();
+        $this->assertFalse(TriageSession::query()->findOrFail($sessionId)->answers()->exists());
 
-        $this->withHeader('Authorization', "Bearer {$intruderToken}")
-            ->postJson("/api/v1/triage/sessions/{$sessionId}/complete")
-            ->assertNotFound();
+        // Only the hash is stored.
+        $stored = TriageSession::query()->findOrFail($sessionId)->getAttribute('token_hash');
+        $this->assertNotSame($token, $stored);
+        $this->assertSame(hash('sha256', $token), $stored);
+
+        $this->withHeader(TriageController::TOKEN_HEADER, $token)
+            ->postJson("/api/v1/triage/sessions/{$sessionId}/emergency")
+            ->assertOk();
     }
 
-    public function test_anonymous_triage_sessions_remain_reachable_without_an_account(): void
+    public function test_a_signed_in_users_session_is_not_linked_to_the_account(): void
     {
         $this->seed(TriageSeeder::class);
 
-        $sessionId = $this->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
-            ->assertCreated()
-            ->json('data.session_id');
+        $user = User::factory()->create();
+        $bearer = $user->createToken('web')->plainTextToken;
 
-        $this->assertNull(TriageSession::query()->findOrFail($sessionId)->user_id);
+        $started = $this->withHeader('Authorization', "Bearer {$bearer}")
+            ->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
+            ->assertCreated();
 
-        // Guidance is deliberately usable without signing in.
-        $this->postJson("/api/v1/triage/sessions/{$sessionId}/emergency")
+        $this->assertFalse(Schema::hasColumn('triage_sessions', 'user_id'));
+        $this->assertArrayNotHasKey('user_id', TriageSession::query()->findOrFail($started->json('data.session_id'))->getAttributes());
+
+        // Signed in or not, the token is what continues the session.
+        $this->withHeader(TriageController::TOKEN_HEADER, $started->json('data.session_token'))
+            ->postJson('/api/v1/triage/sessions/'.$started->json('data.session_id').'/emergency')
             ->assertOk();
+    }
+
+    public function test_the_migration_drops_existing_links_to_accounts(): void
+    {
+        $files = glob(database_path('migrations/*_unlink_triage_sessions_from_users.php')) ?: [];
+        $this->assertCount(1, $files);
+        $migration = require $files[0];
+
+        $migration->down();
+        $this->seed(TriageSeeder::class);
+
+        $user = User::factory()->create();
+        $id = (string) Str::uuid();
+        DB::table('triage_sessions')->insert([
+            'id' => $id,
+            'triage_flow_id' => DB::table('triage_flows')->value('id'),
+            'user_id' => $user->id,
+            'terms_accepted_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $migration->up();
+
+        $this->assertFalse(Schema::hasColumn('triage_sessions', 'user_id'));
+        $this->assertTrue(DB::table('triage_sessions')->where('id', $id)->exists());
+
+        // A pre-migration session has no secret, so it cannot be continued.
+        $this->postJson("/api/v1/triage/sessions/{$id}/emergency")->assertNotFound();
     }
 
     public function test_a_token_issued_before_gaining_panel_access_stops_working(): void

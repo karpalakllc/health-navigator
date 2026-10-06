@@ -1,6 +1,10 @@
 import "server-only";
 import { webTierRequestHeaders } from "@/lib/api/client-ip";
 import { apiUrl } from "@/lib/config";
+import {
+  isCacheableDirectoryQuery,
+  type DirectoryCacheRule,
+} from "@/lib/api/directory-cache-policy";
 import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
 
 /**
@@ -16,6 +20,33 @@ export const API_LANGUAGE_HEADER = { "Accept-Language": "mk" } as const;
  * silently opts the whole route out of caching regardless of what it exported.
  */
 export type ApiCacheOptions = { revalidate?: number };
+
+/**
+ * Taxonomies (specialties, departments, forum categories) are identical for
+ * every visitor and change rarely; the API marks them `public, max-age=300` and
+ * busts its own copy on edit.
+ */
+export const TAXONOMY_CACHE: ApiCacheOptions = { revalidate: 300 };
+
+/** Directory listings: shared by everyone, tolerant of a minute's staleness. */
+export const DIRECTORY_REVALIDATE_SECONDS = 60;
+
+/**
+ * Data-cache policy for an anonymous directory list: cached for a minute only
+ * when every parameter is in the rule's known-safe set
+ * (lib/api/directory-cache-policy.ts); otherwise per-request, with the
+ * visitor's address forwarded (serverSideHeaders).
+ *
+ * Token-bearing reads go through lib/api/server.ts, which is always no-store.
+ */
+export function directoryCache(
+  params: Record<string, unknown>,
+  rule?: DirectoryCacheRule,
+): ApiCacheOptions {
+  return isCacheableDirectoryQuery(params, rule)
+    ? { revalidate: DIRECTORY_REVALIDATE_SECONDS }
+    : {};
+}
 
 function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
   return revalidate === undefined

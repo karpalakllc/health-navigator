@@ -188,4 +188,23 @@ class FacilityTest extends TestCase
         $this->getJson('/api/v1/facilities?type=pharmacy')->assertUnprocessable();
         $this->getJson('/api/v1/facilities?per_page=100')->assertUnprocessable();
     }
+
+    public function test_name_query_also_matches_published_department_names(): void
+    {
+        $hospital = Facility::factory()->create(['slug' => 'city-hospital', 'name' => 'Градска болница', 'type' => FacilityType::Hospital]);
+        $hospital->departments()->attach(
+            Department::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija'])->id,
+        );
+        $other = Facility::factory()->create(['slug' => 'other-clinic', 'name' => 'Друга клиника', 'type' => FacilityType::Clinic]);
+        $other->departments()->attach(
+            Department::factory()->create(['name' => 'Кардиохирургија', 'slug' => 'kardiohirurgija', 'is_published' => false])->id,
+        );
+
+        foreach (['кардиол', 'kardiologija'] as $q) {
+            $this->getJson('/api/v1/facilities?q='.urlencode($q))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.slug', 'city-hospital');
+        }
+    }
 }

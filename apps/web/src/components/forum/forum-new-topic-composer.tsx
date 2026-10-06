@@ -179,7 +179,9 @@ export function ForumNewTopicComposer({
             <button
               type="submit"
               disabled={pending || !canSubmit}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              // Disabled was white on 60%-opacity coral (about 2:1, unreadable);
+              // grey with dark text reads as unavailable and stays legible.
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-secondary-foreground"
             >
               {pending
                 ? t("common.submitting")

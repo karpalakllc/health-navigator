@@ -14,7 +14,6 @@ class StaffUsersTable
             ->columns([
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('email')->searchable(),
-                TextColumn::make('role')->badge(),
                 TextColumn::make('roles.name')->badge()->label('Roles'),
             ])
             ->recordActions([

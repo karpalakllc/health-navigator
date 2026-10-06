@@ -13,6 +13,9 @@ type PasswordInputProps = {
   autoComplete?: string;
   required?: boolean;
   className?: string;
+  /** Marks the field invalid and points at its error message. */
+  invalid?: boolean;
+  describedBy?: string;
 };
 
 export function PasswordInput({
@@ -23,6 +26,8 @@ export function PasswordInput({
   autoComplete,
   required,
   className,
+  invalid,
+  describedBy,
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
 
@@ -36,7 +41,11 @@ export function PasswordInput({
         required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={cn(filterInputClassName, "pr-12")}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        // w-full: the wrapper stretches with the form grid, but an input is
+        // not a block and kept its intrinsic ~230 px width inside it.
+        className={cn(filterInputClassName, "w-full pr-12")}
       />
       <button
         type="button"

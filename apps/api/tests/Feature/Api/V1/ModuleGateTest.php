@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\FacilityType;
-use App\Enums\UserRole;
 use App\Models\Facility;
 use App\Models\Review;
 use App\Models\SiteSetting;
@@ -40,7 +39,7 @@ class ModuleGateTest extends TestCase
         ]);
         SiteSetting::current()->update(['public_pharmacies' => false]);
 
-        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Member]));
+        Sanctum::actingAs(User::factory()->create());
 
         $this->postJson('/api/v1/pharmacies/eurofarm/reviews', [
             'rating' => 5,

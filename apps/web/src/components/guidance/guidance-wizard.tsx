@@ -1,26 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { EmergencyCallLinks } from "@/components/guidance/emergency-call-links";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   completeGuidanceEmergency,
   completeGuidanceSession,
+  isStaleGuidanceSession,
   saveGuidanceAnswers,
+  parseStoredGuidanceSession,
   startGuidanceSession,
   type GuidanceFlow,
+  type GuidanceSessionHandle,
   type GuidanceOutcome,
 } from "@/lib/api/guidance";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 import { FormError } from "@/components/ui/form-message";
 
-const SESSION_KEY = "guidance_session_id";
+// Holds {id, token}; the token is what lets this tab continue the session.
+const SESSION_KEY = "guidance_session";
+// Pre-token builds stored the bare id here; it can no longer continue anything.
+const LEGACY_SESSION_KEY = "guidance_session_id";
 
 const emergencyButtonClass =
   "border-destructive/40 text-destructive hover:bg-destructive/5";
+
+const stepHeadingClass =
+  "scroll-mt-24 text-lg font-semibold text-foreground focus:outline-none";
 
 type Phase = "intro" | "red_flags" | "questions" | "result" | "emergency";
 
@@ -30,7 +40,7 @@ type Props = {
 
 export function GuidanceWizard({ flow }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [session, setSession] = useState<GuidanceSessionHandle | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [redFlags, setRedFlags] = useState<string[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -40,29 +50,105 @@ export function GuidanceWizard({ flow }: Props) {
   const [loading, setLoading] = useState(false);
 
   const currentStep = flow.steps[stepIndex];
+  const optionIdPrefix = useId();
 
-  const ensureSession = useCallback(async (): Promise<string> => {
-    if (sessionId) {
-      return sessionId;
+  // Each new step replaces the panel in place; without this the viewport
+  // stayed where the previous step's button was (often the footer) and focus
+  // was lost on the removed button. The heading takes focus and is scrolled
+  // to, so both sighted and screen-reader users start at the new question.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+
+      return;
     }
 
-    const stored =
-      typeof window !== "undefined"
-        ? window.sessionStorage.getItem(SESSION_KEY)
-        : null;
+    const heading = headingRef.current;
+    heading?.scrollIntoView?.({ block: "start" });
+    heading?.focus({ preventScroll: true });
+    // `outcome` too: on the emergency path the call links render before the
+    // API answers, and the outcome's heading then replaces the interim one.
+  }, [phase, stepIndex, outcome]);
 
-    if (stored) {
-      setSessionId(stored);
+  const ensureSession = useCallback(
+    async (fresh = false): Promise<GuidanceSessionHandle> => {
+      if (session && !fresh) {
+        return session;
+      }
 
-      return stored;
+      if (fresh) {
+        window.sessionStorage.removeItem(SESSION_KEY);
+      }
+
+      const stored =
+        typeof window !== "undefined" && !fresh
+          ? parseStoredGuidanceSession(
+              window.sessionStorage.getItem(SESSION_KEY),
+            )
+          : null;
+
+      if (stored) {
+        setSession(stored);
+
+        return stored;
+      }
+
+      window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
+      const started = await startGuidanceSession();
+      window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
+      setSession(started);
+
+      return started;
+    },
+    [session],
+  );
+
+  /**
+   * Runs an emergency-path call against the session, and once more against a
+   * new session if the stored handle turned out to be stale (expired,
+   * completed, or from another deploy) — rather than leaving someone who
+   * asked for emergency help looking at an error.
+   */
+  async function withFreshSessionOnStale<T>(
+    call: (current: GuidanceSessionHandle) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await call(await ensureSession());
+    } catch (e) {
+      if (!isStaleGuidanceSession(e)) {
+        throw e;
+      }
+
+      return call(await ensureSession(true));
     }
+  }
 
-    const id = await startGuidanceSession();
-    window.sessionStorage.setItem(SESSION_KEY, id);
-    setSessionId(id);
+  /**
+   * The emergency phase renders the tap-to-call links straight away, before
+   * and regardless of the API: recording the outcome is bookkeeping, and a
+   * failed request (the per-address session cap on shared wifi, a stale
+   * handle, no connection) must never stand between the visitor and 194/112.
+   */
+  async function enterEmergency(
+    record: (current: GuidanceSessionHandle) => Promise<GuidanceOutcome>,
+  ) {
+    setError(null);
+    setOutcome(null);
+    setPhase("emergency");
+    setLoading(true);
 
-    return id;
-  }, [sessionId]);
+    try {
+      setOutcome(await withFreshSessionOnStale(record));
+      window.sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleStart() {
     if (!accepted) {
@@ -85,25 +171,27 @@ export function GuidanceWizard({ flow }: Props) {
   }
 
   async function handleRedFlagsContinue() {
+    if (redFlags.length > 0) {
+      await enterEmergency(async (current) => {
+        await saveGuidanceAnswers(current, [
+          { step_key: "red_flags", values: redFlags },
+        ]);
+
+        return completeGuidanceSession(current);
+      });
+
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const id = await ensureSession();
+      const current = await ensureSession();
 
-      if (redFlags.length > 0) {
-        await saveGuidanceAnswers(id, [
-          { step_key: "red_flags", values: redFlags },
-        ]);
-        const result = await completeGuidanceSession(id);
-        setOutcome(result);
-        setPhase("emergency");
-        window.sessionStorage.removeItem(SESSION_KEY);
-
-        return;
-      }
-
-      await saveGuidanceAnswers(id, [{ step_key: "red_flags", values: [] }]);
+      await saveGuidanceAnswers(current, [
+        { step_key: "red_flags", values: [] },
+      ]);
       setPhase("questions");
     } catch (e) {
       setError(e instanceof Error ? e.message : t("guidance.saveError"));
@@ -113,20 +201,7 @@ export function GuidanceWizard({ flow }: Props) {
   }
 
   async function handleEmergencyNow() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const id = await ensureSession();
-      const result = await completeGuidanceEmergency(id);
-      setOutcome(result);
-      setPhase("emergency");
-      window.sessionStorage.removeItem(SESSION_KEY);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
-    } finally {
-      setLoading(false);
-    }
+    await enterEmergency(completeGuidanceEmergency);
   }
 
   function selectOption(stepKey: string, value: string, multi: boolean) {
@@ -142,6 +217,18 @@ export function GuidanceWizard({ flow }: Props) {
 
       return { ...prev, [stepKey]: [value] };
     });
+  }
+
+  function handleQuestionBack() {
+    setError(null);
+
+    if (stepIndex > 0) {
+      setStepIndex((i) => i - 1);
+
+      return;
+    }
+
+    setPhase("red_flags");
   }
 
   async function handleQuestionNext() {
@@ -161,8 +248,8 @@ export function GuidanceWizard({ flow }: Props) {
     setLoading(true);
 
     try {
-      const id = await ensureSession();
-      await saveGuidanceAnswers(id, [
+      const current = await ensureSession();
+      await saveGuidanceAnswers(current, [
         { step_key: currentStep.key, values: selected },
       ]);
 
@@ -172,7 +259,7 @@ export function GuidanceWizard({ flow }: Props) {
         return;
       }
 
-      const result = await completeGuidanceSession(id);
+      const result = await completeGuidanceSession(current);
       setOutcome(result);
       setPhase("result");
       window.sessionStorage.removeItem(SESSION_KEY);
@@ -222,7 +309,7 @@ export function GuidanceWizard({ flow }: Props) {
     return (
       <div className="flex flex-col gap-6">
         <GuidanceSafetyNotice compact />
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {t("guidance.safetyCheck")}
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -241,6 +328,8 @@ export function GuidanceWizard({ flow }: Props) {
               >
                 <input
                   type="checkbox"
+                  id={`${optionIdPrefix}-flag-${flag.code}`}
+                  value={flag.code}
                   checked={redFlags.includes(flag.code)}
                   onChange={() => {
                     setRedFlags((prev) =>
@@ -274,9 +363,25 @@ export function GuidanceWizard({ flow }: Props) {
     );
   }
 
+  if (phase === "emergency" && !outcome) {
+    return (
+      <EmergencyInterimView
+        loading={loading}
+        error={error}
+        headingRef={headingRef}
+      />
+    );
+  }
+
   if ((phase === "result" || phase === "emergency") && outcome) {
     return (
-      <OutcomeView outcome={outcome} isEmergency={phase === "emergency"} />
+      <OutcomeView
+        outcome={outcome}
+        isEmergency={
+          phase === "emergency" || outcome.outcome_code === "emergency"
+        }
+        headingRef={headingRef}
+      />
     );
   }
 
@@ -300,7 +405,7 @@ export function GuidanceWizard({ flow }: Props) {
             />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {currentStep.label}
         </h2>
         <ul className="space-y-2">
@@ -320,6 +425,8 @@ export function GuidanceWizard({ flow }: Props) {
                   <input
                     type={multi ? "checkbox" : "radio"}
                     name={currentStep.key}
+                    id={`${optionIdPrefix}-${currentStep.key}-${option.value}`}
+                    value={option.value}
                     checked={isSelected}
                     onChange={() =>
                       selectOption(currentStep.key, option.value, multi)
@@ -334,6 +441,14 @@ export function GuidanceWizard({ flow }: Props) {
         </ul>
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={handleQuestionBack}
+          >
+            {t("common.back")}
+          </Button>
           <Button type="button" disabled={loading} onClick={handleQuestionNext}>
             {loading
               ? t("guidance.saving")
@@ -373,22 +488,63 @@ function EmergencyShortcutButton({
   );
 }
 
-function OutcomeView({
-  outcome,
-  isEmergency,
+/**
+ * What the emergency path shows until (or unless) the API returns its
+ * outcome: the call links first, then the reason to use them.
+ */
+function EmergencyInterimView({
+  loading,
+  error,
+  headingRef,
 }: {
-  outcome: GuidanceOutcome;
-  isEmergency: boolean;
+  loading: boolean;
+  error: string | null;
+  headingRef: React.Ref<HTMLHeadingElement>;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <GuidanceSafetyNotice />
       <Card className="space-y-3 p-5">
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
+          {t("guidance.emergencyInterimTitle")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("guidance.emergencyDelay")}
+        </p>
+        <EmergencyCallLinks />
+      </Card>
+      {loading ? (
+        <p className="text-xs text-muted-foreground" role="status">
+          {t("guidance.saving")}
+        </p>
+      ) : null}
+      {error ? <FormError>{error}</FormError> : null}
+      <GuidanceSafetyNotice />
+    </div>
+  );
+}
+
+function OutcomeView({
+  outcome,
+  isEmergency,
+  headingRef,
+}: {
+  outcome: GuidanceOutcome;
+  isEmergency: boolean;
+  headingRef: React.Ref<HTMLHeadingElement>;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* The emergency outcome leads with what to do; the general disclaimer
+          follows it instead of pushing the call buttons down. */}
+      {isEmergency ? null : <GuidanceSafetyNotice />}
+      <Card className="space-y-3 p-5">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
           {outcome.title}
         </h2>
         <p className="text-sm text-muted-foreground">{outcome.body}</p>
+        {isEmergency ? <EmergencyCallLinks /> : null}
       </Card>
+      {isEmergency ? <GuidanceSafetyNotice /> : null}
       {isEmergency ? (
         <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           {t("guidance.emergencyResultNote")} <strong>194</strong> /{" "}
@@ -421,7 +577,14 @@ function HandoffLink({
   if (handoff.type === "emergency") {
     return (
       <span className="text-sm font-medium text-destructive">
-        {t("footer.emergency")} <strong>194</strong> / <strong>112</strong>
+        {t("footer.emergency")}{" "}
+        <a href="tel:194" className="font-bold underline">
+          194
+        </a>{" "}
+        /{" "}
+        <a href="tel:112" className="font-bold underline">
+          112
+        </a>
       </span>
     );
   }

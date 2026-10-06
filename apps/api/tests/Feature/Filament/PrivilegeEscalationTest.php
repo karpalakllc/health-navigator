@@ -3,7 +3,6 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\Roles\Pages\EditRole;
 use App\Filament\Resources\Roles\RoleResource;
 use App\Filament\Resources\Staff\Pages\CreateStaffUser;
@@ -21,7 +20,7 @@ use Tests\TestCase;
 
 /**
  * A staff member trusted with user or role management must not be able to
- * grant more than they hold: no Administrator role, no admin column, no
+ * grant more than they hold: no Administrator role, no
  * taking over an administrator account, no widening their own role.
  */
 class PrivilegeEscalationTest extends TestCase
@@ -45,10 +44,9 @@ class PrivilegeEscalationTest extends TestCase
         SiteSetting::current();
     }
 
-    private function staff(?string $roleName, UserRole $column = UserRole::Moderator): User
+    private function staff(?string $roleName): User
     {
         $user = User::factory()->create([
-            'role' => $column,
             'user_kind' => UserKind::Staff,
             // Enrolled in two-factor, so page requests reach authorisation
             // instead of stopping at the panel's MFA set-up redirect.
@@ -122,37 +120,45 @@ class PrivilegeEscalationTest extends TestCase
         $this->assertTrue($target->fresh()->hasRole('Staff Viewer'));
     }
 
-    public function test_a_user_manager_cannot_set_the_admin_role_column(): void
+    /**
+     * The legacy `users.role` column used to be a second, separately guarded
+     * way to make an administrator. The form no longer has it, and nothing a
+     * manager submits under that name reaches the column.
+     */
+    public function test_the_staff_form_does_not_write_the_legacy_role_column(): void
     {
         $manager = $this->staff('User Manager');
-        $target = $this->staff(null);
+        $target = $this->staff('Staff Viewer');
         $this->actingAs($manager);
 
         Livewire::test(EditStaffUser::class, ['record' => $target->getKey()])
-            ->fillForm(['role' => UserRole::Admin->value])
+            ->fillForm(['role' => 'admin'])
             ->call('save')
-            ->assertHasFormErrors(['role']);
+            ->assertHasNoFormErrors();
 
-        $this->assertSame(UserRole::Moderator, $target->fresh()->role);
+        $this->assertNull($target->fresh()->getRawOriginal('role'));
+        $this->assertFalse($target->fresh()->isAdmin());
 
         Livewire::test(CreateStaffUser::class)
             ->fillForm([
                 'name' => 'Sneaky Admin',
                 'email' => 'sneaky@example.test',
-                'role' => UserRole::Admin->value,
+                'role' => 'admin',
+                'roles' => [$this->roleId('Staff Viewer')],
                 'password' => 'long1enough1password',
             ])
             ->call('create')
-            ->assertHasFormErrors(['role']);
+            ->assertHasNoFormErrors();
 
-        $this->assertDatabaseMissing('users', ['email' => 'sneaky@example.test']);
+        $sneaky = User::query()->where('email', 'sneaky@example.test')->sole();
+        $this->assertNull($sneaky->getRawOriginal('role'));
+        $this->assertFalse($sneaky->isAdmin());
     }
 
     public function test_a_user_manager_cannot_edit_or_delete_an_administrator(): void
     {
         $manager = $this->staff('User Manager');
-        $admin = $this->staff('Administrator', UserRole::Admin);
-        $legacyAdmin = $this->staff(null, UserRole::Admin);
+        $admin = $this->staff('Administrator');
 
         $this->actingAs($manager)
             ->get(StaffUserResource::getUrl('edit', ['record' => $admin]))
@@ -160,7 +166,6 @@ class PrivilegeEscalationTest extends TestCase
 
         $this->assertFalse($manager->can('update', $admin));
         $this->assertFalse($manager->can('delete', $admin));
-        $this->assertFalse($manager->can('update', $legacyAdmin));
     }
 
     public function test_a_user_manager_cannot_edit_a_user_holding_permissions_they_lack(): void
@@ -206,12 +211,12 @@ class PrivilegeEscalationTest extends TestCase
 
     public function test_an_administrator_can_still_grant_the_administrator_role(): void
     {
-        $admin = $this->staff('Administrator', UserRole::Admin);
+        $admin = $this->staff('Administrator');
         $target = $this->staff(null);
         $this->actingAs($admin);
 
         Livewire::test(EditStaffUser::class, ['record' => $target->getKey()])
-            ->fillForm(['roles' => [$this->roleId('Administrator')], 'role' => UserRole::Admin->value])
+            ->fillForm(['roles' => [$this->roleId('Administrator')]])
             ->call('save')
             ->assertHasNoFormErrors();
 

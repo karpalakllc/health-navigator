@@ -8,7 +8,7 @@ import { ForumSearchTopicCard } from "@/components/forum/forum-search-topic-card
 import { Button } from "@/components/ui/button";
 import { fetchUnifiedSearch } from "@/lib/api/search";
 import { directorySearchHref } from "@/lib/search";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 type UnifiedSearchResultsProps = {
   q: string;
@@ -143,7 +143,7 @@ function SearchSection({
         <div>
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           <p className="text-sm text-muted-foreground">
-            {tFormat("search.resultsTotalLine", { total: String(total) })}
+            {tCount("search.resultsTotalLine", total)}
           </p>
         </div>
         <Button

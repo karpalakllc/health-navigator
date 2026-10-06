@@ -44,13 +44,29 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 5. `php artisan config:cache` and `php artisan route:cache`.
 6. **Required:** `php artisan platform:preflight`. It checks the cached
    configuration — APP_KEY, debug off, https URLs, `TRUSTED_PROXIES`, mail
-   transport, queue and cache drivers, secure session cookie, CORS origins, token
-   expiry, the admin address, demo seeding, Meilisearch credentials, object-storage
-   media credentials — and exits
-   non-zero on any error. Do not migrate or send traffic until it passes. Warnings
-   (Sentry DSN, the local `public` media disk) do not fail it but should be read.
+   transport, queue and cache drivers, secure and encrypted session, CORS origins,
+   token expiry, the admin address and any `PLATFORM_ADMIN_PASSWORD` left set (it
+   must pass the password rule), demo seeding, Meilisearch credentials,
+   object-storage media credentials — and exits non-zero on any error. Do not
+   migrate or send traffic until it passes. Warnings (Sentry DSN, the local
+   `public` media disk, `LOG_LEVEL=debug`) do not fail it but should be read.
    Add `--json` for machine-readable output in a deploy script.
 7. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
+   **Guidance flow (once, fresh environment only):** the Macedonian symptom
+   guidance flow (`/guidance`) ships as data in `TriageSeeder`, which
+   `platform:bootstrap` does **not** run, so a fresh environment has no guidance
+   flow to serve. Right after bootstrap, before anyone
+   edits guidance content in the admin panel, run it once:
+   `php artisan db:seed --class=TriageSeeder --force`.
+   **Never run it again on an environment that is in use:** it rewrites the
+   flow's title and intro, every red flag, step, option and outcome it knows
+   (by code) back to the shipped copy, and **deletes all of the flow's rules**
+   before recreating its own — admin edits to those rows are lost and any rule
+   added in the panel disappears. (The flow is found by its shipped title; if
+   an admin renamed it, re-seeding creates a second published flow instead.)
+   Copy changes after go-live are made in the
+   admin panel (or by a reviewed migration), not by re-seeding. To check
+   whether a flow already exists: `php artisan tinker --execute="echo App\\Models\\TriageFlow::count();"`.
 8. When `MEDIA_DISK=public` (persistent volume, not object storage): `php artisan storage:link` once, or uploaded logos and avatars 404.
 9. Start a **queue worker** (see below).
 10. Add **scheduler** cron (see below).
@@ -146,6 +162,9 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. For self-hosted Plausible also
    set `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` and `NEXT_PUBLIC_PLAUSIBLE_HOST` to the same
    origin — the script loads from the first, the CSP allows the beacon only to the second.
+   The script must be a **manual** build (`script.manual.js`, or a `script.manual.*.js`
+   variant): the web app sends pageviews itself with the query string stripped, and
+   refuses to load any other build, since those report full URLs (`?q=` searches) on their own.
 3. Set Sentry: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT`.
    For readable production stack traces also set `SENTRY_ORG`, `SENTRY_PROJECT` and
    `SENTRY_AUTH_TOKEN` in the **build** environment so source maps are uploaded.

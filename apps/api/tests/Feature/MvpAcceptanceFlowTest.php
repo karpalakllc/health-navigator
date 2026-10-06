@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\ForumContentStatus;
-use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
@@ -39,8 +38,8 @@ class MvpAcceptanceFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.slug', 'mvp-accept-doc');
 
-        $member = User::factory()->create(['role' => UserRole::Member]);
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
 
         Sanctum::actingAs($member);
 
@@ -73,8 +72,8 @@ class MvpAcceptanceFlowTest extends TestCase
     public function test_forum_topic_moderation_and_public_visibility(): void
     {
         $category = ForumCategory::factory()->create(['slug' => 'mvp-accept-cat']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
 
         Sanctum::actingAs($member);
 

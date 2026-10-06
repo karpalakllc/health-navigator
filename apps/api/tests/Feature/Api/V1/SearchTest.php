@@ -3,10 +3,12 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\FacilityType;
+use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumTopic;
 use App\Models\Product;
+use App\Models\Specialty;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -78,5 +80,24 @@ class SearchTest extends TestCase
             ->assertJsonCount(10, 'data.doctors.data');
 
         $this->getJson('/api/v1/search?q=ana&per_page=11')->assertUnprocessable();
+    }
+
+    public function test_unified_search_finds_doctors_and_facilities_by_specialty_or_department(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        Doctor::factory()->create(['slug' => 'cardio-doc', 'full_name' => 'д-р Ана Петровска'])
+            ->specialties()->attach($cardiology->id, ['is_primary' => true]);
+        Doctor::factory()->create(['slug' => 'other-doc', 'full_name' => 'д-р Марко Стојанов']);
+        Facility::factory()->create(['slug' => 'city-hospital', 'name' => 'Градска болница', 'type' => FacilityType::Hospital])
+            ->departments()->attach(Department::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija'])->id);
+
+        foreach (['кардио', 'kardio'] as $q) {
+            $this->getJson('/api/v1/search?q='.urlencode($q))
+                ->assertOk()
+                ->assertJsonPath('data.doctors.meta.total', 1)
+                ->assertJsonPath('data.doctors.data.0.slug', 'cardio-doc')
+                ->assertJsonPath('data.facilities.meta.total', 1)
+                ->assertJsonPath('data.facilities.data.0.slug', 'city-hospital');
+        }
     }
 }

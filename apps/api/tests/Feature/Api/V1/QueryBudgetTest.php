@@ -87,20 +87,47 @@ class QueryBudgetTest extends TestCase
 
     public function test_doctor_listing_stays_within_a_fixed_query_budget(): void
     {
+        $this->getJson('/api/v1/settings/public')->assertOk();
         $this->seedDoctorsWithReviews(doctors: 10, reviewsEach: 3);
 
-        $queries = $this->captureQueries(
-            fn () => $this->getJson('/api/v1/doctors?per_page=25')->assertOk(),
-        );
+        foreach (['/api/v1/doctors?per_page=25', '/api/v1/doctors?per_page=25&sort=rating&min_reviews=1'] as $uri) {
+            $queries = $this->captureQueries(fn () => $this->getJson($uri)->assertOk());
 
-        $this->assertLessThanOrEqual(
-            10,
-            count($queries),
-            'Doctor listing ran '.count($queries)." queries:\n".implode("\n", $queries),
-        );
+            // settings, count, page, specialties, facilities.
+            $this->assertLessThanOrEqual(
+                5,
+                count($queries),
+                "{$uri} ran ".count($queries)." queries:\n".implode("\n", $queries),
+            );
+        }
     }
 
-    public function test_review_summary_values_survive_the_eager_loaded_path(): void
+    /**
+     * review_summary, sort=rating and min_reviews read the denormalised
+     * reviews_count / rating_avg columns. Correlated COUNT/AVG subqueries
+     * against reviews ran for every published doctor before LIMIT applied.
+     */
+    public function test_directory_listings_do_not_query_the_reviews_table(): void
+    {
+        $this->seedDoctorsWithReviews(doctors: 3, reviewsEach: 2);
+
+        foreach ([
+            '/api/v1/doctors?sort=rating&min_reviews=1',
+            '/api/v1/facilities',
+            '/api/v1/pharmacies',
+            '/api/v1/search?q='.rawurlencode('д-р'),
+        ] as $uri) {
+            $queries = $this->captureQueries(fn () => $this->getJson($uri)->assertOk());
+
+            $this->assertSame(
+                [],
+                array_values(array_filter($queries, fn (string $sql): bool => str_contains($sql, '"reviews"'))),
+                "{$uri} still aggregates reviews per row.",
+            );
+        }
+    }
+
+    public function test_review_summary_values_survive_the_denormalised_path(): void
     {
         $doctor = Doctor::factory()->create(['is_published' => true, 'slug' => 'summary-check']);
         $users = User::factory()->count(3)->create();

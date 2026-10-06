@@ -9,22 +9,28 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
-use App\Http\Controllers\Api\V1\PlatformController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Models\ForumPost;
+use App\Models\ForumTopic;
+use App\Models\Review;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class);
     Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
     Route::get('/search', SearchController::class);
-    Route::get('/departments', [DepartmentController::class, 'index']);
-    Route::get('/specialties', [SpecialtyController::class, 'index']);
-    Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+    // Anonymous, identical-for-everyone taxonomies: shared caches may keep them
+    // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
+    Route::middleware('cache.public')->group(function (): void {
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/specialties', [SpecialtyController::class, 'index']);
+        Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+    });
     Route::get('/doctors', [DoctorController::class, 'index']);
     // Optional auth so meta.viewer_review resolves: without it a signed-in user who
     // has already reviewed a profile is shown the submission form, then told they
@@ -50,7 +56,8 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::middleware('module:forum')->group(function (): void {
-        Route::get('/forum/categories', [ForumController::class, 'indexCategories']);
+        Route::get('/forum/categories', [ForumController::class, 'indexCategories'])
+            ->middleware('cache.public');
         Route::get('/forum/topics/recent', [ForumController::class, 'recentTopics']);
         Route::get('/forum/topics', [ForumController::class, 'searchTopics']);
         Route::get('/forum/categories/{category}/topics', [ForumController::class, 'indexTopics']);
@@ -92,35 +99,28 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
+        Route::patch('/me/profile', [MeController::class, 'updateProfile'])->middleware(['verified', 'throttle:api-profile']);
         Route::post('/me/avatar', [MeAvatarController::class, 'update'])->middleware('verified');
         Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
         Route::get('/me/forum/topics', [ForumController::class, 'myTopics']);
         Route::get('/me/forum/posts', [ForumController::class, 'myPosts']);
         Route::post('/forum/categories/{category}/topics', [ForumController::class, 'storeTopic'])
-            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-topics']);
+            ->middleware(['module:forum', 'can:create,'.ForumTopic::class, 'verified', 'throttle:api-forum-topics']);
         Route::post('/forum/categories/{category}/topics/{topic}/posts', [ForumController::class, 'storePost'])
-            ->middleware(['module:forum', 'role:member', 'verified', 'throttle:api-forum-posts']);
+            ->middleware(['module:forum', 'can:create,'.ForumPost::class, 'verified', 'throttle:api-forum-posts']);
         // Authorization is ForumTopicPolicy::update, which understands both staff
-        // permissions and category-scoped community moderation. A `role:member`
-        // gate here would 403 staff moderators while the UI still offered them
+        // permissions and category-scoped community moderation. A `can:create`
+        // (member) gate here would 403 staff moderators while the UI still offered them
         // the toolbar, because the toolbar is driven by the policy.
         Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
             ->middleware(['module:forum']);
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
-            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
+            ->middleware(['can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])
-            ->middleware(['role:member', 'verified', 'throttle:api-reviews']);
+            ->middleware(['can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
         // Same module gate as the pharmacy GETs: with the module off, the listing
         // and profile 503 but a direct POST would otherwise still accept reviews.
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
-            ->middleware(['module:pharmacies', 'role:member', 'verified', 'throttle:api-reviews']);
-        // Intentional: these two stubs are the only coverage of the `role`
-        // middleware's allow/deny matrix (PlatformRoutesTest), and that middleware
-        // guards real endpoints. Do not delete them without first moving those
-        // assertions onto another role-gated route.
-        Route::get('/platform/staff', [PlatformController::class, 'staff'])
-            ->middleware('role:admin,moderator');
-        Route::get('/platform/admin', [PlatformController::class, 'admin'])
-            ->middleware('role:admin');
+            ->middleware(['module:pharmacies', 'can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
     });
 });

@@ -7,6 +7,7 @@ use App\Models\TriageFlow;
 use App\Models\User;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
+use App\Support\DeploymentEnvironment;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
@@ -51,13 +52,14 @@ class AppServiceProvider extends ServiceProvider
         // after SetApiLocale, so its 422 message is already localised.
         $this->app->make(Router::class)->pushMiddlewareToGroup('api', RejectInvalidUtf8::class);
 
-        // Applies to registration and password reset. The breach check is production-only:
-        // it calls the Have I Been Pwned range API, fails open on network error, and we do
-        // not want an outbound dependency in local dev or the test suite.
+        // Applies to registration, password reset and the bootstrap admin. The breach
+        // check runs in every deployed environment (staging accounts are real ones
+        // too): it calls the Have I Been Pwned range API and fails open on network
+        // error. Local dev and the test suite skip it to stay offline.
         Password::defaults(function () {
             $rule = Password::min(10)->letters()->numbers();
 
-            return app()->isProduction() ? $rule->uncompromised() : $rule;
+            return DeploymentEnvironment::isDeployed() ? $rule->uncompromised() : $rule;
         });
 
         // Baseline abuse ceiling for every v1 route.
@@ -99,6 +101,12 @@ class AppServiceProvider extends ServiceProvider
         // per-caller ceiling on hammering the endpoint itself.
         RateLimiter::for('api-verification-resend', function (Request $request) {
             return Limit::perMinute(10)->by('resend-ip:'.$request->ip());
+        });
+
+        // The display name is what every review and forum post shows; renaming
+        // is occasional, so a burst of renames is someone cycling identities.
+        RateLimiter::for('api-profile', function (Request $request) {
+            return Limit::perHour(10)->by('profile:'.($request->user()?->id ?? $request->ip()));
         });
 
         RateLimiter::for('api-reviews', function (Request $request) {

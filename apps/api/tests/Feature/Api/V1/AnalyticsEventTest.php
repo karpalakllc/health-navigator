@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
-use App\Models\AnalyticsEvent;
 use App\Models\Doctor;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -25,7 +23,7 @@ class AnalyticsEventTest extends TestCase
     public function test_review_submission_records_analytics_event(): void
     {
         $doctor = Doctor::factory()->create(['slug' => 'dr-test']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -40,17 +38,17 @@ class AnalyticsEventTest extends TestCase
         ]);
     }
 
-    public function test_search_records_query_event(): void
+    public function test_search_is_counted_as_an_aggregate_not_an_event(): void
     {
         $this->getJson('/api/v1/search?q=cardio')
             ->assertOk();
 
-        $this->assertDatabaseHas('analytics_events', [
+        $this->assertDatabaseMissing('analytics_events', [
             'event' => 'search.query',
         ]);
-
-        $event = AnalyticsEvent::query()->where('event', 'search.query')->first();
-
-        $this->assertSame('cardio', $event?->properties['q'] ?? null);
+        $this->assertDatabaseHas('search_term_daily', [
+            'term' => 'cardio',
+            'count' => 1,
+        ]);
     }
 }

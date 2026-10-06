@@ -19,7 +19,7 @@ class ForumPostResource extends JsonResource
         return [
             'id' => $this->id,
             'body' => $this->body,
-            'author_name' => $this->user->name,
+            'author_name' => $this->user->publicName(),
             'author' => new ForumAuthorResource($this->user),
             'published_at' => $this->published_at?->toIso8601String(),
         ];

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +17,6 @@ class AuthTest extends TestCase
         $user = User::factory()->create([
             'email' => 'member@example.com',
             'password' => 'password',
-            'role' => UserRole::Member,
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
@@ -60,7 +58,7 @@ class AuthTest extends TestCase
 
     public function test_me_returns_authenticated_user(): void
     {
-        $user = User::factory()->create(['role' => UserRole::Member]);
+        $user = User::factory()->create();
 
         Sanctum::actingAs($user);
 

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +33,6 @@ class ApiHardeningTest extends TestCase
         $user = User::factory()->create([
             'email' => 'member@example.com',
             'password' => 'password',
-            'role' => UserRole::Member,
         ]);
 
         for ($i = 0; $i < 5; $i++) {
@@ -57,7 +55,7 @@ class ApiHardeningTest extends TestCase
         $this->forgetRateLimits();
 
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -89,5 +87,21 @@ class ApiHardeningTest extends TestCase
         $this->getJson('/api/v1/doctors?q=a')
             ->assertOk()
             ->assertJsonCount(1, 'data');
+    }
+
+    /**
+     * Each page is a distinct cache entry and a distinct OFFSET scan; a client
+     * walking page=1..∞ should be told no, not served empty pages forever.
+     */
+    public function test_list_pages_are_capped(): void
+    {
+        $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
+
+        foreach (['/api/v1/doctors', '/api/v1/facilities', "/api/v1/doctors/{$doctor->slug}/reviews"] as $path) {
+            $this->getJson("{$path}?page=1000")->assertOk();
+            $this->getJson("{$path}?page=1001")
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('page');
+        }
     }
 }

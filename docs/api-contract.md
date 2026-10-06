@@ -93,8 +93,19 @@ mechanism for the Next.js web client and future mobile clients.
   (30 days). Expired tokens are rejected — including on optional-auth routes.
 - `POST /auth/forgot-password` always returns the same success payload,
   whether or not the address is registered.
-- `GET /me` returns `id, name, email, role, community_roles,
+- `GET /me` returns `id, name, display_name, email, role, community_roles,
   can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+- **Two names.** `name` is the person's real name and is **private** (only
+  `/me`, the admin panel and mail). `display_name` is what everything public
+  shows: `author_name` on reviews and forum topics/posts, and `author.name` on
+  forum authors. `POST /auth/register` requires `display_name`;
+  `PATCH /me/profile` (`{ "display_name": "…" }`, verified accounts) changes it
+  and returns `{ user }` as `/me` does. Rules: trimmed with runs of whitespace
+  collapsed, at most 40 characters, Unicode letters, spaces and `. - '` only,
+  starting with a letter, at least two letters, no word mixing Cyrillic and
+  Latin, and no title, role or platform name in either script (д-р/dr, проф,
+  доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
+  `DisplayName::rejection()`). **Not unique.**
 
 **Web client:** Next.js stores the bearer token in an httpOnly cookie via route
 handlers under `/api/session/*`; the browser never reads the token. Mobile uses
@@ -111,6 +122,7 @@ limiters are layered on top:
 |---------|-----------|-------|
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
+| `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
@@ -130,14 +142,14 @@ nobody can hold an account locked by merely sending traffic.
 | Method | Path | Guards |
 |--------|------|--------|
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
-| `GET` | `/departments` | — |
+| `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | — |
 | `GET` | `/doctors/{slug}` | — |
 | `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/facilities` | — |
 | `GET` | `/facilities/{slug}` | — |
 | `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
-| `GET` | `/forum/categories` | `module:forum` |
+| `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
 | `GET` | `/forum/topics` | `module:forum` |
@@ -151,28 +163,27 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
-| `GET` | `/platform/admin` | `auth:sanctum`, `role:admin` |
-| `GET` | `/platform/staff` | `auth:sanctum`, `role:admin,moderator` |
 | `GET` | `/products` | `module:products` |
 | `GET` | `/products/{slug}` | `module:products` |
 | `GET` | `/search` | — |
 | `GET` | `/settings/public` | — |
-| `GET` | `/specialties` | — |
-| `GET` | `/specialties/{slug}` | — |
+| `GET` | `/specialties` | `cache.public` |
+| `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
 | `POST` | `/auth/login` | `throttle:api-login` |
 | `POST` | `/auth/logout` | `auth:sanctum` |
 | `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
-| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
-| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
-| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
-| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
@@ -183,7 +194,9 @@ nobody can hold an account locked by merely sending traffic.
 
 - `per_page` is capped at **50** on every list endpoint (`/search` caps at 10
   per vertical). `page` starts at 1.
-- List `q` filters match **name/title only**; `city` is a separate parameter.
+- List `q` filters match **name/title only**, except doctors (name or a
+  published specialty name) and clinical facilities (name or a published
+  department name), on `/search` too; `city` is a separate parameter.
   Minimum query length is 2 characters, matching `SearchQuery::normalize`.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
@@ -194,14 +207,34 @@ nobody can hold an account locked by merely sending traffic.
   `forum.moderate` or the corresponding moderation setting is off; otherwise it
   is `pending`.
 - Replying to a locked topic returns **422**, not 403.
-- Guidance sessions are anonymous by default. A session created while
-  authenticated is bound to that user and returns 404 to anyone else.
+- Guidance sessions are **never linked to an account**, even when the caller
+  is signed in. `POST /triage/sessions` returns `session_id` and a secret
+  `session_token` (only its SHA-256 is stored); every later call on the session
+  (`answers`, `emergency`, `complete`) must send it as the
+  `X-Guidance-Token` header. A missing or wrong token is `404`, the same as an
+  unknown id.
+- `/search` does not record who searched. The normalised query (lower-cased,
+  whitespace collapsed, truncated to 64 characters) is counted per day in
+  `search_term_daily` after the response is sent; there is no per-search row.
 
 ## Roles and permissions
 
-Authorization uses **Spatie permissions**; the `users.role` column is a coarse
-account type (`member`, `moderator`, `admin`), not the authorization source.
+Authorization uses **Spatie roles and permissions** only. Built-in roles:
+`Administrator`, `Moderator` (staff), `Forum Moderator` (community) and
+`Member`.
 
+- **Member** carries `reviews.create` and `forum.post`; registration assigns
+  it. The contribution endpoints check those permissions (`can:create` on the
+  Review / ForumTopic / ForumPost policies), so removing the role stops an
+  account posting, and granting it lets a staff account post. Staff do not
+  hold it by default.
+- The `role` field on `GET /me` (`member`, `moderator`, `admin`) is derived for
+  display: `admin` for the Administrator role, `moderator` for other staff,
+  `member` otherwise. `community_roles` lists every Spatie role name held
+  (including `Member`). Neither is an authorization input.
+- `users.user_kind` (`staff` / `client`) only decides whether an account is
+  managed under Staff or Clients in the admin panel. The legacy `users.role`
+  column is deprecated: nullable, no longer read or written, to be dropped.
 - Staff moderators and admins moderate through the Filament panel and the
   public moderation endpoint.
 - **Community moderators** are client accounts holding the `Forum Moderator`

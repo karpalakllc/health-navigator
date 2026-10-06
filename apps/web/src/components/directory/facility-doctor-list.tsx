@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { FacilityDetail } from "@/lib/api/types";
 import { t } from "@/i18n/t";
+import { doctorInitials } from "@/lib/user-initials";
 
 type FacilityDoctor = FacilityDetail["doctors"][number];
 
@@ -25,7 +26,7 @@ export function FacilityDoctorList({
             className="group flex gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-primary/25 hover:shadow-[0_16px_40px_-28px_rgb(15_23_42/0.4)]"
           >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/12 to-accent/12 text-sm font-bold text-primary ring-1 ring-primary/10">
-              {doctor.full_name.charAt(0)}
+              {doctorInitials(doctor.full_name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-foreground group-hover:text-primary">

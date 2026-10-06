@@ -12,7 +12,8 @@ import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchPublicSettings();
@@ -50,12 +51,12 @@ export default async function PharmaciesPage({
   }
 
   const params = await searchParams;
-  const page = params.page ? Number(params.page) : 1;
+  const page = parseListPage(params.page);
 
   const pharmacies = await fetchPharmacies({
     city: params.city,
     q: params.q,
-    page: Number.isFinite(page) ? page : 1,
+    page,
   });
 
   const filterParams = { city: params.city, q: params.q };
@@ -75,9 +76,7 @@ export default async function PharmaciesPage({
           stat={
             <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
               <PinIcon />
-              {tFormat("pharmacies.resultsCount", {
-                count: String(pharmacies.meta.total),
-              })}
+              {tCount("pharmacies.resultsCount", pharmacies.meta.total)}
             </span>
           }
           filters={<PharmaciesFilterBar values={filterParams} />}
@@ -114,9 +113,7 @@ export default async function PharmaciesPage({
                 {t("pharmacies.resultsTitle")}
               </h2>
               <p className="mt-1 text-muted-foreground">
-                {tFormat("pharmacies.resultsCount", {
-                  count: String(pharmacies.meta.total),
-                })}
+                {tCount("pharmacies.resultsCount", pharmacies.meta.total)}
               </p>
             </div>
             <EmptyState

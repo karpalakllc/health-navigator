@@ -7,14 +7,26 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumTopic;
 use App\Models\Review;
+use App\Models\SearchTermDaily;
 use App\Models\User;
-use App\Support\SearchQuery;
+use App\Support\SearchTermNormalizer;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AnalyticsService
 {
+    /**
+     * How long the admin dashboard's event aggregates are reused, in seconds.
+     *
+     * Each one scans a window of analytics_events, and the dashboard used to
+     * re-run all of them every 5 seconds per open tab. New events are not
+     * flushed in: the figures are trends over days, so being up to five minutes
+     * behind is fine. Directory and moderation counts are not cached here.
+     */
+    public const AGGREGATE_TTL_SECONDS = 300;
+
     public function record(string $event, ?User $user = null, ?array $properties = null, ?string $sessionId = null): void
     {
         AnalyticsEvent::query()->create([
@@ -24,6 +36,28 @@ class AnalyticsService
             'session_id' => $sessionId,
             'occurred_at' => now(),
         ]);
+    }
+
+    /**
+     * Count one search in today's aggregate row for its normalised term.
+     *
+     * Searches are NOT analytics events: no user, session or exact time is kept
+     * (see SearchTermDaily). One upsert, so concurrent searches for the same
+     * term both count.
+     */
+    public function recordSearchTerm(?string $query): void
+    {
+        $term = SearchTermNormalizer::normalize($query);
+
+        if ($term === null) {
+            return;
+        }
+
+        DB::table('search_term_daily')->upsert(
+            [['date' => Carbon::today()->toDateString(), 'term' => $term, 'count' => 1]],
+            ['date', 'term'],
+            ['count' => DB::raw('search_term_daily.count + 1')],
+        );
     }
 
     /**
@@ -38,13 +72,28 @@ class AnalyticsService
      */
     public function summaryForDays(int $days = 30): array
     {
-        $since = Carbon::now()->subDays($days);
+        $counts = Cache::remember(
+            "analytics:summary:{$days}",
+            self::AGGREGATE_TTL_SECONDS,
+            function () use ($days): array {
+                $since = Carbon::now()->subDays($days);
 
-        $counts = AnalyticsEvent::query()
-            ->where('occurred_at', '>=', $since)
-            ->select('event', DB::raw('count(*) as total'))
-            ->groupBy('event')
-            ->pluck('total', 'event');
+                $counts = AnalyticsEvent::query()
+                    ->where('occurred_at', '>=', $since)
+                    ->select('event', DB::raw('count(*) as total'))
+                    ->groupBy('event')
+                    ->pluck('total', 'event')
+                    ->all();
+
+                // Searches are kept only as anonymous daily aggregates, at day
+                // granularity (they have no time of day).
+                $counts['search.query'] = (int) SearchTermDaily::query()
+                    ->where('date', '>=', $since->toDateString())
+                    ->sum('count');
+
+                return $counts;
+            },
+        );
 
         return [
             'registrations' => (int) ($counts['user.registered'] ?? 0),
@@ -61,15 +110,24 @@ class AnalyticsService
      */
     public function eventCountByDay(string $event, int $days = 14): Collection
     {
-        $since = Carbon::now()->subDays($days)->startOfDay();
+        // Plain rows rather than AnalyticsEvent models, so the cache holds data
+        // and not serialised Eloquent objects.
+        $rows = Cache::remember(
+            "analytics:by-day:{$event}:{$days}",
+            self::AGGREGATE_TTL_SECONDS,
+            fn (): array => AnalyticsEvent::query()
+                ->where('event', $event)
+                ->where('occurred_at', '>=', Carbon::now()->subDays($days)->startOfDay())
+                ->selectRaw('date(occurred_at) as day, count(*) as total')
+                ->groupBy('day')
+                ->orderBy('day')
+                ->toBase()
+                ->get()
+                ->map(fn (object $row): array => ['day' => (string) $row->day, 'total' => (int) $row->total])
+                ->all(),
+        );
 
-        return AnalyticsEvent::query()
-            ->where('event', $event)
-            ->where('occurred_at', '>=', $since)
-            ->selectRaw('date(occurred_at) as day, count(*) as total')
-            ->groupBy('day')
-            ->orderBy('day')
-            ->get();
+        return collect($rows)->map(fn (array $row): object => (object) $row);
     }
 
     /**
@@ -81,43 +139,39 @@ class AnalyticsService
     }
 
     /**
-     * @return list<array{query: string, total: int}>
-     */
-    /**
-     * Aggregated in SQL rather than by walking every matching row into PHP, which
-     * is what the admin dashboard used to do on each page load.
+     * Read from the daily aggregates. Terms are normalised in PHP on the way in,
+     * so Cyrillic case-folds the same on SQLite and PostgreSQL.
      *
-     * Note the engine difference this exposes: SQLite's lower() is ASCII-only
-     * while PostgreSQL's is locale-aware, so Cyrillic queries case-fold in
-     * production but not in local SQLite. Do not "fix" that by moving the folding
-     * back into PHP — it would reintroduce the full-table scan.
+     * @return list<array{query: string, total: int}>
      */
     public function topSearchQueries(int $days = 30, int $limit = 10): array
     {
-        $since = Carbon::now()->subDays($days)->startOfDay();
-        $connection = DB::connection();
+        return Cache::remember(
+            "analytics:top-searches:{$days}:{$limit}",
+            self::AGGREGATE_TTL_SECONDS,
+            fn (): array => $this->queryTopSearchQueries($days, $limit),
+        );
+    }
 
-        $extract = $connection->getDriverName() === 'pgsql'
-            ? "properties->>'q'"
-            : "json_extract(properties, '$.q')";
-
-        $normalized = "lower(trim({$extract}))";
-
-        return $connection->table('analytics_events')
-            ->where('event', 'search.query')
-            ->where('occurred_at', '>=', $since)
-            ->whereRaw("{$extract} is not null")
-            ->whereRaw("length(trim({$extract})) >= ?", [SearchQuery::MIN_LENGTH])
-            ->selectRaw("{$normalized} as query, count(*) as total")
-            ->groupByRaw($normalized)
+    /**
+     * @return list<array{query: string, total: int}>
+     */
+    private function queryTopSearchQueries(int $days, int $limit): array
+    {
+        return SearchTermDaily::query()
+            ->toBase()
+            ->where('date', '>=', Carbon::now()->subDays($days)->toDateString())
+            ->selectRaw('term, sum(count) as total')
+            ->groupBy('term')
             ->orderByDesc('total')
-            ->orderBy('query')
+            ->orderBy('term')
             ->limit($limit)
             ->get()
             ->map(fn ($row): array => [
-                'query' => (string) $row->query,
+                'query' => (string) $row->term,
                 'total' => (int) $row->total,
             ])
+            ->values()
             ->all();
     }
 

@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Enums\ForumContentStatus;
-use App\Enums\UserRole;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Support\Forum\ForumContentModeration;
@@ -26,7 +25,7 @@ class ForumContentModerationTest extends TestCase
 
     public function test_forum_moderator_content_is_auto_approved(): void
     {
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
 
         $this->assertSame(
@@ -37,7 +36,7 @@ class ForumContentModerationTest extends TestCase
 
     public function test_member_content_follows_site_setting(): void
     {
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
         SiteSetting::current()->update(['forum_topics_require_moderation' => false]);
 
         $this->assertSame(

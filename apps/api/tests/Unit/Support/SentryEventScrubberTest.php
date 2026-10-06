@@ -40,6 +40,24 @@ class SentryEventScrubberTest extends TestCase
         $this->assertSame('kept', $data['name']);
     }
 
+    public function test_search_terms_are_dropped_from_the_query_string_and_body(): void
+    {
+        // A health search ("ХИВ тест") is sensitive even without a user id.
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/api/v1/search?q=hiv&city=skopje',
+            'query_string' => 'q=hiv&city=skopje',
+            'data' => ['q' => 'ХИВ тест', 'city' => 'Скопје'],
+        ]);
+
+        $request = SentryEventScrubber::beforeSend($event)?->getRequest();
+
+        $this->assertSame(SentryEventScrubber::FILTERED, $request['data']['q']);
+        $this->assertSame('Скопје', $request['data']['city']);
+        $this->assertStringNotContainsString('hiv', (string) $request['query_string']);
+        $this->assertStringNotContainsString('hiv', (string) $request['url']);
+    }
+
     public function test_livewire_updates_drop_two_factor_codes_and_recovery_codes(): void
     {
         $event = Event::createEvent();

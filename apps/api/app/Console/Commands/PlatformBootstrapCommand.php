@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\User;
 use App\Support\DeploymentEnvironment;
 use App\Support\EmailAddress;
@@ -90,7 +89,6 @@ class PlatformBootstrapCommand extends Command
                 'name' => 'Platform Admin',
                 'email' => $adminEmail,
                 'password' => $adminPassword,
-                'role' => UserRole::Admin,
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
             ]);

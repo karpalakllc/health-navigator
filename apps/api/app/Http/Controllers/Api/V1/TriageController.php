@@ -8,16 +8,17 @@ use App\Http\Requests\Api\V1\StoreTriageAnswersRequest;
 use App\Http\Resources\Api\V1\TriageFlowResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\TriageSession;
-use App\Models\User;
 use App\Services\Triage\TriageSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TriageController extends Controller
 {
+    /** Carries the secret issued with a session; required for every later call on it. */
+    public const TOKEN_HEADER = 'X-Guidance-Token';
+
     public function __construct(
         private readonly TriageSessionService $sessions,
     ) {}
@@ -38,21 +39,23 @@ class TriageController extends Controller
         $flow = $this->sessions->publishedFlow();
         $validated = $request->validated();
 
-        $session = $this->sessions->startSession(
+        // Deliberately not linked to the caller, even when signed in — see
+        // TriageSessionService::startSession().
+        [$session, $token] = $this->sessions->startSession(
             $flow,
             (bool) $validated['accepted_terms'],
-            $this->currentUser(),
         );
 
         return ApiResponse::success([
             'session_id' => $session->id,
+            'session_token' => $token,
         ], 201);
     }
 
     public function storeAnswers(string $id, StoreTriageAnswersRequest $request): JsonResponse
     {
         $flow = $this->sessions->publishedFlow();
-        $session = $this->findOpenSession($id, $flow->id);
+        $session = $this->findOpenSession($id, $flow->id, $request);
 
         $session = $this->sessions->storeAnswers(
             $session,
@@ -69,7 +72,7 @@ class TriageController extends Controller
     public function emergency(string $id, Request $request): JsonResponse
     {
         $flow = $this->sessions->publishedFlow();
-        $session = $this->findOpenSession($id, $flow->id);
+        $session = $this->findOpenSession($id, $flow->id, $request);
 
         $session = $this->sessions->markEmergency($session, $flow);
 
@@ -82,10 +85,10 @@ class TriageController extends Controller
         ]);
     }
 
-    public function complete(string $id): JsonResponse
+    public function complete(string $id, Request $request): JsonResponse
     {
         $flow = $this->sessions->publishedFlow();
-        $session = $this->findSession($id, $flow->id);
+        $session = $this->findSession($id, $flow->id, $request);
 
         $outcome = $this->sessions->complete($session, $flow);
 
@@ -95,7 +98,7 @@ class TriageController extends Controller
         ]);
     }
 
-    private function findSession(string $id, int $flowId): TriageSession
+    private function findSession(string $id, int $flowId, Request $request): TriageSession
     {
         // Session ids are UUIDs; anything else is a plain 404 rather than a
         // driver error (PostgreSQL rejects a malformed uuid literal → 500).
@@ -109,20 +112,20 @@ class TriageController extends Controller
             abort(404);
         }
 
-        // Anonymous sessions stay reachable by their UUID — that is the design,
-        // guidance does not require an account. A session that *does* belong to
-        // someone is only reachable by them. 404 rather than 403 so the endpoint
-        // does not confirm that a given session id exists.
-        if ($session->user_id !== null && $session->user_id !== $this->currentUser()?->id) {
+        // Sessions belong to no account, so the id alone must not be enough to
+        // read or steer one: the caller presents the secret it was issued at
+        // creation. 404 rather than 403 so the endpoint does not confirm that a
+        // given session id exists.
+        if (! $session->tokenMatches($request->header(self::TOKEN_HEADER))) {
             abort(404);
         }
 
         return $session;
     }
 
-    private function findOpenSession(string $id, int $flowId): TriageSession
+    private function findOpenSession(string $id, int $flowId, Request $request): TriageSession
     {
-        $session = $this->findSession($id, $flowId);
+        $session = $this->findSession($id, $flowId, $request);
 
         if ($session->isCompleted()) {
             throw ValidationException::withMessages([
@@ -131,17 +134,5 @@ class TriageController extends Controller
         }
 
         return $session;
-    }
-
-    /**
-     * Resolve the caller through the Sanctum guard, which — unlike
-     * PersonalAccessToken::findToken() — enforces token expiry and provider
-     * validity. Guidance is usable anonymously, so a missing token is not an error.
-     */
-    private function currentUser(): ?User
-    {
-        $user = Auth::guard('sanctum')->user();
-
-        return $user instanceof User ? $user : null;
     }
 }

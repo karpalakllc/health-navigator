@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Searchable;
 
 class Facility extends Model
@@ -153,6 +155,36 @@ class Facility extends Model
     }
 
     /**
+     * Public free-text search for clinical facilities: the name, or the name of
+     * a published department, so "кардиологија" finds hospitals that have one.
+     *
+     * `id IN (name matches UNION members of the matching departments)`, for the
+     * same reason as Doctor::scopeSearchNameOrSpecialty(): an OR with a
+     * correlated EXISTS keeps the name trigram index out of the plan.
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    public function scopeSearchNameOrDepartment(Builder $query, string $term): Builder
+    {
+        $departmentIds = Department::query()->published()->searchName($term)->pluck('id');
+
+        $matches = ScriptInsensitiveSearch::whereColumnMatches(
+            static::query()->withoutGlobalScopes()->select('facilities.id'),
+            'facilities.name',
+            $term,
+        )->toBase();
+
+        if ($departmentIds->isNotEmpty()) {
+            $matches->union(
+                DB::table('department_facility')->select('facility_id')->whereIn('department_id', $departmentIds),
+            );
+        }
+
+        return $query->whereIn('facilities.id', $matches);
+    }
+
+    /**
      * Pharmacies are indexed too: unified search filters the clinical and
      * pharmacy verticals on the filterable `type` attribute.
      */
@@ -168,6 +200,9 @@ class Facility extends Model
      */
     public function toSearchableArray(): array
     {
+        $this->loadMissing(['departments' => fn ($relation) => $relation->published()]);
+        $departmentNames = $this->departments->pluck('name');
+
         return [
             'id' => $this->id,
             'slug' => $this->slug,
@@ -175,6 +210,11 @@ class Facility extends Model
             'type' => $this->type?->value,
             'city' => $this->city,
             'description' => $this->description,
+            'department_names' => $departmentNames->all(),
+            // Meilisearch does not transliterate; the SQL path matches Latin too.
+            'department_names_latin' => $departmentNames
+                ->map(fn (string $name): string => MacedonianSearchVariants::cyrillicToLatin($name))
+                ->all(),
         ];
     }
 

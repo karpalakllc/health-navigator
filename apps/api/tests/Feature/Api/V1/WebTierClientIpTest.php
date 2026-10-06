@@ -97,6 +97,12 @@ class WebTierClientIpTest extends TestCase
 
     public function test_two_visitors_behind_the_web_tier_do_not_share_a_login_bucket(): void
     {
+        // Each unknown-address login pays a deliberate cost-12 bcrypt check (the
+        // timing equaliser), so 45 of them can outlast the one-minute window on
+        // a slow run and reset it mid-loop. Freeze the clock: the test is about
+        // whose bucket a request lands in, not about the window expiring.
+        $this->freezeTime();
+
         $asVisitor = fn (string $ip) => ['X-Web-Tier-Auth' => self::SECRET, 'X-Client-IP' => $ip];
 
         // api-login allows 40/min per address. Exhaust it for one visitor…

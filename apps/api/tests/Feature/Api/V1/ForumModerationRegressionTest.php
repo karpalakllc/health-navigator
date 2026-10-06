@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -48,7 +47,7 @@ class ForumModerationRegressionTest extends TestCase
         $this->openModeration();
 
         $category = ForumCategory::factory()->create(['is_published' => true]);
-        $author = User::factory()->create(['role' => UserRole::Member]);
+        $author = User::factory()->create();
 
         $this->actingAs($author)
             ->postJson("/api/v1/forum/categories/{$category->slug}/topics", [
@@ -74,7 +73,7 @@ class ForumModerationRegressionTest extends TestCase
             'forum_category_id' => $category->id,
             'replies_count' => 0,
         ]);
-        $author = User::factory()->create(['role' => UserRole::Member]);
+        $author = User::factory()->create();
 
         $this->actingAs($author)
             ->postJson("/api/v1/forum/categories/{$category->slug}/topics/{$topic->slug}/posts", [
@@ -96,7 +95,7 @@ class ForumModerationRegressionTest extends TestCase
 
         $category = ForumCategory::factory()->create(['is_published' => true]);
         $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id]);
-        $author = User::factory()->create(['role' => UserRole::Member]);
+        $author = User::factory()->create();
 
         $this->actingAs($author)->postJson(
             "/api/v1/forum/categories/{$category->slug}/topics/{$topic->slug}/posts",
@@ -119,7 +118,6 @@ class ForumModerationRegressionTest extends TestCase
         $post = ForumPost::factory()->pending()->create(['forum_topic_id' => $topic->id]);
 
         $moderator = User::factory()->create([
-            'role' => UserRole::Moderator,
             'user_kind' => UserKind::Staff,
         ]);
         $moderator->assignRole('Moderator');
@@ -144,7 +142,6 @@ class ForumModerationRegressionTest extends TestCase
         $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id]);
 
         $moderator = User::factory()->create([
-            'role' => UserRole::Moderator,
             'user_kind' => UserKind::Staff,
         ]);
         $moderator->assignRole('Moderator');
@@ -162,7 +159,7 @@ class ForumModerationRegressionTest extends TestCase
     {
         $category = ForumCategory::factory()->create(['is_published' => true]);
         $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id]);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         $this->actingAs($member)
             ->patchJson(
@@ -179,7 +176,7 @@ class ForumModerationRegressionTest extends TestCase
         $assigned = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'kardiologija']);
         $other = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'dermatologija']);
 
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
         $moderator->moderatedForumCategories()->sync([$assigned->id]);
 
@@ -208,7 +205,7 @@ class ForumModerationRegressionTest extends TestCase
         $assigned = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'kardiologija']);
         $other = ForumCategory::factory()->create(['is_published' => true, 'slug' => 'dermatologija']);
 
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
         $moderator->moderatedForumCategories()->sync([$assigned->id]);
 

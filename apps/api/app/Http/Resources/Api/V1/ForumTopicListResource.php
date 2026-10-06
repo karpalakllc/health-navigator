@@ -20,7 +20,7 @@ class ForumTopicListResource extends JsonResource
             'slug' => $this->slug,
             'title' => $this->title,
             'excerpt' => $this->excerpt(),
-            'author_name' => $this->user->name,
+            'author_name' => $this->user->publicName(),
             'replies_count' => $this->replies_count,
             'last_post_at' => $this->last_post_at?->toIso8601String(),
             'is_pinned' => $this->is_pinned,

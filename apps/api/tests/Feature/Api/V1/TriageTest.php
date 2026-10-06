@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Http\Controllers\Api\V1\TriageController;
 use App\Http\Requests\Api\V1\StoreTriageAnswersRequest;
 use App\Models\TriageFlow;
 use App\Models\TriageSession;
@@ -28,7 +29,7 @@ class TriageTest extends TestCase
         $response = $this->getJson('/api/v1/triage/flow');
 
         $response->assertOk()
-            ->assertJsonPath('data.title', 'General symptom guidance')
+            ->assertJsonPath('data.title', TriageSeeder::TITLE)
             ->assertJsonStructure([
                 'data' => [
                     'title',
@@ -66,9 +67,7 @@ class TriageTest extends TestCase
     {
         $this->seed(TriageSeeder::class);
 
-        $sessionId = $this->postJson('/api/v1/triage/sessions', [
-            'accepted_terms' => true,
-        ])->assertCreated()->json('data.session_id');
+        $sessionId = $this->startGuidanceSession();
 
         $this->putJson("/api/v1/triage/sessions/{$sessionId}/answers", [
             'answers' => [
@@ -92,9 +91,7 @@ class TriageTest extends TestCase
     {
         $this->seed(TriageSeeder::class);
 
-        $sessionId = $this->postJson('/api/v1/triage/sessions', [
-            'accepted_terms' => true,
-        ])->json('data.session_id');
+        $sessionId = $this->startGuidanceSession();
 
         $this->postJson("/api/v1/triage/sessions/{$sessionId}/emergency")
             ->assertOk()
@@ -187,8 +184,7 @@ class TriageTest extends TestCase
     {
         $this->seed(TriageSeeder::class);
 
-        $sessionId = $this->postJson('/api/v1/triage/sessions', ['accepted_terms' => true])
-            ->json('data.session_id');
+        $sessionId = $this->startGuidanceSession();
         $url = "/api/v1/triage/sessions/{$sessionId}/answers";
 
         $tooMany = array_map(
@@ -242,13 +238,25 @@ class TriageTest extends TestCase
     }
 
     /**
+     * Starts a session and sends its secret on every later request of the test.
+     */
+    private function startGuidanceSession(): string
+    {
+        $response = $this->postJson('/api/v1/triage/sessions', [
+            'accepted_terms' => true,
+        ])->assertCreated();
+
+        $this->withHeader(TriageController::TOKEN_HEADER, (string) $response->json('data.session_token'));
+
+        return (string) $response->json('data.session_id');
+    }
+
+    /**
      * @param  array<string, list<string>>  $answersMap
      */
     private function startSessionAndAnswerAll(array $answersMap): string
     {
-        $sessionId = $this->postJson('/api/v1/triage/sessions', [
-            'accepted_terms' => true,
-        ])->json('data.session_id');
+        $sessionId = $this->startGuidanceSession();
 
         $payload = [];
 

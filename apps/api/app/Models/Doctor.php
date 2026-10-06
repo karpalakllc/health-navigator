@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,12 +13,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Searchable;
 
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use HasFactory, Searchable, SoftDeletes;
+    use HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -37,6 +41,16 @@ class Doctor extends Model
         'is_published',
         'published_at',
     ];
+
+    /**
+     * GET /specialties embeds published-doctor counts.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::SPECIALTIES];
+    }
 
     protected function casts(): array
     {
@@ -131,6 +145,40 @@ class Doctor extends Model
     }
 
     /**
+     * Public free-text search: the name, or the name of a published specialty,
+     * so "кардиолог" / "kardio" finds cardiologists, not only doctors named so.
+     *
+     * Written as `id IN (name matches UNION members of the matching
+     * specialties)` rather than `name ILIKE … OR EXISTS (specialty …)`: an OR
+     * with a correlated subquery cannot use the full_name trigram index, so
+     * every search filtered all published doctors row by row. Each arm of the
+     * union uses its own index (trigram; doctor_specialty's specialty_id), and
+     * the specialties matching the term — a handful of rows — are resolved
+     * first so the pivot arm is a plain IN list, or absent when none match.
+     *
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    public function scopeSearchNameOrSpecialty(Builder $query, string $term): Builder
+    {
+        $specialtyIds = Specialty::query()->published()->searchName($term)->pluck('id');
+
+        $matches = ScriptInsensitiveSearch::whereColumnMatches(
+            static::query()->withoutGlobalScopes()->select('doctors.id'),
+            'doctors.full_name',
+            $term,
+        )->toBase();
+
+        if ($specialtyIds->isNotEmpty()) {
+            $matches->union(
+                DB::table('doctor_specialty')->select('doctor_id')->whereIn('specialty_id', $specialtyIds),
+            );
+        }
+
+        return $query->whereIn('doctors.id', $matches);
+    }
+
+    /**
      * @param  Builder<Doctor>  $query
      * @return Builder<Doctor>
      */
@@ -170,6 +218,11 @@ class Doctor extends Model
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,
             'specialty_names' => $this->specialties->pluck('name')->all(),
+            // Meilisearch does not transliterate: "kardio" must find "Кардиологија"
+            // as the SQL path (ScriptInsensitiveSearch) does.
+            'specialty_names_latin' => $this->specialties
+                ->map(fn (Specialty $specialty): string => MacedonianSearchVariants::cyrillicToLatin($specialty->name))
+                ->all(),
         ];
     }
 

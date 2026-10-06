@@ -43,6 +43,17 @@ class DoctorListResource extends JsonResource
                     'name' => $primary->name,
                 ]
                 : null,
+            // Every published specialty, primary first: a doctor found through a
+            // secondary one (filter or search) looked like a wrong result when the
+            // card showed only the primary.
+            'specialties' => $this->specialties
+                ->sortByDesc(fn ($specialty) => (bool) $specialty->pivot->is_primary)
+                ->map(fn ($specialty) => [
+                    'slug' => $specialty->slug,
+                    'name' => $specialty->name,
+                ])
+                ->values()
+                ->all(),
             'review_summary' => ReviewSummary::for($this->resource),
             'primary_facility' => $primaryFacility
                 ? [

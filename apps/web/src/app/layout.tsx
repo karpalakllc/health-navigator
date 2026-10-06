@@ -6,6 +6,7 @@ import { SiteMaintenanceGate } from "@/components/layout/site-maintenance-gate";
 import { SitePlaceholdersProvider } from "@/components/layout/site-placeholders-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { mk } from "@/i18n/mk";
 import { cn } from "@/lib/cn";
@@ -13,19 +14,25 @@ import "./globals.css";
 
 export const dynamic = "force-dynamic";
 
+/*
+ * The site is Macedonian, so every face needs the Cyrillic subset — with only
+ * "latin" the text fell back to a system font. Basic "cyrillic" (U+0400–045F)
+ * holds the whole alphabet, ѓ ќ ѕ љ њ џ ј included; "cyrillic-ext" covers other
+ * languages' letters and would only add a preloaded file per face.
+ */
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -78,8 +85,17 @@ export default async function RootLayout({
           <SitePlaceholdersProvider settings={settings}>
             <SearchDialogProvider>
               <PlausibleAnalytics />
+              <SkipLink />
               <SiteHeader />
-              <div className="flex-1">{children}</div>
+              {/* The one <main> of the page (PageShell is a <div>), so it also
+                  covers the hero; tabIndex lets the skip link move focus here. */}
+              <main
+                id={MAIN_CONTENT_ID}
+                tabIndex={-1}
+                className="flex-1 scroll-mt-20 outline-none"
+              >
+                {children}
+              </main>
               <SiteFooter />
             </SearchDialogProvider>
           </SitePlaceholdersProvider>

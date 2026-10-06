@@ -15,7 +15,36 @@ final class PermissionCatalog
             self::taxonomyResources(),
             self::community(),
             self::guidance(),
+            self::member(),
         );
+    }
+
+    /**
+     * Everything except the member capabilities: what the Administrator role
+     * holds. Staff accounts do not post reviews or forum content by default;
+     * an administrator who wants one to can grant the Member role explicitly.
+     *
+     * @return list<string>
+     */
+    public static function administratorDefaults(): array
+    {
+        return array_values(array_diff(self::all(), self::member()));
+    }
+
+    /**
+     * What a registered client may do on the public site. Held through the
+     * Member role, which registration assigns. These are participation rights
+     * over the holder's own content, not privileges over other accounts, so
+     * PrivilegeHierarchy leaves them out when comparing actor and target.
+     *
+     * @return list<string>
+     */
+    public static function member(): array
+    {
+        return [
+            'reviews.create',
+            'forum.post',
+        ];
     }
 
     /**

@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Filament;
 
-use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\ForumPosts\Pages\ListForumPosts;
 use App\Filament\Resources\ForumTopics\Pages\ListForumTopics;
 use App\Filament\Resources\Reviews\Pages\ListReviews;
@@ -36,7 +34,7 @@ class RejectionNoteLabelTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         SiteSetting::current();
 
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
+        $admin = User::factory()->staff()->create();
         $admin->syncRoles(['Administrator']);
         $this->actingAs($admin);
     }

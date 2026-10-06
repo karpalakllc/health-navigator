@@ -2,6 +2,7 @@
 
 import { useSitePlaceholders } from "@/components/layout/site-placeholders-provider";
 import { cn } from "@/lib/cn";
+import { doctorInitials } from "@/lib/user-initials";
 
 type DirectoryAvatarProps = {
   kind: "doctor" | "facility" | "pharmacy";
@@ -10,6 +11,8 @@ type DirectoryAvatarProps = {
   className?: string;
   imageClassName?: string;
   fallbackClassName?: string;
+  /** Pass "eager" where the avatar is above the fold (a profile hero). */
+  loading?: "lazy" | "eager";
 };
 
 export function DirectoryAvatar({
@@ -19,6 +22,7 @@ export function DirectoryAvatar({
   className,
   imageClassName,
   fallbackClassName,
+  loading = "lazy",
 }: DirectoryAvatarProps) {
   const placeholders = useSitePlaceholders();
   const placeholder =
@@ -43,6 +47,8 @@ export function DirectoryAvatar({
         <img
           src={src}
           alt=""
+          loading={loading}
+          decoding="async"
           className={cn(
             "h-full w-full object-cover object-center",
             imageClassName,
@@ -64,7 +70,7 @@ export function DirectoryAvatar({
       )}
       aria-hidden
     >
-      {name.charAt(0)}
+      {kind === "doctor" ? doctorInitials(name) : name.charAt(0)}
     </div>
   );
 }

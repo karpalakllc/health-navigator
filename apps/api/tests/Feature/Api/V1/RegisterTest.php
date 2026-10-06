@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Mail\AccountExistsMail;
 use App\Mail\WelcomeMail;
 use App\Models\Doctor;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\RoleCatalog;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -43,6 +43,7 @@ class RegisterTest extends TestCase
     {
         return array_merge([
             'name' => 'New Member',
+            'display_name' => 'Нов Ч.',
             'email' => 'new@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
@@ -94,7 +95,7 @@ class RegisterTest extends TestCase
         $user = User::query()->where('email', 'new@example.com')->sole();
 
         $this->assertNull($user->email_verified_at);
-        $this->assertSame(UserRole::Member, $user->role);
+        $this->assertSame([RoleCatalog::MEMBER], $user->getRoleNames()->all());
         Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
@@ -278,7 +279,6 @@ class RegisterTest extends TestCase
     {
         $doctor = Doctor::factory()->create(['slug' => 'dr-ana', 'is_published' => true]);
         $unverified = User::factory()->create([
-            'role' => UserRole::Member,
             'email_verified_at' => null,
         ]);
 

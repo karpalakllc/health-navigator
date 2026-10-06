@@ -13,6 +13,7 @@ import { fetchMyReviews } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
 import { t } from "@/i18n/t";
 import { pageMetadata } from "@/lib/metadata";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 export const metadata = pageMetadata(t("auth.reviewsTitle"), undefined, {
   noIndex: true,
@@ -50,12 +51,12 @@ export default async function AccountReviewsPage({
   }
 
   const params = await searchParams;
-  const page = params.page ? Number(params.page) : 1;
+  const page = parseListPage(params.page);
 
   let reviews;
 
   try {
-    reviews = await fetchMyReviews(Number.isFinite(page) ? page : 1);
+    reviews = await fetchMyReviews(page);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
       redirect("/login?redirect=/account/reviews");

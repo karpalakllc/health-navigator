@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Enums\ReviewStatus;
-use App\Enums\UserRole;
 use App\Models\ClinicalInterest;
 use App\Models\Department;
 use App\Models\Doctor;
@@ -12,6 +11,7 @@ use App\Models\Language;
 use App\Models\Procedure;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\RoleCatalog;
 use App\Support\Slug;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
@@ -66,18 +66,21 @@ class RichDemoSeeder extends Seeder
         }
 
         foreach ($data['extra_members'] as $member) {
-            User::query()->updateOrCreate(
+            $user = User::query()->updateOrCreate(
                 ['email' => $member['email']],
                 [
                     'name' => $member['name'],
                     'password' => Hash::make($member['password']),
-                    'role' => UserRole::Member,
                     // Login refuses unverified accounts, and nothing sends these
                     // demo members a link — without this a fresh seed produces
                     // accounts that exist, own reviews, and cannot sign in.
                     'email_verified_at' => now(),
                 ],
             );
+
+            if (! $user->roles()->exists()) {
+                $user->assignRole(RoleCatalog::ensure(RoleCatalog::MEMBER));
+            }
         }
 
         $this->seedShowcaseReviews();

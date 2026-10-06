@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListDoctorsRequest;
 use App\Http\Resources\Api\V1\DoctorDetailResource;
 use App\Http\Resources\Api\V1\DoctorListResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
-use App\Support\ReviewSummary;
 use Illuminate\Http\JsonResponse;
 
 class DoctorController extends Controller
@@ -18,7 +16,7 @@ class DoctorController extends Controller
     {
         $validated = $request->validated();
 
-        $query = ReviewSummary::eagerLoad(Doctor::query())
+        $query = Doctor::query()
             ->published()
             ->with([
                 'specialties' => fn ($relation) => $relation->published(),
@@ -34,32 +32,21 @@ class DoctorController extends Controller
         }
 
         if (! empty($validated['q'])) {
-            $query->searchName($validated['q']);
+            $query->searchNameOrSpecialty($validated['q']);
         }
 
         if (! empty($validated['featured'])) {
             $query->featured();
         }
 
-        $approved = ReviewStatus::Approved->value;
-
         if (isset($validated['min_reviews']) && $validated['min_reviews'] > 0) {
-            $min = (int) $validated['min_reviews'];
-            $query->whereRaw(
-                '(select count(*) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) >= ?',
-                [Doctor::class, $approved, $min],
-            );
+            $query->where('doctors.reviews_count', '>=', (int) $validated['min_reviews']);
         }
 
         if (($validated['sort'] ?? 'name') === 'rating') {
-            $query->orderByRaw(
-                '(select avg(rating) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) is null',
-                [Doctor::class, $approved],
-            );
-            $query->orderByRaw(
-                '(select avg(rating) from reviews where reviews.reviewable_id = doctors.id and reviews.reviewable_type = ? and reviews.status = ?) desc',
-                [Doctor::class, $approved],
-            );
+            // Unrated doctors hold rating_avg = 0, below any real average (1–5),
+            // so they sort last without an IS NULL key.
+            $query->orderByDesc('doctors.rating_avg');
             $query->orderBy('doctors.full_name');
         } else {
             $query->orderBy('full_name');
@@ -77,7 +64,7 @@ class DoctorController extends Controller
 
     public function show(string $slug): JsonResponse
     {
-        $doctor = ReviewSummary::eagerLoad(Doctor::query())
+        $doctor = Doctor::query()
             ->published()
             ->where('slug', $slug)
             ->with([

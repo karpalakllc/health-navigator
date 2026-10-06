@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
@@ -15,6 +14,7 @@ use App\Mail\WelcomeMail;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
+use App\Support\RoleCatalog;
 use App\Support\VerificationMailer;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
@@ -22,6 +22,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -159,6 +161,7 @@ class AuthController extends Controller
         $hashedPassword = Hash::make($password);
 
         $name = $request->string('name')->toString();
+        $displayName = $request->string('display_name')->toString();
 
         $existing = User::query()->where('email', $email)->first();
 
@@ -169,14 +172,22 @@ class AuthController extends Controller
         }
 
         try {
-            $user = User::query()->create([
-                'name' => $name,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'role' => UserRole::Member,
-                'user_kind' => UserKind::Client,
-                'email_verified_at' => null,
-            ]);
+            // The Member role is what lets the account post reviews and forum
+            // content; created together so no account exists without it.
+            $user = DB::transaction(function () use ($name, $displayName, $email, $hashedPassword): User {
+                $user = User::query()->create([
+                    'name' => $name,
+                    'display_name' => $displayName,
+                    'email' => $email,
+                    'password' => $hashedPassword,
+                    'user_kind' => UserKind::Client,
+                    'email_verified_at' => null,
+                ]);
+
+                $user->assignRole(RoleCatalog::ensure(RoleCatalog::MEMBER));
+
+                return $user;
+            });
         } catch (UniqueConstraintViolationException) {
             // Lost a race with a concurrent signup for the same address. Treat it
             // exactly like the "already registered" branch above.
@@ -295,7 +306,13 @@ class AuthController extends Controller
      */
     private function notifyExistingAccount(User $user): void
     {
-        if (! $user->hasVerifiedEmail() && $user->isClient() && ! $user->roles()->exists()) {
+        // Every registration holds the Member role, so only a role beyond it
+        // (one an administrator granted) takes the account out of "pending".
+        if (
+            ! $user->hasVerifiedEmail()
+            && $user->isClient()
+            && ! $user->roles()->where('name', '!=', RoleCatalog::MEMBER)->exists()
+        ) {
             if ($user->registration_contested_at === null) {
                 $user->forceFill(['registration_contested_at' => now()])->save();
             }
@@ -447,6 +464,18 @@ class AuthController extends Controller
             },
         );
 
+        if ($status === Password::INVALID_USER || $status === Password::INVALID_TOKEN) {
+            $this->equaliseRejectedResetTiming($request, $status);
+
+            // One answer for "no such account" and "bad or expired link". The
+            // broker's own messages differ ("we sent you a link" vs "the link is
+            // invalid"), so any made-up token used to reveal whether an address
+            // has an account on a health platform.
+            throw ValidationException::withMessages([
+                'email' => [__(Password::INVALID_TOKEN)],
+            ]);
+        }
+
         if ($status !== Password::PASSWORD_RESET) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
@@ -454,6 +483,31 @@ class AuthController extends Controller
         }
 
         return ApiResponse::success(['message' => __($status)]);
+    }
+
+    /**
+     * Pay for exactly one bcrypt check on every rejected reset.
+     *
+     * The broker only hashes when the address belongs to an account that holds an
+     * unexpired token row; an unknown address returns straight after the user
+     * lookup. Both paths here also run the same token-row lookup, so the
+     * rejection costs the same whichever way it went.
+     */
+    private function equaliseRejectedResetTiming(ResetPasswordRequest $request, string $status): void
+    {
+        $brokerConfig = config('auth.passwords.'.config('auth.defaults.passwords'));
+
+        $record = DB::table($brokerConfig['table'])
+            ->where('email', $request->string('email')->toString())
+            ->first();
+
+        $brokerHashed = $status === Password::INVALID_TOKEN
+            && $record !== null
+            && ! Carbon::parse($record->created_at)->addMinutes($brokerConfig['expire'])->isPast();
+
+        if (! $brokerHashed) {
+            Hash::check($request->string('token')->toString(), self::TIMING_EQUALISER_HASH);
+        }
     }
 
     public function logout(Request $request): JsonResponse

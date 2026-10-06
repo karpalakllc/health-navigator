@@ -125,6 +125,7 @@ class LoginThrottleTest extends TestCase
 
         $payload = [
             'name' => 'Someone',
+            'display_name' => 'Нов Ч.',
             'email' => 'target@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
@@ -146,6 +147,7 @@ class LoginThrottleTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Someone',
+            'display_name' => 'Нов Ч.',
             'email' => 'mixed@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
@@ -214,6 +216,7 @@ class LoginThrottleTest extends TestCase
         foreach (range(1, 12) as $_) {
             $this->postJson('/api/v1/auth/register', [
                 'name' => 'Someone',
+                'display_name' => 'Нов Ч.',
                 'email' => 'taken@example.com',
                 'password' => 'sufficiently1long',
                 'password_confirmation' => 'sufficiently1long',
@@ -233,6 +236,7 @@ class LoginThrottleTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Someone',
+            'display_name' => 'Нов Ч.',
             'email' => 'fresh@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',

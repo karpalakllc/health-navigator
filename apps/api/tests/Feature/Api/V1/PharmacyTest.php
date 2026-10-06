@@ -72,6 +72,33 @@ class PharmacyTest extends TestCase
             ->assertJsonPath('data.0.price', 120);
     }
 
+    /**
+     * The shelf search passed the BelongsToMany relation itself to
+     * ScriptInsensitiveSearch, which takes an Eloquent Builder — every
+     * ?q= on this endpoint was a 500.
+     */
+    public function test_shelf_products_can_be_searched_across_scripts(): void
+    {
+        $pharmacy = Facility::factory()->create([
+            'slug' => 'eurofarm',
+            'type' => FacilityType::Pharmacy,
+        ]);
+
+        foreach (['Парацетамол 500 mg' => 'paracetamol', 'Ибупрофен 200 mg' => 'ibuprofen'] as $name => $slug) {
+            $pharmacy->products()->attach(Product::factory()->create(['slug' => $slug, 'name' => $name])->id, [
+                'price' => 120,
+                'currency' => 'MKD',
+                'is_available' => true,
+                'price_updated_at' => now(),
+            ]);
+        }
+
+        $this->getJson('/api/v1/pharmacies/eurofarm/products?q=paracetamol')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'paracetamol');
+    }
+
     public function test_pharmacy_detail_includes_coordinates_when_set(): void
     {
         Facility::factory()->create([

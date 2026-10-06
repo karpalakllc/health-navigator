@@ -1,6 +1,7 @@
 import {
   apiGet,
   apiGetPaginated,
+  TAXONOMY_CACHE,
   type ApiCacheOptions,
 } from "@/lib/api/client";
 import {
@@ -103,7 +104,10 @@ export type MyForumPost = {
 export async function fetchForumCategories(
   options?: ApiCacheOptions,
 ): Promise<ForumCategory[]> {
-  return apiGet<ForumCategory[]>("/forum/categories", options);
+  return apiGet<ForumCategory[]>(
+    "/forum/categories",
+    options ?? TAXONOMY_CACHE,
+  );
 }
 
 export async function fetchForumTopicSearch(

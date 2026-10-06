@@ -22,7 +22,7 @@ class ListPharmaciesRequest extends FormRequest
         return [
             'city' => ['nullable', 'string', 'max:255'],
             'q' => ['nullable', 'string', 'max:255'],
-            'page' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }

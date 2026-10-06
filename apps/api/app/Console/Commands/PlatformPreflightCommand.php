@@ -5,9 +5,12 @@ namespace App\Console\Commands;
 use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Support\DeploymentEnvironment;
+use App\Support\TrigramSearchIndexes;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Facades\Filament;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * Refuses a staging/production deploy whose configuration is known-unsafe.
@@ -83,6 +86,7 @@ class PlatformPreflightCommand extends Command
         $this->checkSeeding();
         $this->checkMedia();
         $this->checkSearch();
+        $this->checkDatabaseExtensions();
         $this->checkMonitoring();
     }
 
@@ -195,6 +199,10 @@ class PlatformPreflightCommand extends Command
             $this->addError('session.same_site', 'SESSION_SAME_SITE is "'.($sameSite ?? 'null').'". Use "lax" or "strict" so the admin session cookie is not sent on cross-site requests.');
         }
 
+        if (config('session.encrypt') !== true) {
+            $this->addError('session.encrypt', 'SESSION_ENCRYPT is not true, so the admin session payload (including the pending two-factor state) sits in plaintext in the session store.');
+        }
+
         if (config('session.http_only') !== true) {
             $this->addError('session.http_only', 'SESSION_HTTP_ONLY is not true, so page scripts can read the admin session cookie.');
         }
@@ -252,6 +260,22 @@ class PlatformPreflightCommand extends Command
 
         if (blank($email) || str_ends_with(strtolower($email), '.test')) {
             $this->addError('zdravje.admin.email', 'PLATFORM_ADMIN_EMAIL is unset or the .test development default. Use a real mailbox you control — password resets go there.');
+        }
+
+        $password = config('zdravje.admin.password');
+
+        // Blank is fine: the variable is only read when bootstrap creates the
+        // admin, and can be dropped afterwards. A value left in place, though, is
+        // the most privileged credential on the platform.
+        if (filled($password)) {
+            $weak = $password === 'password' || Validator::make(
+                ['password' => $password],
+                ['password' => ['string', Password::defaults()]],
+            )->fails();
+
+            if ($weak) {
+                $this->addError('zdravje.admin.password', 'PLATFORM_ADMIN_PASSWORD is the .env.example default or fails the platform password rule. Use a long random value, or unset it once the admin exists.');
+            }
         }
 
         if (config('zdravje.seed.local_demo') === true) {
@@ -330,11 +354,60 @@ class PlatformPreflightCommand extends Command
         }
     }
 
+    /**
+     * The one check that reads the database rather than config(): whether
+     * pg_trgm exists cannot be known from configuration. A warning, not an
+     * error — search still works without it, only unindexed
+     * (docs/performance.md).
+     */
+    private function checkDatabaseExtensions(): void
+    {
+        $connection = (string) config('database.default');
+
+        if (config("database.connections.{$connection}.driver") !== 'pgsql') {
+            return;
+        }
+
+        if (! TrigramSearchIndexes::extensionInstalled()) {
+            $this->addWarning('database.pg_trgm', 'The pg_trgm extension is not installed (or the database is unreachable), so directory and forum searches (ILIKE \'%term%\') fall back to sequential scans. Allow pg_trgm on the managed database, then re-run `php artisan migrate` or create the indexes from 2026_10_10_120001_add_trigram_search_indexes.');
+        }
+    }
+
     private function checkMonitoring(): void
     {
+        if ($this->logsAtDebugLevel()) {
+            $this->addWarning('logging.level', 'LOG_LEVEL is "debug": request details and query noise end up in the deployed logs. Use "info" or higher.');
+        }
+
         if (blank(config('sentry.dsn'))) {
             $this->addWarning('sentry.dsn', 'SENTRY_LARAVEL_DSN is not set; production errors will go unnoticed.');
         }
+    }
+
+    /** Whether any channel the default logger writes to accepts debug records. */
+    private function logsAtDebugLevel(): bool
+    {
+        $pending = [(string) config('logging.default')];
+        $seen = [];
+
+        while ($pending !== []) {
+            $channel = array_pop($pending);
+
+            if (isset($seen[$channel])) {
+                continue;
+            }
+
+            $seen[$channel] = true;
+            $config = (array) config("logging.channels.{$channel}");
+
+            if (($config['driver'] ?? null) === 'stack') {
+                array_push($pending, ...array_map('trim', (array) ($config['channels'] ?? [])));
+            } elseif (strtolower((string) ($config['level'] ?? '')) === 'debug') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Why a URL is unfit to be the public origin, or null when it is fine. */
