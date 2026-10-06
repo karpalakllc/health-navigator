@@ -13,9 +13,11 @@ import { isValidReviewRating } from "@/lib/rating";
 type ReviewFormProps = {
   kind: "doctor" | "facility" | "pharmacy";
   slug: string;
+  /** Called once the API accepted the review, before the page refreshes. */
+  onSubmitted?: () => void;
 };
 
-export function ReviewForm({ kind, slug }: ReviewFormProps) {
+export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
   const router = useRouter();
   // No default: an untouched form must not submit a five-star review.
   const [rating, setRating] = useState<number | null>(null);
@@ -65,6 +67,7 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
       setSuccess(true);
       setBody("");
       setRating(null);
+      onSubmitted?.();
       router.refresh();
     } catch {
       setError(t("reviews.submitErrorRetry"));
@@ -78,6 +81,7 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
       as="form"
       id="review-form"
       aria-labelledby={titleId}
+      noValidate
       onSubmit={handleSubmit}
       className="flex flex-col gap-5"
     >
