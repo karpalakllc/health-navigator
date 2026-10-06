@@ -93,6 +93,12 @@ export function apiEnv(): Record<string, string> {
     // migrate:fresh empties: each run starts with every limit's full budget.
     CACHE_STORE: "database",
     SESSION_DRIVER: "database",
+    // Cookie settings a production-like .env would carry: a Domain attribute
+    // or the Secure flag would keep the browser from sending the session back
+    // to http://127.0.0.1. "null" is Laravel's env() spelling of unset.
+    SESSION_DOMAIN: "null",
+    SESSION_SECURE_COOKIE: "false",
+    SESSION_ENCRYPT: "false",
     // Production queues on redis. Sync here only so a verification or reset
     // mail is in the log by the time the request that caused it returns.
     QUEUE_CONNECTION: "sync",
@@ -100,6 +106,9 @@ export function apiEnv(): Record<string, string> {
     MAIL_LOG_CHANNEL: "e2e-mail",
     LOG_CHANNEL: "single",
     LOG_STACK: "single",
+    // Warnings and errors only: the run shares storage/logs/laravel.log with
+    // the dev stack. The mail outbox channel has its own fixed level.
+    LOG_LEVEL: "warning",
     BROADCAST_CONNECTION: "log",
     FILESYSTEM_DISK: "local",
     MEDIA_DISK: "public",
@@ -127,4 +136,29 @@ export function webEnv(): Record<string, string> {
     NEXT_PUBLIC_SENTRY_DSN: "",
     NEXT_PUBLIC_PLAUSIBLE_DOMAIN: "",
   };
+}
+
+/** Hosts the suite may reset a database on. */
+const LOCAL_DB_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
+
+/**
+ * Global setup runs `migrate:fresh` — it drops every table. Refuse unless the
+ * target is plainly a throwaway E2E database on this machine, so a mistyped
+ * E2E_DB_DATABASE or E2E_DB_HOST cannot wipe a dev or shared database.
+ * scripts/e2e.sh applies the same rule before anything starts.
+ */
+export function assertDisposableDatabase(
+  env: Record<string, string> = apiEnv(),
+): void {
+  const { DB_DATABASE: name, DB_HOST: host } = env;
+  if (!/_e2e$/.test(name)) {
+    throw new Error(
+      `E2E: refusing to reset database "${name}" — its name must end in _e2e.`,
+    );
+  }
+  if (!LOCAL_DB_HOSTS.has(host)) {
+    throw new Error(
+      `E2E: refusing to reset a database on "${host}" — only 127.0.0.1, localhost or ::1.`,
+    );
+  }
 }

@@ -1,7 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { API_DIR, MAIL_LOG, apiEnv } from "./support/env";
+import {
+  API_DIR,
+  MAIL_LOG,
+  apiEnv,
+  assertDisposableDatabase,
+} from "./support/env";
 
 /**
  * Runs once per `playwright test`, after both servers are up: rebuild the
@@ -13,6 +18,8 @@ import { API_DIR, MAIL_LOG, apiEnv } from "./support/env";
  * budgets.
  */
 export default function globalSetup(): void {
+  assertDisposableDatabase();
+
   execFileSync(
     "php",
     ["artisan", "migrate:fresh", "--seed", "--seeder=E2ESeeder", "--force"],

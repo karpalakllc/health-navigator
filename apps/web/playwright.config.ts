@@ -20,6 +20,14 @@ const CI = Boolean(process.env.CI);
 /** Reuse an existing .next build (E2E_SKIP_BUILD=1) when iterating on specs. */
 const buildStep = process.env.E2E_SKIP_BUILD === "1" ? "" : "npm run build && ";
 
+/**
+ * Attach to servers already listening on the E2E ports only when asked
+ * (E2E_REUSE=1), never in CI: an unrelated process on :8010 or :3010 — another
+ * checkout, a stale run with different settings — would otherwise be tested
+ * silently. Without it Playwright refuses to start when a port is taken.
+ */
+const reuseExistingServer = !CI && process.env.E2E_REUSE === "1";
+
 /** <repo>/.e2e-output: results/ (traces, screenshots) and report/ (HTML). */
 const output = prepareOutputDir();
 
@@ -63,7 +71,7 @@ export default defineConfig({
       // (the health endpoint, any page) would fail on a first run.
       url: `${API_URL}/robots.txt`,
       env: apiEnv(),
-      reuseExistingServer: !CI,
+      reuseExistingServer,
       timeout: 60_000,
       stdout: "ignore",
       stderr: "pipe",
@@ -73,7 +81,7 @@ export default defineConfig({
       command: `${buildStep}npm run start -- --hostname 127.0.0.1 --port ${WEB_PORT}`,
       url: `${WEB_URL}/next.svg`,
       env: webEnv(),
-      reuseExistingServer: !CI,
+      reuseExistingServer,
       // Includes `next build` unless E2E_SKIP_BUILD=1.
       timeout: 300_000,
       stdout: "ignore",
