@@ -130,14 +130,14 @@ nobody can hold an account locked by merely sending traffic.
 | Method | Path | Guards |
 |--------|------|--------|
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
-| `GET` | `/departments` | — |
+| `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | — |
 | `GET` | `/doctors/{slug}` | — |
 | `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/facilities` | — |
 | `GET` | `/facilities/{slug}` | — |
 | `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
-| `GET` | `/forum/categories` | `module:forum` |
+| `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
 | `GET` | `/forum/topics` | `module:forum` |
@@ -157,8 +157,8 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/products/{slug}` | `module:products` |
 | `GET` | `/search` | — |
 | `GET` | `/settings/public` | — |
-| `GET` | `/specialties` | — |
-| `GET` | `/specialties/{slug}` | — |
+| `GET` | `/specialties` | `cache.public` |
+| `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |

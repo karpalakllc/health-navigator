@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\TaxonomyCache;
 use Database\Factories\ForumCategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ForumCategory extends Model
 {
     /** @use HasFactory<ForumCategoryFactory> */
-    use HasFactory;
+    use HasFactory, InvalidatesTaxonomyCache;
 
     protected $fillable = [
         'slug',
@@ -38,6 +40,14 @@ class ForumCategory extends Model
                 $category->topics()->unsearchable();
             }
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::FORUM_CATEGORIES];
     }
 
     protected function casts(): array

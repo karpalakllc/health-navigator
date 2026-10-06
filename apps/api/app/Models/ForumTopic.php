@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\ForumContentStatus;
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Models\Concerns\ModeratesForumContent;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\ForumTopicFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +18,7 @@ use Laravel\Scout\Searchable;
 class ForumTopic extends Model
 {
     /** @use HasFactory<ForumTopicFactory> */
-    use HasFactory, ModeratesForumContent, Searchable;
+    use HasFactory, InvalidatesTaxonomyCache, ModeratesForumContent, Searchable;
 
     protected $fillable = [
         'forum_category_id',
@@ -34,6 +36,16 @@ class ForumTopic extends Model
         'moderated_at',
         'rejection_note',
     ];
+
+    /**
+     * GET /forum/categories embeds approved-topic counts.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::FORUM_CATEGORIES];
+    }
 
     protected function casts(): array
     {
