@@ -499,6 +499,53 @@ class DoctorDashboardTest extends TestCase
         $this->assertSame(0, Review::query()->count());
     }
 
+    public function test_the_review_list_is_in_the_public_lists_order(): void
+    {
+        [$doctor, , $token] = $this->linkedDoctor();
+        $newest = $this->review($doctor, ['published_at' => now()->subDay()]);
+        $oldest = $this->review($doctor, ['published_at' => now()->subDays(10)]);
+        // Taken down before removals kept the publication date: dated by
+        // removed_at, not first (PostgreSQL sorts NULL first when descending).
+        $backfilled = $this->review($doctor, ['published_at' => now()->subDays(5)]);
+        $backfilled->forceFill([
+            'status' => 'rejected',
+            'published_at' => null,
+            'removed_at' => now()->subDays(5),
+            'removal_category' => RemovalCategory::Spam,
+        ])->save();
+
+        $expected = [$newest->id, $backfilled->id, $oldest->id];
+
+        $this->as($token)->getJson('/api/v1/me/doctor/reviews')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', $expected);
+        $this->getJson('/api/v1/doctors/ana-petrovska/reviews')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', $expected);
+    }
+
+    public function test_a_review_whose_doctor_reply_was_refused_counts_as_unanswered(): void
+    {
+        [$doctor, $account, $token] = $this->linkedDoctor();
+        $refused = $this->review($doctor);
+        $refused->replyAsDoctor($account, 'Нешто што не помина.', true);
+        $refused->rejectDoctorReply($this->staff, 'Открива пациент.');
+
+        $this->as($token)->getJson('/api/v1/me/doctor')->assertJsonPath('data.stats.unanswered_reviews', 1);
+        $this->as($token)->getJson('/api/v1/me/doctor/reviews?filter=unanswered')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $refused->id);
+    }
+
+    public function test_an_id_too_long_for_an_integer_is_not_found(): void
+    {
+        [, , $token] = $this->linkedDoctor();
+
+        $this->as($token)->putJson('/api/v1/me/doctor/reviews/12345678901234567890/reply', ['body' => 'Здраво.'])->assertNotFound();
+        $this->as($token)->deleteJson('/api/v1/me/doctor/reviews/12345678901234567890/reply')->assertNotFound();
+        $this->as($token)->deleteJson('/api/v1/me/doctor/change-requests/12345678901234567890')->assertNotFound();
+    }
+
     public function test_reply_counts_and_the_unanswered_filter(): void
     {
         [$doctor, , $token] = $this->linkedDoctor();

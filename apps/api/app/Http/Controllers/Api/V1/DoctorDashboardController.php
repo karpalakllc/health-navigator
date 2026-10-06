@@ -200,11 +200,20 @@ class DoctorDashboardController extends Controller
         // As the public list shows it: a review removed after publication
         // stays as a placeholder (W5-I), without its text, author or reply,
         // and cannot be answered. „Unanswered“ lists only published ones.
+        // A refused doctor reply leaves the review unanswered: nothing shows.
         $query = ($validated['filter'] ?? 'all') === 'unanswered'
-            ? $doctor->reviews()->approved()->whereNull('response_body')
+            ? $doctor->reviews()->approved()->where(fn ($q) => $q
+                ->whereNull('response_body')
+                ->orWhere('response_status', ReviewResponseStatus::Rejected->value))
             : $doctor->reviews()->inPublicList();
 
-        $paginator = $query->with('user')->latest('published_at')->orderByDesc('id')->paginate(10)->withQueryString();
+        // The public list's order (ReviewController): a placeholder backfilled
+        // without a publication date sorts by removed_at, not first.
+        $paginator = $query->with('user')
+            ->orderByRaw('coalesce(published_at, removed_at) desc')
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
 
         return response()->json([
             'data' => $paginator->getCollection()
@@ -349,7 +358,9 @@ class DoctorDashboardController extends Controller
             ->approved()
             ->toBase()
             ->selectRaw('count(*) as total')
-            ->selectRaw('sum(case when response_body is null then 1 else 0 end) as unanswered')
+            ->selectRaw('sum(case when response_body is null or response_status = ? then 1 else 0 end) as unanswered', [
+                ReviewResponseStatus::Rejected->value,
+            ])
             ->selectRaw('sum(case when response_source = ? and response_status = ? then 1 else 0 end) as pending_replies', [
                 ReviewResponseSource::Doctor->value,
                 ReviewResponseStatus::Pending->value,
