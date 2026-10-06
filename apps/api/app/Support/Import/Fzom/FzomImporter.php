@@ -95,19 +95,16 @@ final class FzomImporter
                     continue;
                 }
 
-                $facility = &$facilities[$facilityKey];
-                $facility['code'] ??= $row->facilityCode;
-                $facility['tax_number'] ??= $row->taxNumber;
-                $facility['names'][$row->facilityName] = ($facility['names'][$row->facilityName] ?? 0) + 1;
-                $facility['towns'][(string) $row->town] = ($facility['towns'][(string) $row->town] ?? 0) + 1;
-                $facility['addresses'][(string) $row->address] = ($facility['addresses'][(string) $row->address] ?? 0) + 1;
-                $facility['contract_types'][$row->contractTypeId] = $row->contractType;
-                unset($facility);
+                $facilities[$facilityKey]['code'] ??= $row->facilityCode;
+                $facilities[$facilityKey]['tax_number'] ??= $row->taxNumber;
+                $facilities[$facilityKey]['names'][$row->facilityName] = ($facilities[$facilityKey]['names'][$row->facilityName] ?? 0) + 1;
+                $facilities[$facilityKey]['towns'][(string) $row->town] = ($facilities[$facilityKey]['towns'][(string) $row->town] ?? 0) + 1;
+                $facilities[$facilityKey]['addresses'][(string) $row->address] = ($facilities[$facilityKey]['addresses'][(string) $row->address] ?? 0) + 1;
+                $facilities[$facilityKey]['contract_types'][$row->contractTypeId] = $row->contractType;
 
-                $doctor = &$doctors[$row->facsimile];
-                $doctor['first'] ??= $row->firstName;
-                $doctor['last'] ??= $row->lastName;
-                $doctor['contracts'][] = [
+                $doctors[$row->facsimile]['first'] ??= $row->firstName;
+                $doctors[$row->facsimile]['last'] ??= $row->lastName;
+                $doctors[$row->facsimile]['contracts'][] = [
                     'facility' => $facilityKey,
                     'work_unit' => $row->workUnit,
                     'contract_type_id' => $row->contractTypeId,
@@ -118,7 +115,6 @@ final class FzomImporter
                     'valid_from' => $row->validFrom,
                     'valid_to' => $row->validTo,
                 ];
-                unset($doctor);
             }
         }
 
@@ -514,7 +510,7 @@ final class FzomImporter
 
             $model::query()->whereIn('id', $chunk)->where('import_missing_runs', '>=', $threshold)->get()
                 ->each(function (Doctor|Facility $subject) use ($context, $subjectType): void {
-                    $label = $subject instanceof Doctor ? (string) $subject->full_name : (string) $subject->name;
+                    $label = (string) ($subject->getAttribute('full_name') ?? $subject->getAttribute('name'));
                     $context->record($subjectType, 'missing', $subject, $label, note: 'Absent from '.$subject->import_missing_runs.' consecutive runs.');
                     $context->review(ImportReviewKind::Missing, $subjectType.':'.$subject->getKey(), $label, [
                         'runs' => (int) $subject->import_missing_runs,

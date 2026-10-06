@@ -7,7 +7,6 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\SourceRecord;
 use App\Support\Slug;
-use App\Support\UniqueSlug;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -332,6 +331,12 @@ final class DirectoryWriter
             $base = $withCity;
         }
 
-        return UniqueSlug::forQuery($query, $base);
+        $suffix = 2;
+
+        while ($query->clone()->where('slug', $base.'-'.$suffix)->exists()) {
+            $suffix++;
+        }
+
+        return $base.'-'.$suffix;
     }
 }

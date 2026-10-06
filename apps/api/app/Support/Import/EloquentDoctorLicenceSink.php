@@ -96,7 +96,7 @@ final class EloquentDoctorLicenceSink implements DoctorLicenceSink
     {
         $this->raise($licence, $reason->value, sprintf('Licence %s (%s): %s', $licence->licenceNumber, $licence->fullName, str_replace('_', ' ', $reason->value)), [
             'reason' => $reason->value,
-            'candidate_doctor_ids' => array_values(array_map('intval', $candidateDoctorIds)),
+            'candidate_doctor_ids' => array_map('intval', $candidateDoctorIds),
         ], ImportReviewKind::Unmatched);
     }
 

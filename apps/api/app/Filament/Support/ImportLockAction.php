@@ -79,7 +79,7 @@ final class ImportLockAction
                 $row->source !== null ? 'from '.$row->source : null,
                 $row->observed_at?->format('d.m.Y'),
                 $row->source_url,
-                $row->locked ? 'locked by '.($row->lockedBy?->name ?? 'staff') : null,
+                $row->locked ? 'locked by '.($row->lockedBy->name ?? 'staff') : null,
             ]);
             $descriptions[$row->field] = implode(' · ', $parts);
         }
