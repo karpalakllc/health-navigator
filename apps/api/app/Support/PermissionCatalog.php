@@ -19,6 +19,7 @@ final class PermissionCatalog
             self::usernames(),
             self::doctorAccountsAndAudit(),
             self::imports(),
+            self::licences(),
         );
     }
 
@@ -190,6 +191,20 @@ final class PermissionCatalog
     {
         return [
             'usernames.manage',
+        ];
+    }
+
+    /**
+     * The Лекарска комора licence staging list and the licence specialty
+     * mapping (Filament, W6-B). Administrator only by default; added after
+     * launch, so a migration grants it to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function licences(): array
+    {
+        return [
+            'licences.manage',
         ];
     }
 
