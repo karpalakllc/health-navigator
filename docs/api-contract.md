@@ -119,8 +119,10 @@ mechanism for the Next.js web client and future mobile clients.
 - `GET /me/export` downloads the caller's own data as one JSON attachment
   (`format: zdravje360.account-export`, `version: 1`): `profile`, `reviews`,
   `forum_topics`, `forum_posts`, `consents` (forum community-rules acceptance
-  per topic, with time), `devices` and `activity` (the caller's own analytics
-  events). Nothing about other members: replies name another member's topic
+  per topic, with time), `content_reports` (the caller's own reports: what,
+  reason, note, status and times — never who resolved them), `helpful_votes`
+  (the reviews the caller marked „Корисно“), `devices` and `activity` (the
+  caller's own analytics events). Nothing about other members: replies name another member's topic
   only while it is approved. `Cache-Control: no-store`. 5 per hour
   (`429`, code `account.export_throttled`).
 - `DELETE /me` with `{ "password": "…" }` deletes the account by
