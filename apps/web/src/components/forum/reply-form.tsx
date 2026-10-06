@@ -1,20 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { t } from "@/i18n/t";
+import { useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/field";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
+import { Icon } from "@/components/ui/icons";
+import { Monogram } from "@/components/ui/user-avatar";
+import { formatCharCounter } from "@/components/forum/char-counter";
+import { t } from "@/i18n/t";
+
+/** API limit (StoreForumPostRequest: max 10000). */
+export const REPLY_MAX_LENGTH = 10000;
+
+/** Anchor the thread's „Одговори“ actions jump to. */
+export const REPLY_FORM_ID = "forum-reply";
 
 export function ReplyForm({
   categorySlug,
   topicSlug,
+  viewer,
 }: {
   categorySlug: string;
   topicSlug: string;
+  /** The signed-in member's public name („Марија К.“) for „Одговарате како“. */
+  viewer?: { name: string; initials?: string } | null;
 }) {
   const router = useRouter();
+  const previewId = useId();
   const [body, setBody] = useState("");
+  const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Which confirmation to show: the API publishes at once for moderators and
   // when post moderation is off, and holds the reply for review otherwise.
@@ -47,6 +63,7 @@ export function ReplyForm({
 
       setSuccess(payload.data?.status === "approved" ? "approved" : "pending");
       setBody("");
+      setPreview(false);
       router.refresh();
     } catch {
       setError(t("forum.replyErrorRetry"));
@@ -56,41 +73,72 @@ export function ReplyForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4"
+    <Card
+      as="section"
+      id={REPLY_FORM_ID}
+      padding="none"
+      aria-labelledby="forum-reply-heading"
+      className="flex flex-col gap-4 p-5 lg:p-8"
     >
-      <p className="text-sm font-semibold text-foreground">
-        {t("forum.reply")}
-      </p>
-      <label className="grid gap-1.5 text-sm">
-        <span className="font-medium text-foreground">
-          {t("common.message")}
-        </span>
-        <textarea
+      {viewer ? (
+        <p className="flex items-center gap-2 type-meta text-ink-2">
+          <Monogram name={viewer.name} initials={viewer.initials} size={32} />
+          <span>
+            {t("forum.replyingAs")}{" "}
+            <strong className="font-semibold text-ink">{viewer.name}</strong>
+          </span>
+        </p>
+      ) : null}
+      <h2 id="forum-reply-heading" className="type-h3 text-ink">
+        {t("forum.yourReply")}
+      </h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Textarea
+          label={t("common.message")}
+          hint={t("forum.replyHint")}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           required
           minLength={10}
-          rows={4}
-          className={filterInputClassName}
+          maxLength={REPLY_MAX_LENGTH}
+          counter={formatCharCounter(body.length, REPLY_MAX_LENGTH)}
         />
-      </label>
-      {error ? <FormError>{error}</FormError> : null}
-      <FormSuccess>
-        {success === "approved"
-          ? t("forum.replyPublished")
-          : success === "pending"
-            ? t("forum.replySuccess")
-            : null}
-      </FormSuccess>
-      <button
-        type="submit"
-        disabled={pending}
-        className="min-h-[44px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
-      >
-        {pending ? t("common.submitting") : t("forum.replySubmit")}
-      </button>
-    </form>
+        {preview ? (
+          <div id={previewId} className="rounded-card bg-sand p-4 lg:p-5">
+            <p className="type-label text-ink">{t("forum.showPreview")}</p>
+            <p className="mt-2 whitespace-pre-wrap break-words type-reading text-ink">
+              {body || t("forum.previewBodyPlaceholder")}
+            </p>
+          </div>
+        ) : null}
+        {error ? <FormError>{error}</FormError> : null}
+        <FormSuccess>
+          {success === "approved"
+            ? t("forum.replyPublished")
+            : success === "pending"
+              ? t("forum.replySuccess")
+              : null}
+        </FormSuccess>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            variant="secondary"
+            size="lg"
+            leadingIcon={preview ? "eye-off" : "eye"}
+            aria-expanded={preview}
+            aria-controls={preview ? previewId : undefined}
+            onClick={() => setPreview((current) => !current)}
+          >
+            {preview ? t("forum.hidePreview") : t("forum.showPreview")}
+          </Button>
+          <Button type="submit" size="lg" leadingIcon="send" loading={pending}>
+            {pending ? t("common.submitting") : t("forum.replySubmit")}
+          </Button>
+        </div>
+        <p className="flex items-start gap-2 type-meta text-ink-2">
+          <Icon name="clock" size={20} className="mt-0.5" />
+          <span>{t("forum.replyModerationNote")}</span>
+        </p>
+      </form>
+    </Card>
   );
 }

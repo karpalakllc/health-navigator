@@ -52,7 +52,7 @@ export function formatForumLastActivity(
   const diffHours = Math.round(diffMinutes / 60);
 
   if (diffHours < 24) {
-    return tFormat("forum.activityHoursAgo", { count: String(diffHours) });
+    return tCount("forum.activityHoursAgo", diffHours);
   }
 
   const diffDays = Math.round(diffHours / 24);
