@@ -27,7 +27,7 @@ class FacilityDirectorySeeder extends Seeder
                 'type' => FacilityType::Clinic,
                 'city' => 'Скопје',
                 'address' => 'ул. Пример 1',
-                'doctor_slugs' => ['ana-petrovska', 'marko-stojanov'],
+                'doctor_slugs' => ['ana-petrovska', 'marko-stojanov', 'katerina-gjorgjievska'],
                 'primary' => 'ana-petrovska',
             ],
             [
@@ -36,7 +36,7 @@ class FacilityDirectorySeeder extends Seeder
                 'type' => FacilityType::Hospital,
                 'city' => 'Битола',
                 'address' => 'ул. Пример 2',
-                'doctor_slugs' => ['elena-dimitrova', 'petar-georgiev'],
+                'doctor_slugs' => ['elena-dimitrova', 'petar-georgiev', 'jovana-velkovska'],
                 'primary' => 'elena-dimitrova',
             ],
             [
@@ -45,7 +45,7 @@ class FacilityDirectorySeeder extends Seeder
                 'type' => FacilityType::Laboratory,
                 'city' => 'Охрид',
                 'address' => 'ул. Пример 3',
-                'doctor_slugs' => ['igor-nikolov', 'dimitar-kostov'],
+                'doctor_slugs' => ['igor-nikolov', 'dimitar-kostov', 'ljupcho-angelovski'],
                 'primary' => 'igor-nikolov',
             ],
             [
@@ -54,7 +54,7 @@ class FacilityDirectorySeeder extends Seeder
                 'type' => FacilityType::Clinic,
                 'city' => 'Прилеп',
                 'address' => 'ул. Пример 4',
-                'doctor_slugs' => ['sofija-risteska'],
+                'doctor_slugs' => ['sofija-risteska', 'nikola-cvetkov'],
                 'primary' => 'sofija-risteska',
             ],
             [

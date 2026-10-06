@@ -14,9 +14,11 @@ class DatabaseSeeder extends Seeder
             PlatformUserSeeder::class,
             DoctorDirectorySeeder::class,
             FacilityDirectorySeeder::class,
+            // Before RichDemoSeeder, which enriches (and adds covers to) the
+            // pharmacies too and skips rows that do not exist yet.
+            PharmacyCatalogSeeder::class,
             RichDemoSeeder::class,
             ReviewSeeder::class,
-            PharmacyCatalogSeeder::class,
             ForumSeeder::class,
             TriageSeeder::class,
         ]);
