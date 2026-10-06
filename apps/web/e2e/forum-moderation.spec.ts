@@ -86,8 +86,9 @@ test.describe("forum moderation", () => {
     const row = moderator.locator("table tbody tr").filter({ hasText: title });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: /^approve$/i }).click();
+    // Filament renders a confirmation modal as an alertdialog.
     await moderator
-      .getByRole("dialog")
+      .getByRole("alertdialog", { name: /^approve$/i })
       .getByRole("button", { name: /^confirm$/i })
       .click();
     await expect(row).toHaveCount(0);

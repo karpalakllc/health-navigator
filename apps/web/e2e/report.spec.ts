@@ -70,7 +70,8 @@ test.describe("reports", () => {
     const row = admin.locator("table tbody tr").filter({ hasText: body });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: /hide content/i }).click();
-    const modal = admin.getByRole("dialog");
+    // Filament renders a confirmation modal as an alertdialog.
+    const modal = admin.getByRole("alertdialog", { name: /hide content/i });
     await modal
       .getByLabel(/note to the author/i)
       .fill("Рецензијата содржи навредлив тон.");
