@@ -15,8 +15,10 @@ export function PageShell({
   const gapClass = gap === "loose" ? "gap-10" : "gap-8";
 
   return (
-    <main className={`${pageMainClass} ${gapClass} ${className}`.trim()}>
+    // A <div>: the layout's <main id="main"> already wraps every page, and a
+    // page may hold only one main landmark.
+    <div className={`${pageMainClass} ${gapClass} ${className}`.trim()}>
       {children}
-    </main>
+    </div>
   );
 }
