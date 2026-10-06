@@ -1,5 +1,9 @@
 import { LegalPage } from "@/components/legal/legal-page";
-import { PrivacyContent, privacyLastUpdated } from "@/content/legal/privacy";
+import {
+  PrivacyContent,
+  privacyLastUpdated,
+  privacySections,
+} from "@/content/legal/privacy";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -9,7 +13,11 @@ export const metadata = pageMetadata(t("legal.privacyTitle"), undefined, {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage titleKey="legal.privacyTitle" lastUpdated={privacyLastUpdated}>
+    <LegalPage
+      titleKey="legal.privacyTitle"
+      lastUpdated={privacyLastUpdated}
+      sections={privacySections}
+    >
       <PrivacyContent />
     </LegalPage>
   );

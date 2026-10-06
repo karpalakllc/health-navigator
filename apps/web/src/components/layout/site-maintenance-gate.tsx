@@ -9,7 +9,12 @@ export async function SiteMaintenanceGate({
   const settings = await fetchPublicSettings();
 
   if (settings.maintenance_mode) {
-    return <SiteMaintenancePage message={settings.maintenance_message} />;
+    return (
+      <SiteMaintenancePage
+        message={settings.maintenance_message}
+        logoUrl={settings.logo_url}
+      />
+    );
   }
 
   return children;

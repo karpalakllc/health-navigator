@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PageShell } from "@/components/ui/page-shell";
+import { StatusPanel } from "@/components/system/status-panel";
 import { t } from "@/i18n/t";
 import { isSettingsUnavailable } from "@/lib/api/public-settings";
 
@@ -27,26 +27,26 @@ export default function Error({
   }, [error]);
 
   return (
-    <PageShell className="py-16 text-center">
+    <>
       {/* React hoists this into <head>. The status is already 200 once the
           page streams, so this is what keeps a transient failure (an API
           blip, unreadable settings) out of the index. */}
       <meta name="robots" content="noindex" />
-      <h1 className="text-2xl font-semibold text-foreground">
-        {t("errors.title")}
-      </h1>
-      <p className="mt-2 text-muted-foreground">{t("errors.description")}</p>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Button type="button" onClick={reset}>
+      <StatusPanel
+        icon="alert-triangle"
+        title={t("errors.title")}
+        description={t("errors.description")}
+      >
+        <Button type="button" leadingIcon="rotate-ccw" onClick={reset}>
           {t("errors.retry")}
         </Button>
-        <Button href="/" variant="outline">
+        <Button href="/" variant="secondary" leadingIcon="home">
           {t("errors.home")}
         </Button>
-        <Button href="/guidance" variant="outline">
+        <Button href="/guidance" variant="secondary">
           {t("nav.guidance")}
         </Button>
-      </div>
-    </PageShell>
+      </StatusPanel>
+    </>
   );
 }
