@@ -216,6 +216,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/settings/public` | — |
 | `GET` | `/specialties` | `cache.public` |
 | `GET` | `/specialties/{slug}` | `cache.public` |
+| `GET` | `/transparency` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
 | `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
@@ -297,7 +298,28 @@ nobody can hold an account locked by merely sending traffic.
   `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at}`:
   the doctor's or facility's official reply, plain text) and, **only on a
   signed-in request**, `viewer.has_voted_helpful`; anonymous payloads carry no
-  viewer state.
+  viewer state. Each review also carries `aspects` (`{code: 1–5}`, possibly
+  empty). **Removed reviews** (published, then taken down) stay in the list as
+  `{id, removed: true, removed_at, removal_category}` and nothing else;
+  `removal_category` is `spam|abuse|false_information|personal_data|illegal|other`.
+  They sort by date where the review was, after the published reviews in the
+  rating and helpful orders, and a `rating` filter leaves them out. A review
+  refused before publication is never listed. `meta.aspects` is
+  `[{key, count, average}]` for the profile type's four aspects (doctor:
+  `communication|explanation|waiting_time|respect`; facility and pharmacy:
+  `cleanliness|organisation|waiting_time|staff`), `average` `null` below 3
+  ratings. `meta.trend` is four three-month periods over the last twelve
+  months, `[{start, end, count, average}]` oldest first, or `null` below 5
+  reviews in that time. All of these count approved reviews only.
+- `POST …/reviews` accepts optional `aspects` (`{code: 1–5 or null}`); a code
+  the profile type does not have is a 422 on `aspects`.
+- A topic's `posts` list keeps a removed reply as
+  `{id, removed: true, removed_at, removal_category}` in its place.
+- `GET /transparency` returns `{generated_at, months: [...]}`: twelve calendar
+  months (UTC), newest first, each with `reviews` and `forum` (`received`,
+  `published`, `rejected` before publication, `removed`,
+  `removed_by_category`, `average_moderation_hours` or `null`) and `reports`
+  (`received`, `resolved`, `removed`, `kept`). Cached for an hour.
 - `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
   helpful (Member role, verified; idempotent; your own review is a 422) and
   return `{helpful_count, has_voted_helpful}`.

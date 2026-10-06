@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\RemovalCategory;
 use App\Models\User;
 use App\Support\UgcMailer;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,8 @@ trait ModeratesForumContent
             'moderated_by_id' => $moderator->id,
             'moderated_at' => now(),
             'rejection_note' => null,
+            'removed_at' => null,
+            'removal_category' => null,
         ])->save();
 
         // Guard against double-counting if an already-approved record is re-approved.
@@ -54,17 +57,29 @@ trait ModeratesForumContent
     }
 
     /**
+     * Refuse pending content, or take down published content.
+     *
+     * Taking down published content records removed_at and a public category
+     * (the transparency figures count them; a reply also keeps a placeholder
+     * in its thread, see keepsPlaceWhenRemoved()). Content refused before it
+     * was ever published leaves no trace.
+     *
      * @param  bool  $afterReport  taken down through the report queue: the author is told it was removed
+     * @param  RemovalCategory|null  $category  the public reason when published content is taken down (default „other“)
      */
-    public function reject(User $moderator, ?string $note = null, bool $afterReport = false): void
+    public function reject(User $moderator, ?string $note = null, bool $afterReport = false, ?RemovalCategory $category = null): void
     {
-        $this->update([
+        $wasPublished = $this->status === ForumContentStatus::Approved;
+
+        $this->forceFill([
             'status' => ForumContentStatus::Rejected,
-            'published_at' => null,
+            'published_at' => $wasPublished && $this->keepsPlaceWhenRemoved() ? $this->published_at : null,
             'moderated_by_id' => $moderator->id,
             'moderated_at' => now(),
             'rejection_note' => $note,
-        ]);
+            'removed_at' => $wasPublished ? now() : $this->removed_at,
+            'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $this->removal_category,
+        ])->save();
 
         UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
     }
@@ -76,6 +91,16 @@ trait ModeratesForumContent
     protected function markPublicationTimestamps(): void
     {
         $this->published_at ??= now();
+    }
+
+    /**
+     * Whether removed content keeps its publication date, so its public
+     * placeholder stays in place (forum replies). Topics are not shown once
+     * removed, and listings key on their published_at.
+     */
+    protected function keepsPlaceWhenRemoved(): bool
+    {
+        return false;
     }
 
     /**

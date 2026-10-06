@@ -15,6 +15,7 @@ use App\Http\Resources\Api\V1\ForumTopicListResource;
 use App\Http\Resources\Api\V1\ForumTopicSearchResource;
 use App\Http\Resources\Api\V1\MyForumPostResource;
 use App\Http\Resources\Api\V1\MyForumTopicResource;
+use App\Http\Resources\Api\V1\RemovedContentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -148,10 +149,14 @@ class ForumController extends Controller
             'category',
         ]);
 
+        // Published replies plus a placeholder where a removed one was, so a
+        // removal is never silent (removed_at orders placeholders backfilled
+        // without a publication date).
         $postsQuery = $topicModel->posts()
-            ->approved()
+            ->inThread()
             ->with(['user' => ForumAuthorCounts::eagerLoad()])
-            ->orderBy('published_at');
+            ->orderByRaw('coalesce(published_at, removed_at) asc')
+            ->orderBy('id');
 
         $perPage = $validated['per_page'] ?? 20;
         $paginator = $postsQuery->paginate($perPage)->withQueryString();
@@ -170,7 +175,12 @@ class ForumController extends Controller
         return response()->json([
             'data' => [
                 'topic' => (new ForumTopicDetailResource($topicModel))->resolve($request),
-                'posts' => ForumPostResource::collection($paginator)->resolve(),
+                'posts' => $paginator->getCollection()
+                    ->map(fn (ForumPost $post): array => $post->isRemoved()
+                        ? RemovedContentResource::make($post)->resolve($request)
+                        : ForumPostResource::make($post)->resolve($request))
+                    ->values()
+                    ->all(),
                 'related_topics' => ForumTopicListResource::collection($related)->resolve(),
             ],
             'meta' => [

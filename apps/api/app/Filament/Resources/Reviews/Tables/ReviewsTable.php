@@ -8,12 +8,15 @@ use App\Filament\Support\ModerationTableColumns;
 use App\Filament\Support\ReviewableLabel;
 use App\Filament\Support\ReviewResponseActions;
 use App\Models\Review;
+use App\Support\ReviewBurstDetector;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ReviewsTable
 {
@@ -33,6 +36,13 @@ class ReviewsTable
                     ->label('Author')
                     ->searchable(),
                 ModerationTableColumns::bodyExcerpt(),
+                TextColumn::make('burst_flagged_at')
+                    ->label('Burst')
+                    ->badge()
+                    ->color('warning')
+                    ->formatStateUsing(fn (): string => ReviewBurstDetector::THRESHOLD.'+ in '.ReviewBurstDetector::WINDOW_HOURS.' h')
+                    ->tooltip('This profile received '.ReviewBurstDetector::THRESHOLD.' or more reviews within '.ReviewBurstDetector::WINDOW_HOURS.' hours. A signal for a closer look; nothing happens automatically.')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
@@ -45,6 +55,10 @@ class ReviewsTable
                         fn (ReviewStatus $status) => [$status->value => ucfirst($status->value)],
                     )->all())
                     ->default(ReviewStatus::Pending->value),
+                Filter::make('burst')
+                    ->label('Review bursts ('.ReviewBurstDetector::THRESHOLD.'+ on one profile within '.ReviewBurstDetector::WINDOW_HOURS.' h)')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('burst_flagged_at')),
             ])
             ->recordActions([
                 ViewAction::make(),

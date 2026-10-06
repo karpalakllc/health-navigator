@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
+use App\Models\ReviewAspectRating;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,6 +27,10 @@ class PublicReviewResource extends JsonResource
             'published_at' => $this->published_at?->toIso8601String(),
             'response' => $this->officialResponse(),
             'helpful_count' => (int) $this->helpful_count,
+            // Optional sub-ratings by aspect code (W5-I), when the list loaded them.
+            'aspects' => $this->whenLoaded('aspectRatings', fn (): object => (object) $this->aspectRatings
+                ->mapWithKeys(fn (ReviewAspectRating $aspect): array => [$aspect->aspect->value => $aspect->rating])
+                ->all()),
             // Only on a signed-in request whose controller resolved it; absent
             // for anonymous visitors so their payload is the same for everyone.
             'viewer' => $this->when(

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\RemovalCategory;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Models\Concerns\ModeratesForumContent;
 use App\Support\ScriptInsensitiveSearch;
@@ -60,6 +61,8 @@ class ForumTopic extends Model
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
             'community_rules_accepted_at' => 'datetime',
+            'removed_at' => 'datetime',
+            'removal_category' => RemovalCategory::class,
         ];
     }
 

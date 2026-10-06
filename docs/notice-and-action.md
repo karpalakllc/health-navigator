@@ -55,8 +55,18 @@ that item at once:
   as a general one and can be picked from a list of common reasons or typed. Also requires the right to
   moderate that content (`reviews.update` for reviews; forum moderation for
   topics and replies). Effects:
-  - the item disappears from every public list, profile, topic page and search
-    (forum topics leave the Meilisearch index on save);
+  - the moderator also picks the **public reason** (спам, навреда, лажни
+    информации, лични податоци, незаконска содржина, друго); it starts from
+    the most common report reason. A removed review stays in the profile's
+    list, and a removed reply in its thread, as a placeholder: „Рецензијата е
+    отстранета на {датум} — причина: {категорија}“. The placeholder never shows
+    the text, rating, author or the reason written to the author. Content
+    refused before it was ever published leaves no placeholder;
+  - otherwise the item disappears from every public list, profile, topic page
+    and search (a removed topic leaves no placeholder; forum topics leave the
+    Meilisearch index on save);
+  - the removal is counted on the public „Транспарентност“ page (`/transparency`,
+    monthly figures by public reason);
   - review averages and counts are recomputed; a hidden reply no longer counts
     in the topic's reply total;
   - the author receives the „Содржината е отстранета“ email with the reason —
@@ -76,7 +86,8 @@ Who resolved each report and when is stored on the report
 The terms promise one goal: **every report reviewed within 24 hours.** Take
 `personal_data` (someone's identity or health information), threats and
 harassment first. When unsure, hide and review with a second moderator; a
-hidden item can be restored by approving it again from Reviews or Forum.
+hidden item can be restored by approving it again from Reviews or Forum
+(that also clears its placeholder).
 
 ## Contested reviews (doctor or facility disagrees)
 
@@ -100,6 +111,15 @@ this order:
 
 Legal orders (court or authority) are handled by an administrator: hide the
 content immediately and keep a copy of the order outside the platform.
+
+## Review bursts (staff-only signal)
+
+When a profile receives 5 or more reviews (any status) within 24 hours, every
+review in that window is flagged: a „Burst“ badge in **Reviews** and a
+„Review bursts“ filter. Nothing happens automatically — no review is hidden,
+delayed or rejected because of the flag. Look at the burst before approving:
+similar wording, new accounts, the same day. One review per account per
+profile and a verified e-mail address are required to write a review.
 
 ## Helpful votes („Корисно“)
 

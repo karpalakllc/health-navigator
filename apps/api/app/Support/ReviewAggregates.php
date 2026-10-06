@@ -6,11 +6,12 @@ use App\Enums\ReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Keeps doctors/facilities.reviews_count and rating_avg in step with their
- * approved reviews (pharmacies are facilities).
+ * Keeps doctors/facilities.reviews_count, rating_avg and aspect_ratings in
+ * step with their approved reviews (pharmacies are facilities).
  *
  * Always recomputed from the reviews table with one aggregate query, never
  * incremented: an increment drifts the moment a write is lost or replayed,
@@ -52,7 +53,53 @@ final class ReviewAggregates
         DB::table($table)->where('id', $reviewableId)->update([
             'reviews_count' => $count,
             'rating_avg' => self::truncatedAverage($sum, $count),
+            'aspect_ratings' => self::encodeAspects(
+                self::aspectStats()
+                    ->where('reviews.reviewable_type', $reviewableType)
+                    ->where('reviews.reviewable_id', $reviewableId)
+                    ->get(),
+            ),
         ]);
+    }
+
+    /**
+     * Per-aspect count and rating sum over approved reviews, grouped by
+     * profile and aspect; callers narrow it to one profile or one type.
+     */
+    private static function aspectStats(): Builder
+    {
+        return DB::table('review_aspect_ratings')
+            ->join('reviews', 'reviews.id', '=', 'review_aspect_ratings.review_id')
+            ->where('reviews.status', ReviewStatus::Approved->value)
+            ->groupBy('reviews.reviewable_id', 'review_aspect_ratings.aspect')
+            ->selectRaw('reviews.reviewable_id as reviewable_id, review_aspect_ratings.aspect as aspect, count(*) as rating_count, sum(review_aspect_ratings.rating) as rating_sum');
+    }
+
+    /**
+     * {"communication": {"count": 3, "average": 4.33}, …} with the average
+     * truncated like rating_avg; null when no approved review rated any aspect.
+     *
+     * @param  iterable<object>  $rows
+     */
+    private static function encodeAspects(iterable $rows): ?string
+    {
+        $aspects = [];
+
+        foreach ($rows as $row) {
+            $count = (int) $row->rating_count;
+            $aspects[(string) $row->aspect] = [
+                'count' => $count,
+                'average' => (float) self::truncatedAverage((int) $row->rating_sum, $count),
+            ];
+        }
+
+        if ($aspects === []) {
+            return null;
+        }
+
+        ksort($aspects);
+
+        return json_encode($aspects, JSON_THROW_ON_ERROR);
     }
 
     public static function recomputeFor(Review $review): void
@@ -68,6 +115,16 @@ final class ReviewAggregates
     {
         foreach (self::TABLES as $type => $table) {
             DB::update(self::backfillSql($table), [$type, ReviewStatus::Approved->value, $type, ReviewStatus::Approved->value]);
+
+            DB::table($table)->whereNotNull('aspect_ratings')->update(['aspect_ratings' => null]);
+
+            self::aspectStats()
+                ->where('reviews.reviewable_type', $type)
+                ->get()
+                ->groupBy('reviewable_id')
+                ->each(fn ($rows, $id) => DB::table($table)->where('id', $id)->update([
+                    'aspect_ratings' => self::encodeAspects($rows),
+                ]));
         }
     }
 

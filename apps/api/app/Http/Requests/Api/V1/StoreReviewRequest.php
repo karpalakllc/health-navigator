@@ -19,6 +19,10 @@ class StoreReviewRequest extends FormRequest
         return [
             'rating' => ['required', 'integer', 'between:1,5'],
             'body' => ['nullable', 'string', 'min:10', 'max:2000'],
+            // Optional sub-ratings keyed by aspect code; which codes a profile
+            // accepts depends on its type and is checked by the controller.
+            'aspects' => ['sometimes', 'nullable', 'array'],
+            'aspects.*' => ['nullable', 'integer', 'between:1,5'],
         ];
     }
 }

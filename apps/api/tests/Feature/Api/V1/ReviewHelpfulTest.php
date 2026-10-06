@@ -191,7 +191,11 @@ class ReviewHelpfulTest extends TestCase
 
         ContentReport::factory()->about($review)->create()->hideContent(User::factory()->moderator()->create());
 
-        $this->getJson('/api/v1/doctors/ana-petrovska/reviews')->assertJsonCount(0, 'data');
+        // Only its placeholder remains (W5-I), without the vote count.
+        $this->getJson('/api/v1/doctors/ana-petrovska/reviews')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.removed', true)
+            ->assertJsonMissingPath('data.0.helpful_count');
         Sanctum::actingAs($member);
         $this->deleteJson("/api/v1/reviews/{$review->id}/helpful")->assertNotFound();
     }

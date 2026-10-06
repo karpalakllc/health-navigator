@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
+use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -169,4 +170,7 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
         Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
     });
+
+    // W5-I: public moderation figures for /transparency (cached an hour server side).
+    Route::get('/transparency', TransparencyController::class)->middleware('cache.public');
 });
