@@ -42,6 +42,12 @@ class AdminPanelProvider extends PanelProvider
                 isRequired: true,
             )
             ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)
+            // Re-checked on Livewire requests too, so a page opened before the
+            // account gained admin.access (or lost its second factor) stops
+            // working rather than acting until it is reloaded. Livewire applies
+            // it only where the page's own route had it, so the set-up page and
+            // the login challenge are unaffected.
+            ->persistentMiddleware([EnsureStaffMultiFactorAuthentication::class])
             ->profile(EditProfile::class, isSimple: false)
             ->brandName('Zdravje360')
             ->colors([

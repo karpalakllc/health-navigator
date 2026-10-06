@@ -14,6 +14,7 @@ use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -124,6 +125,63 @@ class StaffMultiFactorAuthenticationTest extends TestCase
         $this->get('/admin')->assertOk();
         // ...and they can enrol from their profile if they choose to.
         $this->get('/admin/profile')->assertOk()->assertSee('setUpAppAuthentication', false);
+    }
+
+    private function snapshotOf(string $page): string
+    {
+        preg_match('/wire:snapshot="([^"]+)"/', $this->get($page)->assertOk()->getContent(), $match);
+        $this->assertNotEmpty($match, "No Livewire component on {$page}.");
+
+        return html_entity_decode($match[1], ENT_QUOTES);
+    }
+
+    /**
+     * A real Livewire update request, so the persistent middleware runs
+     * (Livewire::test() skips it).
+     */
+    private function livewireUpdate(string $snapshot, array $updates = [], array $calls = []): TestResponse
+    {
+        return $this->withHeader('X-Livewire', '1')->postJson(Livewire::getUpdateUri(), [
+            'components' => [[
+                'snapshot' => $snapshot,
+                'updates' => (object) $updates,
+                'calls' => $calls,
+            ]],
+        ]);
+    }
+
+    public function test_a_livewire_request_from_an_open_page_is_held_to_it_too(): void
+    {
+        // A community moderator opens the panel, then gains admin.access. The page
+        // they already have open must not keep working without a second factor.
+        $user = $this->communityModerator();
+        $this->actingAs($user);
+        $snapshot = $this->snapshotOf('/admin');
+
+        $user->syncRoles(['Moderator']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $user->unsetRelation('roles')->unsetRelation('permissions');
+
+        $this->livewireUpdate($snapshot)->assertRedirect($this->setUpUrl());
+    }
+
+    public function test_the_set_up_page_and_the_login_challenge_still_take_livewire_requests(): void
+    {
+        $admin = $this->administrator($this->secret());
+
+        // The challenge: the login page is not behind the middleware.
+        $response = $this->livewireUpdate($this->snapshotOf('/admin/login'), [
+            'data.email' => $admin->email,
+            'data.password' => self::PASSWORD,
+        ], [['path' => '', 'method' => 'authenticate', 'params' => []]])->assertOk();
+
+        $this->assertGuest();
+        $state = json_decode($response->json('components.0.snapshot'), true)['data'];
+        $this->assertNotNull($state['userUndertakingMultiFactorAuthentication']);
+
+        // The set-up page an unenrolled administrator is sent to.
+        $this->actingAs($this->administrator());
+        $this->livewireUpdate($this->snapshotOf($this->setUpUrl()))->assertOk();
     }
 
     // --- sign-in -----------------------------------------------------------
