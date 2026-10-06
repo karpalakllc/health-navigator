@@ -30,9 +30,14 @@ return [
     | to expire immediately when the browser is closed then you may
     | indicate that via the expire_on_close configuration option.
     |
+    | The only session in this app is the Filament admin panel's (the API uses
+    | bearer tokens), so this is the panel's idle timeout. An hour bounds how long
+    | an unattended staff browser stays signed in; platform:preflight refuses
+    | anything longer for a deployment.
+    |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => (int) env('SESSION_LIFETIME', 60),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -196,6 +201,10 @@ return [
     | See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#samesitesamesite-value
     |
     | Supported: "lax", "strict", "none", null
+    |
+    | "lax" keeps the admin cookie off cross-site subrequests and POSTs while
+    | still letting a link from a moderation email open a signed-in panel;
+    | "strict" is fine too. "none" (or null) is refused by platform:preflight.
     |
     */
 
