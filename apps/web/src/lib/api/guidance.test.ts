@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GUIDANCE_TOKEN_HEADER,
+  GuidanceApiError,
   completeGuidanceEmergency,
+  isStaleGuidanceSession,
   completeGuidanceSession,
   parseStoredGuidanceSession,
   saveGuidanceAnswers,
@@ -58,6 +60,26 @@ describe("guidance session calls", () => {
       new Response(JSON.stringify({ data }), { status }),
     );
   }
+
+  it("rejects with the status, so the wizard can tell a stale handle apart", async () => {
+    const handle = { id: "abc", token: "t0k" };
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "Not found." }), { status: 404 }),
+    );
+    const stale = await completeGuidanceEmergency(handle).catch((e) => e);
+    expect(stale).toBeInstanceOf(GuidanceApiError);
+    expect(stale).toMatchObject({ status: 404, message: "Not found." });
+    expect(isStaleGuidanceSession(stale)).toBe(true);
+
+    fetchMock.mockResolvedValueOnce(new Response("<html>", { status: 429 }));
+    const limited = await startGuidanceSession().catch((e) => e);
+    expect(limited).toMatchObject({ status: 429 });
+    expect(isStaleGuidanceSession(limited)).toBe(false);
+    expect(isStaleGuidanceSession(new TypeError("Failed to fetch"))).toBe(
+      false,
+    );
+  });
 
   it("returns the id and token issued at creation", async () => {
     respond({ session_id: "s1", session_token: "secret" }, 201);

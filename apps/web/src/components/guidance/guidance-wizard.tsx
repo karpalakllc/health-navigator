@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import {
   completeGuidanceEmergency,
   completeGuidanceSession,
+  isStaleGuidanceSession,
   saveGuidanceAnswers,
   parseStoredGuidanceSession,
   startGuidanceSession,
@@ -68,16 +69,22 @@ export function GuidanceWizard({ flow }: Props) {
     const heading = headingRef.current;
     heading?.scrollIntoView?.({ block: "start" });
     heading?.focus({ preventScroll: true });
-  }, [phase, stepIndex]);
+    // `outcome` too: on the emergency path the call links render before the
+    // API answers, and the outcome's heading then replaces the interim one.
+  }, [phase, stepIndex, outcome]);
 
-  const ensureSession =
-    useCallback(async (): Promise<GuidanceSessionHandle> => {
-      if (session) {
+  const ensureSession = useCallback(
+    async (fresh = false): Promise<GuidanceSessionHandle> => {
+      if (session && !fresh) {
         return session;
       }
 
+      if (fresh) {
+        window.sessionStorage.removeItem(SESSION_KEY);
+      }
+
       const stored =
-        typeof window !== "undefined"
+        typeof window !== "undefined" && !fresh
           ? parseStoredGuidanceSession(
               window.sessionStorage.getItem(SESSION_KEY),
             )
@@ -95,7 +102,53 @@ export function GuidanceWizard({ flow }: Props) {
       setSession(started);
 
       return started;
-    }, [session]);
+    },
+    [session],
+  );
+
+  /**
+   * Runs an emergency-path call against the session, and once more against a
+   * new session if the stored handle turned out to be stale (expired,
+   * completed, or from another deploy) — rather than leaving someone who
+   * asked for emergency help looking at an error.
+   */
+  async function withFreshSessionOnStale<T>(
+    call: (current: GuidanceSessionHandle) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await call(await ensureSession());
+    } catch (e) {
+      if (!isStaleGuidanceSession(e)) {
+        throw e;
+      }
+
+      return call(await ensureSession(true));
+    }
+  }
+
+  /**
+   * The emergency phase renders the tap-to-call links straight away, before
+   * and regardless of the API: recording the outcome is bookkeeping, and a
+   * failed request (the per-address session cap on shared wifi, a stale
+   * handle, no connection) must never stand between the visitor and 194/112.
+   */
+  async function enterEmergency(
+    record: (current: GuidanceSessionHandle) => Promise<GuidanceOutcome>,
+  ) {
+    setError(null);
+    setOutcome(null);
+    setPhase("emergency");
+    setLoading(true);
+
+    try {
+      setOutcome(await withFreshSessionOnStale(record));
+      window.sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleStart() {
     if (!accepted) {
@@ -118,23 +171,23 @@ export function GuidanceWizard({ flow }: Props) {
   }
 
   async function handleRedFlagsContinue() {
+    if (redFlags.length > 0) {
+      await enterEmergency(async (current) => {
+        await saveGuidanceAnswers(current, [
+          { step_key: "red_flags", values: redFlags },
+        ]);
+
+        return completeGuidanceSession(current);
+      });
+
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const current = await ensureSession();
-
-      if (redFlags.length > 0) {
-        await saveGuidanceAnswers(current, [
-          { step_key: "red_flags", values: redFlags },
-        ]);
-        const result = await completeGuidanceSession(current);
-        setOutcome(result);
-        setPhase("emergency");
-        window.sessionStorage.removeItem(SESSION_KEY);
-
-        return;
-      }
 
       await saveGuidanceAnswers(current, [
         { step_key: "red_flags", values: [] },
@@ -148,20 +201,7 @@ export function GuidanceWizard({ flow }: Props) {
   }
 
   async function handleEmergencyNow() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const current = await ensureSession();
-      const result = await completeGuidanceEmergency(current);
-      setOutcome(result);
-      setPhase("emergency");
-      window.sessionStorage.removeItem(SESSION_KEY);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
-    } finally {
-      setLoading(false);
-    }
+    await enterEmergency(completeGuidanceEmergency);
   }
 
   function selectOption(stepKey: string, value: string, multi: boolean) {
@@ -323,6 +363,16 @@ export function GuidanceWizard({ flow }: Props) {
     );
   }
 
+  if (phase === "emergency" && !outcome) {
+    return (
+      <EmergencyInterimView
+        loading={loading}
+        error={error}
+        headingRef={headingRef}
+      />
+    );
+  }
+
   if ((phase === "result" || phase === "emergency") && outcome) {
     return (
       <OutcomeView
@@ -433,6 +483,41 @@ function EmergencyShortcutButton({
     >
       {t("guidance.emergencyNow")}
     </Button>
+  );
+}
+
+/**
+ * What the emergency path shows until (or unless) the API returns its
+ * outcome: the call links first, then the reason to use them.
+ */
+function EmergencyInterimView({
+  loading,
+  error,
+  headingRef,
+}: {
+  loading: boolean;
+  error: string | null;
+  headingRef: React.Ref<HTMLHeadingElement>;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <Card className="space-y-3 p-5">
+        <h2 ref={headingRef} tabIndex={-1} className={stepHeadingClass}>
+          {t("guidance.emergencyInterimTitle")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("guidance.emergencyDelay")}
+        </p>
+        <EmergencyCallLinks />
+      </Card>
+      {loading ? (
+        <p className="text-xs text-muted-foreground" role="status">
+          {t("guidance.saving")}
+        </p>
+      ) : null}
+      {error ? <FormError>{error}</FormError> : null}
+      <GuidanceSafetyNotice />
+    </div>
   );
 }
 

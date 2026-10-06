@@ -85,15 +85,41 @@ export function parseStoredGuidanceSession(
   return null;
 }
 
+/** A non-2xx answer from the guidance API, with its status. */
+export class GuidanceApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "GuidanceApiError";
+  }
+}
+
+/**
+ * The stored handle no longer names a usable session: unknown or expired
+ * (404), or already completed / not accepting this call (422). Starting a new
+ * session is the only way forward.
+ */
+export function isStaleGuidanceSession(error: unknown): boolean {
+  return (
+    error instanceof GuidanceApiError &&
+    (error.status === 404 || error.status === 422)
+  );
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
-  const body = await response.json();
+  const body = ((await response.json().catch(() => null)) ?? {}) as {
+    message?: unknown;
+    data?: unknown;
+  };
 
   if (!response.ok) {
     const message =
       typeof body.message === "string"
         ? body.message
         : `API request failed (${response.status})`;
-    throw new Error(message);
+    throw new GuidanceApiError(message, response.status);
   }
 
   return body.data as T;

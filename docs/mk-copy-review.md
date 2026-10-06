@@ -332,6 +332,10 @@ field and no language column, so there is no English copy kept beside it.
 | 8 | Најмалку 2 знаци за пребарување. | At least 2 characters to search | Hint under search fields (was "… по име.") |
 | 9 | Исто така: {names} | Also: … | Doctor card, other specialties after the primary one |
 | 10 | 1 тема, 1 установа, 1 лекар, 1 профил, 1 аптека, 1 производ, 1 одделение, 1 одговор, пред 1 ден, 1 запис во категоријата. | Singular forms | Counts ending in 1 (except 11) now use the singular; e.g. "1 теми" → "1 тема", "21 одговори" → "21 одговор". Confirm 21/101 take the singular in these phrases |
+| 11 | **Веднаш повикајте итна помош** | Call emergency services now | **Safety-critical.** Heading shown the moment someone asks for emergency help, above the 194/112 buttons, before (or if) the server records the outcome |
+| 12 | Јавното име мора да содржи барем две букви. | The display name must contain at least two letters | Register / account form (API, `lang/mk/validation.php`) |
+| 13 | Не мешајте кирилица и латиница во ист збор од јавното име. | Do not mix Cyrillic and Latin in one word of the display name | Same |
+| 14 | Јавното име не може да содржи титула или улога (на пр. „д-р“, „администратор“, „модератор“, „тим“) ниту името на платформата. | The display name cannot contain a title or role (e.g. "Dr", "administrator", "moderator", "team") or the platform's name | Same |
 
 ---
 
