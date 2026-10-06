@@ -201,6 +201,7 @@ limiters are layered on top:
 | `api-doctor-dashboard` | everything under `/me/doctor` (inline `throttle:`) | 120/min per user |
 | `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
 | `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
+| `api-corrections-burst` / `api-corrections-hourly` | `POST /doctors/{slug}/corrections`, `POST /facilities/{slug}/corrections` (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -456,6 +457,25 @@ nobody can hold an account locked by merely sending traffic.
   `claim_already_yours` or `claim_already_manager`; 429
   `doctor_account.claim_limit` beyond 3 open requests. Staff verify the person
   outside the platform and assign the account in the admin panel.
+- `POST /doctors/{slug}/corrections` and `POST /facilities/{slug}/corrections`
+  („Пријави грешка во профилот“ / „Барање за приговор / отстранување“;
+  anonymous or signed in). Body: `type` (`correction`, default, or
+  `objection` — **doctors only**; a facility route accepts `correction`
+  only), `field` (required for a correction; doctors: `name`, `title`,
+  `specialty`, `workplace`, `address`, `contact`, `office_hours`, `photo`,
+  `description`, `no_longer_practising`, `other`; facilities: `name`,
+  `address`, `contact`, `office_hours`, `photo`, `description`, `doctors`,
+  `departments`, `closed`, `other`; ignored for an objection), `message`
+  (10–1000, plain text), `contact` (correction: optional e-mail; objection:
+  required phone or e-mail, 5–255), and the honeypot `website` (must be
+  empty). 201 `{status: "received", message}` with the localised receipt
+  (`api.profile_correction.received_correction` / `received_objection`); a
+  filled honeypot gets the same 201 and nothing is stored, even when the
+  rest would not validate. 404 `errors.not_found` for an unknown or
+  unpublished profile (as its public page). 422 with `errors.field` /
+  `message` / `contact`. 429 from the limiters above. Staff answer a
+  correction within 15 days and an objection within 30 (admin → Directory →
+  Corrections).
 - **Forum keywords (tags).** `POST …/topics` accepts optional `tags` (up to 5
   strings, 2–40 characters each once normalised; 422 `api.forum.tag_invalid`
   otherwise); unknown tags are created. Topic detail payloads carry `tags`
