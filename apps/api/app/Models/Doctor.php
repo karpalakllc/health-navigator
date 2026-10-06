@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\DeletesReplacedMedia;
+use App\Models\Concerns\HasVerification;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\Import\ImportBookkeeping;
 use App\Support\Import\NameKey;
@@ -27,7 +28,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, LogsActivity, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, HasVerification, InvalidatesTaxonomyCache, LogsActivity, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -137,7 +138,10 @@ class Doctor extends Model
             // every log and export).
             ->logExcept(['id', 'reviews_count', 'rating_avg', 'name_key', 'name_key_sorted', 'import_last_seen_at', 'import_missing_runs', 'fzo_facsimile',
                 // Internal licence keys (docs/data-inventory.md): never in the log.
-                'licence_number', 'licence_valid_until', 'licence_specialty_raw', 'licence_source', 'licence_checked_at'])
+                'licence_number', 'licence_valid_until', 'licence_specialty_raw', 'licence_source', 'licence_checked_at',
+                // VerificationWriter writes its own „verification“ entries
+                // (decision, basis, reason) — never the internal evidence.
+                'verified_at', 'verification_basis', 'verification_reasons', 'verification_source', 'verified_by_id', 'verification_checked_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
