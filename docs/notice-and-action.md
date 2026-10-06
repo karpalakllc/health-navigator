@@ -70,6 +70,9 @@ is re-read under a row lock).
 
 Who resolved each report and when is stored on the report
 (`resolved_by_id`, `resolved_at`); reports are never deleted from the panel.
+Each resolution is also written to the audit log (**Platform → Activity
+log**, `audit.view`, kept 365 days), with review moderation and reply
+changes, doctor-profile edits and featured/sponsored toggles.
 
 ## Turnaround
 
@@ -91,6 +94,21 @@ this order:
    stripped), at most 2,000 characters. Check that the sender really
    represents the profile before publishing. Do not edit the meaning; fix
    only obvious typos, and never add a patient's personal or health data.
+   **Or the doctor writes it.** Staff can link a doctor's own member account
+   to their profile (admin panel → doctor → **Assign account**, after
+   verifying the person outside the platform, e.g. through the workplace or
+   the Лекарска комора register; members can ask with „Ова е мој профил“ on
+   the profile, queued under **Directory → Profile claims**). The doctor then
+   writes one reply per published review of their profile on „Мој профил“.
+   While *Settings → Doctor accounts → Require admin approval for doctor
+   replies* is on (the default) the reply waits in **Community → Doctor
+   replies**: approve it, or reject it with a reason the doctor sees. Check
+   it reveals or confirms nothing about a patient — not even that the
+   reviewer was one. An edit goes back to waiting. Approved, it shows as
+   „Одговор од лекарот“ signed with the profile name. The doctor cannot hide,
+   edit or delete reviews and sees reviewers only by their public name; they
+   can report a review like any member. A response staff entered stays
+   staff's (the doctor cannot overwrite it).
 2. **Takedown request.** A review is removed only if it breaks the rules:
    spam or advertising, abuse or harassment, statements of fact that are shown
    to be false (not opinions), personal or health data of anyone, or content
