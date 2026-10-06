@@ -20,7 +20,7 @@ class ForumTopicDetailResource extends JsonResource
             'slug' => $this->slug,
             'title' => $this->title,
             'body' => $this->body,
-            'author_name' => $this->user->name,
+            'author_name' => $this->user->publicName(),
             'author' => new ForumAuthorResource($this->user),
             'category' => [
                 'slug' => $this->category->slug,

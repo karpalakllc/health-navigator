@@ -16,21 +16,9 @@ class AnalyticsServiceTest extends TestCase
     {
         $service = app(AnalyticsService::class);
 
-        AnalyticsEvent::query()->create([
-            'event' => 'search.query',
-            'properties' => ['q' => 'Cardiologist'],
-            'occurred_at' => now(),
-        ]);
-        AnalyticsEvent::query()->create([
-            'event' => 'search.query',
-            'properties' => ['q' => 'cardiologist'],
-            'occurred_at' => now(),
-        ]);
-        AnalyticsEvent::query()->create([
-            'event' => 'search.query',
-            'properties' => ['q' => 'a'],
-            'occurred_at' => now(),
-        ]);
+        $service->recordSearchTerm('Cardiologist');
+        $service->recordSearchTerm('cardiologist');
+        $service->recordSearchTerm('a');
 
         $top = $service->topSearchQueries(30, 5);
 

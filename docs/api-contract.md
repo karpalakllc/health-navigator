@@ -93,8 +93,16 @@ mechanism for the Next.js web client and future mobile clients.
   (30 days). Expired tokens are rejected — including on optional-auth routes.
 - `POST /auth/forgot-password` always returns the same success payload,
   whether or not the address is registered.
-- `GET /me` returns `id, name, email, role, community_roles,
+- `GET /me` returns `id, name, display_name, email, role, community_roles,
   can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+- **Two names.** `name` is the person's real name and is **private** (only
+  `/me`, the admin panel and mail). `display_name` is what everything public
+  shows: `author_name` on reviews and forum topics/posts, and `author.name` on
+  forum authors. `POST /auth/register` requires `display_name`;
+  `PATCH /me/profile` (`{ "display_name": "…" }`, verified accounts) changes it
+  and returns `{ user }` as `/me` does. Rules: trimmed with runs of whitespace
+  collapsed, at most 40 characters, Unicode letters, spaces and `. - '` only,
+  starting with a letter. **Not unique.**
 
 **Web client:** Next.js stores the bearer token in an httpOnly cookie via route
 handlers under `/api/session/*`; the browser never reads the token. Mobile uses
@@ -159,6 +167,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/specialties/{slug}` | — |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `PATCH` | `/me/profile` | `auth:sanctum`, `verified` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
 | `POST` | `/auth/login` | `throttle:api-login` |
@@ -192,8 +201,15 @@ nobody can hold an account locked by merely sending traffic.
   `forum.moderate` or the corresponding moderation setting is off; otherwise it
   is `pending`.
 - Replying to a locked topic returns **422**, not 403.
-- Guidance sessions are anonymous by default. A session created while
-  authenticated is bound to that user and returns 404 to anyone else.
+- Guidance sessions are **never linked to an account**, even when the caller
+  is signed in. `POST /triage/sessions` returns `session_id` and a secret
+  `session_token` (only its SHA-256 is stored); every later call on the session
+  (`answers`, `emergency`, `complete`) must send it as the
+  `X-Guidance-Token` header. A missing or wrong token is `404`, the same as an
+  unknown id.
+- `/search` does not record who searched. The normalised query (lower-cased,
+  whitespace collapsed, truncated to 64 characters) is counted per day in
+  `search_term_daily` after the response is sent; there is no per-search row.
 
 ## Roles and permissions
 

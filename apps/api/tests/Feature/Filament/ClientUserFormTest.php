@@ -114,4 +114,22 @@ class ClientUserFormTest extends TestCase
 
         $this->assertTrue($client->fresh()->hasRole('Forum Moderator'));
     }
+
+    public function test_staff_can_edit_the_public_display_name_within_its_rules(): void
+    {
+        $this->actingAs($this->clientEditor());
+        $client = $this->client();
+
+        Livewire::test(EditClientUser::class, ['record' => $client->getKey()])
+            ->assertFormFieldExists('display_name')
+            ->assertFormSet(['display_name' => $client->display_name])
+            ->fillForm(['display_name' => 'Мара 123'])
+            ->call('save')
+            ->assertHasFormErrors(['display_name'])
+            ->fillForm(['display_name' => '  Мара   К. '])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Мара К.', $client->fresh()->display_name);
+    }
 }

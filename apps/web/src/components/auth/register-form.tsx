@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PasswordInput } from "@/components/auth/password-input";
 import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  suggestDisplayName,
+} from "@/lib/display-name";
 import { t } from "@/i18n/t";
 import { FormError } from "@/components/ui/form-message";
 
@@ -16,6 +20,15 @@ type RegisterFormProps = {
 
 export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   const [name, setName] = useState("");
+  // Follows the name ("Марија К.") until the person types their own.
+  const [customDisplayName, setCustomDisplayName] = useState<string | null>(
+    null,
+  );
+  const displayName = customDisplayName ?? suggestDisplayName(name);
+  const nameId = useId();
+  const nameHelpId = useId();
+  const displayNameId = useId();
+  const displayNameHelpId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -42,6 +55,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
+          display_name: displayName,
           email,
           password,
           password_confirmation: passwordConfirmation,
@@ -53,6 +67,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
       if (!response.ok) {
         setError(
           payload.message ??
+            payload.errors?.display_name?.[0] ??
             payload.errors?.email?.[0] ??
             payload.errors?.password?.[0] ??
             t("auth.registerFailed"),
@@ -95,19 +110,50 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   return (
     <AuthFormCard>
       <form onSubmit={handleSubmit} className="grid gap-4">
-        <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">
+        {/* Help text sits outside the <label> so it describes the field
+            (aria-describedby) instead of becoming part of its name. */}
+        <div className="grid gap-1.5 text-sm">
+          <label htmlFor={nameId} className="font-medium text-foreground">
             {t("auth.registerName")}
-          </span>
+          </label>
           <input
+            id={nameId}
             type="text"
             name="name"
             required
+            autoComplete="name"
+            aria-describedby={nameHelpId}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={filterInputClassName}
           />
-        </label>
+          <p id={nameHelpId} className="text-xs text-muted-foreground">
+            {t("auth.registerNameHelp")}
+          </p>
+        </div>
+        <div className="grid gap-1.5 text-sm">
+          <label
+            htmlFor={displayNameId}
+            className="font-medium text-foreground"
+          >
+            {t("auth.registerDisplayName")}
+          </label>
+          <input
+            id={displayNameId}
+            type="text"
+            name="display_name"
+            required
+            maxLength={DISPLAY_NAME_MAX_LENGTH}
+            autoComplete="nickname"
+            aria-describedby={displayNameHelpId}
+            value={displayName}
+            onChange={(e) => setCustomDisplayName(e.target.value)}
+            className={filterInputClassName}
+          />
+          <p id={displayNameHelpId} className="text-xs text-muted-foreground">
+            {t("auth.registerDisplayNameHelp")}
+          </p>
+        </div>
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium text-foreground">{t("auth.email")}</span>
           <input

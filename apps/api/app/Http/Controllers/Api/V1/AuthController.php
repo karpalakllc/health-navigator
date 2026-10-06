@@ -161,6 +161,7 @@ class AuthController extends Controller
         $hashedPassword = Hash::make($password);
 
         $name = $request->string('name')->toString();
+        $displayName = $request->string('display_name')->toString();
 
         $existing = User::query()->where('email', $email)->first();
 
@@ -173,9 +174,10 @@ class AuthController extends Controller
         try {
             // The Member role is what lets the account post reviews and forum
             // content; created together so no account exists without it.
-            $user = DB::transaction(function () use ($name, $email, $hashedPassword): User {
+            $user = DB::transaction(function () use ($name, $displayName, $email, $hashedPassword): User {
                 $user = User::query()->create([
                     'name' => $name,
+                    'display_name' => $displayName,
                     'email' => $email,
                     'password' => $hashedPassword,
                     'user_kind' => UserKind::Client,

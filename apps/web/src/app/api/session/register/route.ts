@@ -6,6 +6,7 @@ import { readUpstream } from "@/lib/api/upstream";
 
 type RegisterPayload = {
   name?: string;
+  display_name?: string;
   email?: string;
   password?: string;
   password_confirmation?: string;
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         name: body.name,
+        display_name: body.display_name,
         email: body.email,
         password: body.password,
         password_confirmation: body.password_confirmation,

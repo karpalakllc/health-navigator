@@ -18,8 +18,8 @@ Zdravje360 offers **general, informational symptom guidance** to help users thin
 - Fixed steps with **structured options only** (no free-text symptoms).
 - **Red-flag** checklist with **hard stop** to an emergency outcome.
 - **Rule-based** outcome selection on the server (rules are not exposed via public API).
-- Anonymous sessions allowed; optional `user_id` when a valid Sanctum token is sent.
-- Minimal audit storage: session id, flow id, structured answers, outcome code, timestamps, `emergency_stopped`.
+- Sessions are **always anonymous**: never linked to an account, even when a valid Sanctum token is sent (owner decision 2026-10-06). The client continues a session with a per-session secret issued at creation; only its hash is stored.
+- Minimal audit storage: session id, token hash, flow id, structured answers, outcome code, timestamps, `emergency_stopped`.
 - Public web label: **“Symptom guidance”** (not “Triage” in UI).
 - Handoffs: home, doctors list, facilities list, emergency numbers — no booking or ranked recommendations.
 
@@ -89,7 +89,7 @@ Adjust retention only with legal sign-off and a doc update.
 
 ## API exposure
 
-Public endpoints may return: flow metadata, steps, option labels/codes, red-flag labels/codes, session id, outcome title/body, handoff links.
+Public endpoints may return: flow metadata, steps, option labels/codes, red-flag labels/codes, session id, session token (at creation only), outcome title/body, handoff links.
 
 Public endpoints must **not** return: rule definitions, rule priorities, internal staff notes.
 

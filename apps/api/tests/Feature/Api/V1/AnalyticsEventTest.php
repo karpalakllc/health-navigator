@@ -39,17 +39,17 @@ class AnalyticsEventTest extends TestCase
         ]);
     }
 
-    public function test_search_records_query_event(): void
+    public function test_search_is_counted_as_an_aggregate_not_an_event(): void
     {
         $this->getJson('/api/v1/search?q=cardio')
             ->assertOk();
 
-        $this->assertDatabaseHas('analytics_events', [
+        $this->assertDatabaseMissing('analytics_events', [
             'event' => 'search.query',
         ]);
-
-        $event = AnalyticsEvent::query()->where('event', 'search.query')->first();
-
-        $this->assertSame('cardio', $event?->properties['q'] ?? null);
+        $this->assertDatabaseHas('search_term_daily', [
+            'term' => 'cardio',
+            'count' => 1,
+        ]);
     }
 }

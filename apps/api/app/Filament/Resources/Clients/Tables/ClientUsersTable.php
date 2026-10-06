@@ -13,6 +13,7 @@ class ClientUsersTable
         return $table
             ->columns([
                 TextColumn::make('name')->searchable(),
+                TextColumn::make('display_name')->label('Public name')->searchable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('roles.name')->badge()->label('Roles'),
                 TextColumn::make('created_at')->dateTime()->sortable(),

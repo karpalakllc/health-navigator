@@ -94,6 +94,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
+        Route::patch('/me/profile', [MeController::class, 'updateProfile'])->middleware('verified');
         Route::post('/me/avatar', [MeAvatarController::class, 'update'])->middleware('verified');
         Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
         Route::get('/me/forum/topics', [ForumController::class, 'myTopics']);

@@ -46,6 +46,7 @@ class TransactionalMailTest extends TestCase
 
         $user = User::factory()->create([
             'name' => 'Ana Member',
+            'display_name' => 'Нов Ч.',
             'email' => 'ana@example.com',
             'email_verified_at' => null,
         ]);
@@ -67,6 +68,7 @@ class TransactionalMailTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Ana Member',
+            'display_name' => 'Нов Ч.',
             'email' => 'ana@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',

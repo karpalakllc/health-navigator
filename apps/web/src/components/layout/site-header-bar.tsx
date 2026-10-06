@@ -70,6 +70,7 @@ export function SiteHeaderBar({
               user={{
                 id: 0,
                 name: t("nav.account"),
+                display_name: t("nav.account"),
                 email: "",
                 role: "member",
                 avatar_url: null,

@@ -43,6 +43,7 @@ class RegisterTest extends TestCase
     {
         return array_merge([
             'name' => 'New Member',
+            'display_name' => 'Нов Ч.',
             'email' => 'new@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
