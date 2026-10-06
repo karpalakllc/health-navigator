@@ -11,6 +11,7 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use LogicException;
 use Mockery;
 use RuntimeException;
 use Symfony\Component\Mailer\SentMessage;
@@ -70,6 +71,24 @@ class FailedJobAlertTest extends TestCase
         $this->assertCount(3, $this->alerts());
     }
 
+    public function test_a_different_failure_of_the_same_job_class_is_not_masked(): void
+    {
+        $this->failAQueuedMail(new AlertProbeSwitchingMail(logic: false));
+        $this->failAQueuedMail(new AlertProbeSwitchingMail(logic: false));
+        $this->failAQueuedMail(new AlertProbeSwitchingMail(logic: true));
+
+        $this->assertCount(2, $this->alerts());
+    }
+
+    public function test_addresses_in_the_exception_message_are_masked(): void
+    {
+        $this->failAQueuedMail(new AlertProbeAddressFailingMail);
+
+        $body = (string) $this->alerts()->first()->getOriginalMessage()->getTextBody();
+        $this->assertStringNotContainsString('marija.k@example.com', $body);
+        $this->assertStringContainsString('550 Mailbox [email] unavailable', $body);
+    }
+
     public function test_nothing_is_sent_without_an_alert_address(): void
     {
         config(['zdravje.alerts.email' => null]);
@@ -123,3 +142,25 @@ class AlertProbeFailingMail extends Mailable implements ShouldQueue
 }
 
 class AlertProbeOtherFailingMail extends AlertProbeFailingMail {}
+
+class AlertProbeSwitchingMail extends Mailable implements ShouldQueue
+{
+    use Queueable;
+
+    public function __construct(public bool $logic) {}
+
+    public function build(): self
+    {
+        throw $this->logic ? new LogicException('template missing') : new RuntimeException('smtp is down');
+    }
+}
+
+class AlertProbeAddressFailingMail extends Mailable implements ShouldQueue
+{
+    use Queueable;
+
+    public function build(): self
+    {
+        throw new RuntimeException('550 Mailbox marija.k@example.com unavailable');
+    }
+}

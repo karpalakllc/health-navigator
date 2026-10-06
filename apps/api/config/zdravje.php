@@ -82,8 +82,8 @@ return [
     | Where NotifyOnFailedJob mails a failed queued job (verification and reset
     | mail, moderation notices, search indexing). Unset sends nothing, and
     | `platform:preflight` warns about it on a deployment. One alert per job
-    | class per throttle window, so a broken mail server does not answer a
-    | storm of failures with a storm of mail.
+    | class and exception class per throttle window, so a broken mail server
+    | does not answer a storm of failures with a storm of mail.
     |
     */
 

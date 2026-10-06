@@ -23,15 +23,16 @@ use Throwable;
  *
  * - Sent with Mail::raw on the default mailer, synchronously: queueing the
  *   alert would put it behind the very worker that is failing.
- * - Throttled to one mail per job class per `failed_job_throttle_minutes`
- *   (Cache::add is atomic on the shared cache store), so a storm of failures
- *   sends one alert, not hundreds.
+ * - Throttled to one mail per job class and exception class per
+ *   `failed_job_throttle_minutes` (Cache::add is atomic on the shared cache
+ *   store), so a storm of failures sends one alert, not hundreds, while a
+ *   different failure of the same job still gets through.
  * - Never throws. When the alert itself cannot be sent (often the same broken
  *   mail server), it is logged and the worker carries on.
  * - Carries no job payload (no mail body, no recipient): just the job class,
  *   queue, the exception class and the first line of its message, truncated
- *   (an SMTP refusal can still name an address there), plus the request ID
- *   the job was dispatched under.
+ *   and with any email address masked (an SMTP refusal names the recipient),
+ *   plus the request ID the job was dispatched under.
  *
  * Registered by listener discovery (app/Listeners); do not also
  * Event::listen() it.
@@ -51,7 +52,11 @@ class NotifyOnFailedJob
         $jobClass = $event->job->resolveName();
         $minutes = max(1, (int) config('zdravje.alerts.failed_job_throttle_minutes', 15));
 
-        if (! Cache::add('alerts:failed-job:'.sha1($jobClass), true, now()->addMinutes($minutes))) {
+        // Per job class and exception class: a second, different failure of the
+        // same mailable is news, and is not hidden behind the first alert.
+        $throttleKey = 'alerts:failed-job:'.sha1($jobClass.'|'.$event->exception::class);
+
+        if (! Cache::add($throttleKey, true, now()->addMinutes($minutes))) {
             return;
         }
 
@@ -71,7 +76,12 @@ class NotifyOnFailedJob
     private function body(JobFailed $event, string $jobClass, int $minutes): string
     {
         $exception = $event->exception;
-        $firstLine = Str::of($exception->getMessage())->before("\n")->limit(self::MESSAGE_LIMIT)->toString();
+        $firstLine = Str::of($exception->getMessage())
+            ->before("\n")
+            // An SMTP refusal names the recipient; the alert inbox needs the error, not the address.
+            ->replaceMatches('/[^\s<>"\'(),;:]+@[^\s<>"\'(),;:]+/u', '[email]')
+            ->limit(self::MESSAGE_LIMIT)
+            ->toString();
 
         return implode("\n", array_filter([
             'A queued job has failed and will not be retried.',
@@ -84,7 +94,7 @@ class NotifyOnFailedJob
             ($requestId = Context::get(AssignRequestId::CONTEXT_KEY)) ? 'Request ID: '.$requestId : null,
             'Environment: '.app()->environment(),
             '',
-            "Further failures of this job class are not mailed for {$minutes} minutes.",
+            "Further failures of this job class with this exception are not mailed for {$minutes} minutes.",
             'Inspect and retry: php artisan queue:failed / queue:retry <uuid> (see infra/deploy.md "Failed jobs").',
         ], fn (?string $line): bool => $line !== null));
     }
