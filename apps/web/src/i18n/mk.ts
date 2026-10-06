@@ -364,6 +364,7 @@ export const mk = {
     sortByRating: "По оцена (рецензии)",
     filtersActive: "Активни филтри",
     department: "Одделение",
+    language: "Јазик",
   },
   pagination: {
     page: "Страница",
@@ -442,6 +443,7 @@ export const mk = {
     resultsCountOne: "{count} профил",
     empty: "Нема лекари што одговараат на филтрите.",
     allSpecialties: "Сите специјалности",
+    allLanguages: "Сите јазици",
     back: "Лекари",
     specialties: "Специјалности",
     facilities: "Работни места",

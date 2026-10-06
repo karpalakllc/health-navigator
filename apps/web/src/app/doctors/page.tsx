@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/directory/empty-state";
 import { Pagination } from "@/components/directory/pagination";
 import { ResultsGrid } from "@/components/directory/results-grid";
 import { fetchDoctors } from "@/lib/api/doctors";
+import { fetchLanguages, knownLanguage } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
@@ -18,6 +19,7 @@ export const metadata: Metadata = pageMetadata(
 type DoctorsPageProps = {
   searchParams: Promise<{
     specialty?: string;
+    language?: string;
     city?: string;
     q?: string;
     sort?: string;
@@ -33,10 +35,19 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   // „Има рецензии“: the only value the UI sends; anything else is ignored.
   const withReviews = params.min_reviews === "1";
 
-  const [specialties, doctors] = await Promise.all([
+  // The filter is optional: without the list, the page still renders.
+  const languagesRequest = fetchLanguages().catch(() => []);
+  // Only a slug the API knows is sent (it answers anything else with 422).
+  const language = params.language
+    ? knownLanguage(params.language, await languagesRequest)
+    : undefined;
+
+  const [specialties, languages, doctors] = await Promise.all([
     fetchSpecialties(),
+    languagesRequest,
     fetchDoctors({
       specialty: params.specialty,
+      language,
       city: params.city,
       q: params.q,
       sort,
@@ -48,6 +59,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const applied = {
     q: params.q ?? "",
     specialty: params.specialty ?? "",
+    language: language ?? "",
     city: params.city ?? "",
     min_reviews: withReviews ? "1" : "",
     sort: sort === "rating" ? "rating" : "",
@@ -57,6 +69,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   return (
     <DoctorsDirectory
       specialties={specialties}
+      languages={languages}
       applied={applied}
       total={doctors.meta.total}
     >
