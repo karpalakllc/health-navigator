@@ -5,6 +5,7 @@ import {
 } from "@/components/account/account-layout";
 import { AccountPageHero } from "@/components/account/account-page-hero";
 import { ChangeList } from "@/components/doctor-dashboard/change-list";
+import { ChangeRequestArea } from "@/components/doctor-dashboard/change-request-area";
 import { DoctorChangeRequestForm } from "@/components/doctor-dashboard/doctor-change-request-form";
 import { DoctorDashboardStats } from "@/components/doctor-dashboard/doctor-dashboard-stats";
 import { DoctorPendingChange } from "@/components/doctor-dashboard/doctor-pending-change";
@@ -151,14 +152,18 @@ export default async function DoctorDashboardPage({
               level={2}
               description={t("doctorDashboard.sensitiveHint")}
             />
-            {dashboard.pending_change_request ? (
-              <DoctorPendingChange request={dashboard.pending_change_request} />
-            ) : (
-              <DoctorChangeRequestForm
-                doctor={doctor}
-                options={dashboard.options}
-              />
-            )}
+            <ChangeRequestArea>
+              {dashboard.pending_change_request ? (
+                <DoctorPendingChange
+                  request={dashboard.pending_change_request}
+                />
+              ) : (
+                <DoctorChangeRequestForm
+                  doctor={doctor}
+                  options={dashboard.options}
+                />
+              )}
+            </ChangeRequestArea>
             {dashboard.recent_change_requests.length > 0 ? (
               <div className="flex flex-col gap-4 border-t border-line pt-6">
                 <h3 className="type-h3 text-ink">

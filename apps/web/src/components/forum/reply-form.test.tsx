@@ -31,6 +31,20 @@ async function reply(body = BODY) {
 }
 
 describe("ReplyForm", () => {
+  it("asks a member with a temporary name to choose one instead of replying", () => {
+    render(
+      <ReplyForm categorySlug="srce" topicSlug="pritisok" mustChooseUsername />,
+    );
+
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: t("usernames.accountNoticeCta") }),
+    ).toHaveAttribute(
+      "href",
+      `/account/username?redirect=${encodeURIComponent("/forum/srce/pritisok#forum-reply")}`,
+    );
+  });
+
   it("requires a message of at least ten characters", async () => {
     const fetch = mockFetch({ status: 201, body: { data: {} } });
     renderForm();

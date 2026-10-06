@@ -65,5 +65,6 @@ export function pick(
 }
 
 export function isPositiveId(value: string): boolean {
-  return /^[1-9][0-9]{0,18}$/.test(value);
+  // At most 18 digits: longer ids overflow a bigint and the API would 500.
+  return /^[1-9][0-9]{0,17}$/.test(value);
 }

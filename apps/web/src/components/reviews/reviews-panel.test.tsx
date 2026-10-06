@@ -29,6 +29,30 @@ function props(
 }
 
 describe("ReviewsPanel", () => {
+  it("asks a member with a temporary name to choose one instead of offering the form", () => {
+    render(
+      <ReviewsPanel
+        {...props({ isLoggedIn: true, mustChooseUsername: true })}
+      />,
+    );
+
+    // The API refuses the review until a username is chosen: do not let the
+    // member write a whole review first.
+    expect(
+      screen.queryByRole("button", { name: t("reviews.submit") }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: t("usernames.accountNoticeCta") }),
+    ).toHaveAttribute(
+      "href",
+      `/account/username?redirect=${encodeURIComponent("/doctors/ana-petrovska#reviews")}`,
+    );
+    // „Напиши рецензија“ (#review-form) lands on the note.
+    expect(document.getElementById("review-form")).toHaveTextContent(
+      t("usernames.accountNotice"),
+    );
+  });
+
   it("sends a signed-out visitor to login and back to these reviews", () => {
     render(<ReviewsPanel {...props()} />);
 

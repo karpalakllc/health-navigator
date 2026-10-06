@@ -17,7 +17,7 @@ type StarRatingInputProps = {
   label?: string;
   /** Overall stars are required; the optional aspect ratings are not. */
   required?: boolean;
-  /** Smaller stars (44px targets) and no „x / 5“ line, for aspect rows. */
+  /** Smaller star icons (still 48px targets) and no „x / 5“ line, for aspect rows. */
   compact?: boolean;
 };
 
@@ -103,7 +103,7 @@ export function StarRatingInput({
             onKeyDown={(event) => handleKeyDown(event, star)}
             className={cn(
               "star-input-star inline-flex items-center justify-center rounded-full text-star transition-colors",
-              compact ? "size-11" : "size-12",
+              "size-12",
               "hover:bg-sand disabled:cursor-not-allowed disabled:hover:bg-transparent",
             )}
             aria-label={starRatingLabel(star)}

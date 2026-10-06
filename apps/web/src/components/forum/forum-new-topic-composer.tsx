@@ -11,6 +11,7 @@ import { Checkbox, Input, Select, Textarea } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { Tag } from "@/components/ui/tag";
+import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
 import { focusField, lengthError } from "@/lib/form-validation";
@@ -43,6 +44,8 @@ type ForumNewTopicComposerProps = {
     PublicSettings,
     "forum_rules_enabled" | "forum_rules_title" | "forum_rules_body"
   >;
+  /** Still a temporary „clen-…“ name: the API refuses the topic. */
+  mustChooseUsername?: boolean;
 };
 
 /**
@@ -54,6 +57,7 @@ export function ForumNewTopicComposer({
   categories,
   defaultCategorySlug,
   settings,
+  mustChooseUsername = false,
 }: ForumNewTopicComposerProps) {
   const router = useRouter();
   const [categorySlug, setCategorySlug] = useState(
@@ -139,6 +143,19 @@ export function ForumNewTopicComposer({
     } finally {
       setPending(false);
     }
+  }
+
+  if (mustChooseUsername) {
+    return (
+      <ChooseUsernameNotice
+        className="max-w-2xl"
+        returnTo={
+          defaultCategorySlug === categorySlug && defaultCategorySlug
+            ? `/forum/new?category=${encodeURIComponent(categorySlug)}`
+            : "/forum/new"
+        }
+      />
+    );
   }
 
   return (

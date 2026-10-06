@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { DoctorReplyEditor } from "@/components/doctor-dashboard/doctor-reply-editor";
 import type { DashboardReview } from "@/lib/api/doctor-dashboard-types";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 import { mockFetch, requestBody } from "../../../test/fetch";
 import { router } from "../../../test/next-navigation";
@@ -69,6 +69,12 @@ describe("DoctorReplyEditor", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(t("doctorDashboard.replyPending"))).toBeVisible();
     expect(router.refresh).toHaveBeenCalled();
+    // The form is gone: focus moves to the saved reply, not to <body>.
+    expect(
+      screen.getByRole("region", {
+        name: tFormat("doctorDashboard.replyFor", { name: "Марија К." }),
+      }),
+    ).toHaveFocus();
   });
 
   it("does not call the API for an empty reply", async () => {
@@ -111,9 +117,19 @@ describe("DoctorReplyEditor", () => {
     await user.click(
       screen.getByRole("button", { name: t("doctorDashboard.replyEdit") }),
     );
-    expect(screen.getByLabelText(t("doctorDashboard.replyLabel"))).toHaveValue(
-      "Се сеќавам на вас.",
+    const field = screen.getByLabelText(t("doctorDashboard.replyLabel"));
+    expect(field).toHaveValue("Се сеќавам на вас.");
+    expect(field).toHaveFocus();
+
+    // Cancel goes back to the reply, with focus on it.
+    await user.click(
+      screen.getByRole("button", { name: t("doctorDashboard.replyCancel") }),
     );
+    expect(
+      screen.getByRole("region", {
+        name: tFormat("doctorDashboard.replyFor", { name: "Марија К." }),
+      }),
+    ).toHaveFocus();
   });
 
   it("deletes the doctor's own reply", async () => {
@@ -145,9 +161,10 @@ describe("DoctorReplyEditor", () => {
     expect(
       await screen.findByText(t("doctorDashboard.replyDeleted")),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(t("doctorDashboard.replyLabel"))).toHaveValue(
-      "",
-    );
+    const field = screen.getByLabelText(t("doctorDashboard.replyLabel"));
+    expect(field).toHaveValue("");
+    // The delete button is gone: focus moves to the empty field.
+    expect(field).toHaveFocus();
   });
 
   it("shows a staff-entered response without any editing control", () => {

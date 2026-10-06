@@ -521,6 +521,7 @@ function CityPickerPanel({
                     city: group.city.name,
                   })
                 : null;
+            const groupDomId = domId(`${group.city.id}-group`);
             const groupLabel = [
               group.city.name,
               group.region,
@@ -546,12 +547,23 @@ function CityPickerPanel({
                   }
                   className={rowClass(activeId === group.city.id, isSelected)}
                 >
-                  <span
-                    aria-hidden="true"
+                  {/* A real button, so that touch and screen-reader users
+                      (who cannot use the arrow keys) can open a town too.
+                      tabIndex -1: keyboard users open it with → from the
+                      filter box, which keeps focus. */}
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-expanded={entry.expanded}
+                    aria-controls={entry.expanded ? groupDomId : undefined}
+                    aria-label={tFormat("homeSearch.cityToggle", {
+                      city: group.city.name,
+                    })}
                     title={tCount(
                       "homeSearch.cityMunicipalities",
                       group.places.length,
                     )}
+                    disabled={entry.forced}
                     data-expand-toggle=""
                     onClick={(event) => {
                       event.stopPropagation();
@@ -559,7 +571,7 @@ function CityPickerPanel({
                         setGroupOpen(group, !entry.expanded);
                       }
                     }}
-                    className="-my-1 -ml-1 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-2 hover:bg-chip-tint"
+                    className="-my-1.5 -ml-3 flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-2 hover:bg-chip-tint disabled:cursor-default"
                   >
                     <Icon
                       name="chevron-right"
@@ -569,7 +581,7 @@ function CityPickerPanel({
                         entry.expanded && "rotate-90",
                       )}
                     />
-                  </span>
+                  </button>
                   <span className="min-w-0 flex-1">
                     <span className="block font-ui font-semibold leading-5">
                       {group.city.name}
@@ -595,7 +607,7 @@ function CityPickerPanel({
                   {isSelected ? <Icon name="check" size={20} /> : null}
                 </div>
                 {entry.expanded && entry.places.length > 0 ? (
-                  <ul role="group" className="flex flex-col">
+                  <ul role="group" id={groupDomId} className="flex flex-col">
                     {entry.places.map((place) => {
                       const id = `${group.city.id}--${place.id}`;
                       const meta = renderMeta(group, place);

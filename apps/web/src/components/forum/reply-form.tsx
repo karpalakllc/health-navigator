@@ -9,6 +9,7 @@ import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { Monogram } from "@/components/ui/user-avatar";
 import { formatCharCounter } from "@/components/forum/char-counter";
+import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import { focusField, lengthError } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
 
@@ -24,9 +25,12 @@ export function ReplyForm({
   categorySlug,
   topicSlug,
   viewer,
+  mustChooseUsername = false,
 }: {
   categorySlug: string;
   topicSlug: string;
+  /** Still a temporary „clen-…“ name: the API refuses the reply. */
+  mustChooseUsername?: boolean;
   /** The signed-in member's public name („Марија К.“) for „Одговарате како“. */
   viewer?: { name: string; initials?: string } | null;
 }) {
@@ -84,6 +88,16 @@ export function ReplyForm({
     } finally {
       setPending(false);
     }
+  }
+
+  if (mustChooseUsername) {
+    // Keeps the anchor the thread's „Одговори“ actions jump to.
+    return (
+      <ChooseUsernameNotice
+        id={REPLY_FORM_ID}
+        returnTo={`/forum/${categorySlug}/${topicSlug}#${REPLY_FORM_ID}`}
+      />
+    );
   }
 
   return (

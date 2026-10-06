@@ -131,7 +131,7 @@ export const MK_PLACE_GROUPS: PlaceGroup[] = [
     places: [
       place("Вевчани", "Vevčani"),
       place("Дебар", "Debar"),
-      place("Дебрца", "Debarca", { seat: "Белчишта" }),
+      place("Дебарца", "Debarca", { seat: "Белчишта" }),
       place("Кичево", "Kičevo"),
       place("Македонски Брод", "Makedonski Brod"),
       place("Пласница", "Plasnica"),

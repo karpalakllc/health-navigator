@@ -30,6 +30,21 @@ describe("foldScript", () => {
     expect(scriptIncludes("Шуто Оризари", "suto")).toBe(true);
     expect(scriptIncludes("Шуто Оризари", "x")).toBe(false);
   });
+
+  it("folds „đ“ (typed on a Serbo-Croatian keyboard for ѓ)", () => {
+    expect(foldScript("Đorče Petrov")).toBe(foldScript("Ѓорче Петров"));
+  });
+});
+
+describe("MK_PLACE_GROUPS names", () => {
+  it("spells every place the same in both scripts", () => {
+    // A wrong Cyrillic name („Дебрца“ for Debarca) is caught here.
+    for (const g of MK_PLACE_GROUPS) {
+      for (const p of [g.city, ...g.places]) {
+        expect(foldScript(p.name), p.latin).toBe(foldScript(p.latin));
+      }
+    }
+  });
 });
 
 describe("MK_PLACE_GROUPS (territorial organisation)", () => {
@@ -96,7 +111,7 @@ describe("cityFilterFor", () => {
   });
 
   it("uses the seat or own name when the cities are unknown", () => {
-    expect(cityFilterFor(placeIn("Охрид", "Дебрца"), group("Охрид"), [])).toBe(
+    expect(cityFilterFor(placeIn("Охрид", "Дебарца"), group("Охрид"), [])).toBe(
       "Белчишта",
     );
     expect(cityFilterFor(placeIn("Охрид", "Струга"), group("Охрид"))).toBe(

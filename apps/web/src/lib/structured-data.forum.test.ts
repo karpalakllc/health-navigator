@@ -53,7 +53,6 @@ describe("forumTopicJsonLd", () => {
       text: topic.body,
       author: { "@type": "Person", name: "ana_m" },
       datePublished: topic.published_at,
-      dateModified: topic.last_post_at,
       keywords: "проширени вени",
       isPartOf: { "@type": "WebPage", name: "Хирургија", url: category.url },
       interactionStatistic: {
@@ -75,6 +74,25 @@ describe("forumTopicJsonLd", () => {
     expect(schemaProblems(data!)).toEqual([]);
   });
 
+  it("does not pass the latest reply off as the topic's edit date", () => {
+    // dateModified is the posting's own edit time; a new reply is not one.
+    const data = forumTopicJsonLd({ topic, posts, url, category });
+
+    expect(topic.last_post_at).not.toBe(topic.published_at);
+    expect(data).not.toHaveProperty("dateModified");
+  });
+
+  it("links replies on a later page to that page, the posting to page 1", () => {
+    const pageUrl = `${url}?page=2`;
+    const data = forumTopicJsonLd({ topic, posts, url, pageUrl, category });
+
+    expect(data).toMatchObject({ url, mainEntityOfPage: url });
+    expect(data?.comment).toEqual([
+      expect.objectContaining({ url: `${pageUrl}#post-11` }),
+      expect.objectContaining({ url: `${pageUrl}#post-12` }),
+    ]);
+  });
+
   it("does not invent a profile URL for authors (members have none)", () => {
     const data = forumTopicJsonLd({ topic, posts, url, category });
 
@@ -83,13 +101,12 @@ describe("forumTopicJsonLd", () => {
     );
   });
 
-  it("leaves out comment, keywords and dateModified when there is nothing to say", () => {
+  it("leaves out comment and keywords when there is nothing to say", () => {
     const data = forumTopicJsonLd({
       topic: {
         ...topic,
         tags: [],
         replies_count: 0,
-        last_post_at: topic.published_at,
       },
       posts: [],
       url,

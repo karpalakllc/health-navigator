@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
@@ -64,6 +64,21 @@ export function DoctorReplyEditor({
   const [notice, setNotice] = useState<string | null>(null);
   const errorId = useId();
   const reply = review.reply;
+  // Saving, deleting, editing and cancelling each unmount the control that
+  // was used; move focus to what replaced it instead of losing it to <body>.
+  // Read after the re-render the change causes, then cleared.
+  const focusTo = useRef<"reply" | "field" | null>(null);
+  const replyRef = useRef<HTMLElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (focusTo.current === "reply") {
+      replyRef.current?.focus();
+    } else if (focusTo.current === "field") {
+      formRef.current?.querySelector("textarea")?.focus();
+    }
+    focusTo.current = null;
+  });
 
   async function send(method: "PUT" | "DELETE") {
     setError(null);
@@ -111,6 +126,7 @@ export function DoctorReplyEditor({
       }
 
       setEditing(method === "DELETE");
+      focusTo.current = method === "DELETE" ? "field" : "reply";
       setNotice(
         method === "DELETE"
           ? t("doctorDashboard.replyDeleted")
@@ -144,6 +160,8 @@ export function DoctorReplyEditor({
     <div className="flex flex-col gap-3">
       {reply && !editing ? (
         <section
+          ref={replyRef}
+          tabIndex={-1}
           aria-label={tFormat("doctorDashboard.replyFor", {
             name: review.author_name,
           })}
@@ -170,6 +188,7 @@ export function DoctorReplyEditor({
               onClick={() => {
                 setEditing(true);
                 setNotice(null);
+                focusTo.current = "field";
               }}
             >
               {t("doctorDashboard.replyEdit")}
@@ -190,6 +209,7 @@ export function DoctorReplyEditor({
         </section>
       ) : (
         <form
+          ref={formRef}
           noValidate
           className="flex flex-col gap-3"
           onSubmit={(event) => {
@@ -232,6 +252,7 @@ export function DoctorReplyEditor({
                   setEditing(false);
                   setBody(reply.body);
                   setError(null);
+                  focusTo.current = "reply";
                 }}
               >
                 {t("doctorDashboard.replyCancel")}

@@ -132,6 +132,20 @@ describe("/api/doctor-dashboard/reviews/[id]/reply", () => {
     expect(response.status).toBe(404);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("refuses an id longer than a database id can be", async () => {
+    // 19 digits overflow bigint; the API answered such ids with a 500.
+    const response = await deleteReply(
+      new Request(`${SITE}/api/doctor-dashboard/reviews/x/reply`, {
+        method: "DELETE",
+        headers: { origin: SITE },
+      }),
+      { params: Promise.resolve({ id: "9999999999999999999" }) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/doctor-dashboard/claim", () => {
