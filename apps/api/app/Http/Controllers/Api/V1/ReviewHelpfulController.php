@@ -4,11 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
-use App\Models\Doctor;
-use App\Models\Facility;
 use App\Models\Review;
 use App\Support\ReviewHelpfulVotes;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -43,7 +40,7 @@ class ReviewHelpfulController extends Controller
         return Review::query()
             ->approved()
             ->whereKey($id)
-            ->whereHasMorph('reviewable', [Doctor::class, Facility::class], fn (Builder $query) => $query->where('is_published', true))
+            ->onPublicProfile()
             ->firstOrFail();
     }
 }

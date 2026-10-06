@@ -73,6 +73,7 @@ return [
     'report' => [
         'received' => 'Thank you. The report has been received and a moderator will review it.',
         'hidden_default_note' => 'The content was removed after a report and a moderator review because it does not follow the community rules.',
+        'own_content' => 'You cannot report your own content.',
     ],
 
     'avatar' => [

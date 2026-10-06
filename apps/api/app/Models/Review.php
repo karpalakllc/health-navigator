@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ReviewAggregates;
@@ -141,6 +142,34 @@ class Review extends Model
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ReviewStatus::Approved);
+    }
+
+    /**
+     * Reviews of a profile the public can open: a published doctor or
+     * facility, and a pharmacy only while the pharmacies module is on.
+     *
+     * @param  Builder<Review>  $query
+     * @return Builder<Review>
+     */
+    public function scopeOnPublicProfile(Builder $query): Builder
+    {
+        $facilityTypes = FacilityType::clinicalValues();
+
+        if (SiteSetting::current()->public_pharmacies) {
+            $facilityTypes[] = FacilityType::Pharmacy->value;
+        }
+
+        return $query->whereHasMorph(
+            'reviewable',
+            [Doctor::class, Facility::class],
+            function (Builder $profile, string $type) use ($facilityTypes): void {
+                $profile->where('is_published', true);
+
+                if ($type === Facility::class) {
+                    $profile->whereIn('type', $facilityTypes);
+                }
+            },
+        );
     }
 
     public function approve(User $moderator): void

@@ -4,7 +4,9 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\ContentReport;
 use App\Models\Doctor;
+use App\Models\Facility;
 use App\Models\Review;
+use App\Models\SiteSetting;
 use App\Models\User;
 use App\Support\ReviewHelpfulVotes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +37,20 @@ class ReviewHelpfulTest extends TestCase
             'reviewable_id' => $this->doctor->id,
             ...$attributes,
         ]);
+    }
+
+    public function test_pharmacy_reviews_cannot_be_voted_on_while_the_module_is_off(): void
+    {
+        $pharmacy = Facility::factory()->pharmacy()->create(['is_published' => true]);
+        $review = Review::factory()->approved()->create(['reviewable_type' => Facility::class, 'reviewable_id' => $pharmacy->id]);
+        SiteSetting::current()->update(['public_pharmacies' => false]);
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->putJson("/api/v1/reviews/{$review->id}/helpful")->assertNotFound();
+        $this->deleteJson("/api/v1/reviews/{$review->id}/helpful")->assertNotFound();
+
+        SiteSetting::current()->update(['public_pharmacies' => true]);
+        $this->putJson("/api/v1/reviews/{$review->id}/helpful")->assertOk();
     }
 
     public function test_a_member_marks_and_unmarks_a_review_idempotently(): void

@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreContentReportRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\ContentReport;
-use App\Models\Doctor;
-use App\Models\Facility;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -16,11 +14,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Member reports of published content (docs/notice-and-action.md). Only what
- * the public can see can be reported, so a hidden or pending item answers 404
- * exactly as its public page does. Reporting the same item twice is not an
+ * the public can see can be reported, so a hidden or pending item (or a
+ * pharmacy review while that module is off) answers 404 exactly as its public
+ * page does. A member's own content answers 422. Reporting the same item twice is not an
  * error: the first report stands and the answer is the same, so a retry or a
  * double click cannot fill the queue.
  */
@@ -31,7 +31,7 @@ class ContentReportController extends Controller
         $model = Review::query()
             ->approved()
             ->whereKey($review)
-            ->whereHasMorph('reviewable', [Doctor::class, Facility::class], fn (Builder $query) => $query->where('is_published', true))
+            ->onPublicProfile()
             ->firstOrFail();
 
         return $this->store($model, $request);
@@ -55,6 +55,13 @@ class ContentReportController extends Controller
 
     private function store(Model $reportable, StoreContentReportRequest $request): JsonResponse
     {
+        // Authors take their own content down by asking, not by reporting it.
+        if ((int) $reportable->getAttribute('user_id') === (int) $request->user()->getKey()) {
+            throw ValidationException::withMessages([
+                'content' => [__('api.report.own_content')],
+            ]);
+        }
+
         $attributes = [
             'user_id' => $request->user()->getKey(),
             'reportable_type' => $reportable::class,

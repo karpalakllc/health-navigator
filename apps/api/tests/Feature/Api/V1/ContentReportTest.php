@@ -11,10 +11,12 @@ use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcRejectedMail;
 use App\Models\ContentReport;
 use App\Models\Doctor;
+use App\Models\Facility;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
+use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -115,6 +117,38 @@ class ContentReportTest extends TestCase
         $this->postJson("/api/v1/forum/posts/{$postInHiddenCategory->id}/reports", ['reason' => 'spam'])->assertNotFound();
         $this->postJson("/api/v1/forum/categories/{$hiddenCategory->slug}/topics/{$topicInHiddenCategory->slug}/reports", ['reason' => 'spam'])
             ->assertNotFound();
+
+        $this->assertSame(0, ContentReport::query()->count());
+    }
+
+    public function test_pharmacy_reviews_cannot_be_reported_while_the_module_is_off(): void
+    {
+        $pharmacy = Facility::factory()->pharmacy()->create(['is_published' => true]);
+        $review = Review::factory()->approved()->create(['reviewable_type' => Facility::class, 'reviewable_id' => $pharmacy->id]);
+        SiteSetting::current()->update(['public_pharmacies' => false]);
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson("/api/v1/reviews/{$review->id}/reports", ['reason' => 'spam'])->assertNotFound();
+
+        SiteSetting::current()->update(['public_pharmacies' => true]);
+        $this->postJson("/api/v1/reviews/{$review->id}/reports", ['reason' => 'spam'])->assertCreated();
+    }
+
+    public function test_members_cannot_report_their_own_content(): void
+    {
+        $member = User::factory()->create();
+        $review = $this->approvedReview(null, ['user_id' => $member->id]);
+        $topic = ForumTopic::factory()->create(['user_id' => $member->id]);
+        $post = ForumPost::factory()->create(['user_id' => $member->id]);
+        Sanctum::actingAs($member);
+
+        $this->postJson("/api/v1/reviews/{$review->id}/reports", ['reason' => 'spam'])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.content.0', __('api.report.own_content'));
+        $this->postJson("/api/v1/forum/categories/{$topic->category->slug}/topics/{$topic->slug}/reports", ['reason' => 'spam'])
+            ->assertUnprocessable();
+        $this->postJson("/api/v1/forum/posts/{$post->id}/reports", ['reason' => 'spam'])
+            ->assertUnprocessable();
 
         $this->assertSame(0, ContentReport::query()->count());
     }
