@@ -119,6 +119,7 @@ export function DirectoryListView({
   const searchStrip = (
     <form
       role="search"
+      aria-label={t("directory.searchLabel")}
       action={basePath}
       method="get"
       onSubmit={(event) => {
@@ -203,6 +204,11 @@ export function DirectoryListView({
             key={filter.name}
             label={filter.label}
             removeHref={hrefFor({ ...applied, [filter.name]: "" })}
+            onRemove={() => {
+              set(filter.name, "");
+              // The chip is about to disappear; don't drop focus on <body>.
+              headingRef.current?.focus();
+            }}
           />
         ))}
       </div>
@@ -211,7 +217,10 @@ export function DirectoryListView({
   return (
     <div className="mx-auto flex w-full max-w-[1240px] min-w-0 flex-col px-5 pb-10 lg:px-6 lg:pb-20">
       {/* Mobile: the search strip stays under the header while scrolling. */}
-      <div className="sticky top-[var(--header-h)] z-20 -mx-5 bg-cream px-5 pb-3 pt-2 lg:hidden">
+      <div
+        data-sticky-search-strip
+        className="sticky top-[var(--header-h)] z-20 -mx-5 bg-cream px-5 pb-3 pt-2 lg:hidden"
+      >
         {searchStrip}
       </div>
 

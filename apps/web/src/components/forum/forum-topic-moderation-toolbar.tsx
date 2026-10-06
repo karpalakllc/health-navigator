@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FormError } from "@/components/ui/form-message";
+import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { t } from "@/i18n/t";
 
@@ -15,10 +15,30 @@ type ForumTopicModerationToolbarProps = {
   isLocked: boolean;
 };
 
+type ModerationPatch = { is_pinned?: boolean; is_locked?: boolean };
+
+function doneMessage(patch: ModerationPatch): string | null {
+  if (typeof patch.is_pinned === "boolean") {
+    return t(
+      patch.is_pinned ? "forum.topicPinnedDone" : "forum.topicUnpinnedDone",
+    );
+  }
+  if (typeof patch.is_locked === "boolean") {
+    return t(
+      patch.is_locked ? "forum.topicLockedDone" : "forum.topicUnlockedDone",
+    );
+  }
+  return null;
+}
+
 /**
  * Moderators only: pin/lock on a sand strip above the thread. Each button
  * names the action it will take („Откачи тема“ while pinned); the state itself
  * shows as the „Закачено“ / „Заклучено“ tags by the title after the refresh.
+ *
+ * While a change saves, the pressed button stays focusable (loading, not
+ * disabled), so keyboard focus isn't dropped on <body>; the outcome is
+ * announced in a polite live region.
  */
 export function ForumTopicModerationToolbar({
   categorySlug,
@@ -30,13 +50,15 @@ export function ForumTopicModerationToolbar({
   const [isPinned, setIsPinned] = useState(initialPinned);
   const [isLocked, setIsLocked] = useState(initialLocked);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function updateModeration(patch: {
-    is_pinned?: boolean;
-    is_locked?: boolean;
-  }) {
+  async function updateModeration(patch: ModerationPatch) {
+    if (pending) {
+      return;
+    }
     setError(null);
+    setDone(null);
     setPending(true);
 
     try {
@@ -65,6 +87,7 @@ export function ForumTopicModerationToolbar({
         setIsLocked(payload.data.is_locked);
       }
 
+      setDone(doneMessage(patch));
       router.refresh();
     } catch {
       setError(t("forum.moderationErrorRetry"));
@@ -92,14 +115,14 @@ export function ForumTopicModerationToolbar({
         <div className="flex flex-wrap gap-2">
           <Button
             variant="white"
-            disabled={pending}
+            loading={pending}
             onClick={() => updateModeration({ is_pinned: !isPinned })}
           >
             {isPinned ? t("forum.unpinTopic") : t("forum.pinTopic")}
           </Button>
           <Button
             variant="white"
-            disabled={pending}
+            loading={pending}
             onClick={() => updateModeration({ is_locked: !isLocked })}
           >
             {isLocked ? t("forum.unlockTopic") : t("forum.lockTopic")}
@@ -107,6 +130,7 @@ export function ForumTopicModerationToolbar({
         </div>
       </div>
       {error ? <FormError>{error}</FormError> : null}
+      <FormSuccess>{done}</FormSuccess>
     </Card>
   );
 }

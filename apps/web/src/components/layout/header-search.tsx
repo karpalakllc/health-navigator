@@ -15,6 +15,7 @@ export function HeaderSearch() {
   return (
     <form
       role="search"
+      aria-label={t("nav.searchLandmark")}
       action="/search"
       method="get"
       className="flex h-14 w-full items-center gap-3 rounded-full bg-white pl-5 pr-1.5 shadow-card"

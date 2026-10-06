@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { t, tFormat } from "@/i18n/t";
@@ -34,9 +34,16 @@ export function FilterGroup({
 
 export type ChoiceOption = { value: string; label: string };
 
+const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
 /**
  * A single choice shown as chips (a radio group): „Сите“ + the options.
  * Long lists show the first `visible` options and a „Сите N“ toggle.
+ *
+ * A click applies at once. Arrow keys move the selection the native radio
+ * way but only stage it, so walking past five specialties doesn't fire five
+ * navigations: the staged choice applies on Enter or Space, or when focus
+ * leaves the group.
  */
 export function ChoiceChips({
   legend,
@@ -56,8 +63,18 @@ export function ChoiceChips({
   visible?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [staged, setStaged] = useState<string | null>(null);
+  const arrowed = useRef(false);
   const listId = useId();
-  const selectedIndex = options.findIndex((o) => o.value === value);
+  const current = staged ?? value;
+  const selectedIndex = options.findIndex((o) => o.value === current);
+
+  function apply(next: string) {
+    setStaged(null);
+    if (next !== value) {
+      onChange(next);
+    }
+  }
   // Never hide the chosen option behind „Сите N“.
   const limit = Math.max(visible, selectedIndex + 1);
   const shown = expanded ? options : options.slice(0, limit);
@@ -65,9 +82,40 @@ export function ChoiceChips({
 
   return (
     <FilterGroup legend={legend}>
-      <div id={listId} className="flex flex-wrap gap-2">
+      <div
+        id={listId}
+        className="flex flex-wrap gap-2"
+        onKeyDown={(event) => {
+          if (ARROW_KEYS.has(event.key)) {
+            arrowed.current = true;
+          } else if (
+            (event.key === "Enter" || event.key === " ") &&
+            staged !== null
+          ) {
+            // Enter would otherwise submit the surrounding form.
+            event.preventDefault();
+            apply(staged);
+          }
+        }}
+        // The radio changes during the arrow's keydown; anything after that
+        // (a click, another key) is not an arrow move.
+        onKeyUp={() => {
+          arrowed.current = false;
+        }}
+        onPointerDown={() => {
+          arrowed.current = false;
+        }}
+        onBlur={(event) => {
+          if (
+            staged !== null &&
+            !event.currentTarget.contains(event.relatedTarget as Node | null)
+          ) {
+            apply(staged);
+          }
+        }}
+      >
         {[{ value: "", label: allLabel }, ...shown].map((option) => {
-          const checked = option.value === value;
+          const checked = option.value === current;
 
           return (
             <label
@@ -79,7 +127,14 @@ export function ChoiceChips({
                 name={name}
                 value={option.value}
                 checked={checked}
-                onChange={() => onChange(option.value)}
+                onChange={() => {
+                  if (arrowed.current) {
+                    arrowed.current = false;
+                    setStaged(option.value);
+                    return;
+                  }
+                  apply(option.value);
+                }}
                 className="sr-only"
               />
               {checked ? <Icon name="check" size={18} /> : null}

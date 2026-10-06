@@ -79,6 +79,7 @@ function HeroSearchForm() {
   return (
     <form
       role="search"
+      aria-label={t("nav.searchLandmark")}
       action="/search"
       method="get"
       className="mt-5 rounded-card bg-white p-2 shadow-card lg:hidden"

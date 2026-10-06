@@ -48,7 +48,7 @@ export function Pagination({
   return (
     <nav
       className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-between"
-      aria-label="Pagination"
+      aria-label={t("pagination.label")}
     >
       <p className="type-meta order-first text-ink-2 sm:order-none">
         {t("pagination.page")} {currentPage} {t("pagination.of")} {lastPage} (

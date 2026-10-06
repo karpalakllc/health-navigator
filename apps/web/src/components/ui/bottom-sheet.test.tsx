@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
@@ -75,6 +75,49 @@ describe("BottomSheet", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Отвори" })).toHaveFocus();
     expect(document.body.style.overflow).toBe("");
+  });
+
+  it("makes the rest of the page inert while open, and gives it back", async () => {
+    const user = await openSheet();
+    const opener = screen.getByRole("button", { name: "Отвори", hidden: true });
+    const page = opener.closest("body > *") as HTMLElement;
+    const dialog = screen.getByRole("dialog");
+
+    expect(page).toHaveAttribute("inert");
+    expect(dialog.closest("[inert]")).toBeNull();
+
+    await user.keyboard("{Escape}");
+
+    expect(page).not.toHaveAttribute("inert");
+  });
+
+  it("pins the body (iOS-safe scroll lock) and restores the scroll position", async () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+    Object.defineProperty(window, "scrollY", {
+      value: 640,
+      configurable: true,
+    });
+    try {
+      const user = await openSheet();
+
+      expect(document.body.style.position).toBe("fixed");
+      expect(document.body.style.top).toBe("-640px");
+
+      await user.keyboard("{Escape}");
+
+      expect(document.body.style.position).toBe("");
+      expect(document.body.style.top).toBe("");
+      expect(scrollTo).toHaveBeenCalledWith(
+        expect.objectContaining({ top: 640 }),
+      );
+    } finally {
+      Object.defineProperty(window, "scrollY", {
+        value: 0,
+        configurable: true,
+      });
+      vi.unstubAllGlobals();
+    }
   });
 
   it("closes from its × button", async () => {

@@ -635,7 +635,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
  */
 function StickyContinue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+    <div
+      data-sticky-action-bar
+      className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+    >
       {children}
     </div>
   );

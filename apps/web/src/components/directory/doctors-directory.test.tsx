@@ -118,13 +118,55 @@ describe("Doctors filter sheet", () => {
     ).toBeInTheDocument();
   });
 
-  it("applies a choice at once, without scrolling the page", async () => {
+  it("applies a choice at once as a new history entry, without scrolling", async () => {
     const { user, sheet } = await openSheet();
 
     await user.click(within(sheet).getByRole("radio", { name: "Педијатрија" }));
 
-    expect(router.replace).toHaveBeenCalledWith(
-      "/doctors?specialty=pedijatrija",
+    // push, so the browser's Back undoes the filter.
+    expect(router.push).toHaveBeenCalledWith("/doctors?specialty=pedijatrija", {
+      scroll: false,
+    });
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("only stages a choice moved with the arrow keys; Enter applies it", async () => {
+    const { user, sheet } = await openSheet();
+    const all = within(sheet).getByRole("radio", {
+      name: t("doctors.allSpecialties"),
+    });
+
+    all.focus();
+    await user.keyboard("{ArrowRight}");
+    await user.keyboard("{ArrowRight}");
+
+    expect(
+      within(sheet).getByRole("radio", { name: "Педијатрија" }),
+    ).toBeChecked();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+
+    await user.keyboard("{Enter}");
+
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith("/doctors?specialty=pedijatrija", {
+      scroll: false,
+    });
+  });
+
+  it("applies a staged arrow-key choice when focus leaves the group", async () => {
+    const { user, sheet } = await openSheet();
+
+    within(sheet)
+      .getByRole("radio", { name: t("doctors.allSpecialties") })
+      .focus();
+    await user.keyboard("{ArrowRight}");
+    expect(router.push).not.toHaveBeenCalled();
+
+    await user.tab();
+
+    expect(router.push).toHaveBeenCalledWith(
+      "/doctors?specialty=kardiologija",
       { scroll: false },
     );
   });
@@ -151,6 +193,38 @@ describe("Doctors filter sheet", () => {
         `/doctors?city=${encodeURIComponent("Битола")}`,
         { scroll: false },
       );
+      // Typing replaces the entry; it never stacks one per pause.
+      expect(router.push).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops a pending typing debounce when a link is followed", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      render(
+        <DoctorsDirectory specialties={specialties} applied={none} total={3}>
+          {/* A plain anchor stands in for a result card's <Link> (which
+              renders one); the click reaches the document the same way. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/doctors/ana">д-р Ана</a>
+        </DoctorsDirectory>,
+      );
+      await user.type(
+        screen.getAllByRole("searchbox", { name: t("doctors.queryLabel") })[0],
+        "Ан",
+      );
+      const link = screen.getByRole("link", { name: "д-р Ана" });
+      link.addEventListener("click", (event) => event.preventDefault());
+      await user.click(link);
+      await act(() => vi.advanceTimersByTimeAsync(700));
+
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
@@ -165,7 +239,7 @@ describe("Doctors filter sheet", () => {
 
     await user.click(within(sheet).getByRole("button", { name: "Исчисти" }));
 
-    expect(router.replace).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       `/doctors?q=${encodeURIComponent("Ана")}`,
       { scroll: false },
     );
@@ -202,5 +276,32 @@ describe("Doctors active filters", () => {
     expect(
       screen.getByRole("link", { name: "Отстрани филтер: Скопје" }),
     ).toHaveAttribute("href", "/doctors?specialty=kardiologija");
+  });
+
+  it("removing one (with JS) pushes the new URL and moves focus to the results heading", async () => {
+    const user = userEvent.setup();
+    renderList({ specialty: "kardiologija", city: "Скопје" });
+
+    await user.click(
+      screen.getByRole("link", { name: "Отстрани филтер: Скопје" }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
+      "/doctors?specialty=kardiologija",
+      { scroll: false },
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: t("doctors.title") }),
+    ).toHaveFocus();
+  });
+});
+
+describe("Doctors search landmark", () => {
+  it("is named, so it is told apart from the header's site search", () => {
+    renderList();
+
+    expect(
+      screen.getByRole("search", { name: t("directory.searchLabel") }),
+    ).toBeInTheDocument();
   });
 });
