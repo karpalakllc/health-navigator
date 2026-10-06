@@ -33,6 +33,16 @@ describe("parseDays", () => {
     ["Секој ден", [0, 1, 2, 3, 4, 5, 6]],
     ["Секој ден во неделата", [0, 1, 2, 3, 4, 5, 6]],
     ["Работни денови и Сабота", [0, 1, 2, 3, 4, 5]],
+    ["Понеделник до Петок", [0, 1, 2, 3, 4]],
+    ["Пон до Пет", [0, 1, 2, 3, 4]],
+    ["од Понеделник до Петок", [0, 1, 2, 3, 4]],
+    ["Пон. – Пет.", [0, 1, 2, 3, 4]],
+    ["Понеделник — Сабота", [0, 1, 2, 3, 4, 5]],
+    ["Сабота–Недела", [5, 6]],
+    ["Pon–Pet", [0, 1, 2, 3, 4]],
+    ["ponedelnik do petok", [0, 1, 2, 3, 4]],
+    ["Sab, Ned", [5, 6]],
+    ["Čet", [3]],
   ])("reads %s", (label, days) => {
     expect(parseDays(label)).toEqual(days);
   });
@@ -40,6 +50,14 @@ describe("parseDays", () => {
   it("gives up on labels it does not know rather than guessing", () => {
     expect(parseDays("Празници")).toEqual([]);
     expect(parseDays("Пон–Празник")).toEqual([]);
+  });
+
+  it("matches whole day words, not any word that starts like one", () => {
+    expect(parseDays("Неделно")).toEqual([]);
+    expect(parseDays("Средно")).toEqual([]);
+    expect(parseDays("Петочно попладне")).toEqual([]);
+    expect(parseDays("Понеделник попладне")).toEqual([]);
+    expect(parseDays("Пон до")).toEqual([]);
   });
 });
 
@@ -213,5 +231,74 @@ describe("openStatus", () => {
     expect(
       openStatus(officeHoursRows({ Вто: "22:00–02:00" }, now), now),
     ).toEqual({ state: "closed", todayHours: "22:00–02:00" });
+  });
+
+  it("reads „Понеделник до Петок“ as the whole working week", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows({ "Понеделник до Петок": "08:00–14:00" }, now);
+    expect(rows[0].isToday).toBe(true);
+    expect(openStatus(rows, now)).toEqual({ state: "open", until: "14:00" });
+  });
+
+  it("does not take „Неделно“ for Sunday", () => {
+    const sunday = new Date("2026-10-11T10:00:00+02:00");
+    const rows = officeHoursRows(
+      { "Пон–Пет": "08:00–14:00", Неделно: "08:00–14:00" },
+      sunday,
+    );
+    expect(rows[1].days).toEqual([]);
+    expect(openStatus(rows, sunday)).toBeNull();
+  });
+
+  it("combines a split shift typed over two rows", () => {
+    const hours = { "Пон–Пет": "08:00–12:00", "Вто, Чет": "16:00–20:00" };
+
+    const morning = tuesdayAt("10:00");
+    expect(openStatus(officeHoursRows(hours, morning), morning)).toEqual({
+      state: "open",
+      until: "12:00",
+    });
+
+    const evening = tuesdayAt("17:00");
+    expect(openStatus(officeHoursRows(hours, evening), evening)).toEqual({
+      state: "open",
+      until: "20:00",
+    });
+
+    const lunch = tuesdayAt("13:00");
+    expect(openStatus(officeHoursRows(hours, lunch), lunch)).toEqual({
+      state: "closed",
+      todayHours: "08:00–12:00, 16:00–20:00",
+    });
+  });
+
+  it("lists today's rows in time order when closed", () => {
+    const now = tuesdayAt("21:00");
+    const rows = officeHoursRows(
+      { "Вто, Чет": "16:00–20:00", "Пон–Пет": "08:00–12:00" },
+      now,
+    );
+    expect(openStatus(rows, now)).toEqual({
+      state: "closed",
+      todayHours: "08:00–12:00, 16:00–20:00",
+    });
+  });
+
+  it("is open until the last of touching ranges ends", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows(
+      { "Пон–Пет": "08:00–12:00", Вто: "12:00–16:00" },
+      now,
+    );
+    expect(openStatus(rows, now)).toEqual({ state: "open", until: "16:00" });
+  });
+
+  it("does not guess when today's rows disagree", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows(
+      { "Пон–Пет": "08:00–14:00", Вто: "Затворено" },
+      now,
+    );
+    expect(openStatus(rows, now)).toBeNull();
   });
 });

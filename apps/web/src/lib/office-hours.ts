@@ -14,15 +14,40 @@ export const SKOPJE_TIME_ZONE = "Europe/Skopje";
 /** Monday = 0 … Sunday = 6. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-const DAY_STEMS: Record<string, Weekday> = {
-  пон: 0,
-  вто: 1,
-  сре: 2,
-  чет: 3,
-  пет: 4,
-  саб: 5,
-  нед: 6,
-};
+/*
+ * Whole day words only, matched after lower-casing and dropping a trailing
+ * dot: full names, the usual abbreviations and their Latin transliterations.
+ * A prefix match would read „Неделно“ as Sunday or „Понеделник до Петок“ as
+ * Monday alone.
+ */
+const DAY_WORDS: Record<string, Weekday> = {};
+const DAY_SPELLINGS: [Weekday, string[]][] = [
+  [0, ["понеделник", "пон", "пн", "ponedelnik", "pon", "pn", "mon", "monday"]],
+  [1, ["вторник", "вто", "вт", "vtornik", "vto", "vt", "tue", "tuesday"]],
+  [2, ["среда", "сре", "ср", "sreda", "sre", "sr", "wed", "wednesday"]],
+  [
+    3,
+    [
+      "четврток",
+      "чет",
+      "чт",
+      "chetvrtok",
+      "cetvrtok",
+      "četvrtok",
+      "chet",
+      "cet",
+      "čet",
+      "thu",
+      "thursday",
+    ],
+  ],
+  [4, ["петок", "пет", "пт", "petok", "pet", "pt", "fri", "friday"]],
+  [5, ["сабота", "саб", "сб", "sabota", "sab", "sb", "sat", "saturday"]],
+  [6, ["недела", "нед", "нд", "nedela", "ned", "nd", "sun", "sunday"]],
+];
+for (const [day, words] of DAY_SPELLINGS) {
+  for (const word of words) DAY_WORDS[word] = day;
+}
 
 type Range = { from: number; to: number };
 
@@ -45,8 +70,8 @@ export type OpenStatus =
   | { state: "closed"; todayHours: string | null };
 
 function dayFromWord(word: string): Weekday | null {
-  const stem = word.trim().toLowerCase().slice(0, 3);
-  return stem in DAY_STEMS ? DAY_STEMS[stem] : null;
+  const key = word.trim().toLowerCase().replace(/\.$/, "");
+  return key in DAY_WORDS ? DAY_WORDS[key] : null;
 }
 
 const WORKDAYS: Weekday[] = [0, 1, 2, 3, 4];
@@ -69,7 +94,7 @@ function daysFromPhrase(part: string): Weekday[] | null {
 }
 
 /**
- * „Пон“ → [0]; „Пон–Пет“ → [0…4]; „Саб, Нед“ → [5, 6];
+ * „Пон“ → [0]; „Пон–Пет“ / „Пон до Пет“ → [0…4]; „Саб, Нед“ → [5, 6];
  * „Работни денови“ → [0…4]; „Викенд“ → [5, 6]; „Секој ден“ → [0…6].
  */
 export function parseDays(label: string): Weekday[] {
@@ -81,7 +106,12 @@ export function parseDays(label: string): Weekday[] {
       phrase.forEach((d) => days.add(d));
       continue;
     }
-    const bounds = part.split(/\s*[–—-]\s*/).filter(Boolean);
+    // „Пон–Пет“, „Пон - Пет“, „Понеделник до Петок“, „од Пон до Пет“.
+    const bounds = part
+      .trim()
+      .replace(/^(од|od)\s+/i, "")
+      .split(/\s*[–—-]\s*|\s+(?:до|do)\s+/i)
+      .filter(Boolean);
     if (bounds.length === 1) {
       const day = dayFromWord(bounds[0]);
       if (day === null) return [];
@@ -174,11 +204,22 @@ function hhmm(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function contains(range: Range, minutes: number): boolean {
+  return range.to > range.from
+    ? minutes >= range.from && minutes < range.to
+    : minutes >= range.from;
+}
+
 /**
  * Open right now? Only answered when the hours parse: null means "we can't
  * tell", and the UI then says nothing rather than guessing — in particular
  * when today is not covered by any parsed row but some row did not parse
- * (it may well be the one that covers today).
+ * (it may well be the one that covers today), or when the rows for today
+ * disagree („Пон–Пет: 08:00–14:00“ next to „Сре: Затворено“).
+ *
+ * Every row that covers today counts, so a split shift typed over two rows
+ * („Пон–Пет: 08:00–12:00“, „Пон–Пет: 16:00–20:00“) reads as one day. Ranges
+ * that touch („08:00–12:00“, „12:00–16:00“) are open until the last one ends.
  *
  * An overnight range („20:00–02:00“) belongs to the day it starts on: it
  * keeps that day open until midnight and the next day open until it ends.
@@ -194,42 +235,73 @@ export function openStatus(
   const hasUnparsed = parsed.length < rows.length;
 
   const { day, minutes } = skopjeClock(now);
-  const today = parsed.find((row) => row.days.includes(day));
+  const todayRows = parsed.filter((row) => row.days.includes(day));
   const yesterday = ((day + 6) % 7) as Weekday;
-  const previous = parsed.find((row) => row.days.includes(yesterday));
+  const previousRanges = parsed
+    .filter((row) => row.days.includes(yesterday) && !row.closed)
+    .flatMap((row) => row.ranges);
 
-  if (
-    today &&
-    !today.closed &&
-    today.ranges.some((r) => r.from === 0 && r.to === 24 * 60)
-  ) {
-    return { state: "open24" };
+  const openRows = todayRows.filter((row) => !row.closed);
+  const todayRanges = openRows.flatMap((row) => row.ranges);
+
+  if (todayRanges.some((r) => r.from === 0 && r.to === 24 * 60)) {
+    return todayRows.some((row) => row.closed) ? null : { state: "open24" };
   }
 
   // Still inside last night's overnight range?
-  const carriedOver = previous?.closed
-    ? undefined
-    : previous?.ranges.find((r) => r.to < r.from && minutes < r.to);
-  if (carriedOver) {
-    return { state: "open", until: hhmm(carriedOver.to) };
+  const carriedOver = previousRanges
+    .filter((r) => r.to < r.from && minutes < r.to)
+    .map((r) => r.to);
+  // Today's ranges carry on from wherever the current opening ends.
+  const extend = (until: number): number => {
+    for (;;) {
+      const next = todayRanges.find(
+        (r) => r.from <= until && (r.to <= r.from || r.to > until),
+      );
+      if (!next) return until;
+      // An overnight range runs past midnight: its end is tomorrow's time.
+      if (next.to <= next.from) return next.to;
+      until = next.to;
+    }
+  };
+
+  if (carriedOver.length > 0) {
+    return { state: "open", until: hhmm(extend(Math.max(...carriedOver))) };
   }
 
-  if (!today) {
+  if (todayRows.length === 0) {
     return hasUnparsed ? null : { state: "closed", todayHours: null };
   }
-  if (today.closed) {
+  if (openRows.length === 0) {
     return { state: "closed", todayHours: null };
   }
-  if (today.ranges.length === 0) {
-    // „По договор“ and the like: something is written, but not a time.
+  if (
+    openRows.length < todayRows.length ||
+    openRows.some((row) => row.ranges.length === 0)
+  ) {
+    // A row says closed while another gives hours, or something is written
+    // that is not a time („По договор“): do not guess.
     return null;
   }
 
-  const current = today.ranges.find((r) =>
-    r.to > r.from ? minutes >= r.from && minutes < r.to : minutes >= r.from,
-  );
+  const current = todayRanges.filter((r) => contains(r, minutes));
+  if (current.length > 0) {
+    const overnight = current.find((r) => r.to <= r.from);
+    const until = overnight
+      ? overnight.to
+      : extend(Math.max(...current.map((r) => r.to)));
+    return { state: "open", until: hhmm(until) };
+  }
 
-  return current
-    ? { state: "open", until: hhmm(current.to) }
-    : { state: "closed", todayHours: today.hours };
+  return {
+    state: "closed",
+    todayHours: [...openRows]
+      .sort(
+        (a, b) =>
+          Math.min(...a.ranges.map((r) => r.from)) -
+          Math.min(...b.ranges.map((r) => r.from)),
+      )
+      .map((row) => row.hours)
+      .join(", "),
+  };
 }
