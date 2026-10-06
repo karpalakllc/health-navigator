@@ -79,7 +79,7 @@ Do **not** use in user-facing or outcome copy:
 
 | Data | Retention (v1 default) |
 |------|---------------------------|
-| `triage_sessions` + `triage_session_answers` | **90 days**, then delete via scheduled command (to be added when ops ready) |
+| `triage_sessions` + `triage_session_answers` | **90 days**, then deleted by `triage:purge-old-sessions` (scheduled daily 03:15, `routes/console.php`) |
 | No IP, no user-agent fingerprinting | Unless explicitly approved in a future revision |
 | No free text | Enforced by API validation |
 

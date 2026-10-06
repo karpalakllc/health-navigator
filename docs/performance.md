@@ -190,7 +190,7 @@ Execution Time: 0.744 ms
 
 ## What changed
 
-### Indexes (`2026_10_10_100000_add_lookup_indexes_for_directory_and_forum`)
+### Indexes (`2026_10_10_120000_add_lookup_indexes_for_directory_and_forum`)
 
 PostgreSQL and SQLite do not index foreign keys by themselves, and a composite
 key only serves lookups by its leading column.
@@ -206,7 +206,7 @@ key only serves lookups by its leading column.
 | `forum_posts (forum_topic_id, status, published_at)` | Replaces `(…, created_at)`: topic pages order approved posts by `published_at`; nothing orders them by `created_at`. |
 | `doctors (rating_avg, reviews_count)` | `sort=rating` and `min_reviews` (in the aggregates migration). |
 
-### Trigram indexes (`2026_10_10_100001_add_trigram_search_indexes`, PostgreSQL only)
+### Trigram indexes (`2026_10_10_120001_add_trigram_search_indexes`, PostgreSQL only)
 
 `CREATE EXTENSION IF NOT EXISTS pg_trgm`, then GIN `gin_trgm_ops` indexes on
 every column `ScriptInsensitiveSearch` filters with `ILIKE '%term%'`
@@ -277,7 +277,7 @@ table (9.24 · 901) predates the specialty widening. `DatabaseIndexesTest::
 test_name_or_taxonomy_searches_can_use_the_trigram_indexes_on_postgres`
 guards the plan shape.
 
-### Denormalised review aggregates (`2026_10_10_100002_add_review_aggregates_to_doctors_and_facilities`)
+### Denormalised review aggregates (`2026_10_10_120002_add_review_aggregates_to_doctors_and_facilities`)
 
 `doctors` and `facilities` (pharmacies are facilities) gained
 `reviews_count` (unsigned int, default 0) and `rating_avg` (`decimal(3,2)`,
