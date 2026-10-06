@@ -4,70 +4,17 @@ namespace App\Support;
 
 use App\Models\Doctor;
 use App\Models\Facility;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * The public review_summary block, read from the denormalised
+ * reviews_count / rating_avg columns that ReviewAggregates maintains.
+ *
+ * Those columns replaced per-row COUNT/AVG correlated subqueries
+ * (withCount/withAvg), which every directory list, profile and unified-search
+ * hit used to carry.
+ */
 class ReviewSummary
 {
-    public const COUNT_ALIAS = 'approved_reviews_count';
-
-    public const AVG_ALIAS = 'approved_reviews_avg_rating';
-
-    /**
-     * Load the approved-review aggregates alongside the parent query.
-     *
-     * Without this, ReviewSummary::for() runs its own COUNT/AVG per serialized
-     * model — 15 extra queries on a doctors page, ~15 more across the verticals
-     * of a unified search. withCount/withAvg emit correlated subqueries that are
-     * morph-aware, so the polymorphic reviewable_type is still constrained.
-     *
-     * @template TModel of Doctor|Facility
-     *
-     * @param  Builder<TModel>  $query
-     * @return Builder<TModel>
-     */
-    public static function eagerLoad(Builder $query): Builder
-    {
-        return $query
-            ->withCount(['reviews as '.self::COUNT_ALIAS => fn ($relation) => $relation->approved()])
-            ->withAvg(['reviews as '.self::AVG_ALIAS => fn ($relation) => $relation->approved()], 'rating');
-    }
-
-    /**
-     * The same aggregates for models that were not loaded through a Builder we
-     * control — Scout hydrates search hits itself. One query for the whole set.
-     *
-     * @template TModel of Doctor|Facility
-     *
-     * @param  Collection<int, TModel>  $models
-     * @return Collection<int, TModel>
-     */
-    public static function eagerLoadInto(Collection $models): Collection
-    {
-        if ($models->isEmpty()) {
-            return $models;
-        }
-
-        $first = $models->first();
-
-        // select() before the aggregates: called after, it would replace them.
-        $aggregates = self::eagerLoad($first->newModelQuery()->select($first->getQualifiedKeyName()))
-            ->whereKey($models->modelKeys())
-            ->get()
-            ->keyBy($first->getKeyName());
-
-        foreach ($models as $model) {
-            $row = $aggregates->get($model->getKey());
-
-            $model->forceFill([
-                self::COUNT_ALIAS => $row?->getAttribute(self::COUNT_ALIAS) ?? 0,
-                self::AVG_ALIAS => $row?->getAttribute(self::AVG_ALIAS),
-            ])->syncOriginalAttributes([self::COUNT_ALIAS, self::AVG_ALIAS]);
-        }
-
-        return $models;
-    }
-
     /**
      * @return array{count: int, average_rating: float|null}
      */
@@ -75,12 +22,12 @@ class ReviewSummary
     {
         $attributes = $reviewable->getAttributes();
 
-        if (array_key_exists(self::COUNT_ALIAS, $attributes)) {
-            $count = (int) $attributes[self::COUNT_ALIAS];
-            $average = $attributes[self::AVG_ALIAS] ?? null;
+        if (array_key_exists('reviews_count', $attributes)) {
+            $count = (int) $attributes['reviews_count'];
+            $average = $attributes['rating_avg'] ?? null;
         } else {
-            // Fallback for any caller that has not opted into eagerLoad(), so a
-            // missed query site degrades to the old cost rather than to wrong data.
+            // A caller that selected specific columns: degrade to one query
+            // rather than to wrong data.
             $stats = $reviewable->reviews()
                 ->approved()
                 ->selectRaw('COUNT(*) as review_count, AVG(rating) as average_rating')
@@ -92,8 +39,8 @@ class ReviewSummary
 
         return [
             'count' => $count,
-            // Postgres returns AVG(int) as a numeric string; cast before rounding
-            // so the JSON shape matches what SQLite produced.
+            // rating_avg is truncated to two decimals, which rounds to one
+            // decimal exactly as the full average would (ReviewAggregates).
             'average_rating' => $count > 0 && $average !== null
                 ? round((float) $average, 1)
                 : null,

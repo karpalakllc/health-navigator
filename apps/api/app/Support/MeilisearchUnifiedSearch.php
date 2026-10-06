@@ -103,11 +103,11 @@ final class MeilisearchUnifiedSearch
 
         $paginator = $search->paginate($perPage);
 
-        $doctors = $paginator->getCollection()->load([
+        // review_summary reads the denormalised columns Scout already hydrated.
+        $paginator->getCollection()->load([
             'specialties' => fn ($relation) => $relation->published(),
             'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
         ]);
-        ReviewSummary::eagerLoadInto($doctors);
 
         return $paginator;
     }
@@ -135,10 +135,7 @@ final class MeilisearchUnifiedSearch
             $search->whereIn('city', $cities);
         }
 
-        $paginator = $search->paginate($perPage);
-        ReviewSummary::eagerLoadInto($paginator->getCollection());
-
-        return $paginator;
+        return $search->paginate($perPage);
     }
 
     /**

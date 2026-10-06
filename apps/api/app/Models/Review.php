@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Support\ReviewAggregates;
 use App\Support\UgcMailer;
 use Database\Factories\ReviewFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,6 +29,34 @@ class Review extends Model
         'moderated_at',
         'rejection_note',
     ];
+
+    /**
+     * Every path that changes what counts as an approved review — approve(),
+     * reject(), the Filament bulk actions (which call those), an edit, a
+     * delete — goes through a model save or delete, so this is the one place
+     * the denormalised doctors/facilities aggregates are refreshed.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Review $review): void {
+            // wasRecentlyCreated stays true for the instance's lifetime, so it
+            // is OR-ed with the change check rather than replacing it.
+            $affectsAggregate = $review->wasChanged(['status', 'rating', 'reviewable_type', 'reviewable_id'])
+                || ($review->wasRecentlyCreated && $review->status === ReviewStatus::Approved);
+
+            if (! $affectsAggregate) {
+                return;
+            }
+
+            ReviewAggregates::recomputeFor($review);
+
+            if ($review->wasChanged(['reviewable_type', 'reviewable_id'])) {
+                ReviewAggregates::recompute($review->getOriginal('reviewable_type'), $review->getOriginal('reviewable_id'));
+            }
+        });
+
+        static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
+    }
 
     protected function casts(): array
     {
