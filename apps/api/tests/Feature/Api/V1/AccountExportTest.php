@@ -3,13 +3,16 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\ReportReason;
 use App\Models\AnalyticsEvent;
+use App\Models\ContentReport;
 use App\Models\Doctor;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\User;
+use App\Support\ReviewHelpfulVotes;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -146,6 +149,37 @@ class AccountExportTest extends TestCase
         $this->assertNull($export['forum_posts'][0]['topic_title']);
         $this->assertSame([], $export['reviews']);
         $this->assertSame([], $export['activity']);
+    }
+
+    public function test_the_export_includes_the_members_reports_and_helpful_votes_only(): void
+    {
+        $member = User::factory()->create();
+        $other = User::factory()->create();
+        $review = Review::factory()->approved()->create(['user_id' => $other->id]);
+        $topic = ForumTopic::factory()->create(['user_id' => $other->id]);
+
+        ContentReport::factory()->about($review)->create([
+            'user_id' => $member->id,
+            'reason' => ReportReason::PersonalData,
+            'note' => 'Го наведува моето име.',
+        ]);
+        ContentReport::factory()->about($topic)->create(['user_id' => $other->id, 'note' => 'Туѓа белешка']);
+        ReviewHelpfulVotes::add($review, $member);
+        ReviewHelpfulVotes::add(Review::factory()->approved()->create(), $other);
+
+        $export = $this->download($member);
+
+        $this->assertCount(1, $export['content_reports']);
+        $this->assertSame(['kind' => 'review', 'id' => $review->id], $export['content_reports'][0]['about']);
+        $this->assertSame('personal_data', $export['content_reports'][0]['reason']);
+        $this->assertSame('Го наведува моето име.', $export['content_reports'][0]['note']);
+        $this->assertSame('open', $export['content_reports'][0]['status']);
+        $this->assertArrayNotHasKey('resolved_by_id', $export['content_reports'][0]);
+
+        $this->assertCount(1, $export['helpful_votes']);
+        $this->assertSame($review->id, $export['helpful_votes'][0]['review_id']);
+        $this->assertNotNull($export['helpful_votes'][0]['voted_at']);
+        $this->assertStringNotContainsString('Туѓа белешка', (string) json_encode($export, JSON_UNESCAPED_UNICODE));
     }
 
     public function test_the_export_is_rate_limited_per_account(): void

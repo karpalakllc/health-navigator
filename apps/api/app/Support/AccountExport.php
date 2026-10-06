@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\ForumContentStatus;
 use App\Models\AnalyticsEvent;
+use App\Models\ContentReport;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumPost;
@@ -12,6 +13,8 @@ use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
@@ -57,6 +60,21 @@ final class AccountExport
             'forum_topic_id' => $topic->getKey(),
             'accepted_at' => $topic->community_rules_accepted_at?->toIso8601String(),
         ]);
+        echo ',';
+        // Reports the member filed: what, why and the outcome — never who handled it.
+        $this->writeList('content_reports', $this->reports(), fn (ContentReport $report): array => [
+            'about' => [
+                'kind' => array_search($report->reportable_type, ContentReport::REPORTABLE_TYPES, true) ?: null,
+                'id' => $report->reportable_id,
+            ],
+            'reason' => $report->reason->value,
+            'note' => $report->note,
+            'status' => $report->status->value,
+            'created_at' => $report->created_at?->toIso8601String(),
+            'resolved_at' => $report->resolved_at?->toIso8601String(),
+        ]);
+        echo ',';
+        $this->writeHelpfulVotes();
         echo ',';
         $this->writeList('devices', $this->devices(), fn (PersonalAccessToken $token): array => [
             'name' => $token->name,
@@ -186,6 +204,38 @@ final class AccountExport
             'updated_at' => $post->updated_at?->toIso8601String(),
             'published_at' => $post->published_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * @return Builder<ContentReport>
+     */
+    private function reports(): Builder
+    {
+        return ContentReport::query()->where('user_id', $this->user->getKey());
+    }
+
+    /**
+     * „Корисно“ votes have no model (App\Support\ReviewHelpfulVotes writes the
+     * rows directly), so they are streamed from the query builder.
+     */
+    private function writeHelpfulVotes(): void
+    {
+        echo json_encode('helpful_votes', JSON_THROW_ON_ERROR).':[';
+
+        $first = true;
+        $votes = DB::table('review_helpful_votes')
+            ->where('user_id', $this->user->getKey())
+            ->select(['id', 'review_id', 'created_at']);
+
+        foreach ($votes->lazyById(self::CHUNK) as $vote) {
+            echo ($first ? '' : ',').$this->encode([
+                'review_id' => (int) $vote->review_id,
+                'voted_at' => $vote->created_at === null ? null : Carbon::parse($vote->created_at)->toIso8601String(),
+            ]);
+            $first = false;
+        }
+
+        echo ']';
     }
 
     /**
