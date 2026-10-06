@@ -1,13 +1,19 @@
 import { ReportButton } from "@/components/reports/report-button";
+import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { ReviewHelpfulButton } from "@/components/reviews/review-helpful-button";
 import { StarRating } from "@/components/ui/star-rating";
 import { Monogram } from "@/components/ui/user-avatar";
-import type { PublicReview, ReviewResponse } from "@/lib/api/types";
+import {
+  isRemovedItem,
+  type ReviewListItem,
+  type ReviewResponse,
+} from "@/lib/api/types";
 import { formatMkDate } from "@/lib/mk-date";
 import { t, tFormat } from "@/i18n/t";
 
 type ReviewListProps = {
-  reviews: PublicReview[];
+  /** Reviews, and a placeholder where a published one was removed. */
+  reviews: ReviewListItem[];
   isLoggedIn?: boolean;
   /** The viewer's own review: no „Корисно“ or „Пријави“ on it (the API refuses both). */
   viewerReviewId?: number | null;
@@ -18,7 +24,8 @@ type ReviewListProps = {
 /**
  * Review cards: monogram, display name, date, amber stars, reading body, the
  * profile's official response when there is one, then the quiet actions
- * („Корисно“, „Пријави“).
+ * („Корисно“, „Пријави“). A removed review keeps its place as a one-line
+ * placeholder with the date and the public reason.
  */
 export function ReviewList({
   reviews,
@@ -33,6 +40,14 @@ export function ReviewList({
   return (
     <ul className="m-0 grid list-none gap-3 p-0 lg:grid-cols-2 lg:gap-5">
       {reviews.map((review) => {
+        if (isRemovedItem(review)) {
+          return (
+            <li key={`removed-${review.id}`}>
+              <RemovedPlaceholder item={review} kind="review" />
+            </li>
+          );
+        }
+
         const date = formatMkDate(review.published_at);
         const own = viewerReviewId !== null && review.id === viewerReviewId;
 

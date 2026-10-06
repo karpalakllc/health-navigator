@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Reviews\Schemas;
 
+use App\Enums\RemovalCategory;
 use App\Enums\ReviewStatus;
 use App\Filament\Support\ReviewableLabel;
 use App\Models\Review;
+use App\Support\ReviewBurstDetector;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -52,6 +54,22 @@ class ReviewInfolist
                     ->dateTime(),
                 TextEntry::make('moderated_at')
                     ->dateTime(),
+                TextEntry::make('removed_at')
+                    ->label('Removed after publication')
+                    ->helperText('The public list shows a placeholder with this date and the public reason.')
+                    ->dateTime()
+                    ->visible(fn (Review $record): bool => $record->removed_at !== null),
+                TextEntry::make('removal_category')
+                    ->label('Public reason')
+                    ->formatStateUsing(fn (?RemovalCategory $state): string => $state?->label() ?? '—')
+                    ->visible(fn (Review $record): bool => $record->removed_at !== null),
+                TextEntry::make('burst_flagged_at')
+                    ->label('Review burst')
+                    ->badge()
+                    ->color('warning')
+                    ->formatStateUsing(fn (): string => 'Profile received '.ReviewBurstDetector::THRESHOLD.'+ reviews within '.ReviewBurstDetector::WINDOW_HOURS.' h')
+                    ->helperText('A signal only: nothing was changed automatically.')
+                    ->visible(fn (Review $record): bool => $record->burst_flagged_at !== null),
             ]);
     }
 }

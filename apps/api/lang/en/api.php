@@ -75,6 +75,7 @@ return [
     'review' => [
         'duplicate' => 'You have already submitted a review for this profile.',
         'helpful_own' => 'You cannot mark your own review as helpful.',
+        'aspect_unknown' => 'One of the extra ratings does not exist for this profile.',
     ],
 
     'report' => [

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Enums\RemovalCategory;
 use App\Enums\ReviewStatus;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ReviewAggregates;
+use App\Support\ReviewBurstDetector;
 use App\Support\TaxonomyCache;
 use App\Support\UgcMailer;
 use Database\Factories\ReviewFactory;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -32,6 +35,8 @@ class Review extends Model
         'moderated_by_id',
         'moderated_at',
         'rejection_note',
+        'removed_at',
+        'removal_category',
     ];
 
     /**
@@ -70,6 +75,8 @@ class Review extends Model
         });
 
         static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
+
+        static::created(fn (Review $review) => ReviewBurstDetector::check($review));
     }
 
     /**
@@ -92,6 +99,9 @@ class Review extends Model
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
             'response_at' => 'datetime',
+            'removed_at' => 'datetime',
+            'removal_category' => RemovalCategory::class,
+            'burst_flagged_at' => 'datetime',
         ];
     }
 
@@ -128,6 +138,14 @@ class Review extends Model
     }
 
     /**
+     * @return HasMany<ReviewAspectRating, $this>
+     */
+    public function aspectRatings(): HasMany
+    {
+        return $this->hasMany(ReviewAspectRating::class);
+    }
+
+    /**
      * @return MorphMany<ContentReport, $this>
      */
     public function reports(): MorphMany
@@ -142,6 +160,28 @@ class Review extends Model
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ReviewStatus::Approved);
+    }
+
+    /**
+     * What a profile's public review list shows: published reviews, plus the
+     * placeholder of every review that was published and later removed.
+     *
+     * @param  Builder<Review>  $query
+     * @return Builder<Review>
+     */
+    public function scopeInPublicList(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $list) => $list
+            ->where('status', ReviewStatus::Approved)
+            ->orWhere(fn (Builder $removed) => $removed
+                ->where('status', ReviewStatus::Rejected)
+                ->whereNotNull('removed_at')));
+    }
+
+    /** Published once, then taken down: shown publicly as a placeholder only. */
+    public function isRemoved(): bool
+    {
+        return $this->status === ReviewStatus::Rejected && $this->removed_at !== null;
     }
 
     /**
@@ -180,22 +220,37 @@ class Review extends Model
             'moderated_by_id' => $moderator->id,
             'moderated_at' => now(),
             'rejection_note' => null,
+            'removed_at' => null,
+            'removal_category' => null,
         ]);
 
         UgcMailer::notifyApproved($this->fresh());
     }
 
     /**
+     * Refuse a pending review, or take down a published one.
+     *
+     * Taking down a published review leaves a public trace: removed_at and a
+     * public category, shown in the profile's list as a placeholder (never
+     * the note, text or author). published_at is kept so the placeholder
+     * stays where the review was. A review refused before it was ever
+     * published leaves no trace.
+     *
      * @param  bool  $afterReport  taken down through the report queue: the author is told it was removed
+     * @param  RemovalCategory|null  $category  the public reason when a published review is taken down (default „other“)
      */
-    public function reject(User $moderator, ?string $note = null, bool $afterReport = false): void
+    public function reject(User $moderator, ?string $note = null, bool $afterReport = false, ?RemovalCategory $category = null): void
     {
+        $wasPublished = $this->status === ReviewStatus::Approved;
+
         $this->update([
             'status' => ReviewStatus::Rejected,
-            'published_at' => null,
+            'published_at' => $wasPublished ? $this->published_at : null,
             'moderated_by_id' => $moderator->id,
             'moderated_at' => now(),
             'rejection_note' => $note,
+            'removed_at' => $wasPublished ? now() : $this->removed_at,
+            'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $this->removal_category,
         ]);
 
         UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);

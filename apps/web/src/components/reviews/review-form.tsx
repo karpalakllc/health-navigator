@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
+import {
+  AspectRatingInput,
+  type AspectRatings,
+} from "@/components/reviews/aspect-rating-input";
 import { StarRatingInput } from "@/components/reviews/star-rating-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +29,8 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
   const ratingErrorId = useId();
   const titleId = useId();
   const [body, setBody] = useState("");
+  // Optional sub-ratings, folded away by default (W5-I).
+  const [aspects, setAspects] = useState<AspectRatings>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
@@ -50,6 +56,7 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
           slug,
           rating,
           body: body.trim() === "" ? null : body.trim(),
+          ...(Object.keys(aspects).length > 0 ? { aspects } : {}),
         }),
       });
 
@@ -58,6 +65,7 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
       if (!response.ok) {
         const message =
           payload.errors?.review?.[0] ??
+          payload.errors?.aspects?.[0] ??
           payload.message ??
           t("reviews.submitError");
         setError(message);
@@ -67,6 +75,7 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
       setSuccess(true);
       setBody("");
       setRating(null);
+      setAspects({});
       onSubmitted?.();
       router.refresh();
     } catch {
@@ -115,6 +124,13 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={5}
+      />
+      {/* The optional extras come after the essentials (stars, comment). */}
+      <AspectRatingInput
+        kind={kind}
+        value={aspects}
+        onChange={setAspects}
+        disabled={pending}
       />
       {error ? <FormError>{error}</FormError> : null}
       <FormSuccess>{success ? t("reviews.submitSuccess") : null}</FormSuccess>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\RemovalCategory;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\ReviewStatus;
@@ -136,11 +137,12 @@ class ContentReport extends Model
      * reports at once must not reject it (and mail its author, and lower the
      * topic's reply count) twice.
      */
-    public function hideContent(User $moderator, ?string $note = null): void
+    public function hideContent(User $moderator, ?string $note = null, ?RemovalCategory $category = null): void
     {
         $note = filled($note) ? trim((string) $note) : __('api.report.hidden_default_note', [], 'mk');
+        $category ??= $this->suggestedRemovalCategory();
 
-        DB::transaction(function () use ($moderator, $note): void {
+        DB::transaction(function () use ($moderator, $note, $category): void {
             $type = Relation::getMorphedModel($this->reportable_type) ?? $this->reportable_type;
             $content = is_a($type, Model::class, true)
                 ? $type::query()->whereKey($this->reportable_id)->lockForUpdate()->first()
@@ -148,17 +150,44 @@ class ContentReport extends Model
 
             if (self::isPublished($content)) {
                 if ($content instanceof Review) {
-                    $content->reject($moderator, $note, afterReport: true);
+                    $content->reject($moderator, $note, afterReport: true, category: $category);
                 } elseif ($content instanceof ForumPost) {
-                    $content->reject($moderator, $note, afterReport: true);
+                    $content->reject($moderator, $note, afterReport: true, category: $category);
                     $content->topic?->recordRemovedReply();
                 } elseif ($content instanceof ForumTopic) {
-                    $content->reject($moderator, $note, afterReport: true);
+                    $content->reject($moderator, $note, afterReport: true, category: $category);
                 }
             }
 
             $this->closeOpenReports(ReportStatus::Hidden, $moderator);
         });
+    }
+
+    /**
+     * The public removal category the hide form starts from: the reason most
+     * open reports on the item give (a tie goes to the earlier reason), or
+     * this report's own reason when none are open.
+     */
+    public function suggestedRemovalCategory(): RemovalCategory
+    {
+        $counts = self::query()
+            ->open()
+            ->where('reportable_type', $this->reportable_type)
+            ->where('reportable_id', $this->reportable_id)
+            ->toBase()
+            ->selectRaw('reason, count(*) as aggregate')
+            ->groupBy('reason')
+            ->pluck('aggregate', 'reason');
+
+        $best = null;
+
+        foreach (ReportReason::cases() as $reason) {
+            if (($counts[$reason->value] ?? 0) > ($best === null ? 0 : $counts[$best->value])) {
+                $best = $reason;
+            }
+        }
+
+        return RemovalCategory::fromReportReason($best ?? $this->reason);
     }
 
     private static function isPublished(?Model $content): bool

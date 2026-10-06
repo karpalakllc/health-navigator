@@ -9,7 +9,7 @@ import {
   apiFetch,
   apiGetPaginatedServer,
 } from "@/lib/api/server";
-import type { PaginatedEnvelope } from "@/lib/api/types";
+import type { PaginatedEnvelope, RemovedItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
 export type ForumAuthor = {
@@ -69,7 +69,8 @@ export type ForumPost = {
 
 export type ForumTopicPage = {
   topic: ForumTopicDetail;
-  posts: ForumPost[];
+  /** Replies, with a placeholder where a removed one was. */
+  posts: Array<ForumPost | RemovedItem>;
   related_topics?: ForumTopicListItem[];
   meta: PaginatedEnvelope<ForumPost>["meta"];
 };
@@ -181,7 +182,7 @@ export async function fetchForumTopicPage(
   const body = (await response.json()) as {
     data: {
       topic: ForumTopicDetail;
-      posts: ForumPost[];
+      posts: ForumTopicPage["posts"];
       related_topics?: ForumTopicListItem[];
     };
     meta: ForumTopicPage["meta"];

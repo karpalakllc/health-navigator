@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
+use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Models\ForumPost;
@@ -175,4 +176,7 @@ Route::prefix('v1')->group(function (): void {
     // on the account page. Optional auth so a member's own name reads as free.
     Route::get('/usernames/availability', UsernameAvailabilityController::class)
         ->middleware(['auth.sanctum.optional', 'throttle:api-username-check']);
+
+    // W5-I: public moderation figures for /transparency (cached an hour server side).
+    Route::get('/transparency', TransparencyController::class)->middleware('cache.public');
 });

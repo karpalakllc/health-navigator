@@ -374,6 +374,9 @@ class E2ESeeder extends Seeder
                     'moderated_by_id' => null,
                     'moderated_at' => null,
                     'rejection_note' => null,
+                    // W5-I: a re-seed also clears the removal placeholder.
+                    'removed_at' => null,
+                    'removal_category' => null,
                 ],
             );
 

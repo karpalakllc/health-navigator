@@ -7,8 +7,10 @@ import { facilitySlug, users } from "./support/fixtures";
 /*
  * Notice and action end to end: a member marks a published review „Корисно“
  * and reports it, a staff Moderator hides it from the admin report queue, and
- * the review is gone from the public profile. Each attempt has its own seeded
- * review (E2ESeeder::seedReportableReviews), so a retry starts clean.
+ * the review's text is gone from the public profile; in its place stays a
+ * placeholder with the date and the public reason (W5-I). Each attempt has
+ * its own seeded review (E2ESeeder::seedReportableReviews), so a retry starts
+ * clean.
  */
 function reviewBody(retry: number): string {
   return `Рецензија за пријава ${retry} (E2E).`;
@@ -72,6 +74,8 @@ test.describe("reports", () => {
     await row.getByRole("button", { name: /hide content/i }).click();
     // Filament renders a confirmation modal as an alertdialog.
     const modal = admin.getByRole("alertdialog", { name: /hide content/i });
+    // The public reason starts from the report's reason („навреда“).
+    await expect(modal.getByText(/Abuse/)).toBeVisible();
     // The reason is required and starts prefilled; replace it.
     await modal
       .getByRole("textbox", { name: /reason \(shown to the author\)/i })
@@ -82,13 +86,21 @@ test.describe("reports", () => {
     ).toHaveCount(0);
     await admin.close();
 
-    // Gone for a visitor, with no trace of it in the list.
+    // Gone for a visitor — text, author and rating — but not silently: a
+    // placeholder says when and why, and links to how moderation works.
     const visitor = await browser.newPage();
     await visitor.goto(`${profile}#reviews`);
     await expect(
       visitor.getByRole("heading", { name: mk.reviews.title }),
     ).toBeVisible();
     await expect(visitor.getByText(body)).toHaveCount(0);
+    const placeholder = visitor.getByRole("article").filter({
+      hasText: /Рецензијата е отстранета на .+ — причина: навреда\./,
+    });
+    await expect(placeholder.first()).toBeVisible();
+    await expect(
+      placeholder.first().getByRole("link", { name: mk.integrity.removedHow }),
+    ).toHaveAttribute("href", "/transparency#moderacija");
     await visitor.close();
   });
 

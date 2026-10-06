@@ -7,6 +7,7 @@ import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-mode
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
 import { ReportButton } from "@/components/reports/report-button";
+import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { BackLink } from "@/components/ui/back-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
+import { isRemovedItem } from "@/lib/api/types";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
@@ -209,28 +211,35 @@ export default async function TopicDetailPage({
                 <p className="type-body text-ink-2">{t("forum.noReplies")}</p>
               ) : (
                 <ul className="flex flex-col gap-3">
-                  {posts.map((post) => (
-                    <li key={post.id}>
-                      <ForumPostCard
-                        post={post}
-                        isTopicAuthor={post.is_topic_author === true}
-                        actions={
-                          post.viewer?.is_own ? undefined : (
-                            <div className="flex w-full justify-end">
-                              <ReportButton
-                                target={{ kind: "forum_post", id: post.id }}
-                                label={tFormat("reports.actionPost", {
-                                  name: post.author.name,
-                                })}
-                                isLoggedIn={isLoggedIn}
-                                returnTo={redirectPath}
-                              />
-                            </div>
-                          )
-                        }
-                      />
-                    </li>
-                  ))}
+                  {posts.map((post) =>
+                    isRemovedItem(post) ? (
+                      // A reply removed after publication keeps its place.
+                      <li key={`removed-${post.id}`}>
+                        <RemovedPlaceholder item={post} kind="reply" />
+                      </li>
+                    ) : (
+                      <li key={post.id}>
+                        <ForumPostCard
+                          post={post}
+                          isTopicAuthor={post.is_topic_author === true}
+                          actions={
+                            post.viewer?.is_own ? undefined : (
+                              <div className="flex w-full justify-end">
+                                <ReportButton
+                                  target={{ kind: "forum_post", id: post.id }}
+                                  label={tFormat("reports.actionPost", {
+                                    name: post.author.name,
+                                  })}
+                                  isLoggedIn={isLoggedIn}
+                                  returnTo={redirectPath}
+                                />
+                              </div>
+                            )
+                          }
+                        />
+                      </li>
+                    ),
+                  )}
                 </ul>
               )}
               <Pagination
