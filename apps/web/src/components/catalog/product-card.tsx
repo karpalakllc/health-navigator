@@ -9,14 +9,16 @@ export function ProductCard({ product }: { product: ProductListItem }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="card flex h-full flex-col gap-4 p-5 text-ink no-underline hover:bg-white [&:hover_h2]:underline"
+      className="card hover-lift flex h-full flex-col gap-4 p-5 text-ink no-underline"
     >
       <div className="flex items-start gap-3">
         <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sand">
           <Icon name="pill" size={22} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="type-h3 text-ink">{product.name}</h2>
+          <h2 className="type-h3 text-ink">
+            <span className="link-grow">{product.name}</span>
+          </h2>
           {product.category ? (
             <p className="type-meta mt-0.5 text-ink-2">{product.category}</p>
           ) : null}

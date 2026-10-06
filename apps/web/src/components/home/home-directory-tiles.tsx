@@ -45,7 +45,7 @@ export function HomeDirectoryTiles({
             <Link
               href={tile.href}
               className={cn(
-                "card flex min-h-32 w-full flex-col justify-between gap-4 p-4 text-ink hover:shadow-sheet lg:min-h-[140px] lg:p-5",
+                "card hover-lift flex min-h-32 w-full flex-col justify-between gap-4 p-4 text-ink lg:min-h-[140px] lg:p-5",
                 tile.feature && "bg-apricot",
               )}
             >
@@ -61,7 +61,7 @@ export function HomeDirectoryTiles({
                 <Icon
                   name="arrow-right"
                   size={20}
-                  className="hidden lg:block"
+                  className="icon-nudge hidden lg:block"
                 />
               </span>
               <span className="block">

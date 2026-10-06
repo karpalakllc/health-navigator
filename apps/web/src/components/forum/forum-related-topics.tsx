@@ -38,7 +38,7 @@ export function ForumRelatedTopics({
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <Link
                   href={`/forum/${categorySlug}/${topic.slug}`}
-                  className="type-body font-semibold text-ink decoration-coral decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"
+                  className="type-body font-semibold text-ink link-grow after:absolute after:inset-0 after:content-['']"
                 >
                   {topic.title}
                 </Link>

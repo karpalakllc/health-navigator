@@ -32,6 +32,7 @@ export function ProfileSection({
       as="section"
       aria-labelledby={`${id}-title`}
       id={id}
+      data-reveal=""
       padding="none"
       className={cn("p-5 lg:p-8", className)}
     >

@@ -30,7 +30,7 @@ export function ForumCategoryList({
         {categories.map((category) => (
           <li
             key={category.slug}
-            className="relative flex min-h-[4.5rem] items-center gap-3 border-t border-line px-4 py-3.5 first:border-t-0 hover:bg-cream sm:px-5"
+            className="relative flex min-h-[4.5rem] items-center gap-3 border-t border-line px-4 py-3.5 first:border-t-0 transition-colors hover:bg-cream sm:px-5"
           >
             <span
               aria-hidden="true"
@@ -42,7 +42,7 @@ export function ForumCategoryList({
               <Heading className="type-body font-semibold text-ink">
                 <Link
                   href={`/forum/${category.slug}`}
-                  className="decoration-coral decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"
+                  className="link-grow after:absolute after:inset-0 after:content-['']"
                 >
                   {category.name}
                 </Link>

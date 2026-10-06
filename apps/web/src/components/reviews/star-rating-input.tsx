@@ -70,7 +70,9 @@ export function StarRatingInput({
   return (
     <div className="flex flex-col gap-2">
       <div
-        className="-ml-2 flex"
+        // star-input: hovering previews the fill up to the pointed star
+        // (globals.css); the click still sets the value.
+        className="star-input -ml-2 flex"
         role="radiogroup"
         aria-label={t("reviews.rating")}
         aria-required="true"
@@ -91,7 +93,7 @@ export function StarRatingInput({
             onClick={() => select(star)}
             onKeyDown={(event) => handleKeyDown(event, star)}
             className={cn(
-              "inline-flex size-12 items-center justify-center rounded-full text-star transition-colors",
+              "star-input-star inline-flex size-12 items-center justify-center rounded-full text-star transition-colors",
               "hover:bg-sand disabled:cursor-not-allowed disabled:hover:bg-transparent",
             )}
             aria-label={starRatingLabel(star)}

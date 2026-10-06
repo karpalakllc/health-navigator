@@ -16,6 +16,7 @@ import {
 } from "@/components/directory/profile-parts";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { JsonLd } from "@/components/seo/json-ld";
+import { FeaturedTag } from "@/components/ui/tag";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
@@ -162,11 +163,13 @@ export default async function PharmacyDetailPage({
             <ProfileHeader
               kind="pharmacy"
               avatarUrl={pharmacy.avatar_url}
+              cover={{ url: pharmacy.cover_url }}
               name={pharmacy.name}
               subtitle={[t("pharmacies.kind"), pharmacy.city]
                 .filter(Boolean)
                 .join(" · ")}
               summary={pharmacy.review_summary}
+              tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />
 
             <ProfileContactList info={contact} />

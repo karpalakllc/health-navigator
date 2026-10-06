@@ -148,7 +148,7 @@ function ActivityLink({
     <li>
       <Link
         href={href}
-        className="card flex h-full min-h-14 items-center gap-4 p-5 hover:shadow-sheet"
+        className="card hover-lift flex h-full min-h-14 items-center gap-4 p-5"
       >
         <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">
           <Icon name={icon} size={24} />

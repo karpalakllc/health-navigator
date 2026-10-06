@@ -13,6 +13,7 @@ const SIZES = {
   40: "size-10 text-[0.9375rem]",
   44: "size-11 text-base",
   56: "size-14 text-xl",
+  64: "size-16 text-[1.375rem]",
   80: "size-20 text-[1.75rem]",
   120: "size-30 text-[2.5rem]",
 } as const;
@@ -33,6 +34,7 @@ export function Monogram({
   kind = "person",
   size = 40,
   tone = "sand",
+  shape = "circle",
   className,
 }: {
   name: string;
@@ -42,13 +44,17 @@ export function Monogram({
   size?: MonogramSize;
   /** sand on white/cream surfaces; white on sand/apricot surfaces. */
   tone?: "sand" | "white";
+  /** circle (people) or a rounded square (a facility's logo slot). */
+  shape?: "circle" | "square";
   className?: string;
 }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold leading-none tracking-[0.01em] text-ink",
+        "inline-flex shrink-0 items-center justify-center font-semibold",
+        shape === "square" ? "rounded-xl" : "rounded-full",
+        "leading-none tracking-[0.01em] text-ink",
         tone === "white" ? "bg-white" : "bg-sand",
         SIZES[size],
         className,

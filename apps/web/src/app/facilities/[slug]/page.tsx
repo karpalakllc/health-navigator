@@ -16,7 +16,7 @@ import {
 } from "@/components/directory/profile-parts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { Tag } from "@/components/ui/tag";
+import { FeaturedTag, Tag } from "@/components/ui/tag";
 import { Monogram } from "@/components/ui/user-avatar";
 import { fetchFacility } from "@/lib/api/facilities";
 import { facilityKindLabel } from "@/lib/facility-labels";
@@ -151,6 +151,7 @@ export default async function FacilityDetailPage({
             <ProfileHeader
               kind="facility"
               avatarUrl={facility.avatar_url}
+              cover={{ url: facility.cover_url }}
               name={facility.name}
               subtitle={[facilityKindLabel(facility.type), facility.city]
                 .filter(Boolean)
@@ -171,6 +172,7 @@ export default async function FacilityDetailPage({
                       )}
                     </Tag>
                   ) : null}
+                  {facility.is_featured ? <FeaturedTag /> : null}
                 </>
               }
             />

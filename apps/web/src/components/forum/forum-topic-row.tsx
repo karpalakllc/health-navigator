@@ -68,7 +68,7 @@ export function ForumTopicRow({
   ].filter(Boolean);
 
   return (
-    <li className="relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 hover:bg-cream sm:px-5">
+    <li className="relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 transition-colors hover:bg-cream sm:px-5">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {topic.isPinned || topic.isLocked ? (
           <div className="flex flex-wrap gap-2">
@@ -79,7 +79,7 @@ export function ForumTopicRow({
         <Heading className="line-clamp-2 font-ui text-[1.1875rem] leading-[1.625rem] font-semibold text-ink">
           <Link
             href={topic.href}
-            className="decoration-coral decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"
+            className="link-grow after:absolute after:inset-0 after:content-['']"
           >
             {topic.title}
           </Link>

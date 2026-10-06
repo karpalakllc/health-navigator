@@ -67,7 +67,17 @@
   --shadow-sheet: 0 -8px 32px rgb(42 34 32 / 0.14);
 
   /* ---- motion --------------------------------------------------------- */
+  /* Two durations and one curve for every hover, press, sheet and reveal
+     (owner: 150–250ms, ease-out, nothing bouncy). Tailwind's bare
+     `transition-*` utilities pick these up as their defaults. */
   --ease-out-soft: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--ease-out-soft);
+  /* The raised card under a hovering pointer: the card shadow, one step up. */
+  --shadow-card-hover:
+    0 2px 4px rgb(42 34 32 / 0.06), 0 12px 32px rgb(42 34 32 / 0.1);
 }
 
 /* next/font sets --font-geologica / --font-source-sans on <html>. */
@@ -234,6 +244,15 @@
   text-decoration-color: var(--color-coral);
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
+  transition:
+    text-decoration-thickness var(--duration-fast) var(--ease-out-soft),
+    text-underline-offset var(--duration-fast) var(--ease-out-soft);
+  @media (hover: hover) {
+    &:hover {
+      text-decoration-thickness: 3px;
+      text-underline-offset: 3px;
+    }
+  }
 }
 
 @layer base {
@@ -390,9 +409,10 @@
     cursor: pointer;
     user-select: none;
     transition:
-      background-color 150ms var(--ease-out-soft),
-      border-color 150ms var(--ease-out-soft),
-      color 150ms var(--ease-out-soft);
+      background-color var(--duration-fast) var(--ease-out-soft),
+      border-color var(--duration-fast) var(--ease-out-soft),
+      color var(--duration-fast) var(--ease-out-soft),
+      transform var(--duration-fast) var(--ease-out-soft);
   }
   .btn-sm {
     min-height: 2.75rem; /* 44 — only inside dense rows (≥8px gaps) */
@@ -416,37 +436,37 @@
     background: var(--color-ink);
     color: var(--color-white);
   }
-  .btn-primary:hover {
-    background: var(--color-action-hover);
-  }
   .btn-secondary {
     background: var(--color-white);
     color: var(--color-ink);
     box-shadow: inset 0 0 0 1.5px var(--color-ink);
   }
-  .btn-secondary:hover {
-    background: var(--color-sand);
-  }
   .btn-soft {
     background: var(--color-sand);
     color: var(--color-ink);
-  }
-  .btn-soft:hover {
-    background: var(--color-line);
   }
   .btn-ghost {
     background: transparent;
     color: var(--color-ink);
   }
-  .btn-ghost:hover {
-    background: var(--color-sand);
-  }
   .btn-white {
     background: var(--color-white);
     color: var(--color-ink);
   }
-  .btn-white:hover {
-    background: var(--color-sand);
+  /* Hover only where a pointer can hover: a tap on a phone must not leave a
+     button stuck in its hover colour. */
+  @media (hover: hover) {
+    .btn-primary:hover {
+      background: var(--color-action-hover);
+    }
+    .btn-secondary:hover,
+    .btn-ghost:hover,
+    .btn-white:hover {
+      background: var(--color-sand);
+    }
+    .btn-soft:hover {
+      background: var(--color-line);
+    }
   }
   /* Disabled: sand + ink-2 (6.5:1), not a washed-out primary. */
   .btn:disabled,
@@ -497,6 +517,9 @@
     font-family: var(--font-ui);
     font-size: 1.0625rem;
     line-height: 1.5rem;
+    transition:
+      border-color var(--duration-fast) var(--ease-out-soft),
+      box-shadow var(--duration-fast) var(--ease-out-soft);
   }
   textarea.field-control {
     min-height: 10rem;
@@ -553,11 +576,14 @@
     text-decoration: none;
     cursor: pointer;
     transition:
-      background-color 150ms var(--ease-out-soft),
-      color 150ms var(--ease-out-soft);
+      background-color var(--duration-fast) var(--ease-out-soft),
+      color var(--duration-fast) var(--ease-out-soft),
+      transform var(--duration-fast) var(--ease-out-soft);
   }
-  .chip:hover {
-    background: var(--color-sand);
+  @media (hover: hover) {
+    .chip:hover {
+      background: var(--color-sand);
+    }
   }
   .chip[aria-pressed="true"],
   .chip[aria-current="page"],
@@ -565,5 +591,196 @@
     background: var(--color-ink);
     color: var(--color-white);
     box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+}
+
+/*
+ * Motion (owner, second round): small, quick, ease-out, never bouncy.
+ *
+ * - Movement is transform/opacity only (compositor work, no layout shift):
+ *   the deeper hover shadow is a pseudo-element faded in, not an animated
+ *   box-shadow. The one exception, the growing link underline, repaints a
+ *   2px strip and moves nothing.
+ * - Hover styles exist only for pointers that can hover (a tap on a phone
+ *   must not leave a card lifted). Tailwind's own `hover:` variant already
+ *   does this.
+ * - Every movement is inside `prefers-reduced-motion: no-preference`; the
+ *   global reduce rule in the base layer then zeroes whatever is left.
+ */
+@layer components {
+  /* ---- Clickable cards: lift 2px, one shadow step up ------------------- */
+  .hover-lift {
+    position: relative;
+    transition: transform var(--duration-base) var(--ease-out-soft);
+  }
+  .hover-lift::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--shadow-card-hover);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-base) var(--ease-out-soft);
+  }
+  @media (hover: hover) {
+    /* z-index keeps a tooltip inside the card above its neighbours. */
+    .hover-lift:hover {
+      z-index: 1;
+    }
+    .hover-lift:hover::after {
+      opacity: 1;
+    }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .hover-lift:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* ---- Presses: buttons and chips give a little ------------------------ */
+  @media (prefers-reduced-motion: no-preference) {
+    .btn:not(:disabled, [aria-disabled="true"], [aria-busy="true"]):active,
+    .chip:active {
+      transform: scale(0.98);
+    }
+  }
+
+  /* ---- A trailing arrow nudges forward on its control's hover ---------- */
+  .icon-nudge {
+    transition: transform var(--duration-fast) var(--ease-out-soft);
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    :is(a, button):hover > .icon-nudge,
+    .hover-lift:hover .icon-nudge {
+      transform: translateX(3px);
+    }
+  }
+
+  /* ---- Link underline that grows from the left (card titles) ----------- */
+  .link-grow {
+    text-decoration: none;
+    background-image: linear-gradient(var(--color-coral), var(--color-coral));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 2px;
+    transition: background-size var(--duration-base) var(--ease-out-soft);
+  }
+  .link-grow:focus-visible {
+    background-size: 100% 2px;
+  }
+  @media (hover: hover) {
+    .link-grow:hover,
+    .hover-lift:hover .link-grow {
+      background-size: 100% 2px;
+    }
+  }
+
+  /* ---- Skeleton shimmer (a light band sweeping across the sand) -------- */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .skeleton-shimmer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgb(255 255 255 / 0.55),
+        transparent
+      );
+      transform: translateX(-100%);
+      animation: shimmer 1.6s var(--ease-out-soft) infinite;
+    }
+  }
+
+  /* ---- Overlays: backdrop fade, drawer slide, active indicators -------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .motion-fade-in {
+      animation: fade-in var(--duration-base) var(--ease-out-soft) both;
+    }
+    .motion-drawer-in {
+      animation: slide-in-right var(--duration-base) var(--ease-out-soft) both;
+    }
+    .motion-grow-x {
+      animation: grow-x var(--duration-base) var(--ease-out-soft) both;
+    }
+  }
+
+  /* ---- Star rating input: hovering previews the fill up to the star ---- */
+  .star-input-star svg {
+    transition: transform var(--duration-fast) var(--ease-out-soft);
+  }
+  .star-input-star path {
+    transition:
+      fill var(--duration-fast) var(--ease-out-soft),
+      stroke var(--duration-fast) var(--ease-out-soft);
+  }
+  @media (hover: hover) {
+    .star-input:not(:has(:disabled)):hover .star-input-star path {
+      fill: currentColor;
+      stroke: currentColor;
+    }
+    .star-input:not(:has(:disabled))
+      .star-input-star:hover
+      ~ .star-input-star
+      path {
+      fill: none;
+      stroke: var(--color-line-strong);
+    }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .star-input-star:not(:disabled):hover svg {
+      transform: scale(1.1);
+    }
+  }
+}
+
+/*
+ * Section reveal on scroll. The server HTML is always fully visible: only
+ * once RevealObserver has mounted (html.js-reveal) are the sections it
+ * marks `pending` (those still below the fold) faded down, and each is
+ * shown once as it enters the viewport. Without JS, for a crawler, in print
+ * or with reduced motion nothing is ever hidden.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .js-reveal [data-reveal] {
+    transition:
+      opacity var(--duration-base) var(--ease-out-soft),
+      transform var(--duration-base) var(--ease-out-soft);
+  }
+  .js-reveal [data-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media print {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
   }
 }

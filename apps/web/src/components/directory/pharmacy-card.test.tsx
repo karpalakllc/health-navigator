@@ -53,6 +53,32 @@ describe("PharmacyCard", () => {
     ).toHaveAttribute("href", "tel:+38923100000");
   });
 
+  it("shows the cover photo on top, or the soft placeholder without one", () => {
+    const cover = "https://media.zdravje360.mk/media/pharmacies/cover.webp";
+    const { container, rerender } = render(
+      <PharmacyCard pharmacy={{ ...pharmacy, cover_url: cover }} />,
+    );
+
+    const area = container.querySelector("[data-cover]")!;
+    expect(area).toHaveAttribute("data-cover", "image");
+    expect(area.querySelector("img")).toHaveAttribute("src", cover);
+
+    rerender(<PharmacyCard pharmacy={pharmacy} />);
+    expect(container.querySelector("[data-cover]")).toHaveAttribute(
+      "data-cover",
+      "placeholder",
+    );
+    expect(container.querySelector("[data-cover] img")).toBeNull();
+  });
+
+  it("marks a featured pharmacy with „Истакнат“", () => {
+    const { rerender } = render(<PharmacyCard pharmacy={pharmacy} />);
+    expect(screen.queryByText(t("ui.featured"))).not.toBeInTheDocument();
+
+    rerender(<PharmacyCard pharmacy={{ ...pharmacy, is_featured: true }} />);
+    expect(screen.getByText(t("ui.featured"))).toBeInTheDocument();
+  });
+
   it("says when there are no reviews yet", () => {
     render(<PharmacyCard pharmacy={pharmacy} />);
 

@@ -1,3 +1,4 @@
+import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { Button, TextLink } from "@/components/ui/button";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { StarRating } from "@/components/ui/star-rating";
@@ -79,6 +80,13 @@ export function HomeFeaturedDoctorsCard({
               index > 0 && "border-t border-line",
             )}
           >
+            <DirectoryAvatar
+              kind="doctor"
+              avatarUrl={doctor.avatar_url}
+              name={doctor.full_name}
+              alt={doctor.full_name}
+              size={44}
+            />
             <div className="min-w-0 flex-1">
               <h3 className="font-ui text-lg font-semibold leading-6 text-ink">
                 {doctor.full_name}
@@ -133,10 +141,19 @@ export function HomeFeaturedDoctorsRail({
         {doctors.map((doctor) => (
           <li
             key={doctor.slug}
-            className="card flex w-[260px] flex-none flex-col p-4"
+            className="card hover-lift flex w-[260px] flex-none flex-col p-4"
           >
-            <div className="flex min-h-8 flex-wrap gap-2">
-              <StatusTag doctor={doctor} />
+            <div className="flex items-start justify-between gap-2">
+              <DirectoryAvatar
+                kind="doctor"
+                avatarUrl={doctor.avatar_url}
+                name={doctor.full_name}
+                alt={doctor.full_name}
+                size={56}
+              />
+              <div className="flex min-h-8 flex-wrap justify-end gap-2">
+                <StatusTag doctor={doctor} />
+              </div>
             </div>
             <h3 className="mt-3 font-ui text-lg font-semibold leading-6 text-ink">
               {doctor.full_name}

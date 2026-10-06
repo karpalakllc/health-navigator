@@ -78,8 +78,13 @@ export function SiteNav({
                 className={cn(
                   "relative flex items-center text-ink no-underline",
                   vertical
-                    ? "min-h-14 w-full gap-3 rounded-2xl px-2 text-[1.0625rem] hover:bg-sand"
+                    ? "min-h-14 w-full gap-3 rounded-2xl px-2 text-[1.0625rem] transition-colors hover:bg-sand"
                     : "h-[52px] text-[1.0625rem] leading-[1.375rem] hover:text-black",
+                  // Desktop: a hairline grows under the hovered section;
+                  // the current one keeps its ink bar.
+                  !vertical &&
+                    !active &&
+                    "after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:scale-x-0 after:rounded-[2px] after:bg-line-strong after:transition-transform after:duration-[var(--duration-base)] hover:after:scale-x-100",
                   active ? "font-semibold" : "font-medium",
                   vertical && active && "bg-sand",
                 )}
@@ -103,7 +108,7 @@ export function SiteNav({
                   <span
                     aria-hidden="true"
                     data-active-indicator=""
-                    className="absolute inset-x-0 bottom-0 h-[3px] rounded-[2px] bg-ink"
+                    className="motion-grow-x absolute inset-x-0 bottom-0 h-[3px] rounded-[2px] bg-ink"
                   />
                 ) : null}
               </Link>

@@ -99,7 +99,9 @@ function Content({
         <Icon name={leadingIcon} size={20} />
       ) : null}
       <span>{children}</span>
-      {trailingIcon ? <Icon name={trailingIcon} size={20} /> : null}
+      {trailingIcon ? (
+        <Icon name={trailingIcon} size={20} className="icon-nudge" />
+      ) : null}
     </>
   );
 }
@@ -278,7 +280,9 @@ export function TextLink({
   const content = (
     <>
       {children}
-      {trailingIcon ? <Icon name={trailingIcon} size={20} /> : null}
+      {trailingIcon ? (
+        <Icon name={trailingIcon} size={20} className="icon-nudge" />
+      ) : null}
     </>
   );
 
