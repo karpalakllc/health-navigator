@@ -6,6 +6,7 @@ use App\Filament\Support\EmailField;
 use App\Models\ForumCategory;
 use App\Models\User;
 use App\Policies\Support\PrivilegeHierarchy;
+use App\Support\DisplayName;
 use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -17,7 +18,22 @@ class ClientUserForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required(),
+            TextInput::make('name')
+                ->required()
+                ->helperText('Private: shown on the account page and here, never publicly.'),
+            TextInput::make('display_name')
+                ->label('Public display name')
+                ->required()
+                ->maxLength(DisplayName::MAX_LENGTH)
+                // Checked as it will be stored (trimmed, spaces collapsed), the
+                // same as the API does it.
+                ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! is_string($value) || preg_match(DisplayName::PATTERN, DisplayName::normalize($value)) !== 1) {
+                        $fail('Use letters, spaces and . - \' only, starting with a letter.');
+                    }
+                })
+                ->dehydrateStateUsing(fn (?string $state): ?string => $state === null ? null : DisplayName::normalize($state))
+                ->helperText('Shown next to the member\'s reviews and forum posts. Letters, spaces and . - \' only.'),
             EmailField::make()->required()->unique(ignoreRecord: true)->disabledOn('edit'),
             Select::make('roles')
                 ->relationship(

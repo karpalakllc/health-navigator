@@ -171,6 +171,7 @@ class AuthController extends Controller
         try {
             $user = User::query()->create([
                 'name' => $name,
+                'display_name' => $request->string('display_name')->toString(),
                 'email' => $email,
                 'password' => $hashedPassword,
                 'role' => UserRole::Member,

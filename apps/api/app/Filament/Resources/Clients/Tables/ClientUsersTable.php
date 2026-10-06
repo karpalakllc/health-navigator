@@ -14,6 +14,7 @@ class ClientUsersTable
         return $table
             ->columns([
                 TextColumn::make('name')->searchable(),
+                TextColumn::make('display_name')->label('Public name')->searchable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('role')
                     ->badge()

@@ -20,7 +20,7 @@ class PublicReviewResource extends JsonResource
             'id' => $this->id,
             'rating' => $this->rating,
             'body' => $this->body,
-            'author_name' => $this->user->name,
+            'author_name' => $this->user->publicName(),
             'published_at' => $this->published_at?->toIso8601String(),
         ];
     }

@@ -20,7 +20,7 @@ class ForumTopicSearchResource extends JsonResource
             'slug' => $this->slug,
             'title' => $this->title,
             'excerpt' => $this->excerpt(),
-            'author_name' => $this->user->name,
+            'author_name' => $this->user->publicName(),
             'replies_count' => $this->replies_count,
             'last_post_at' => $this->last_post_at?->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),

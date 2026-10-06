@@ -17,7 +17,7 @@ class ForumAuthorResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'name' => $this->name,
+            'name' => $this->publicName(),
             'member_since' => $this->created_at?->toIso8601String(),
             'topics_count' => (int) ($this->forum_topics_count ?? 0),
             'posts_count' => (int) ($this->forum_posts_count ?? 0),
