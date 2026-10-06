@@ -125,7 +125,7 @@ function SearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-ink/50 p-4 pt-[clamp(2rem,12vh,6rem)]"
+      className="motion-fade-in fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-ink/50 p-4 pt-[clamp(2rem,12vh,6rem)]"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {

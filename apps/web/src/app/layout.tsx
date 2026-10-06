@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geologica, Source_Sans_3 } from "next/font/google";
 import { PlausibleAnalytics } from "@/components/layout/plausible-analytics";
+import { RevealObserver } from "@/components/layout/reveal-observer";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
 import { SiteMaintenanceGate } from "@/components/layout/site-maintenance-gate";
 import { SitePlaceholdersProvider } from "@/components/layout/site-placeholders-provider";
@@ -87,6 +88,7 @@ export default async function RootLayout({
           <SitePlaceholdersProvider settings={settings}>
             <SearchDialogProvider>
               <PlausibleAnalytics />
+              <RevealObserver />
               <SkipLink />
               <SiteHeader />
               {/* The one <main> of the page, so it also covers the hero;

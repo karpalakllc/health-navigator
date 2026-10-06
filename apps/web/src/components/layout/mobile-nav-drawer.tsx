@@ -124,7 +124,7 @@ export function MobileNavDrawer({
     <div className="fixed inset-0 z-[200] lg:hidden">
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-ink/50"
+        className="motion-fade-in absolute inset-0 bg-ink/50"
         onClick={onClose}
       />
       <div
@@ -132,7 +132,7 @@ export function MobileNavDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="absolute inset-y-0 right-0 flex w-[min(100vw-2.5rem,22rem)] flex-col overflow-hidden rounded-l-[28px] bg-cream shadow-sheet"
+        className="motion-drawer-in absolute inset-y-0 right-0 flex w-[min(100vw-2.5rem,22rem)] flex-col overflow-hidden rounded-l-[28px] bg-cream shadow-sheet"
       >
         <div className="flex h-[60px] shrink-0 items-center justify-between pl-5 pr-2">
           <h2 id={titleId} className="type-h3 text-ink">

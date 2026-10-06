@@ -24,14 +24,14 @@ export function CommunityTopicCard({
   const href = `/forum/${topic.category.slug}/${topic.slug}`;
 
   return (
-    <article className="card relative p-4 lg:p-5">
+    <article className="card hover-lift p-4 lg:p-5">
       <Tag>{topic.category.name}</Tag>
       <Heading className="mt-3 font-ui text-lg font-semibold leading-6 text-ink lg:text-[1.1875rem]">
         {/* The stretched link makes the whole card clickable; the title is
             its accessible name. */}
         <Link
           href={href}
-          className="after:absolute after:inset-0 after:rounded-card hover:underline hover:decoration-coral hover:decoration-2 hover:underline-offset-4"
+          className="link-grow after:absolute after:inset-0 after:rounded-card"
         >
           {topic.title}
         </Link>

@@ -134,7 +134,7 @@ export function BottomTabBar({
                   aria-current={active ? "page" : undefined}
                   className="-mt-2 flex h-[76px] min-w-16 flex-col items-center gap-1 rounded-2xl no-underline"
                 >
-                  <span className="inline-flex size-14 items-center justify-center rounded-full bg-ink text-white ring-4 ring-white">
+                  <span className="inline-flex size-14 items-center justify-center rounded-full bg-ink text-white ring-4 ring-white transition-colors hover:bg-black">
                     <Icon name="search" size={24} />
                   </span>
                   {label}
@@ -147,15 +147,17 @@ export function BottomTabBar({
                 >
                   <span
                     className={cn(
-                      "relative inline-flex h-8 w-[60px] items-center justify-center rounded-full",
-                      active ? "bg-sand text-ink" : "text-ink-2",
+                      "relative inline-flex h-8 w-[60px] items-center justify-center rounded-full transition-colors",
+                      active
+                        ? "bg-sand text-ink"
+                        : "text-ink-2 hover:bg-sand/60",
                     )}
                   >
                     <Icon name={tab.icon} size={24} />
                     {active ? (
                       <span
                         aria-hidden="true"
-                        className="absolute inset-x-[18px] -top-3.5 h-1 rounded-b-[4px] bg-coral"
+                        className="motion-grow-x absolute inset-x-[18px] -top-3.5 h-1 rounded-b-[4px] bg-coral"
                       />
                     ) : null}
                   </span>

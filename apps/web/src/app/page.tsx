@@ -185,16 +185,21 @@ export default async function Home() {
         aside={<HomeFeaturedDoctorsCard doctors={doctors} />}
       />
 
-      <HomeDirectoryTiles
-        tiles={tiles}
-        className="px-5 pt-8 lg:px-0 lg:pt-20"
-      />
+      <div data-reveal="">
+        <HomeDirectoryTiles
+          tiles={tiles}
+          className="px-5 pt-8 lg:px-0 lg:pt-20"
+        />
+      </div>
 
       <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:hidden" />
 
       {/* Mobile: guidance, community, trust stacked. Desktop: community (7)
           beside guidance + popular specialties (5), as in the D2a mockup. */}
-      <div className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-0 lg:px-0">
+      <div
+        data-reveal=""
+        className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-0 lg:px-0"
+      >
         {hasCommunity ? (
           <HomeCommunity
             topics={topics}
@@ -216,12 +221,16 @@ export default async function Home() {
         </div>
       </div>
 
-      <HomeHowItWorksSection className="mt-14 px-5 lg:mt-20 lg:px-0" />
+      <div data-reveal="">
+        <HomeHowItWorksSection className="mt-14 px-5 lg:mt-20 lg:px-0" />
+      </div>
 
-      <HomeForumTransparency
-        showForum={forumOn}
-        className="mt-10 px-5 lg:mt-14 lg:px-0"
-      />
+      <div data-reveal="">
+        <HomeForumTransparency
+          showForum={forumOn}
+          className="mt-10 px-5 lg:mt-14 lg:px-0"
+        />
+      </div>
 
       {/* Last before the footer, as in the D2a mockup. */}
       <HomeTrustRow

@@ -133,7 +133,7 @@ export function BottomSheet({
     <div ref={portalRef} className="fixed inset-0 z-[200]">
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-ink/50"
+        className="motion-fade-in absolute inset-0 bg-ink/50"
         onClick={onClose}
       />
       <div
@@ -143,7 +143,7 @@ export function BottomSheet({
         aria-labelledby={titleId}
         className={cn(
           "absolute inset-x-0 bottom-0 top-3 flex flex-col overflow-hidden rounded-t-sheet bg-white shadow-sheet",
-          "motion-safe:transition-transform motion-safe:duration-[240ms] motion-safe:ease-out",
+          "motion-safe:transition-transform motion-safe:duration-[var(--duration-base)] motion-safe:ease-[var(--ease-out-soft)]",
           shown ? "translate-y-0" : "motion-safe:translate-y-full",
           "lg:inset-x-auto lg:top-0 lg:right-0 lg:w-[28rem] lg:rounded-t-none lg:rounded-l-sheet",
           className,
