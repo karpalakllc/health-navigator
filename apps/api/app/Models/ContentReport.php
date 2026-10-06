@@ -6,6 +6,7 @@ use App\Enums\ForumContentStatus;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\ReviewStatus;
+use App\Support\UgcMailer;
 use Database\Factories\ContentReportFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\DB;
  * reporter per item. Moderators resolve every open report on an item at once:
  * „keep“ leaves the content up, „hide“ unpublishes it through the same
  * rejection path pre-moderation uses (status, moderated_by_id, moderated_at,
- * the note and the author's email).
+ * the note and the author's email). Each reporter is then emailed the
+ * outcome, without the moderator's name.
  *
  * @property ReportReason $reason
  * @property ReportStatus $status
@@ -164,19 +166,36 @@ class ContentReport extends Model
         $this->closeOpenReports(ReportStatus::Kept, $moderator);
     }
 
+    /**
+     * Close the open reports and tell their reporters the outcome, once the
+     * decision is committed.
+     */
     private function closeOpenReports(ReportStatus $outcome, User $moderator): void
     {
-        self::query()
+        $open = self::query()
             ->open()
             ->where('reportable_type', $this->reportable_type)
-            ->where('reportable_id', $this->reportable_id)
-            ->update([
-                'status' => $outcome->value,
-                'resolved_by_id' => $moderator->getKey(),
-                'resolved_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ->where('reportable_id', $this->reportable_id);
+
+        $reporterIds = (clone $open)->pluck('user_id')->unique()->all();
+
+        $open->update([
+            'status' => $outcome->value,
+            'resolved_by_id' => $moderator->getKey(),
+            'resolved_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->refresh();
+
+        $content = $this->reportable;
+
+        if ($content instanceof Model && $reporterIds !== []) {
+            DB::afterCommit(fn () => UgcMailer::notifyReportResolved(
+                $content,
+                User::query()->whereKey($reporterIds)->get(),
+                removed: $outcome === ReportStatus::Hidden,
+            ));
+        }
     }
 }

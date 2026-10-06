@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Actions\AnonymiseUser;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\ReviewStatus;
+use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcRejectedMail;
 use App\Models\ContentReport;
 use App\Models\Doctor;
@@ -240,5 +242,63 @@ class ContentReportTest extends TestCase
         $this->assertSame(ReportStatus::Kept, $report->fresh()->status);
         $this->assertSame($moderator->id, $report->fresh()->resolved_by_id);
         $this->assertSame(ReportStatus::Open, $other->fresh()->status);
+    }
+
+    public function test_reporters_are_told_the_content_was_removed_without_the_moderators_name(): void
+    {
+        Mail::fake();
+        $doctor = Doctor::factory()->create(['full_name' => 'д-р Ана Петровска']);
+        $review = $this->approvedReview($doctor);
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $deleted = User::factory()->create();
+        ContentReport::factory()->about($review)->create(['user_id' => $first->id]);
+        ContentReport::factory()->about($review)->create(['user_id' => $second->id]);
+        ContentReport::factory()->about($review)->create(['user_id' => $deleted->id]);
+        app(AnonymiseUser::class)->handle($deleted);
+        $moderator = User::factory()->moderator()->create(['name' => 'Модератор Марко']);
+
+        ContentReport::query()->firstOrFail()->hideContent($moderator);
+
+        Mail::assertQueued(ContentReportOutcomeMail::class, 2);
+        foreach ([$first, $second] as $reporter) {
+            Mail::assertQueued(ContentReportOutcomeMail::class, function (ContentReportOutcomeMail $mail) use ($reporter): bool {
+                $html = self::text($mail->render());
+
+                return $mail->hasTo($reporter->email)
+                    && $mail->removed
+                    && str_contains($html, 'пријава во врска со рецензијата за „д-р Ана Петровска“')
+                    && str_contains($html, 'Содржината е отстранета')
+                    && ! str_contains($html, 'Марко');
+            });
+        }
+        Mail::assertNotQueued(ContentReportOutcomeMail::class, fn (ContentReportOutcomeMail $mail): bool => $mail->hasTo($review->user->email));
+    }
+
+    public function test_a_reporter_is_told_the_content_stays_up(): void
+    {
+        Mail::fake();
+        $category = ForumCategory::factory()->create();
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id, 'title' => 'Сон']);
+        $reply = ForumPost::factory()->create(['forum_topic_id' => $topic->id]);
+        $reporter = User::factory()->create();
+        $report = ContentReport::factory()->about($reply)->create(['user_id' => $reporter->id]);
+
+        $report->keepContent(User::factory()->moderator()->create());
+
+        Mail::assertQueued(ContentReportOutcomeMail::class, function (ContentReportOutcomeMail $mail) use ($reporter): bool {
+            $html = self::text($mail->render());
+
+            return $mail->hasTo($reporter->email)
+                && ! $mail->removed
+                && str_contains($html, 'пријава во врска со одговорот во темата „Сон“')
+                && str_contains($html, 'останува објавена');
+        });
+        Mail::assertNotQueued(UgcRejectedMail::class);
+    }
+
+    private static function text(string $html): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($html))));
     }
 }

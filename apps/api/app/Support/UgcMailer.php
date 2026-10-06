@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcApprovedMail;
 use App\Mail\UgcRejectedMail;
 use App\Mail\UgcSubmittedMail;
@@ -61,6 +62,55 @@ final class UgcMailer
                 rejectionNote: $payload['rejection_note'] ?? null,
             ));
         });
+    }
+
+    /**
+     * Tell each reporter how their report about $content ended. A deleted
+     * account is skipped, like any other recipient.
+     *
+     * @param  iterable<User>  $reporters
+     */
+    public static function notifyReportResolved(Model $content, iterable $reporters, bool $removed): void
+    {
+        $subject = self::reportSubject($content);
+
+        if ($subject === null) {
+            return;
+        }
+
+        foreach ($reporters as $user) {
+            if (! $user instanceof User || $user->isAnonymised()) {
+                continue;
+            }
+
+            Mail::to($user)->queue(new ContentReportOutcomeMail(
+                recipientName: $user->name,
+                contentLabel: $subject['label'],
+                contentTitle: $subject['title'],
+                removed: $removed,
+            ));
+        }
+    }
+
+    /**
+     * @return array{label: string, title: string}|null
+     */
+    private static function reportSubject(Model $content): ?array
+    {
+        $payload = self::payloadFor($content);
+
+        if ($payload === null) {
+            return null;
+        }
+
+        return [
+            'label' => match (true) {
+                $content instanceof ForumTopic => 'темата',
+                $content instanceof ForumPost => 'одговорот во темата',
+                default => 'рецензијата за',
+            },
+            'title' => $payload['title'],
+        ];
     }
 
     /**
