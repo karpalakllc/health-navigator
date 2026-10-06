@@ -227,8 +227,9 @@ Route::prefix('v1')->group(function (): void {
     // W6-C: „Пријави грешка во профилот“ and the listed doctor's objection or
     // removal request. Anyone may send one (optional auth only records the
     // account). Two windows, each keyed by account or else by address: a
-    // burst limit and a daily ceiling. No IP address is stored with a request.
-    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-corrections-burst', 'throttle:20,1440,api-corrections-daily'])
+    // burst limit and an hourly ceiling (an address-keyed limit lasts at most
+    // an hour, as the privacy policy says). No IP address is stored with a request.
+    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-corrections-burst', 'throttle:15,60,api-corrections-hourly'])
         ->group(function (): void {
             Route::post('/doctors/{slug}/corrections', [ProfileCorrectionController::class, 'storeForDoctor'])
                 ->name('corrections.doctor');
