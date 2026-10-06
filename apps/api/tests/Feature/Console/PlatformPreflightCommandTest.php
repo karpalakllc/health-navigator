@@ -8,6 +8,7 @@ use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsE
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -52,6 +53,9 @@ class PlatformPreflightCommandTest extends TestCase
             'scout.driver' => 'meilisearch',
             'scout.meilisearch.host' => 'https://search.zdravje360.mk',
             'scout.meilisearch.key' => 'secret',
+            // The pg_trgm check is the only one that queries the database;
+            // keep it out of the config-only cases (see the pg_trgm tests).
+            'database.default' => 'sqlite',
         ]);
     }
 
@@ -201,6 +205,42 @@ class PlatformPreflightCommandTest extends TestCase
         $this->assertSame([], $result['errors']);
         $this->assertSame([$check], $result['warnings']);
         $this->assertSame(0, $result['exit']);
+    }
+
+    public function test_a_postgres_database_without_pg_trgm_warns_without_failing(): void
+    {
+        // Unreachable on purpose: preflight cannot confirm the extension, so it warns.
+        config([
+            'database.connections.preflight_pgsql' => [
+                'driver' => 'pgsql',
+                'host' => '127.0.0.1',
+                'port' => 1,
+                'database' => 'none',
+                'username' => 'none',
+                'password' => '',
+            ],
+            'database.default' => 'preflight_pgsql',
+        ]);
+
+        $result = $this->preflight();
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(['database.pg_trgm'], $result['warnings']);
+        $this->assertSame(0, $result['exit']);
+    }
+
+    public function test_a_postgres_database_with_pg_trgm_passes(): void
+    {
+        $connection = getenv('DB_CONNECTION') ?: 'sqlite';
+
+        if (config("database.connections.{$connection}.driver") !== 'pgsql') {
+            $this->markTestSkipped('Needs the PostgreSQL suite.');
+        }
+
+        config(['database.default' => $connection]);
+        DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+
+        $this->assertNotContains('database.pg_trgm', $this->preflight()['warnings']);
     }
 
     public function test_smtps_and_unset_mail_schemes_are_accepted(): void
