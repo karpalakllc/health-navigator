@@ -5,7 +5,7 @@ import { pathSegment } from "@/lib/api/path";
 export type ReviewListParams = {
   page?: number;
   per_page?: number;
-  sort?: "newest" | "oldest" | "rating_high" | "rating_low";
+  sort?: "newest" | "oldest" | "rating_high" | "rating_low" | "helpful";
   rating?: number;
 };
 
