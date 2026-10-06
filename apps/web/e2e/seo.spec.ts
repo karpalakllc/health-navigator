@@ -37,12 +37,13 @@ test.describe("SEO without JavaScript", () => {
       headline: forum.topicTitle,
       text: "Одобрена тема за E2E тестови. Темите и одговорите се модерираат.",
       author: { "@type": "Person" },
-      comment: [
+      // Other specs may have added approved replies to this topic by now.
+      comment: expect.arrayContaining([
         expect.objectContaining({
           "@type": "Comment",
           text: "Прв одобрен одговор во темата.",
         }),
-      ],
+      ]),
     });
     expect(
       jsonLdBlocks(html).some((block) => block["@type"] === "BreadcrumbList"),

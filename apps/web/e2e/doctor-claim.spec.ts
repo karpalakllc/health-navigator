@@ -73,7 +73,10 @@ test.describe("doctor accounts", () => {
 
     const visitor = await browser.newPage();
     await visitor.goto(`/doctors/${profile.slug}`);
-    await expect(visitor.getByText(newPhone).first()).toBeVisible();
+    // The profile repeats the phone in a layout hidden at this width.
+    await expect(
+      visitor.getByText(newPhone).filter({ visible: true }).first(),
+    ).toBeVisible();
 
     // 3. A name change waits for staff; the public profile keeps the old one.
     await page
@@ -104,6 +107,7 @@ test.describe("doctor accounts", () => {
     await expect(card.getByText(mk.doctorDashboard.replyPending)).toBeVisible();
 
     await visitor.goto(`/doctors/${profile.slug}#reviews`);
+    await visitor.reload();
     await expect(visitor.getByText(reply)).toHaveCount(0);
 
     // 5. Staff approve the name change and the reply.
@@ -133,8 +137,11 @@ test.describe("doctor accounts", () => {
       .click();
     await expect(admin.getByText(/doctor reply published/i)).toBeVisible();
 
-    // 6. The public profile shows the new name and the labelled reply.
+    // 6. The public profile shows the new name and the labelled reply. The
+    // visitor is still on this URL, so goto() alone would only jump to the
+    // fragment; reload to fetch the profile again.
     await visitor.goto(`/doctors/${profile.slug}#reviews`);
+    await visitor.reload();
     await expect(
       visitor.getByRole("heading", { level: 1, name: newName }),
     ).toBeVisible();

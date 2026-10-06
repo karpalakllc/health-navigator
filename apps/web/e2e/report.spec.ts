@@ -75,7 +75,9 @@ test.describe("reports", () => {
     // Filament renders a confirmation modal as an alertdialog.
     const modal = admin.getByRole("alertdialog", { name: /hide content/i });
     // The public reason starts from the report's reason („навреда“).
-    await expect(modal.getByText(/Abuse/)).toBeVisible();
+    await expect(
+      modal.getByRole("combobox", { name: /public reason/i }),
+    ).toContainText(/Abuse/);
     // The reason is required and starts prefilled; replace it.
     await modal
       .getByRole("textbox", { name: /reason \(shown to the author\)/i })

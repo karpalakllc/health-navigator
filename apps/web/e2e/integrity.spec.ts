@@ -35,7 +35,9 @@ test.describe("review integrity", () => {
     const criteria = page.getByRole("region", {
       name: mk.integrity.criteriaTitle,
     });
-    await expect(criteria.getByText(mk.integrity.criteriaDraft)).toBeVisible();
+    await expect(
+      criteria.getByText(mk.integrity.criteriaDraft, { exact: true }),
+    ).toBeVisible();
 
     // The monthly table opens and scrolls inside its own box.
     await page
