@@ -10,8 +10,11 @@ import { cn } from "@/lib/cn";
  * a small „i“ toggletip button inside it.
  *
  * - Tap, click, Enter or Space on the button pins the explanation open
- *   (aria-expanded); the same again, Escape, or a press anywhere outside closes
- *   it. Escape returns focus to the button.
+ *   (aria-expanded); the same again, Escape, a press anywhere outside, or
+ *   focus moving out of the badge (Tab) closes it, so it never covers what
+ *   focus moved to. Escape returns focus to the button.
+ * - The button's circle is small, but an invisible ::after gives it a 44px
+ *   touch target: it is the only way in on a phone.
  * - A mouse hovering the badge also shows it, without pinning, so desktop
  *   visitors get it without a click. Touch never "hovers" (pointerType check).
  * - The explanation is absolutely positioned under the tag: opening it never
@@ -78,6 +81,15 @@ export function DisclosureBadge({
     <span
       ref={rootRef}
       className={cn("relative inline-flex shrink-0", className)}
+      onBlur={(event) => {
+        // Only when focus lands on something else outside: a press on the
+        // panel's own text moves focus nowhere (relatedTarget null), and
+        // presses outside are handled on pointerdown.
+        const next = event.relatedTarget;
+        if (next instanceof Node && !rootRef.current?.contains(next)) {
+          setPinned(false);
+        }
+      }}
       onPointerEnter={(event) => {
         if (event.pointerType === "mouse") {
           setHovered(true);
@@ -109,7 +121,7 @@ export function DisclosureBadge({
             }
             setPinned(!pinned);
           }}
-          className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-sand hover:text-ink"
+          className="relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-2 transition-colors after:absolute after:left-1/2 after:top-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-sand hover:text-ink"
         >
           <Icon name="info" size={16} />
         </button>

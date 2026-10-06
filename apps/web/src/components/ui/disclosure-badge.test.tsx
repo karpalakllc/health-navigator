@@ -87,6 +87,35 @@ describe("DisclosureBadge (featured / sponsored toggletip)", () => {
     expect(screen.queryByText(featuredInfo)).not.toBeInTheDocument();
   });
 
+  it("closes when Tab moves focus out of the badge", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <FeaturedMark />
+        <a href="#next">следно</a>
+      </>,
+    );
+
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(screen.getByText(featuredInfo)).toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByRole("link", { name: "следно" })).toHaveFocus();
+    expect(screen.queryByText(featuredInfo)).not.toBeInTheDocument();
+    expect(featuredButton()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("gives the small „i“ button a 44px touch target", () => {
+    render(<FeaturedMark />);
+    const classes = featuredButton().className.split(/\s+/);
+
+    // The visible circle stays small; an invisible, centred ::after carries the hit area.
+    expect(classes).toContain("relative");
+    expect(classes).toContain("after:size-11");
+    expect(classes).toContain("after:absolute");
+  });
+
   it("shows on mouse hover without pinning, and not on a touch 'hover'", () => {
     render(<FeaturedMark />);
     const root = featuredButton().closest("span.relative")!;
