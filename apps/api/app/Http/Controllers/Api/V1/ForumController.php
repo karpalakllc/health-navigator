@@ -21,6 +21,7 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Services\AnalyticsService;
 use App\Support\Forum\ForumContentModeration;
+use App\Support\Forum\RelatedForumTopics;
 use App\Support\ForumAuthorCounts;
 use App\Support\MeilisearchGateway;
 use App\Support\Slug;
@@ -122,7 +123,7 @@ class ForumController extends Controller
         }
 
         if (! empty($validated['q'])) {
-            $query->searchTitle($validated['q']);
+            $query->searchTitleOrTags($validated['q']);
         }
 
         $perPage = $validated['per_page'] ?? 15;
@@ -146,6 +147,7 @@ class ForumController extends Controller
         $topicModel->load([
             'user' => ForumAuthorCounts::eagerLoad(),
             'category',
+            'tags',
         ]);
 
         $postsQuery = $topicModel->posts()
@@ -158,20 +160,14 @@ class ForumController extends Controller
         // ForumPostResource compares each reply's author with the topic's.
         $paginator->getCollection()->each(fn (ForumPost $post) => $post->setRelation('topic', $topicModel));
 
-        $related = ForumTopic::query()
-            ->where('forum_category_id', $categoryModel->id)
-            ->approved()
-            ->whereKeyNot($topicModel->id)
-            ->with('user')
-            ->orderByDesc('last_post_at')
-            ->limit(3)
-            ->get();
+        // Shared keywords first, then the same category (docs/seo.md).
+        $related = RelatedForumTopics::forTopic($topicModel);
 
         return response()->json([
             'data' => [
                 'topic' => (new ForumTopicDetailResource($topicModel))->resolve($request),
                 'posts' => ForumPostResource::collection($paginator)->resolve(),
-                'related_topics' => ForumTopicListResource::collection($related)->resolve(),
+                'related_topics' => ForumTopicSearchResource::collection($related)->resolve(),
             ],
             'meta' => [
                 'current_page' => $paginator->currentPage(),
@@ -208,6 +204,9 @@ class ForumController extends Controller
             // reaching this line means the author has just given that consent.
             'community_rules_accepted_at' => now(),
         ]);
+
+        // The author's suggestions, unconfirmed until staff save them.
+        $topic->syncTags($request->validated('tags') ?? [], confirmed: false);
 
         if (ForumContentModeration::shouldNotifyAuthor($status)) {
             UgcMailer::notifySubmitted($topic);
@@ -386,7 +385,7 @@ class ForumController extends Controller
         $query = ForumTopic::query()
             ->visible()
             ->with(['user', 'category'])
-            ->searchTitle($q);
+            ->searchTitleOrTags($q);
 
         if ($categoryId !== null) {
             $query->where('forum_category_id', $categoryId);

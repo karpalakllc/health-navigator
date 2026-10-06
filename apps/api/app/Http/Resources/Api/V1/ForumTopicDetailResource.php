@@ -26,7 +26,10 @@ class ForumTopicDetailResource extends JsonResource
                 'slug' => $this->category->slug,
                 'name' => $this->category->name,
             ],
+            'tags' => ForumTagResource::collection($this->whenLoaded('tags')),
             'replies_count' => $this->replies_count,
+            // Latest reply, or the publication itself (dateModified in JSON-LD).
+            'last_post_at' => $this->last_post_at?->toIso8601String(),
             'is_locked' => $this->is_locked,
             'is_pinned' => $this->is_pinned,
             'published_at' => $this->published_at?->toIso8601String(),

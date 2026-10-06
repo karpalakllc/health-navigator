@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
+use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
@@ -168,5 +169,13 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/tokens', [TokenController::class, 'index']);
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
         Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
+    });
+
+    // Forum keywords and profile ↔ forum links (W5-S, docs/seo.md). Anonymous
+    // and identical for everyone, so shared caches may keep them for 60 s.
+    Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
+        Route::get('/forum/tags', [ForumTagController::class, 'index']);
+        Route::get('/forum/tags/{tag}', [ForumTagController::class, 'show']);
+        Route::get('/forum/topics/related', [ForumTagController::class, 'related']);
     });
 });

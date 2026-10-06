@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ForumContentStatus;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Models\Concerns\ModeratesForumContent;
+use App\Support\Forum\ForumTagNormalizer;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
 use Database\Factories\ForumTopicFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
@@ -96,6 +98,40 @@ class ForumTopic extends Model
     }
 
     /**
+     * Keywords. Pivot `confirmed`: saved by staff/a moderator, not just
+     * suggested by the author (see the forum_tags migration).
+     *
+     * @return BelongsToMany<ForumTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ForumTag::class, 'forum_tag_topic')
+            ->withPivot('confirmed')
+            ->withTimestamps()
+            ->orderBy('forum_tags.name');
+    }
+
+    /**
+     * Replaces the topic's keywords with up to five normalised ones.
+     *
+     * @param  iterable<mixed>  $names
+     */
+    public function syncTags(iterable $names, bool $confirmed): void
+    {
+        $ids = [];
+
+        foreach (ForumTagNormalizer::list($names) as $name) {
+            $ids[ForumTag::resolve($name)->id] = ['confirmed' => $confirmed];
+        }
+
+        $this->tags()->sync($ids);
+        $this->unsetRelation('tags');
+        // The index entry carries the keywords; syncing the pivot saves no
+        // topic column, so Scout would not notice on its own.
+        $this->searchable();
+    }
+
+    /**
      * @return MorphMany<ContentReport, $this>
      */
     public function reports(): MorphMany
@@ -134,6 +170,29 @@ class ForumTopic extends Model
     public function scopeSearchTitle(Builder $query, string $term): Builder
     {
         return ScriptInsensitiveSearch::whereColumnMatches($query, 'title', $term);
+    }
+
+    /**
+     * Title match, or a keyword whose spelling-independent key contains the
+     * term's: "prosireni veni" finds a Cyrillic topic tagged „проширени вени“.
+     *
+     * @param  Builder<ForumTopic>  $query
+     * @return Builder<ForumTopic>
+     */
+    public function scopeSearchTitleOrTags(Builder $query, string $term): Builder
+    {
+        $name = ForumTagNormalizer::name($term);
+
+        if ($name === null) {
+            return $query->searchTitle($term);
+        }
+
+        $key = '%'.addcslashes(ForumTagNormalizer::matchKey($name), '%_\\').'%';
+
+        return $query->where(function (Builder $inner) use ($term, $key): void {
+            $inner->searchTitle($term)
+                ->orWhereHas('tags', fn (Builder $tags) => $tags->where('match_key', 'like', $key));
+        });
     }
 
     /**
@@ -196,6 +255,12 @@ class ForumTopic extends Model
             'forum_category_id' => $this->forum_category_id,
             'category_slug' => $category?->slug,
             'category_name' => $category?->name,
+            // Both spellings, so a Latin query finds a Cyrillic keyword.
+            'tags' => $this->tags()->get()
+                ->flatMap(fn (ForumTag $tag): array => [$tag->name, $tag->latin])
+                ->unique()
+                ->values()
+                ->all(),
             // Filterable (config/scout.php) so search can exclude unpublished
             // categories even if the index lags behind a publication change.
             'category_is_published' => (bool) $category?->is_published,
