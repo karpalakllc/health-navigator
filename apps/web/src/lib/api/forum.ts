@@ -51,7 +51,8 @@ export type ForumTopicDetail = {
   is_locked: boolean;
   is_pinned: boolean;
   published_at: string | null;
-  viewer?: { can_moderate: boolean };
+  /** Signed-in requests only. can_moderate is present only when true. */
+  viewer?: { is_own?: boolean; can_moderate?: boolean };
 };
 
 export type ForumPost = {
@@ -60,6 +61,10 @@ export type ForumPost = {
   author_name: string;
   author: ForumAuthor;
   published_at: string | null;
+  /** Written by the topic's opener (the API decides; no ids are exposed). */
+  is_topic_author?: boolean;
+  /** Signed-in requests only: the viewer wrote this reply. */
+  viewer?: { is_own: boolean };
 };
 
 export type ForumTopicPage = {

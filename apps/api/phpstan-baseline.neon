@@ -1,0 +1,1231 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Argument of an invalid type Illuminate\\Routing\\RouteCollectionInterface supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: app/Console/Commands/GenerateRouteTable.php
+
+		-
+			message: '#^Method App\\Filament\\Pages\\AnalyticsOverview\:\:getHeaderWidgets\(\) should return array\<class\-string\> but returns array\<int, Filament\\Widgets\\WidgetConfiguration\|string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Filament/Pages/AnalyticsOverview.php
+
+		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\ManageSiteSettings\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Pages/ManageSiteSettings.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:clients\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Clients/ClientUserResource.php
+
+		-
+			message: '#^Cannot call method forgetForumModerationScope\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Clients/Pages/EditClientUser.php
+
+		-
+			message: '#^Cannot call method revokeApiTokens\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Clients/Pages/EditClientUser.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$clinicalInterests\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$facilities\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$languages\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$procedures\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$specialties\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:clinicalInterests\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:facilities\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:languages\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:procedures\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:searchable\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:specialties\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/CreateDoctor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:searchable\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot access property \$clinicalInterests on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot access property \$facilities on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot access property \$languages on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot access property \$procedures on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot access property \$specialties on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot call method clinicalInterests\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot call method facilities\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot call method languages\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot call method procedures\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Cannot call method specialties\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Database\\Eloquent\\Model\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/Doctors/Pages/EditDoctor.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:clinical\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Facilities/FacilityResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$departments\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/CreateFacility.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$doctors\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Resources/Facilities/Pages/CreateFacility.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:departments\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/CreateFacility.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:doctors\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/CreateFacility.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Cannot access property \$departments on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Cannot access property \$doctors on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Cannot call method departments\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Cannot call method doctors\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Database\\Eloquent\\Model\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/Facilities/Pages/EditFacility.php
+
+		-
+			message: '#^Method App\\Filament\\Resources\\ForumPosts\\ForumPostResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumPost\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Filament/Resources/ForumPosts/ForumPostResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ForumModerationScope\:\:restrictPosts\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumPost\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Resources/ForumPosts/ForumPostResource.php
+
+		-
+			message: '#^Method App\\Filament\\Resources\\ForumTopics\\ForumTopicResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Filament/Resources/ForumTopics/ForumTopicResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ForumModerationScope\:\:restrictTopics\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Resources/ForumTopics/ForumTopicResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Pharmacies/Pages/EditPharmacy.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Database\\Eloquent\\Model\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/Pharmacies/Pages/EditPharmacy.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:pharmacy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Pharmacies/PharmacyResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Products/Pages/EditProduct.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Database\\Eloquent\\Model\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/Products/Pages/EditProduct.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email_verified_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Staff/Pages/CreateStaffUser.php
+
+		-
+			message: '#^Cannot call method revokeApiTokens\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Filament/Resources/Staff/Pages/EditStaffUser.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, Spatie\\Permission\\Models\\Role\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Staff/Schemas/StaffUserForm.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:staff\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Staff/StaffUserResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/TriageFlows/Pages/EditTriageFlow.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Database\\Eloquent\\Model\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/TriageFlows/Pages/EditTriageFlow.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:searchName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Support/AdminSelect.php
+
+		-
+			message: '#^Parameter \#3 \$modelClass of static method App\\Filament\\Support\\AdminSelect\:\:taxonomyMulti\(\) expects class\-string\<App\\Models\\ClinicalInterest\|App\\Models\\Language\|App\\Models\\Procedure\|App\\Models\\Specialty\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/AdminSelect.php
+
+		-
+			message: '#^Parameter \#2 \$approve of static method App\\Filament\\Support\\ModerationBulkActions\:\:approve\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: void, Closure\(App\\Models\\ForumPost\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Parameter \#2 \$approve of static method App\\Filament\\Support\\ModerationBulkActions\:\:approve\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: void, Closure\(App\\Models\\ForumTopic\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Parameter \#2 \$approve of static method App\\Filament\\Support\\ModerationBulkActions\:\:approve\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: void, Closure\(App\\Models\\Review\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Parameter \#2 \$reject of static method App\\Filament\\Support\\ModerationBulkActions\:\:reject\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model, string\|null\)\: void, Closure\(App\\Models\\ForumPost, string\|null\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Parameter \#2 \$reject of static method App\\Filament\\Support\\ModerationBulkActions\:\:reject\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model, string\|null\)\: void, Closure\(App\\Models\\ForumTopic, string\|null\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Parameter \#2 \$reject of static method App\\Filament\\Support\\ModerationBulkActions\:\:reject\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model, string\|null\)\: void, Closure\(App\\Models\\Review, string\|null\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Filament/Support/ModerationBulkActions.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$full_name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Support/ReviewableLabel.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Support/ReviewableLabel.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Support/ReviewableLabel.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:visible\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\V1\\ForumController\:\:forumTopicSearchPaginator\(\) should return Illuminate\\Pagination\\LengthAwarePaginator&iterable\<App\\Models\\ForumTopic\> but returns Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\UniqueSlug\:\:forQuery\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$relations of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumPost\>\:\:with\(\) expects array\<array\|\(Closure\(Illuminate\\Database\\Eloquent\\Relations\\Relation\<\*, \*, \*\>\)\: mixed\)\|string\>\|string, array\{user\: Closure\(Illuminate\\Database\\Eloquent\\Relations\\Relation\<App\\Models\\User, mixed, \*\>\)\: void\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/PharmacyController.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Product\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/PharmacyController.php
+
+		-
+			message: '#^Instanceof between Illuminate\\Auth\\SessionGuard and Illuminate\\Auth\\SessionGuard will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/Http/Middleware/IgnoreRememberMeCookie.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Facility\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/DoctorDetailResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Specialty\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/DoctorDetailResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Facility\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/DoctorListResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Specialty\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/DoctorListResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Doctor\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/FacilityDetailResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PharmacyShelfProductResource\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Resources/Api/V1/PharmacyShelfProductResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Facility\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Resources/Api/V1/ProductDetailResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\ProductListResource\:\:\$from_price\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ProductListResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_required\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$options\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$step_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Resources/Api/V1/TriageFlowResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Doctor\>\|Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\>\:\:searchable\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Jobs/ReindexTaxonomyMembers.php
+
+		-
+			message: '#^Method App\\Models\\ClinicalInterest\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ClinicalInterest\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/ClinicalInterest.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ClinicalInterest\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/ClinicalInterest.php
+
+		-
+			message: '#^Method App\\Models\\Department\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Department\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Department.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Department\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Department.php
+
+		-
+			message: '#^Parameter \#1 \$taxonomy of job class App\\Jobs\\ReindexTaxonomyMembers constructor expects class\-string\<App\\Models\\Department\|App\\Models\\Specialty\> in App\\Jobs\\ReindexTaxonomyMembers\:\:dispatch\(\), class\-string\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Department.php
+
+		-
+			message: '#^Method App\\Models\\Doctor\:\:scopeCityContains\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Doctor\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Doctor.php
+
+		-
+			message: '#^Method App\\Models\\Doctor\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Doctor\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Doctor.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Doctor\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/Doctor.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<static\(App\\Models\\Doctor\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Doctor.php
+
+		-
+			message: '#^Method App\\Models\\Facility\:\:scopeCityContains\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Method App\\Models\\Facility\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Facility\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<static\(App\\Models\\Facility\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Enums\\FacilityType and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\FacilityType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Facility.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\ForumTopic, App\\Models\\ForumCategory\>\:\:searchable\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumCategory.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\ForumTopic, App\\Models\\ForumCategory\>\:\:unsearchable\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumCategory.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/ForumPost.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:afterApproved\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumPost.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:markPublicationTimestamps\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumPost.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/ForumTopic.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:afterApproved\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumTopic.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:markPublicationTimestamps\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ForumTopic.php
+
+		-
+			message: '#^Method App\\Models\\ForumTopic\:\:scopeSearchTitle\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/ForumTopic.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ForumTopic\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/ForumTopic.php
+
+		-
+			message: '#^Method App\\Models\\Language\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Language\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Language.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Language\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Language.php
+
+		-
+			message: '#^Method App\\Models\\Procedure\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Procedure\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Procedure.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Procedure\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Procedure.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Method App\\Models\\Product\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Product\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Product\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Unsafe call to private method App\\Models\\SiteSetting\:\:defaults\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Models/SiteSetting.php
+
+		-
+			message: '#^Unsafe call to private method App\\Models\\SiteSetting\:\:loadCurrent\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Models/SiteSetting.php
+
+		-
+			message: '#^Unsafe call to private method App\\Models\\SiteSetting\:\:resolveRow\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Models/SiteSetting.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: app/Models/SiteSetting.php
+
+		-
+			message: '#^Method App\\Models\\Specialty\:\:scopeSearchName\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Specialty\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Specialty.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Support\\ScriptInsensitiveSearch\:\:whereColumnMatches\(\) expects Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Specialty\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Specialty.php
+
+		-
+			message: '#^Parameter \#1 \$taxonomy of job class App\\Jobs\\ReindexTaxonomyMembers constructor expects class\-string\<App\\Models\\Department\|App\\Models\\Specialty\> in App\\Jobs\\ReindexTaxonomyMembers\:\:dispatch\(\), class\-string\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Specialty.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$step_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/TriageSession.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$values\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/TriageSession.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<string, string\> is incompatible with native type string\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Notifications/ResetPasswordNotification.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, Spatie\\Permission\\Models\\Role\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Policies/Support/PrivilegeHierarchy.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:eventCountByDay\(\) should return Illuminate\\Support\\Collection\<int, object\{day\: string, total\: int\}\> but returns Illuminate\\Support\\Collection\<int, object\{day\: string, total\: int\}&stdClass\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Offset ''search\.query'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$outcome_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageRuleEvaluator.php
+
+		-
+			message: '#^Parameter \#1 \$rule of method App\\Services\\Triage\\TriageRuleEvaluator\:\:matches\(\) expects App\\Models\\TriageRule, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Triage/TriageRuleEvaluator.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_required\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$step_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$values\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:allowsValues\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/Triage/TriageSessionService.php
+
+		-
+			message: '#^Type mixed in generic type Illuminate\\Database\\Eloquent\\Relations\\Relation\<App\\Models\\User, mixed, \*\> in PHPDoc tag @return is not subtype of template type TDeclaringModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Relations\\Relation\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/ForumAuthorCounts.php
+
+		-
+			message: '#^Access to an undefined property DOMNameSpaceNode\|DOMNode\:\:\$ownerElement\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Media/ImageOptimizer.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:removeAttributeNS\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/Media/ImageOptimizer.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type DOMNodeList\<DOMNameSpaceNode\|DOMNode\>\|false\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Media/ImageOptimizer.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getScoutKeyName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/MeilisearchGateway.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:published\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:visible\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\ForumTopic\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @param for parameter \$paginator does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\MeilisearchUnifiedSearch\:\:emptyPaginator\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<\*NEVER\*, \*NEVER\*\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\MeilisearchUnifiedSearch\:\:searchDoctors\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> but returns Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\MeilisearchUnifiedSearch\:\:searchFacilities\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> but returns Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Parameter \#1 \$paginator of method App\\Support\\MeilisearchUnifiedSearch\:\:section\(\) expects Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Parameter \#1 \$paginator of method App\\Support\\MeilisearchUnifiedSearch\:\:section\(\) expects Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\Doctor in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\Facility in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\ForumTopic in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\ForumTopic\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Model in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @param for parameter \$paginator is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Model in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/MeilisearchUnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\RoleCatalog\:\:ensure\(\) should return Spatie\\Permission\\Models\\Role but returns Spatie\\Permission\\Contracts\\Role\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/RoleCatalog.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/ScriptInsensitiveSearch.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/SentryEventScrubber.php
+
+		-
+			message: '#^Method App\\Support\\SentryEventScrubber\:\:beforeBreadcrumb\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Support/SentryEventScrubber.php
+
+		-
+			message: '#^Method App\\Support\\SentryEventScrubber\:\:beforeSend\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Support/SentryEventScrubber.php
+
+		-
+			message: '#^Method App\\Support\\SentryEventScrubber\:\:beforeSendTransaction\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Support/SentryEventScrubber.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 2
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\ForumTopic\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Product\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @param for parameter \$paginator does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:emptyPaginator\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<\*NEVER\*, \*NEVER\*\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:searchDoctors\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, App\\Models\\Doctor\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:searchFacilities\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, App\\Models\\Facility\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:searchForumTopics\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\ForumTopic\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, App\\Models\\ForumTopic\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:searchPharmacies\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, App\\Models\\Facility\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Method App\\Support\\UnifiedSearch\:\:searchProducts\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Product\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, App\\Models\\Product\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Parameter \#1 \$paginator of method App\\Support\\UnifiedSearch\:\:section\(\) expects Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Parameter \#1 \$paginator of method App\\Support\\UnifiedSearch\:\:section\(\) expects Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\>, Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\Doctor in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\Facility in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Facility\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 2
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\ForumTopic in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\ForumTopic\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type App\\Models\\Product in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Product\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Model in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @param for parameter \$paginator is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Model in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<Illuminate\\Database\\Eloquent\\Model\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Support/UnifiedSearch.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/DoctorDirectorySeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/FacilityDirectorySeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/ForumSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: database/seeders/PerfSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/PharmacyCatalogSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/PlatformUserSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: database/seeders/ReviewSeeder.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: database/seeders/RichDemoSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: database/seeders/RichDemoSeeder.php

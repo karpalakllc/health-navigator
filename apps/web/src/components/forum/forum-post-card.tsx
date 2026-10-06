@@ -14,7 +14,10 @@ import { t } from "@/i18n/t";
 type ForumPostCardProps = {
   post: ForumPost;
   isOriginalPost?: boolean;
-  /** Posted by the person who opened the topic: shows the „Автор“ tag. */
+  /**
+   * Posted by the person who opened the topic: shows the „Автор“ tag. From
+   * the API's `is_topic_author` (display names are not unique).
+   */
   isTopicAuthor?: boolean;
   /** Post actions (e.g. „Одговори“), rendered under the body. */
   actions?: ReactNode;
@@ -44,19 +47,6 @@ export function staffLabel(author: ForumAuthor): string | null {
   }
 
   return null;
-}
-
-/**
- * Same person as the topic's author. The API exposes no user id, so this
- * pairs the public name with the account's creation instant — two accounts
- * that share both are not a realistic case.
- */
-export function isSameAuthor(a: ForumAuthor, b: ForumAuthor): boolean {
-  return (
-    a.name === b.name &&
-    a.member_since !== null &&
-    a.member_since === b.member_since
-  );
 }
 
 /**

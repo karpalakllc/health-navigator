@@ -74,4 +74,55 @@ return [
         'secret' => env('WEB_TIER_SECRET'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Operational alerts
+    |--------------------------------------------------------------------------
+    |
+    | Where NotifyOnFailedJob mails a failed queued job (verification and reset
+    | mail, moderation notices, search indexing). Unset sends nothing, and
+    | `platform:preflight` warns about it on a deployment. One alert per job
+    | class and exception class per throttle window, so a broken mail server
+    | does not answer a storm of failures with a storm of mail.
+    |
+    */
+
+    'alerts' => [
+        'email' => env('PLATFORM_ALERT_EMAIL'),
+        'failed_job_throttle_minutes' => (int) env('PLATFORM_ALERT_THROTTLE_MINUTES', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Content report alerts
+    |--------------------------------------------------------------------------
+    |
+    | `reports:alert-staff` (every 10 minutes) emails everyone who can see the
+    | report queue (content_reports.view) about reports that arrived since the
+    | last run: one summary per run, never one mail per report. `email` adds
+    | a shared inbox to those recipients; unset, only staff are mailed.
+    |
+    */
+
+    'reports' => [
+        'alert_email' => env('REPORT_ALERT_EMAIL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Slow-query logging
+    |--------------------------------------------------------------------------
+    |
+    | ObservabilityServiceProvider logs a warning for any single query slower
+    | than `slow_query_ms`, and once per request/job whose queries add up to
+    | more than `slow_request_queries_ms`. 0 turns either off. SQL is logged
+    | without bindings, so no user input reaches the log.
+    |
+    */
+
+    'observability' => [
+        'slow_query_ms' => (int) env('DB_SLOW_QUERY_MS', 500),
+        'slow_request_queries_ms' => (int) env('DB_SLOW_REQUEST_QUERIES_MS', 2000),
+    ],
+
 ];

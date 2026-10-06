@@ -1,19 +1,25 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\HomeHighlightsController;
+use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\ReviewHelpfulController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
+use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -28,29 +34,35 @@ Route::prefix('v1')->group(function (): void {
     // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
     Route::middleware('cache.public')->group(function (): void {
         Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/languages', [LanguageController::class, 'index']);
         Route::get('/specialties', [SpecialtyController::class, 'index']);
         Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+        // Top specialties and cities plus the latest approved reviews; reviews
+        // of pharmacies only while that module is on (keyed into the cache).
+        Route::get('/home/highlights', HomeHighlightsController::class);
     });
-    Route::get('/doctors', [DoctorController::class, 'index']);
+    // Anonymous directory and product reads are public for 60 s with an
+    // ETag (cache.public:60); the review lists, which carry viewer_review, are not.
+    Route::get('/doctors', [DoctorController::class, 'index'])->middleware('cache.public:60');
     // Optional auth so meta.viewer_review resolves: without it a signed-in user who
     // has already reviewed a profile is shown the submission form, then told they
     // have already reviewed it.
     Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor'])
         ->middleware('auth.sanctum.optional');
-    Route::get('/doctors/{slug}', [DoctorController::class, 'show']);
-    Route::get('/facilities', [FacilityController::class, 'index']);
+    Route::get('/doctors/{slug}', [DoctorController::class, 'show'])->middleware('cache.public:60');
+    Route::get('/facilities', [FacilityController::class, 'index'])->middleware('cache.public:60');
     Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
         ->middleware('auth.sanctum.optional');
-    Route::get('/facilities/{slug}', [FacilityController::class, 'show']);
+    Route::get('/facilities/{slug}', [FacilityController::class, 'show'])->middleware('cache.public:60');
     Route::middleware('module:pharmacies')->group(function (): void {
-        Route::get('/pharmacies', [PharmacyController::class, 'index']);
+        Route::get('/pharmacies', [PharmacyController::class, 'index'])->middleware('cache.public:60');
         Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
             ->middleware('auth.sanctum.optional');
-        Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products']);
-        Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show']);
+        Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products'])->middleware('cache.public:60');
+        Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show'])->middleware('cache.public:60');
     });
 
-    Route::middleware('module:products')->group(function (): void {
+    Route::middleware(['module:products', 'cache.public:60'])->group(function (): void {
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{slug}', [ProductController::class, 'show']);
     });
@@ -122,5 +134,39 @@ Route::prefix('v1')->group(function (): void {
         // and profile 503 but a direct POST would otherwise still accept reviews.
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
             ->middleware(['module:pharmacies', 'can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
+    });
+
+    // Member reports of published content (docs/notice-and-action.md). Two
+    // windows, each with its own key prefix so they count separately: a burst
+    // limit and a daily ceiling per account. One report per item is enforced
+    // by the table, so the limits only bound how many items one account flags.
+    Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily'])
+        ->group(function (): void {
+            Route::post('/reviews/{review}/reports', [ContentReportController::class, 'storeForReview'])
+                ->whereNumber('review');
+            Route::middleware('module:forum')->group(function (): void {
+                Route::post('/forum/categories/{category}/topics/{topic}/reports', [ContentReportController::class, 'storeForForumTopic']);
+                Route::post('/forum/posts/{post}/reports', [ContentReportController::class, 'storeForForumPost'])
+                    ->whereNumber('post');
+            });
+        });
+
+    // „Корисно“ on a published review: members only (the Member role's
+    // reviews.create, as for writing one), one vote each, toggled.
+    Route::middleware(['auth:sanctum', 'verified', 'can:create,'.Review::class, 'throttle:60,10,api-review-helpful'])
+        ->group(function (): void {
+            Route::put('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'store'])
+                ->whereNumber('review');
+            Route::delete('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'destroy'])
+                ->whereNumber('review');
+        });
+
+    // Account data rights and devices (D5, D6).
+    Route::middleware('auth:sanctum')->prefix('me')->group(function (): void {
+        Route::get('/export', [AccountController::class, 'export'])->middleware('throttle:api-account-export');
+        Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
+        Route::get('/tokens', [TokenController::class, 'index']);
+        Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
+        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
     });
 });

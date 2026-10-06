@@ -1,6 +1,22 @@
 import type { Metadata } from "next";
 import { mk } from "@/i18n/mk";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 import { siteUrl } from "@/lib/site-url";
+
+/**
+ * The site-wide share image (public/og-default.png, 1200×630, D2a palette).
+ *
+ * Set on every page here rather than through an app/opengraph-image file: a
+ * page's own `openGraph` object replaces its parent's wholesale, so a root
+ * file-based image would be dropped by every page that calls pageMetadata.
+ * Twitter's card falls back to the OpenGraph image.
+ */
+export const DEFAULT_OG_IMAGE = {
+  url: "/og-default.png",
+  width: 1200,
+  height: 630,
+  alt: `${mk.nav.wordmark}: ${mk.meta.description}`,
+} as const;
 
 /**
  * Shared metadata for a public page.
@@ -30,6 +46,7 @@ export function pageMetadata(
       locale: "mk_MK",
       type: "website",
       url: options.path,
+      images: [DEFAULT_OG_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
@@ -42,4 +59,57 @@ export function pageMetadata(
     // root layout's maintenance-mode noindex.
     ...(options.noIndex ? { robots: { index: false, follow: false } } : {}),
   };
+}
+
+export type ListSearchParams = Record<string, string | string[] | undefined>;
+
+const TRACKING_PARAMS = new Set([
+  "fbclid",
+  "gclid",
+  "dclid",
+  "gbraid",
+  "wbraid",
+  "msclkid",
+  "yclid",
+  "igshid",
+  "mc_cid",
+  "mc_eid",
+  "ref",
+]);
+
+function isTrackingParam(key: string): boolean {
+  const name = key.toLowerCase();
+
+  return name.startsWith("utm_") || TRACKING_PARAMS.has(name);
+}
+
+/**
+ * Canonical path for a paginated, filterable list page.
+ *
+ * Any filter (text, slug, sort) points at the bare list: filter combinations
+ * are views of it, not documents to index one by one. An unfiltered deeper
+ * page keeps its `?page=N`, since page 2 is not a duplicate of page 1.
+ * Campaign and click-tracking parameters (utm_*, fbclid…) are not filters:
+ * a shared link to page 3 is still page 3.
+ */
+export function listCanonicalPath(
+  path: string,
+  params: ListSearchParams = {},
+): string {
+  const filtered = Object.entries(params).some(
+    ([key, value]) =>
+      key !== "page" &&
+      !isTrackingParam(key) &&
+      (Array.isArray(value) ? value.length > 0 : (value ?? "").trim() !== ""),
+  );
+
+  if (filtered) {
+    return path;
+  }
+
+  const page = parseListPage(
+    typeof params.page === "string" ? params.page : undefined,
+  );
+
+  return page > 1 ? `${path}?page=${page}` : path;
 }

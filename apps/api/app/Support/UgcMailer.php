@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcApprovedMail;
 use App\Mail\UgcRejectedMail;
 use App\Mail\UgcSubmittedMail;
@@ -25,6 +26,7 @@ final class UgcMailer
                 contentTitle: $payload['title'],
                 actionUrl: $payload['account_url'],
                 actionLabel: $payload['account_action_label'],
+                masculine: $payload['masculine'],
             ));
         });
     }
@@ -42,22 +44,77 @@ final class UgcMailer
                 contentTitle: $payload['title'],
                 actionUrl: $payload['public_url'],
                 actionLabel: $payload['public_action_label'],
+                masculine: $payload['masculine'],
             ));
         });
     }
 
-    public static function notifyRejected(Model $model): void
+    /**
+     * @param  bool  $removed  taken down after a report (it had been public)
+     */
+    public static function notifyRejected(Model $model, bool $removed = false): void
     {
-        self::sendToAuthor($model, function (User $user, array $payload): void {
+        self::sendToAuthor($model, function (User $user, array $payload) use ($removed): void {
             Mail::to($user)->queue(new UgcRejectedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
                 contentTitle: $payload['title'],
                 actionUrl: $payload['account_url'],
                 actionLabel: $payload['account_action_label'],
+                masculine: $payload['masculine'],
                 rejectionNote: $payload['rejection_note'] ?? null,
+                removed: $removed,
             ));
         });
+    }
+
+    /**
+     * Tell each reporter how their report about $content ended. A deleted
+     * account is skipped, like any other recipient.
+     *
+     * @param  iterable<User>  $reporters
+     */
+    public static function notifyReportResolved(Model $content, iterable $reporters, bool $removed): void
+    {
+        $subject = self::reportSubject($content);
+
+        if ($subject === null) {
+            return;
+        }
+
+        foreach ($reporters as $user) {
+            if ($user->isAnonymised()) {
+                continue;
+            }
+
+            Mail::to($user)->queue(new ContentReportOutcomeMail(
+                recipientName: $user->name,
+                contentLabel: $subject['label'],
+                contentTitle: $subject['title'],
+                removed: $removed,
+            ));
+        }
+    }
+
+    /**
+     * @return array{label: string, title: string}|null
+     */
+    private static function reportSubject(Model $content): ?array
+    {
+        $payload = self::payloadFor($content);
+
+        if ($payload === null) {
+            return null;
+        }
+
+        return [
+            'label' => match (true) {
+                $content instanceof ForumTopic => 'темата',
+                $content instanceof ForumPost => 'одговорот во темата',
+                default => 'рецензијата за',
+            },
+            'title' => $payload['title'],
+        ];
     }
 
     /**
@@ -70,7 +127,8 @@ final class UgcMailer
             default => null,
         };
 
-        if (! $user instanceof User || $user->email === null) {
+        // A deleted account's address is a non-deliverable placeholder.
+        if (! $user instanceof User || $user->isAnonymised()) {
             return;
         }
 
@@ -86,6 +144,7 @@ final class UgcMailer
     /**
      * @return array{
      *     label: string,
+     *     masculine: bool,
      *     title: string,
      *     account_url: string,
      *     account_action_label: string,
@@ -100,7 +159,8 @@ final class UgcMailer
             $model->loadMissing('category');
 
             return [
-                'label' => 'тема на форумот',
+                'label' => 'тема',
+                'masculine' => false,
                 'title' => $model->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
@@ -114,7 +174,8 @@ final class UgcMailer
             $model->loadMissing(['topic.category']);
 
             return [
-                'label' => 'одговор на форумот',
+                'label' => 'одговор во темата',
+                'masculine' => true,
                 'title' => $model->topic->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
@@ -143,7 +204,8 @@ final class UgcMailer
             $name = $reviewable->full_name ?? $reviewable->name ?? 'профилот';
 
             return [
-                'label' => 'рецензија',
+                'label' => 'рецензија за',
+                'masculine' => false,
                 'title' => $name,
                 'account_url' => FrontendUrl::to('/account/reviews'),
                 'account_action_label' => 'Мои рецензии',

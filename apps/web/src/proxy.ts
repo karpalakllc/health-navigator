@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { mediaImgSrc } from "@/lib/media-origin";
+import { REQUEST_ID_HEADER, requestIdFor } from "@/lib/request-id";
 
 /**
  * Per-request Content-Security-Policy with a script nonce.
@@ -74,12 +75,17 @@ export function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  // One correlation ID per page request: server components read it back
+  // through next/headers and the API helpers forward it (lib/request-id.ts).
+  const requestId = requestIdFor(request.headers);
+  requestHeaders.set(REQUEST_ID_HEADER, requestId);
   // Next reads the nonce back out of this header during SSR and applies it to
   // its own framework and RSC-payload script tags.
   requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Request-Id", requestId);
 
   return response;
 }

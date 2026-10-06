@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Server-side cache for the small, rarely-changing public taxonomy payloads
- * (specialties, departments, forum categories).
+ * (specialties, departments, forum categories, doctor languages).
  *
  * Each group is versioned rather than keyed one-by-one, so a single bump
  * invalidates the list and every per-slug entry at once without tracking keys.
@@ -26,17 +26,22 @@ final class TaxonomyCache
 
     public const FORUM_CATEGORIES = 'forum-categories';
 
+    /** GET /home/highlights: top specialties, cities and the latest approved reviews. */
+    public const HOME_HIGHLIGHTS = 'home-highlights';
+
+    public const LANGUAGES = 'languages';
+
     /**
      * @template T
      *
      * @param  Closure(): T  $resolve
      * @return T
      */
-    public static function remember(string $group, string $key, Closure $resolve): mixed
+    public static function remember(string $group, string $key, Closure $resolve, int $ttl = self::TTL_SECONDS): mixed
     {
         return Cache::remember(
             'taxonomy:'.$group.':v'.self::version($group).':'.$key,
-            self::TTL_SECONDS,
+            $ttl,
             $resolve,
         );
     }

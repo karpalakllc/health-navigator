@@ -74,7 +74,7 @@ class MeilisearchUnifiedSearchTest extends TestCase
 
         // PharmacyListResource, not FacilityListResource.
         $this->assertSame(
-            ['slug', 'name', 'city', 'avatar_url', 'cover_url', 'is_featured', 'review_summary'],
+            ['slug', 'name', 'city', 'avatar_url', 'cover_url', 'phone', 'office_hours', 'is_featured', 'review_summary'],
             array_keys($response->json('data.pharmacies.data.0')),
         );
 

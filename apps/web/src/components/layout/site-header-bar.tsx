@@ -62,7 +62,7 @@ export function SiteHeaderBar({
 
   return (
     <>
-      <div className="mx-auto flex h-[60px] w-full max-w-[1240px] items-center justify-between gap-3 px-5 lg:grid lg:h-20 lg:grid-cols-[1fr_minmax(0,520px)_1fr] lg:gap-6 lg:px-6">
+      <div className="mx-auto flex h-[60px] w-full max-w-[1240px] items-center justify-between gap-3 px-5 lg:grid lg:h-20 lg:grid-cols-[1fr_minmax(0,600px)_1fr] lg:gap-6 lg:px-6">
         <Link
           href="/"
           className="flex min-h-12 min-w-0 shrink items-center rounded-lg no-underline"

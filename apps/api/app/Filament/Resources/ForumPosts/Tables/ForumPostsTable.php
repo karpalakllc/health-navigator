@@ -53,9 +53,7 @@ class ForumPostsTable
                 Action::make('reject')
                     ->visible(fn (ForumPost $record): bool => $record->status === ForumContentStatus::Pending
                         && auth()->user()?->can('update', $record))
-                    ->form([
-                        ModerationBulkActions::rejectionNoteField(),
-                    ])
+                    ->form(ModerationBulkActions::rejectionNoteFields())
                     ->requiresConfirmation()
                     ->action(fn (ForumPost $record, array $data) => $record->reject(
                         auth()->user(),

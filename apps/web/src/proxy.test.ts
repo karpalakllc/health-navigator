@@ -60,3 +60,38 @@ describe("proxy CSP img-src", () => {
     ]);
   });
 });
+
+describe("proxy request ID", () => {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+  function run(headers: Record<string, string> = {}) {
+    const response = proxy(
+      new NextRequest("https://www.example.com/", { headers }),
+    );
+
+    return {
+      returned: response.headers.get("X-Request-Id"),
+      // NextResponse.next({ request: { headers } }) relays overridden request
+      // headers to the render under this prefix.
+      forwarded: response.headers.get("x-middleware-request-x-request-id"),
+    };
+  }
+
+  it("mints one ID, hands it to the render and returns it", () => {
+    const { returned, forwarded } = run();
+
+    expect(returned).toMatch(UUID);
+    expect(forwarded).toBe(returned);
+  });
+
+  it("keeps a well-formed ID an edge already assigned", () => {
+    expect(run({ "x-request-id": "edge-12345678" })).toEqual({
+      returned: "edge-12345678",
+      forwarded: "edge-12345678",
+    });
+  });
+
+  it("replaces a malformed one", () => {
+    expect(run({ "x-request-id": "not ok" }).returned).toMatch(UUID);
+  });
+});

@@ -12,6 +12,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -190,6 +191,12 @@ class SpatieSingleSourceTest extends TestCase
 
     public function test_the_migration_moves_what_the_column_granted_onto_spatie_roles(): void
     {
+        // The column is gone since 2026_10_13_100000; put it back for the
+        // backfill, as a database migrating through both releases would have it.
+        $drop = require database_path('migrations/2026_10_13_100000_drop_role_from_users_table.php');
+        $drop->down();
+        DB::table('users')->update(['role' => null]);
+
         $member = $this->legacyUser('member@example.com', 'member', 'client');
         $admin = $this->legacyUser('admin@example.com', 'admin', 'staff');
         $roleLessModerator = $this->legacyUser('moderator@example.com', 'moderator', 'staff');
@@ -254,8 +261,9 @@ class SpatieSingleSourceTest extends TestCase
 
     /**
      * Written straight to the table so the account carries exactly the legacy
-     * column value under test and whatever roles the test gives it — no factory
-     * or registration side effects.
+     * column value under test (when the column exists — only the backfill test
+     * restores it) and whatever roles the test gives it — no factory or
+     * registration side effects.
      */
     private function legacyUser(string $email, string $column, string $kind): User
     {
@@ -263,12 +271,11 @@ class SpatieSingleSourceTest extends TestCase
             'name' => 'Legacy '.$column,
             'email' => $email,
             'password' => bcrypt('password'),
-            'role' => $column,
             'user_kind' => $kind,
             'email_verified_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ] + (Schema::hasColumn('users', 'role') ? ['role' => $column] : []));
 
         return User::query()->findOrFail($id);
     }

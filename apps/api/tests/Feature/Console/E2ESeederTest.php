@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
+use App\Models\ContentReport;
 use App\Models\Doctor;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
@@ -53,6 +54,24 @@ class E2ESeederTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         $this->runSeederDirectly();
+    }
+
+    public function test_reseeding_puts_the_reportable_reviews_back_up(): void
+    {
+        $this->seed(E2ESeeder::class);
+
+        $review = Review::query()->where('body', 'Рецензија за пријава 0 (E2E).')->sole();
+        $this->assertSame(ReviewStatus::Approved, $review->status);
+
+        ContentReport::factory()->about($review)->create();
+        $review->reject(User::factory()->moderator()->create());
+
+        $this->seed(E2ESeeder::class);
+
+        $review->refresh();
+        $this->assertSame(ReviewStatus::Approved, $review->status);
+        $this->assertSame(0, $review->reports()->count());
+        $this->assertSame(E2ESeeder::ATTEMPTS, Review::query()->where('body', 'like', 'Рецензија за пријава %')->approved()->count());
     }
 
     public function test_each_staff_account_has_its_own_totp_secret(): void

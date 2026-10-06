@@ -102,9 +102,9 @@ export function SiteNav({
                 <span className={vertical ? "flex-1" : undefined}>
                   {t(link.labelKey)}
                 </span>
-                {vertical ? (
-                  <Icon name="chevron-right" size={20} className="text-ink-2" />
-                ) : active ? (
+                {/* No trailing chevron in the drawer: these rows open a
+                    page, they do not drill into a sub-list. */}
+                {!vertical && active ? (
                   <span
                     aria-hidden="true"
                     data-active-indicator=""

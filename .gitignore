@@ -16,6 +16,10 @@ Thumbs.db
 !.env.*.example
 auth.json
 
+# Database dumps (scripts/db-backup.sh): personal data, never committed
+backups/
+*.dump
+
 # Logs
 *.log
 npm-debug.log*

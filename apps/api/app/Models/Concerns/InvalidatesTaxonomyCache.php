@@ -23,8 +23,10 @@ trait InvalidatesTaxonomyCache
         static::saved($flush);
         static::deleted($flush);
 
+        // registerModelEvent() rather than restored(): only soft-deleting
+        // models define the latter, and this trait is used by models without it.
         if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
-            static::restored($flush);
+            static::registerModelEvent('restored', $flush);
         }
     }
 }

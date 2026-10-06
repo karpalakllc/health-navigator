@@ -23,7 +23,7 @@ class DoctorFactory extends Factory
             'title' => 'д-р',
             'bio' => fake()->optional()->paragraph(),
             'city' => fake()->randomElement(['Скопје', 'Битола', 'Охрид', 'Прилеп']),
-            'phone' => fake()->optional()->phoneNumber(),
+            'phone' => fake()->optional()->numerify('+389 7# ### ###'),
             'email' => fake()->optional()->safeEmail(),
             'is_published' => true,
             'published_at' => now(),

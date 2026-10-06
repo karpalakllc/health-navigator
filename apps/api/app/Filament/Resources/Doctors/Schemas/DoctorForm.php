@@ -4,11 +4,13 @@ namespace App\Filament\Resources\Doctors\Schemas;
 
 use App\Filament\Support\AdminSelect;
 use App\Filament\Support\OptimizedImageUpload;
+use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Specialty;
 use App\Support\OfficeHours;
 use App\Support\PublicWebUrl;
 use App\Support\Slug;
+use Closure;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -178,10 +180,19 @@ class DoctorForm
                     ->schema([
                         Toggle::make('is_featured')
                             ->label('Featured on homepage')
-                            ->helperText('Editorial highlight in the “Истакнати доктори” section. Not paid sponsorship.'),
+                            ->helperText('Editorial highlight in the “Истакнати лекари” section. Never paid, so not for sponsored doctors.')
+                            ->live()
+                            ->rules([
+                                fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get): void {
+                                    if ($value && $get('is_sponsored')) {
+                                        $fail(Doctor::EXCLUSIVE_FLAGS_MESSAGE);
+                                    }
+                                },
+                            ]),
                         Toggle::make('is_sponsored')
                             ->label('Sponsored placement')
-                            ->helperText('Paid partnership — shows “Спонзорирано” on the public profile. Independent from featured.'),
+                            ->helperText('Paid partnership — shows “Спонзорирано” on the public profile. A sponsored doctor cannot be featured.')
+                            ->live(),
                         Toggle::make('is_published')
                             ->default(false)
                             ->helperText(function ($record): ?string {

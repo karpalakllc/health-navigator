@@ -1,15 +1,27 @@
 <x-mail::message>
+@if ($removed)
+# Отстрането
+
+Здраво, {{ $recipientName }},
+
+{{ $masculine ? 'Вашиот' : 'Вашата' }} {{ $contentLabel }} „**{{ $contentTitle }}**“ е {{ $masculine ? 'отстранет' : 'отстранета' }} од Zdravje360 по пријава и преглед од нашиот тим.
+
+@if ($rejectionNote)
+**Причина:** {{ $rejectionNote }}
+@endif
+@else
 # Не е објавено
 
-Здраво {{ $recipientName }},
+Здраво, {{ $recipientName }},
 
-За жал, вашата {{ $contentLabel }} „**{{ $contentTitle }}**“ **не беше објавена** по преглед од нашиот тим.
+За жал, {{ $masculine ? 'вашиот' : 'вашата' }} {{ $contentLabel }} „**{{ $contentTitle }}**“ **не беше {{ $masculine ? 'објавен' : 'објавена' }}** по преглед од нашиот тим.
 
 @if ($rejectionNote)
 **Белешка од модераторот:** {{ $rejectionNote }}
 @endif
+@endif
 
-Можете да ја проверите состојбата на вашата сметка.
+Статусот на сите ваши објави можете да го видите во вашата сметка.
 
 <x-mail::button :url="$actionUrl">
 {{ $actionLabel }}

@@ -12,6 +12,7 @@ export const REVIEW_SORTS = [
   "oldest",
   "rating_high",
   "rating_low",
+  "helpful",
 ] as const;
 
 export type ReviewSort = (typeof REVIEW_SORTS)[number];

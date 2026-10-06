@@ -26,21 +26,24 @@ import {
 } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t, tCount } from "@/i18n/t";
 import type { Metadata } from "next";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await fetchPublicSettings();
-
-  return pageMetadata(t("forum.title"), t("forum.description"), {
-    noIndex: !settings.public_forum,
-  });
-}
 
 type ForumPageProps = {
   searchParams: Promise<{ q?: string; category?: string; page?: string }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: ForumPageProps): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("forum.title"), t("forum.description"), {
+    path: listCanonicalPath("/forum", await searchParams),
+    noIndex: !settings.public_forum,
+  });
+}
 
 function toRow(topic: ForumTopicSearchItem): ForumTopicRowData {
   return {

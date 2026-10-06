@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Reviews\Pages;
 use App\Enums\ReviewStatus;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Filament\Support\ModerationBulkActions;
+use App\Filament\Support\ReviewResponseActions;
 use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
@@ -24,14 +25,14 @@ class ViewReview extends ViewRecord
             Action::make('reject')
                 ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
                     && auth()->user()?->can('update', $record))
-                ->form([
-                    ModerationBulkActions::rejectionNoteField(),
-                ])
+                ->form(ModerationBulkActions::rejectionNoteFields())
                 ->requiresConfirmation()
                 ->action(fn (Review $record, array $data) => $record->reject(
                     auth()->user(),
                     $data['rejection_note'] ?? null,
                 )),
+            ReviewResponseActions::respond(),
+            ReviewResponseActions::remove(),
         ];
     }
 }

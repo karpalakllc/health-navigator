@@ -104,6 +104,13 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        // Only reachable with the right password, like the checks below, so it
+        // tells nobody anything they could not already learn by signing in. The
+        // staff-recorded reason is never shown to the member.
+        if ($user->isSuspended()) {
+            return ApiResponse::errorCode('auth.account_suspended', 403);
+        }
+
         // The admin panel requires a second factor of these accounts; a token
         // minted here on the password alone would carry the same staff powers
         // (forum moderation through the policies) without it, so staff work in

@@ -32,6 +32,9 @@ beforeEach(() => {
     if (url.endsWith("/specialties")) {
       return Response.json({ data: [{ slug: "kardiologija" }] });
     }
+    if (url.endsWith("/languages")) {
+      return Response.json({ data: [{ slug: "angliski" }] });
+    }
     if (url.endsWith("/departments")) {
       return Response.json({ data: [{ slug: "urgenten" }] });
     }
@@ -86,6 +89,7 @@ describe("directory list fetches", () => {
   it.each([
     ["doctors", () => fetchDoctors({ specialty: "kardiologija", page: 2 })],
     ["doctors by rating", () => fetchDoctors({ sort: "rating" })],
+    ["doctors by language", () => fetchDoctors({ language: "angliski" })],
     ["facilities", () => fetchFacilities({ department: "urgenten" })],
     [
       "emergency hospitals",
@@ -105,6 +109,7 @@ describe("directory list fetches", () => {
 
   it.each([
     ["an unknown specialty", () => fetchDoctors({ specialty: "x-1" })],
+    ["an unknown language", () => fetchDoctors({ language: "klingonski" })],
     ["a deep page", () => fetchDoctors({ page: 6 })],
     ["a huge page", () => fetchDoctors({ page: 1e9 })],
     [

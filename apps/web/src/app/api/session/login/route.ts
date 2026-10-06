@@ -5,13 +5,13 @@ import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 import { readUpstream } from "@/lib/api/upstream";
+import { deviceLabel } from "@/lib/device-label";
 
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 type LoginPayload = {
   email?: string;
   password?: string;
-  device_name?: string;
 };
 
 export async function POST(request: Request) {
@@ -35,7 +35,10 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         email: body.email,
         password: body.password,
-        device_name: body.device_name ?? "web",
+        // Names the token in the account's device list („Chrome · macOS“).
+        // Derived here from the browser's own request rather than taken from
+        // the body, and only the coarse label leaves the web tier.
+        device_name: deviceLabel(request.headers.get("user-agent")),
       }),
     }),
   );

@@ -10,8 +10,13 @@ export type PaginatedEnvelope<T> = {
     total: number;
     last_page: number;
     viewer_review?: ViewerReview | null;
+    /** Review lists only: approved reviews per star, for the histogram. */
+    rating_counts?: ReviewRatingCounts;
   };
 };
+
+/** Approved reviews per star („1“…„5“), whatever the list's filter or page. */
+export type ReviewRatingCounts = Record<"1" | "2" | "3" | "4" | "5", number>;
 
 export type ViewerReview = {
   id: number;
@@ -101,6 +106,18 @@ export type PublicReview = {
   body: string | null;
   author_name: string;
   published_at: string | null;
+  /** The reviewed profile's official reply (plain text), entered by staff. */
+  response?: ReviewResponse | null;
+  /** „Корисно“ votes. */
+  helpful_count?: number;
+  /** Present only on signed-in requests. */
+  viewer?: { has_voted_helpful: boolean };
+};
+
+export type ReviewResponse = {
+  body: string;
+  responder_name: string | null;
+  responded_at: string | null;
 };
 
 export type DoctorDetail = {

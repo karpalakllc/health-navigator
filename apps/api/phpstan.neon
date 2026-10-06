@@ -1,0 +1,30 @@
+# Larastan (PHPStan + Laravel rules). Run from apps/api:
+#
+#   ./vendor/bin/phpstan analyse --memory-limit=1G
+#
+# phpstan-baseline.neon records the errors that existed when the analyser was
+# introduced. CI fails on anything not in it, so new and changed code must pass
+# level 5 outright. Fix a baselined error when you touch its code, then shrink
+# the baseline (docs/pr-verification.md "Static analysis"); never regenerate it
+# to absorb a new error.
+
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - app
+        - bootstrap/app.php
+        - bootstrap/providers.php
+        - config
+        - database
+        - routes
+    tmpDir: storage/framework/cache/phpstan
+    # A baselined error that no longer occurs fails the run, so fixes shrink
+    # the baseline instead of leaving dead entries behind.
+    reportUnmatchedIgnoredErrors: true
+    # Read the models' casts() methods, so enum, datetime and array casts
+    # type the attributes instead of the migration's column type.
+    parseModelCastsMethod: true

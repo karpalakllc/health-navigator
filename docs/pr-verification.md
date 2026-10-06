@@ -71,6 +71,37 @@ cd /tmp/review-$PR/apps/api
 php artisan test
 ```
 
+### Static analysis (Larastan)
+
+```bash
+cd /tmp/review-$PR/apps/api
+./vendor/bin/phpstan analyse --memory-limit=1G
+```
+
+Level 5 (`apps/api/phpstan.neon`) against `apps/api/phpstan-baseline.neon`,
+which holds the errors that predate the analyser (305 when it was introduced;
+239 once `parseModelCastsMethod` was turned on, which typed cast attributes and
+retired most of the enum/date false positives).
+The CI `larastan` job runs the same command and **fails if the baseline's error
+count grows** compared with the previous commit or the PR base.
+
+- **New and changed code must pass outright.** A PR that adds an entry to the
+  baseline, or regenerates it and comes out larger, is a finding. Fix the error;
+  if it is a false positive, add an `ignoreErrors` entry in `phpstan.neon` with a
+  comment saying why, reviewed like code.
+- **Fixing a baselined error** makes its entry unmatched, which fails the run
+  (`reportUnmatchedIgnoredErrors`). Delete the entry (or lower its `count`).
+  Regenerating is fine **only when the baseline's diff is all deletions**:
+
+  ```bash
+  ./vendor/bin/phpstan analyse --memory-limit=1G --generate-baseline
+  git diff --stat apps/api/phpstan-baseline.neon   # insertions must be 0
+  ```
+
+- Branches started before the baseline existed: rebase, run the command, and
+  fix whatever it reports in the files you touched. Do not regenerate the
+  baseline on a feature branch to absorb them.
+
 ### API on PostgreSQL
 
 Production is PostgreSQL and the code branches on the driver — `ILIKE` vs `LIKE`, `->>'q'` vs `json_extract`, and NULL ordering, which is **inverted** between the two engines. SQLite-only runs cannot see those paths.
@@ -87,7 +118,7 @@ php artisan test
 
 ### Migrations, both directions
 
-A migration that cannot roll back is fine when it says so; one that *fails* to roll back is a deploy hazard.
+A migration that cannot roll back is fine when it says so; one that *fails* to roll back is a deploy hazard. The rules a migration must follow are in [migration-policy.md](./migration-policy.md).
 
 ```bash
 php artisan migrate:fresh --force      # against the Postgres above
@@ -312,7 +343,7 @@ Treat any of these appearing in a diff as a prompt to check `infra/deploy.md` in
 | `CLIENT_IP_HEADER` | a caller-supplied header, so every caller picks its own bucket |
 | `APP_URL` | in production, **every** request 400s; verification links read as invalid |
 | `NEXT_PUBLIC_SITE_URL` | localhost baked into `robots.txt`, the sitemap and every canonical URL |
-| `MAIL_*` | queued mail fails into `failed_jobs`; nobody is told |
+| `MAIL_*` | queued mail fails into `failed_jobs`; the failed-job alert to `PLATFORM_ALERT_EMAIL` fails too when it is the same mailer (logged, and in Sentry) |
 | `MEDIA_DISK` | uploads vanish on redeploy |
 
 ---

@@ -153,7 +153,6 @@ export function MobileNavDrawer({
               <Icon name="search" size={22} />
             </span>
             <span className="flex-1">{t("nav.search")}</span>
-            <Icon name="chevron-right" size={20} className="text-ink-2" />
           </Link>
 
           <div className="mt-4 rounded-[20px] bg-white p-4 shadow-card">

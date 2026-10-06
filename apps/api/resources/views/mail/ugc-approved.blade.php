@@ -1,9 +1,9 @@
 <x-mail::message>
 # Објавено
 
-Здраво {{ $recipientName }},
+Здраво, {{ $recipientName }},
 
-Вашата {{ $contentLabel }} „**{{ $contentTitle }}**“ е одобрена и сега е видлива на Zdravje360.
+{{ $masculine ? 'Вашиот' : 'Вашата' }} {{ $contentLabel }} „**{{ $contentTitle }}**“ е {{ $masculine ? 'одобрен' : 'одобрена' }} и сега може да се види на Zdravje360.
 
 <x-mail::button :url="$actionUrl">
 {{ $actionLabel }}

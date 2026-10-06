@@ -30,10 +30,14 @@ class ForumTopicDetailResource extends JsonResource
             'is_locked' => $this->is_locked,
             'is_pinned' => $this->is_pinned,
             'published_at' => $this->published_at?->toIso8601String(),
+            // Signed-in requests only (anonymous payloads carry no viewer
+            // state): whether this is the viewer's own topic (no „Пријави“),
+            // and can_moderate only when it is true.
             'viewer' => $this->when(
-                $request->user()?->canModerateForumTopic($this->resource),
+                $request->user() !== null,
                 fn (): array => [
-                    'can_moderate' => true,
+                    'is_own' => (int) $this->user_id === (int) $request->user()?->getKey(),
+                    ...($request->user()?->canModerateForumTopic($this->resource) ? ['can_moderate' => true] : []),
                 ],
             ),
         ];

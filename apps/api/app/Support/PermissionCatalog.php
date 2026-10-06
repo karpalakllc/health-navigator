@@ -69,6 +69,7 @@ final class PermissionCatalog
             'clients.create',
             'clients.update',
             'clients.assign_roles',
+            'clients.suspend',
         ];
     }
 
@@ -112,7 +113,25 @@ final class PermissionCatalog
                 'reviews.delete',
                 'forum.moderate',
             ],
+            self::reportsAndResponses(),
         );
+    }
+
+    /**
+     * The member report queue (resolve = keep or hide the reported content)
+     * and the official response a doctor or facility gives to a review, which
+     * staff enter on their behalf. Added after launch, so a migration grants
+     * them to the existing built-in roles as well.
+     *
+     * @return list<string>
+     */
+    public static function reportsAndResponses(): array
+    {
+        return [
+            'content_reports.view',
+            'content_reports.resolve',
+            'reviews.respond',
+        ];
     }
 
     /**
@@ -164,10 +183,14 @@ final class PermissionCatalog
                 'forum_posts.update',
                 'forum.moderate',
             ],
+            self::reportsAndResponses(),
         );
     }
 
     /**
+     * Forum moderators are community members scoped to categories; the report
+     * queue spans reviews too, so it stays with staff.
+     *
      * @return list<string>
      */
     public static function forumModeratorDefaults(): array

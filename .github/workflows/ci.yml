@@ -12,17 +12,154 @@ on:
 permissions:
   contents: read
 
-# A newer push supersedes an in-flight run for the same ref.
+# A newer push to a pull request supersedes its in-flight run. Pushes to main
+# are never cancelled: the path filter diffs each push against the one before,
+# so a cancelled API push followed by a docs-only push would leave the API
+# change untested.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    # Path filter: which parts of the monorepo this push or PR touched, so a
+    # docs-only change does not spend ten minutes on PHP, Node and a browser.
+    # Plain git rather than a third-party action. Anything it cannot decide
+    # (first push of a branch, a force-push whose old head is gone) runs
+    # everything. A change to this workflow runs everything too.
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          base="$PUSH_BEFORE"
+          if [ "$EVENT" = "pull_request" ]; then base="$PR_BASE"; fi
+
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No usable base ($base); running every job."
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)"
+          printf '%s\n' "$changed"
+
+          matches() { printf '%s\n' "$changed" | grep -Eq "$1" && echo true || echo false; }
+          echo "api=$(matches '^(apps/api/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+          echo "web=$(matches '^(apps/web/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+
+  secrets:
+    # Scans the commits of this push or PR (the whole history on a manual run)
+    # with gitleaks' default rules; .gitleaks.toml allowlists the deliberately
+    # public test fixtures. Pinned by commit SHA: a secret scanner sees every
+    # commit, so it must not change under us through a moved tag.
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Report through the job log only; commenting needs a write token.
+          GITLEAKS_ENABLE_COMMENTS: false
+
+  larastan:
+    # Larastan (PHPStan) level 5 against apps/api/phpstan-baseline.neon, which
+    # holds the errors that predate the analyser. New and changed code must pass
+    # outright; see docs/pr-verification.md "Static analysis".
+    name: Larastan (level 5)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The previous commit / PR base, to compare baseline sizes.
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          coverage: none
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php8.5-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.5-
+      - run: composer install --no-interaction --prefer-dist
+      - name: Static analysis
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress --error-format=github
+      - name: Baseline must not grow
+        # Regenerating the baseline would let a new error in silently. Fixing
+        # one shrinks it; nothing may add to it. Compared entry by entry
+        # (path + identifier + message), so fixing one error and baselining a
+        # different one does not pass on equal totals.
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          base="$PUSH_BEFORE"
+          if [ "$EVENT" = "pull_request" ]; then base="$PR_BASE"; fi
+
+          if [ -z "$base" ] || ! git cat-file -e "$base:apps/api/phpstan-baseline.neon" 2>/dev/null; then
+            echo "No baseline at the base commit; nothing to compare."
+            exit 0
+          fi
+
+          # One "count<TAB>path<TAB>identifier<TAB>message" line per entry.
+          entries() {
+            awk '
+              /^\t\t-$/ { if (m != "") print c "\t" p "\t" i "\t" m; m = ""; i = ""; c = 0; p = "" }
+              /^\t\t\tmessage: / { sub(/^\t\t\tmessage: /, ""); m = $0 }
+              /^\t\t\tidentifier: / { sub(/^\t\t\tidentifier: /, ""); i = $0 }
+              /^\t\t\tcount: / { sub(/^\t\t\tcount: /, ""); c = $0 + 0 }
+              /^\t\t\tpath: / { sub(/^\t\t\tpath: /, ""); p = $0 }
+              END { if (m != "") print c "\t" p "\t" i "\t" m }
+            '
+          }
+
+          git show "$base:apps/api/phpstan-baseline.neon" | entries > /tmp/baseline-before.tsv
+          entries < phpstan-baseline.neon > /tmp/baseline-after.tsv
+          echo "Baselined entries: $(wc -l < /tmp/baseline-before.tsv) -> $(wc -l < /tmp/baseline-after.tsv)"
+
+          grown="$(awk -F '\t' '
+            NR == FNR { before[$2 FS $3 FS $4] += $1; next }
+            { after[$2 FS $3 FS $4] += $1 }
+            END { for (k in after) if (after[k] > before[k] + 0) print after[k] - before[k] "x " k }
+          ' /tmp/baseline-before.tsv /tmp/baseline-after.tsv)"
+
+          if [ -n "$grown" ]; then
+            echo "$grown"
+            echo "::error file=apps/api/phpstan-baseline.neon::The Larastan baseline gained entries (listed above). Fix the new errors instead of baselining them."
+            exit 1
+          fi
+
   api:
     # Both ends of the supported range. composer.json declares ^8.4, so 8.4 has
     # to be tested -- declaring a floor nothing runs is how a "supported" version
     # turns out to be broken on someone else's host. 8.5 is what we deploy on.
     name: Laravel API (SQLite, PHP ${{ matrix.php }})
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -73,6 +210,8 @@ jobs:
     # engines (SQLite sorts NULLs last under DESC, PostgreSQL sorts them first).
     # Without this job those paths are never executed before deploy.
     name: Laravel API (PostgreSQL)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -133,6 +272,8 @@ jobs:
 
   web:
     name: Next.js Web
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -173,6 +314,9 @@ jobs:
     # (E2ESeeder), and every API and web setting comes from
     # apps/web/e2e/support/env.ts, so no .env or data step is needed here.
     name: E2E (Playwright, Chromium)
+    # The browser suite exercises both apps, so a change to either runs it.
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:

@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Filament\Support\ModerationBulkActions;
 use App\Filament\Support\ModerationTableColumns;
 use App\Filament\Support\ReviewableLabel;
+use App\Filament\Support\ReviewResponseActions;
 use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -55,14 +56,14 @@ class ReviewsTable
                 Action::make('reject')
                     ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
                         && auth()->user()?->can('update', $record))
-                    ->form([
-                        ModerationBulkActions::rejectionNoteField(),
-                    ])
+                    ->form(ModerationBulkActions::rejectionNoteFields())
                     ->requiresConfirmation()
                     ->action(fn (Review $record, array $data) => $record->reject(
                         auth()->user(),
                         $data['rejection_note'] ?? null,
                     )),
+                ReviewResponseActions::respond(),
+                ReviewResponseActions::remove(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make(ModerationBulkActions::forReviews()),

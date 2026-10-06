@@ -7,6 +7,11 @@ import {
   privacySections,
 } from "@/content/legal/privacy";
 import {
+  DisclaimerContent,
+  disclaimerLastUpdated,
+  disclaimerSections,
+} from "@/content/legal/disclaimer";
+import {
   TermsContent,
   termsLastUpdated,
   termsSections,
@@ -14,16 +19,31 @@ import {
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 
+const DOCUMENTS = [
+  [
+    "privacy",
+    "legal.privacyTitle",
+    PrivacyContent,
+    privacySections,
+    privacyLastUpdated,
+  ],
+  ["terms", "legal.termsTitle", TermsContent, termsSections, termsLastUpdated],
+  [
+    "disclaimer",
+    "legal.disclaimerTitle",
+    DisclaimerContent,
+    disclaimerSections,
+    disclaimerLastUpdated,
+  ],
+] as const;
+
 describe("LegalPage", () => {
-  it.each([
-    ["privacy", PrivacyContent, privacySections, privacyLastUpdated],
-    ["terms", TermsContent, termsSections, termsLastUpdated],
-  ] as const)(
+  it.each(DOCUMENTS)(
     "the %s table of contents links to every section heading",
-    async (_name, Content, sections, lastUpdated) => {
+    async (_name, titleKey, Content, sections, lastUpdated) => {
       const { container } = render(
         <LegalPage
-          titleKey="legal.privacyTitle"
+          titleKey={titleKey}
           lastUpdated={lastUpdated}
           sections={sections}
         >
@@ -49,11 +69,21 @@ describe("LegalPage", () => {
       expect(
         screen.getByRole("heading", {
           level: 1,
-          name: t("legal.privacyTitle"),
+          name: t(titleKey),
         }),
       ).toBeInTheDocument();
       expect(screen.getByText(lastUpdated)).toBeInTheDocument();
       expect(await seriousA11yViolations(container)).toEqual([]);
+    },
+  );
+
+  // Macedonian Cyrillic has none of these (Russian/Serbian/Bulgarian) letters;
+  // one slipping in reads as a typo on a page people are meant to trust.
+  it.each(DOCUMENTS)(
+    "the %s text uses only Macedonian Cyrillic",
+    (_name, _titleKey, Content) => {
+      const { container } = render(<Content />);
+      expect(container.textContent).not.toMatch(/[йщъыьэюяёЙЩЪЫЬЭЮЯЁ]/);
     },
   );
 });

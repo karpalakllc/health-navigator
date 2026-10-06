@@ -10,6 +10,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
   ProfileSection,
@@ -138,6 +139,13 @@ export default async function DoctorDetailPage({
 
   return (
     <>
+      <RecordRecentlyViewed
+        kind="doctor"
+        slug={doctor.slug}
+        name={doctor.full_name}
+        subtitle={[primarySpecialty, doctor.city].filter(Boolean).join(" · ")}
+        avatarUrl={doctor.avatar_url}
+      />
       {/*
         Only facts the database actually holds — no credentials, ratings or
         affiliations we cannot substantiate. Overstating a clinician's

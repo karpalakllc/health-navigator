@@ -52,6 +52,19 @@ describe("ReviewsPanel", () => {
     );
   });
 
+  it("names the one-star filter option in the singular", () => {
+    render(<ReviewsPanel {...props({ rating: "1" })} />);
+
+    // "1 ѕвезди" was the plural after 1; Macedonian takes the singular.
+    expect(
+      screen.getByRole("option", { name: "1 ѕвезда" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "2 ѕвезди" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "1 ѕвезди" })).toBeNull();
+  });
+
   it("moves the viewport and focus to the pending card after sending", async () => {
     mockFetch({ status: 201, body: { data: { status: "pending" } } });
     const user = userEvent.setup();

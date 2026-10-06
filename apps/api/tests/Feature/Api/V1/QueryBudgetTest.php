@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\Language;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,6 +98,42 @@ class QueryBudgetTest extends TestCase
             // settings, count, page, specialties, facilities.
             $this->assertLessThanOrEqual(
                 5,
+                count($queries),
+                "{$uri} ran ".count($queries)." queries:\n".implode("\n", $queries),
+            );
+        }
+    }
+
+    /**
+     * phone and office_hours are columns of the rows already loaded; the
+     * language filter is a whereHas inside the count and page queries plus one
+     * exists check in validation.
+     */
+    public function test_contact_fields_and_language_filter_stay_within_the_budget(): void
+    {
+        $this->getJson('/api/v1/settings/public')->assertOk();
+        $this->seedDoctorsWithReviews(doctors: 10, reviewsEach: 1);
+        $language = Language::factory()->create(['slug' => 'angliski']);
+        Doctor::query()->each(fn (Doctor $doctor) => $doctor->languages()->attach($language->id));
+        Facility::query()->update(['type' => FacilityType::Clinic]);
+        Facility::factory()->pharmacy()->count(5)->create();
+        Doctor::query()->update(['phone' => '+389 2 123 456', 'office_hours' => json_encode(['Пон–Пет' => '08:00–16:00'])]);
+        Facility::query()->update(['phone' => '+389 2 123 456', 'office_hours' => json_encode(['Пон–Пет' => '08:00–16:00'])]);
+
+        foreach ([
+            // settings, count, page, specialties, facilities.
+            '/api/v1/doctors?per_page=25' => 5,
+            // + the validation exists check.
+            '/api/v1/doctors?per_page=25&language=angliski' => 6,
+            // settings, count, page (departments_count is a subquery).
+            '/api/v1/facilities?per_page=25' => 3,
+            '/api/v1/pharmacies?per_page=25' => 3,
+        ] as $uri => $budget) {
+            $queries = $this->captureQueries(fn () => $this->getJson($uri)->assertOk()
+                ->assertJsonPath('data.0.phone', '+389 2 123 456'));
+
+            $this->assertLessThanOrEqual(
+                $budget,
                 count($queries),
                 "{$uri} ran ".count($queries)." queries:\n".implode("\n", $queries),
             );

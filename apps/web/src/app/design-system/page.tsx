@@ -310,13 +310,13 @@ export default function DesignSystemPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           <Input label="Град" placeholder="Скопје" />
           <Input
-            label="Е-пошта"
+            label="Е-адреса"
             type="email"
             hint="Ќе ја користиме само за најава."
             defaultValue="marija@"
             error="Внесете важечка е-адреса."
           />
-          <Input label="Име за приказ" disabled defaultValue="Марија К." />
+          <Input label="Јавно име" disabled defaultValue="Марија К." />
           <Select label="Подреди" defaultValue="rel">
             <option value="rel">Најрелевантни</option>
             <option value="top">Најдобро оценети</option>
@@ -324,7 +324,7 @@ export default function DesignSystemPage() {
           </Select>
           <TextareaCounterDemo />
           <div className="flex flex-col gap-6">
-            <Fieldset legend="Оцена" hint="Изберете една опција.">
+            <Fieldset legend="Оценка" hint="Изберете една опција.">
               <Radio name="ds-rating" label="Сите" defaultChecked />
               <Radio name="ds-rating" label="4+" />
               <Radio name="ds-rating" label="4,5+" />
@@ -384,7 +384,7 @@ export default function DesignSystemPage() {
             <Tag tone="white">На праска</Tag>
           </span>
         </Row>
-        <Row label="FeaturedTag · VerifiedTag · SponsoredBadge (tooltip)">
+        <Row label="FeaturedTag · VerifiedTag · SponsoredBadge (toggletip)">
           <FeaturedTag />
           <VerifiedTag />
           <VerifiedTag>Здравствен работник</VerifiedTag>

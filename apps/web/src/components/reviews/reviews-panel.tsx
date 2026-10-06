@@ -18,7 +18,7 @@ import type {
   PublicReview,
   ViewerReview,
 } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount, tFormat } from "@/i18n/t";
 
 type ReviewsPanelProps = {
   kind: "doctor" | "facility" | "pharmacy";
@@ -128,7 +128,7 @@ export function ReviewsPanel({
                 { value: "", label: t("reviews.filterAllRatings") },
                 ...[5, 4, 3, 2, 1].map((stars) => ({
                   value: String(stars),
-                  label: tFormat("reviews.filterStars", {
+                  label: tCount("reviews.filterStars", stars, {
                     stars: String(stars),
                   }),
                 })),
@@ -145,13 +145,19 @@ export function ReviewsPanel({
                 { value: "oldest", label: t("reviews.sortOldest") },
                 { value: "rating_high", label: t("reviews.sortRatingHigh") },
                 { value: "rating_low", label: t("reviews.sortRatingLow") },
+                { value: "helpful", label: t("reviews.sortHelpful") },
               ]}
             />
           </div>
         </div>
       ) : null}
 
-      <ReviewList reviews={initial.data} />
+      <ReviewList
+        reviews={initial.data}
+        isLoggedIn={isLoggedIn}
+        viewerReviewId={viewerReview?.id ?? null}
+        returnTo={`${basePath}#reviews`}
+      />
 
       {initial.meta.last_page > 1 ? (
         <Pagination

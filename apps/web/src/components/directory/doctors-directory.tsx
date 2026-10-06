@@ -11,12 +11,14 @@ import {
   DirectoryListView,
   type ActiveFilter,
 } from "@/components/directory/directory-list-view";
+import type { DoctorLanguage } from "@/lib/api/languages";
 import type { Specialty } from "@/lib/api/types";
 import { t } from "@/i18n/t";
 
 export type DoctorsFilterValues = {
   q: string;
   specialty: string;
+  language: string;
   city: string;
   min_reviews: string;
   sort: string;
@@ -25,11 +27,14 @@ export type DoctorsFilterValues = {
 /** The doctors list: search strip, filter sheet / rail, results. */
 export function DoctorsDirectory({
   specialties,
+  languages = [],
   applied,
   total,
   children,
 }: {
   specialties: Specialty[];
+  /** GET /languages; the filter is left out when empty. */
+  languages?: DoctorLanguage[];
   applied: DoctorsFilterValues;
   total: number;
   children: ReactNode;
@@ -45,6 +50,14 @@ export function DoctorsDirectory({
     applied.q ? { name: "q", label: `„${applied.q}“` } : null,
     applied.specialty
       ? { name: "specialty", label: specialtyName ?? applied.specialty }
+      : null,
+    applied.language
+      ? {
+          name: "language",
+          label:
+            languages.find((l) => l.slug === applied.language)?.name ??
+            applied.language,
+        }
       : null,
     applied.city ? { name: "city", label: applied.city } : null,
     applied.min_reviews
@@ -104,6 +117,16 @@ export function DoctorsDirectory({
             options={specialties.map((s) => ({ value: s.slug, label: s.name }))}
             onChange={(value) => set("specialty", value)}
           />
+          {languages.length > 0 ? (
+            <ChoiceChips
+              legend={t("filters.language")}
+              name="language"
+              value={values.language}
+              allLabel={t("doctors.allLanguages")}
+              options={languages.map((l) => ({ value: l.slug, label: l.name }))}
+              onChange={(value) => set("language", value)}
+            />
+          ) : null}
           <TextFilter
             label={t("filters.city")}
             name="city"

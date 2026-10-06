@@ -31,11 +31,22 @@ return [
     'auth' => [
         'invalid_credentials' => 'The provided credentials are incorrect.',
         'logged_out' => 'Logged out.',
-        'registration_pending' => 'We have sent a message with a confirmation link.',
+        'registration_pending' => 'If the address can be used, we have sent a message with the next step. Please check your inbox.',
         'privacy_note' => 'For security, we do not reveal whether an address is already registered.',
         'throttled' => 'Too many failed attempts. Please try again in :seconds seconds.',
         'email_unverified' => 'Please confirm your email address before continuing. Check your inbox or request a new link.',
         'staff_use_admin' => 'This account is protected by two-factor authentication. Sign in through the administration panel.',
+        'account_suspended' => 'This account is temporarily disabled. If you think this is a mistake, please contact us.',
+    ],
+
+    'account' => [
+        'deleted_user_name' => 'Deleted user',
+        'password_incorrect' => 'The password is incorrect.',
+        'staff_cannot_delete' => 'Team accounts cannot be deleted here. Please contact an administrator.',
+        'deleted' => 'The account has been deleted.',
+        'export_throttled' => 'You downloaded a copy recently. Please try again later.',
+        'token_revoked' => 'The device has been signed out.',
+        'tokens_revoked' => 'Other devices have been signed out.',
     ],
 
     'registration' => [
@@ -56,6 +67,13 @@ return [
 
     'review' => [
         'duplicate' => 'You have already submitted a review for this profile.',
+        'helpful_own' => 'You cannot mark your own review as helpful.',
+    ],
+
+    'report' => [
+        'received' => 'Thank you. The report has been received and a moderator will review it.',
+        'hidden_default_note' => 'The content was removed after a report and a moderator review because it does not follow the community rules.',
+        'own_content' => 'You cannot report your own content.',
     ],
 
     'avatar' => [

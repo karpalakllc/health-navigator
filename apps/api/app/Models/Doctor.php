@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 
 class Doctor extends Model
@@ -43,14 +44,33 @@ class Doctor extends Model
         'published_at',
     ];
 
+    public const EXCLUSIVE_FLAGS_MESSAGE = 'A sponsored doctor cannot also be featured: featured must never be paid for.';
+
     /**
-     * GET /specialties embeds published-doctor counts.
+     * Featured (editorial, unpaid) and sponsored (paid) are exclusive: the
+     * public explanations of the two labels contradict each other. Checked on
+     * every save, whatever writes the row; the admin form says it first.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Doctor $doctor): void {
+            if ($doctor->is_featured && $doctor->is_sponsored) {
+                throw ValidationException::withMessages([
+                    'is_featured' => [self::EXCLUSIVE_FLAGS_MESSAGE],
+                ]);
+            }
+        });
+    }
+
+    /**
+     * GET /specialties embeds published-doctor counts; GET /home/highlights
+     * counts doctors per specialty and city and names review targets.
      *
      * @return list<string>
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::SPECIALTIES];
+        return [TaxonomyCache::SPECIALTIES, TaxonomyCache::LANGUAGES, TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
     /**
@@ -198,6 +218,17 @@ class Doctor extends Model
     {
         return $query->whereHas('specialties', function (Builder $specialtyQuery) use ($slug): void {
             $specialtyQuery->where('slug', $slug)->published();
+        });
+    }
+
+    /**
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    public function scopeSpeaksLanguage(Builder $query, string $slug): Builder
+    {
+        return $query->whereHas('languages', function (Builder $languageQuery) use ($slug): void {
+            $languageQuery->where('slug', $slug)->published();
         });
     }
 

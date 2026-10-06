@@ -4,8 +4,8 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 
 > **Maintenance:** the endpoint table below is generated — run
 > `php artisan docs:route-table --write` (from `apps/api`), or
-> `./scripts/api-routes.sh` and paste the result; both print the same table, and
-> `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
+> `./scripts/api-routes.sh` (a wrapper that prints the same table) and paste
+> the result. `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
 > document previously drifted far enough to state, as a premise, that public
 > registration did not exist, months after it shipped.
 
@@ -107,6 +107,41 @@ mechanism for the Next.js web client and future mobile clients.
   доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
   `DisplayName::rejection()`). **Not unique.**
 
+**Account data rights and devices (D5, D6, D7):**
+
+- **Suspension.** Staff with `clients.suspend` can suspend a client account
+  in the admin panel (reason required, staff-only). Correct credentials for a
+  suspended account return `403` with code `auth.account_suspended` and no
+  token — like the rules above, only reachable with the right password. Its
+  existing tokens are refused (`401`, not deleted) from the next request on,
+  including on optional-auth routes, and work again once the suspension is
+  lifted. Its content is not touched.
+- `GET /me/export` downloads the caller's own data as one JSON attachment
+  (`format: zdravje360.account-export`, `version: 1`): `profile`, `reviews`,
+  `forum_topics`, `forum_posts`, `consents` (forum community-rules acceptance
+  per topic, with time), `content_reports` (the caller's own reports: what,
+  reason, note, status and times — never who resolved them), `helpful_votes`
+  (the reviews the caller marked „Корисно“), `devices` and `activity` (the
+  caller's own analytics events). Nothing about other members: replies name another member's topic
+  only while it is approved. `Cache-Control: no-store`. 5 per hour
+  (`429`, code `account.export_throttled`).
+- `DELETE /me` with `{ "password": "…" }` deletes the account by
+  anonymisation: name, display name, email (replaced with a non-deliverable
+  placeholder, so the address can register again), password, avatar (file
+  removed), roles, community-moderation scopes, tokens, panel sessions and
+  reset links are cleared; published reviews and forum content stay public
+  with the author shown as `Избришан корисник` (`author.member_since` `null`,
+  counts `0`, `is_topic_author` `false`); pending reviews, topics and replies
+  are withdrawn (rejected, no mail); the notes on the member's reports are
+  cleared. Wrong password: `422` on `password`. Staff accounts: `403`, code
+  `account.staff_cannot_delete`. 5 attempts per hour.
+- `GET /me/tokens` lists the caller's active tokens (`id, name, created_at,
+  last_used_at, expires_at, is_current`), current first. `name` is the login's
+  `device_name` (the web tier sends a coarse "browser · OS" label).
+  `DELETE /me/tokens/{id}` revokes one (another member's id is `404`, like an
+  unknown one); `DELETE /me/tokens` revokes all but the current one and
+  returns `revoked`.
+
 **Web client:** Next.js stores the bearer token in an httpOnly cookie via route
 handlers under `/api/session/*`; the browser never reads the token. Mobile uses
 the bearer token directly.
@@ -123,9 +158,13 @@ limiters are layered on top:
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
 | `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
+| `api-account-export` | `GET /me/export` | 5/hour per user |
+| `api-account-delete` | `DELETE /me` (password re-entry) | 5/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
+| `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
+| `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -141,13 +180,17 @@ nobody can hold an account locked by merely sending traffic.
 <!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
+| `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
+| `DELETE` | `/me/tokens` | `auth:sanctum` |
+| `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
+| `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | `cache.public` |
-| `GET` | `/doctors` | — |
-| `GET` | `/doctors/{slug}` | — |
+| `GET` | `/doctors` | `cache.public:60` |
+| `GET` | `/doctors/{slug}` | `cache.public:60` |
 | `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
-| `GET` | `/facilities` | — |
-| `GET` | `/facilities/{slug}` | — |
+| `GET` | `/facilities` | `cache.public:60` |
+| `GET` | `/facilities/{slug}` | `cache.public:60` |
 | `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
@@ -155,16 +198,20 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
+| `GET` | `/home/highlights` | `cache.public` |
+| `GET` | `/languages` | `cache.public` |
 | `GET` | `/me` | `auth:sanctum` |
+| `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
-| `GET` | `/pharmacies` | `module:pharmacies` |
-| `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
-| `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
+| `GET` | `/me/tokens` | `auth:sanctum` |
+| `GET` | `/pharmacies` | `module:pharmacies`, `cache.public:60` |
+| `GET` | `/pharmacies/{slug}` | `module:pharmacies`, `cache.public:60` |
+| `GET` | `/pharmacies/{slug}/products` | `module:pharmacies`, `cache.public:60` |
 | `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
-| `GET` | `/products` | `module:products` |
-| `GET` | `/products/{slug}` | `module:products` |
+| `GET` | `/products` | `module:products`, `cache.public:60` |
+| `GET` | `/products/{slug}` | `module:products`, `cache.public:60` |
 | `GET` | `/search` | — |
 | `GET` | `/settings/public` | — |
 | `GET` | `/specialties` | `cache.public` |
@@ -182,11 +229,15 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
+| `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
 <!-- END generated route table -->
 
@@ -209,8 +260,60 @@ nobody can hold an account locked by merely sending traffic.
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.
-- Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
+- `GET /home/highlights` feeds the home page in one call: `specialties`
+  (up to 8 published specialties with at least one published doctor, by
+  `doctors_count`), `cities` (up to 12 `{name, doctors_count}`, published
+  doctors only, because each links to `/doctors?city=`; Latin and Cyrillic
+  spellings of one city are merged), and `recent_reviews` (up to 4 approved
+  reviews with a body, newest `published_at` first, of published doctors,
+  clinical facilities and — while that module is on — pharmacies: `id`,
+  `rating`, `excerpt` ≤160 characters, `author_name` (the public display
+  name), `published_at`, `target {kind, slug, name}`).
+  Staleness, end to end: the API's own copy is dropped on any doctor,
+  specialty, facility or review save (approving, rejecting, unpublishing,
+  deleting) and otherwise expires after 5 minutes; the pharmacies switch is
+  part of its key. The web tier re-reads it at most every 60 seconds (Next
+  data cache), so a moderation or profile change reaches the home page within
+  about a minute. A member's display-name change saves none of those models,
+  so it can take up to the API's 5 minutes plus that minute. Other HTTP
+  clients may also keep the `public, max-age=300` response for 5 minutes.
+- Doctor, facility and pharmacy **list** items (and `/search` sections) carry
+  `phone` (string or `null`) and `office_hours` (day-label → hours map, `[]`
+  when unset), the same fields as the profiles.
+- `/doctors?language=<slug>` filters on the doctor's languages. The slug must
+  be a published language (`GET /languages`, which lists only languages some
+  published doctor speaks, with `doctors_count`); anything else is **422**.
+- `cache.public` routes answer `Cache-Control: public, max-age=…` with a
+  content `ETag`, and a matching `If-None-Match` gets a body-less **304**.
+  Taxonomies use 300 s; directory and product lists/profiles use 60 s
+  (`cache.public:60`). Only anonymous 200s are marked: a request with an
+  `Authorization` header gets the default `no-cache, private`, and the public
+  answer carries `Vary: Authorization, Accept-Language`. Review lists and
+  `/search` are never marked.
+- Review lists accept `sort` (`newest|oldest|rating_high|rating_low|helpful`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
+  `meta.rating_counts` is `{"1": n, …, "5": n}` over **approved** reviews of the
+  profile, independent of the `rating` filter and the page. Each review carries
+  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at}`:
+  the doctor's or facility's official reply, plain text) and, **only on a
+  signed-in request**, `viewer.has_voted_helpful`; anonymous payloads carry no
+  viewer state.
+- `PUT`/`DELETE /reviews/{id}/helpful` mark and unmark a published review as
+  helpful (Member role, verified; idempotent; your own review is a 422) and
+  return `{helpful_count, has_voted_helpful}`.
+- Reports: `POST /reviews/{id}/reports`, `POST /forum/posts/{id}/reports` and
+  `POST /forum/categories/{category}/topics/{topic}/reports` take `reason`
+  (`spam|abuse|false_information|personal_data|other`) and an optional `note`
+  (≤ 500). Only publicly visible content can be reported (otherwise 404; a
+  pharmacy review while the pharmacies module is off is not public, for
+  „Корисно“ too). Your own review, topic or reply is a 422 (`content`). The
+  first report answers 201, a repeat by the same account 200 with the same body
+  and no new row. Process: [notice-and-action.md](./notice-and-action.md).
+- Forum replies carry `is_topic_author` (written by the topic's opener; never
+  for a deleted account); the payload never includes account ids. On a
+  signed-in request the topic and each reply carry `viewer.is_own` (the web
+  hides „Пријави“ on it), and the topic's `viewer.can_moderate` is present only
+  when true; anonymous payloads carry no `viewer`.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.
@@ -245,7 +348,7 @@ Authorization uses **Spatie roles and permissions** only. Built-in roles:
   (including `Member`). Neither is an authorization input.
 - `users.user_kind` (`staff` / `client`) only decides whether an account is
   managed under Staff or Clients in the admin panel. The legacy `users.role`
-  column is deprecated: nullable, no longer read or written, to be dropped.
+  column was dropped in 2026_10_13_100000.
 - Staff moderators and admins moderate through the Filament panel and the
   public moderation endpoint.
 - **Community moderators** are client accounts holding the `Forum Moderator`

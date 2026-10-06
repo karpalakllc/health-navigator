@@ -27,6 +27,10 @@ class DoctorController extends Controller
             $query->forSpecialtySlug($validated['specialty']);
         }
 
+        if (! empty($validated['language'])) {
+            $query->speaksLanguage($validated['language']);
+        }
+
         if (! empty($validated['city'])) {
             $query->cityContains($validated['city']);
         }

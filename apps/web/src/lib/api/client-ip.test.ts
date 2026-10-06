@@ -143,4 +143,31 @@ describe("forwardedForHeaders", () => {
       ),
     ).toEqual({ "X-Web-Tier-Auth": SECRET, "X-Client-IP": "203.0.113.7" });
   });
+
+  it("forwards a well-formed request ID and drops a malformed one", () => {
+    process.env.WEB_TIER_SECRET = SECRET;
+
+    expect(
+      forwardedForHeaders(
+        requestWith({
+          "x-forwarded-for": "203.0.113.7",
+          "x-request-id": "edge-12345678",
+        }),
+      ),
+    ).toEqual({
+      "X-Web-Tier-Auth": SECRET,
+      "X-Client-IP": "203.0.113.7",
+      "X-Request-Id": "edge-12345678",
+    });
+
+    expect(
+      forwardedForHeaders(requestWith({ "x-request-id": "forged, line" })),
+    ).toEqual({ "X-Web-Tier-Auth": SECRET });
+  });
+
+  it("forwards the request ID without a secret too", () => {
+    expect(
+      forwardedForHeaders(requestWith({ "x-request-id": "edge-12345678" })),
+    ).toEqual({ "X-Request-Id": "edge-12345678" });
+  });
 });

@@ -2,20 +2,24 @@
 
 namespace App\Models;
 
+use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ReviewAggregates;
+use App\Support\TaxonomyCache;
 use App\Support\UgcMailer;
 use Database\Factories\ReviewFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Review extends Model
 {
     /** @use HasFactory<ReviewFactory> */
-    use HasFactory;
+    use HasFactory, InvalidatesTaxonomyCache;
 
     protected $fillable = [
         'user_id',
@@ -29,6 +33,16 @@ class Review extends Model
         'moderated_at',
         'rejection_note',
     ];
+
+    /**
+     * Whether the signed-in viewer marked this review „Корисно“. Not a column:
+     * set per request by the review list (ReviewHelpfulVotes::votedBy), null
+     * when nobody resolved it.
+     */
+    public ?bool $viewerHasVotedHelpful = null;
+
+    /** Longest official response staff can attach (characters). */
+    public const RESPONSE_MAX_LENGTH = 2000;
 
     /**
      * Every path that changes what counts as an approved review — approve(),
@@ -58,13 +72,26 @@ class Review extends Model
         static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
     }
 
+    /**
+     * GET /home/highlights lists the latest approved reviews: approving,
+     * rejecting, editing or deleting one must not wait out the cache.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::HOME_HIGHLIGHTS];
+    }
+
     protected function casts(): array
     {
         return [
             'rating' => 'integer',
+            'helpful_count' => 'integer',
             'status' => ReviewStatus::class,
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
+            'response_at' => 'datetime',
         ];
     }
 
@@ -93,12 +120,56 @@ class Review extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function responseBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'response_by_id');
+    }
+
+    /**
+     * @return MorphMany<ContentReport, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ContentReport::class, 'reportable');
+    }
+
+    /**
      * @param  Builder<Review>  $query
      * @return Builder<Review>
      */
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ReviewStatus::Approved);
+    }
+
+    /**
+     * Reviews of a profile the public can open: a published doctor or
+     * facility, and a pharmacy only while the pharmacies module is on.
+     *
+     * @param  Builder<Review>  $query
+     * @return Builder<Review>
+     */
+    public function scopeOnPublicProfile(Builder $query): Builder
+    {
+        $facilityTypes = FacilityType::clinicalValues();
+
+        if (SiteSetting::current()->public_pharmacies) {
+            $facilityTypes[] = FacilityType::Pharmacy->value;
+        }
+
+        return $query->whereHasMorph(
+            'reviewable',
+            [Doctor::class, Facility::class],
+            function (Builder $profile, string $type) use ($facilityTypes): void {
+                $profile->where('is_published', true);
+
+                if ($type === Facility::class) {
+                    $profile->whereIn('type', $facilityTypes);
+                }
+            },
+        );
     }
 
     public function approve(User $moderator): void
@@ -114,7 +185,10 @@ class Review extends Model
         UgcMailer::notifyApproved($this->fresh());
     }
 
-    public function reject(User $moderator, ?string $note = null): void
+    /**
+     * @param  bool  $afterReport  taken down through the report queue: the author is told it was removed
+     */
+    public function reject(User $moderator, ?string $note = null, bool $afterReport = false): void
     {
         $this->update([
             'status' => ReviewStatus::Rejected,
@@ -124,6 +198,43 @@ class Review extends Model
             'rejection_note' => $note,
         ]);
 
-        UgcMailer::notifyRejected($this->fresh());
+        UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
+    }
+
+    /**
+     * Attach (or replace) the official response of the reviewed doctor or
+     * facility, entered by staff on their behalf. Stored as plain text: any
+     * markup is stripped, line breaks are kept (at most one blank line).
+     */
+    public function respond(User $staff, string $body): void
+    {
+        $this->forceFill([
+            'response_body' => self::plainResponse($body),
+            'response_by_id' => $staff->getKey(),
+            'response_at' => now(),
+        ])->save();
+    }
+
+    public function removeResponse(): void
+    {
+        $this->forceFill([
+            'response_body' => null,
+            'response_by_id' => null,
+            'response_at' => null,
+        ])->save();
+    }
+
+    public function hasResponse(): bool
+    {
+        return filled($this->response_body);
+    }
+
+    public static function plainResponse(string $body): string
+    {
+        $text = strip_tags(str_replace(["\r\n", "\r"], "\n", $body));
+        $text = preg_replace('/[ \t]+\n/u', "\n", $text) ?? $text;
+        $text = preg_replace('/\n{3,}/u', "\n\n", $text) ?? $text;
+
+        return trim($text);
     }
 }

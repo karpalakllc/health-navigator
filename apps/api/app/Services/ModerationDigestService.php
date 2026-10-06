@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
+use App\Filament\Resources\ContentReports\ContentReportResource;
 use App\Filament\Resources\ForumPosts\ForumPostResource;
 use App\Filament\Resources\ForumTopics\ForumTopicResource;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Filament\Support\ModerationResourceUrls;
+use App\Models\ContentReport;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -31,7 +33,7 @@ final class ModerationDigestService
 
     public function shouldNotify(User $user): bool
     {
-        if ($user->can('reviews.view')) {
+        if ($user->can('reviews.view') || $user->can('content_reports.view')) {
             return true;
         }
 
@@ -40,7 +42,7 @@ final class ModerationDigestService
     }
 
     /**
-     * @return array{reviews: ?int, topics: ?int, posts: ?int}
+     * @return array{reviews: ?int, topics: ?int, posts: ?int, reports: ?int}
      */
     public function countsFor(User $user): array
     {
@@ -59,6 +61,9 @@ final class ModerationDigestService
                     ForumPost::query()->where('status', ForumContentStatus::Pending),
                     $user,
                 )->count()
+                : null,
+            'reports' => $user->can('content_reports.view')
+                ? ContentReport::query()->open()->count()
                 : null,
         ];
     }
@@ -93,7 +98,7 @@ final class ModerationDigestService
 
         if ($counts['topics'] !== null) {
             $links[] = [
-                'label' => 'Теми на форум',
+                'label' => 'Теми на форумот',
                 'count' => $counts['topics'],
                 'url' => URL::to(ModerationResourceUrls::indexPending(
                     ForumTopicResource::class,
@@ -105,13 +110,21 @@ final class ModerationDigestService
 
         if ($counts['posts'] !== null) {
             $links[] = [
-                'label' => 'Одговори на форум',
+                'label' => 'Одговори на форумот',
                 'count' => $counts['posts'],
                 'url' => URL::to(ModerationResourceUrls::indexPending(
                     ForumPostResource::class,
                     'status',
                     ForumContentStatus::Pending->value,
                 )),
+            ];
+        }
+
+        if ($counts['reports'] !== null) {
+            $links[] = [
+                'label' => 'Отворени пријави',
+                'count' => $counts['reports'],
+                'url' => URL::to(ContentReportResource::getUrl('index')),
             ];
         }
 

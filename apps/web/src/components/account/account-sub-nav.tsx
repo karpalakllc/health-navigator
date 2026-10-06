@@ -3,13 +3,19 @@ import { Icon, type IconName } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
-export type AccountSection = "overview" | "reviews" | "forum";
+export type AccountSection =
+  "overview" | "reviews" | "forum" | "devices" | "data";
 
 const sections: {
   id: AccountSection;
   href: string;
   icon: IconName;
-  labelKey: "account.navOverview" | "nav.myReviews" | "nav.myForum";
+  labelKey:
+    | "account.navOverview"
+    | "nav.myReviews"
+    | "nav.myForum"
+    | "account.navDevices"
+    | "account.navData";
 }[] = [
   {
     id: "overview",
@@ -28,6 +34,18 @@ const sections: {
     href: "/account/forum",
     icon: "message-circle",
     labelKey: "nav.myForum",
+  },
+  {
+    id: "devices",
+    href: "/account/devices",
+    icon: "lock",
+    labelKey: "account.navDevices",
+  },
+  {
+    id: "data",
+    href: "/account/data",
+    icon: "file-text",
+    labelKey: "account.navData",
   },
 ];
 

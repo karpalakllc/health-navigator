@@ -5,6 +5,7 @@ namespace Tests\Feature\Filament;
 use App\Enums\UserKind;
 use App\Filament\Resources\Doctors\Pages\CreateDoctor;
 use App\Filament\Resources\Doctors\Pages\EditDoctor;
+use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Models\Doctor;
 use App\Models\SiteSetting;
@@ -77,6 +78,25 @@ class DoctorSpecialtySyncTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertSame(1, $this->listedCount());
+    }
+
+    public function test_editing_a_doctors_specialties_refreshes_the_home_highlights(): void
+    {
+        $doctor = Doctor::factory()->create(['is_published' => true]);
+        $this->getJson('/api/v1/home/highlights')->assertOk()->assertJsonCount(0, 'data.specialties');
+        // Another request re-caches the highlights after the doctor row is saved but before the pivot sync.
+        Doctor::saved(fn () => app(HomeHighlightsController::class)());
+
+        Livewire::test(EditDoctor::class, ['record' => $doctor->getKey()])
+            ->fillForm([
+                'specialty_ids' => [$this->cardiology->id],
+                'primary_specialty_id' => $this->cardiology->id,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->getJson('/api/v1/home/highlights')->assertOk()
+            ->assertJsonPath('data.specialties.0.slug', 'kardiologija');
     }
 
     public function test_editing_a_doctors_specialties_refreshes_the_counts_and_the_search_document(): void

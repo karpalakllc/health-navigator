@@ -382,6 +382,12 @@ class PlatformPreflightCommand extends Command
         if (blank(config('sentry.dsn'))) {
             $this->addWarning('sentry.dsn', 'SENTRY_LARAVEL_DSN is not set; production errors will go unnoticed.');
         }
+
+        $alertEmail = config('zdravje.alerts.email');
+
+        if (! is_string($alertEmail) || filter_var(trim($alertEmail), FILTER_VALIDATE_EMAIL) === false) {
+            $this->addWarning('zdravje.alerts.email', 'PLATFORM_ALERT_EMAIL is not set (or not an address); a failed queued job — verification or reset mail included — alerts nobody. Set it to an inbox someone reads.');
+        }
     }
 
     /** Whether any channel the default logger writes to accepts debug records. */

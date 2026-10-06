@@ -6,10 +6,7 @@ import type { ReactElement } from "react";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { DoctorCard } from "@/components/directory/doctor-card";
 import { FacilityCard } from "@/components/directory/facility-card";
-import {
-  HomeFeaturedDoctorsCard,
-  HomeFeaturedDoctorsRail,
-} from "@/components/home/home-featured-doctors";
+import { HomeFeaturedDoctorsRail } from "@/components/home/home-featured-doctors";
 import type { DoctorListItem, FacilityListItem } from "@/lib/api/types";
 
 /**
@@ -130,10 +127,6 @@ describe("DirectoryAvatar alt text", () => {
 
 describe.each([
   ["doctor card", <DoctorCard key="d" doctor={doctor} />],
-  [
-    "home featured card",
-    <HomeFeaturedDoctorsCard key="c" doctors={[doctor]} />,
-  ],
   [
     "home featured rail",
     <HomeFeaturedDoctorsRail key="r" doctors={[doctor]} />,

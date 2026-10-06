@@ -1,9 +1,15 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
+
+// LOG_FORMAT=json writes one JSON object per line to the file and stderr
+// channels, for a log shipper to index. The request ID (AssignRequestId) and
+// any other Context values are in each record's `extra` either way.
+$jsonLogs = env('LOG_FORMAT', 'line') === 'json';
 
 return [
 
@@ -63,6 +69,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'info'),
             'replace_placeholders' => true,
+            'formatter' => $jsonLogs ? JsonFormatter::class : null,
         ],
 
         'daily' => [
@@ -71,6 +78,7 @@ return [
             'level' => env('LOG_LEVEL', 'info'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+            'formatter' => $jsonLogs ? JsonFormatter::class : null,
         ],
 
         'slack' => [
@@ -101,7 +109,7 @@ return [
             'handler_with' => [
                 'stream' => 'php://stderr',
             ],
-            'formatter' => env('LOG_STDERR_FORMATTER'),
+            'formatter' => env('LOG_STDERR_FORMATTER', $jsonLogs ? JsonFormatter::class : null),
             'processors' => [PsrLogMessageProcessor::class],
         ],
 

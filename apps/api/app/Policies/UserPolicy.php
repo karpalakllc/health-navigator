@@ -29,11 +29,32 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
+        // A deleted (anonymised) account is an empty shell kept for its public
+        // content; giving it an address or password again would revive it.
+        if ($model->isAnonymised()) {
+            return false;
+        }
+
         $permitted = $model->isStaff()
             ? $user->can('staff.update')
             : $user->can('clients.update');
 
         return $permitted && PrivilegeHierarchy::canManageUser($user, $model);
+    }
+
+    /**
+     * Suspending (and lifting it) is for client accounts only: staff are managed
+     * through their roles. Never one's own account, never a deleted one, and
+     * never an account above the actor in the privilege hierarchy — a community
+     * moderator holds more than plain staff with `clients.suspend` might.
+     */
+    public function suspend(User $user, User $model): bool
+    {
+        return $model->isClient()
+            && ! $model->isAnonymised()
+            && ! $user->is($model)
+            && $user->can('clients.suspend')
+            && PrivilegeHierarchy::canManageUser($user, $model);
     }
 
     /**

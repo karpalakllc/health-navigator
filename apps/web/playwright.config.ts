@@ -59,6 +59,15 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /maintenance\.spec\.ts/,
+    },
+    {
+      // Maintenance mode takes the whole site down, so it runs alone, after
+      // every other spec (and is skipped if any of them failed).
+      name: "maintenance",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /maintenance\.spec\.ts/,
+      dependencies: ["chromium"],
     },
   ],
   webServer: [

@@ -1,9 +1,9 @@
 <x-mail::message>
 # Примено
 
-Здраво {{ $recipientName }},
+Здраво, {{ $recipientName }},
 
-Ви благодариме — вашата {{ $contentLabel }} „**{{ $contentTitle }}**“ е примена и **чека модерација**. Ќе ве известиме кога ќе биде објавена.
+Ви благодариме — {{ $masculine ? 'вашиот' : 'вашата' }} {{ $contentLabel }} „**{{ $contentTitle }}**“ е {{ $masculine ? 'примен' : 'примена' }} и **чека модерација**. Ќе ве известиме кога ќе биде {{ $masculine ? 'објавен' : 'објавена' }}.
 
 <x-mail::button :url="$actionUrl">
 {{ $actionLabel }}
