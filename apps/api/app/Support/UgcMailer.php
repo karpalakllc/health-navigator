@@ -70,7 +70,8 @@ final class UgcMailer
             default => null,
         };
 
-        if (! $user instanceof User || $user->email === null) {
+        // A deleted account's address is a non-deliverable placeholder.
+        if (! $user instanceof User || $user->email === null || $user->isAnonymised()) {
             return;
         }
 

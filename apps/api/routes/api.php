@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\V1\ReviewHelpfulController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
+use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -158,4 +160,13 @@ Route::prefix('v1')->group(function (): void {
             Route::delete('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'destroy'])
                 ->whereNumber('review');
         });
+
+    // Account data rights and devices (D5, D6).
+    Route::middleware('auth:sanctum')->prefix('me')->group(function (): void {
+        Route::get('/export', [AccountController::class, 'export'])->middleware('throttle:api-account-export');
+        Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
+        Route::get('/tokens', [TokenController::class, 'index']);
+        Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
+        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
+    });
 });

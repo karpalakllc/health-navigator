@@ -69,6 +69,7 @@ final class PermissionCatalog
             'clients.create',
             'clients.update',
             'clients.assign_roles',
+            'clients.suspend',
         ];
     }
 

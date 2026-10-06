@@ -65,7 +65,7 @@ Errors and notices the site shows in the page or as a message under a form.
 | 4 | Премногу барања. Обидете се повторно подоцна. | Too many requests. | Rate limit hit (e.g. repeated login attempts) |
 | 5 | Внесените податоци за најава се неточни. | The provided credentials are incorrect. | Wrong email or password on the login form |
 | 6 | Одјавени сте. | Logged out. | After signing out |
-| 7 | Испративме порака со линк за потврда. | If that address can be used, we have sent a message with the next step. Please check your inbox. | **After submitting the signup form.** Worded to reveal nothing about whether the address already has an account |
+| 7 | Ако адресата може да се користи, ви испративме порака со следниот чекор. Проверете го сандачето. | If that address can be used, we have sent a message with the next step. Please check your inbox. | **After submitting the signup form.** Worded to reveal nothing about whether the address already has an account |
 | 8 | Потврдете ја вашата е-адреса пред да продолжите. Проверете го сандачето или побарајте нов линк. | Please confirm your email address before continuing. Check your inbox or request a new link. | Login with correct password but unconfirmed address; also when trying to post before confirming |
 | 9 | Регистрацијата е привремено оневозможена. | Registration is currently disabled. | Signup form when registration is switched off in admin |
 | 10 | Овој дел сè уште не е достапен. | This module is not available yet. | Visiting Pharmacies/Products/Forum/Guidance while that section is switched off |

@@ -71,7 +71,7 @@ class E2ESeeder extends Seeder
     public const ATTEMPTS = 3;
 
     /** @var list<string> each becomes "{prefix}-{attempt}@e2e.test" */
-    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported'];
+    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported', 'account'];
 
     public const SPECIALTY_SLUG = 'e2e-kardiologija';
 

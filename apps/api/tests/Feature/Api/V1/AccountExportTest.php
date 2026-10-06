@@ -1,0 +1,174 @@
+<?php
+
+namespace Tests\Feature\Api\V1;
+
+use App\Enums\ForumContentStatus;
+use App\Models\AnalyticsEvent;
+use App\Models\Doctor;
+use App\Models\ForumPost;
+use App\Models\ForumTopic;
+use App\Models\Review;
+use App\Models\SiteSetting;
+use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+/**
+ * D5: a member can download a JSON copy of their own data — profile, reviews,
+ * forum topics and replies, consents with their timestamps — and nothing that
+ * belongs to anyone else.
+ */
+class AccountExportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolesAndPermissionsSeeder::class);
+        SiteSetting::current();
+        $this->forgetRateLimits();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function download(User $user): array
+    {
+        Sanctum::actingAs($user);
+
+        $response = $this->get('/api/v1/me/export')->assertOk();
+
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('.json', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('application/json', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+
+        return json_decode($response->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    public function test_the_export_holds_the_members_own_data_with_consent_times(): void
+    {
+        $member = User::factory()->create([
+            'name' => 'Марија Костовска',
+            'display_name' => 'Марија К.',
+            'email' => 'marija@example.com',
+        ]);
+        $member->createToken('Firefox · Linux');
+        $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
+
+        Review::factory()->approved()->create([
+            'user_id' => $member->id,
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $doctor->id,
+            'rating' => 4,
+            'body' => 'Внимателна и јасна.',
+        ]);
+        Review::factory()->rejected()->create([
+            'user_id' => $member->id,
+            'rating' => 1,
+            'rejection_note' => 'Лични податоци во текстот.',
+        ]);
+
+        $acceptedAt = now()->subDays(3)->startOfSecond();
+        $topic = ForumTopic::factory()->create([
+            'user_id' => $member->id,
+            'title' => 'Прашање за вакцини',
+            'community_rules_accepted_at' => $acceptedAt,
+        ]);
+        ForumTopic::factory()->pending()->create(['user_id' => $member->id, 'title' => 'Мое на чекање']);
+        ForumPost::factory()->create(['user_id' => $member->id, 'forum_topic_id' => $topic->id, 'body' => 'Мој одговор']);
+
+        AnalyticsEvent::query()->create(['event' => 'user.login', 'user_id' => $member->id, 'occurred_at' => now()]);
+
+        $export = $this->download($member);
+
+        $this->assertSame('zdravje360.account-export', $export['format']);
+        $this->assertSame(1, $export['version']);
+        $this->assertSame('Марија Костовска', $export['profile']['name']);
+        $this->assertSame('Марија К.', $export['profile']['display_name']);
+        $this->assertSame('marija@example.com', $export['profile']['email']);
+        $this->assertSame(['Member'], $export['profile']['roles']);
+
+        $this->assertCount(2, $export['reviews']);
+        $approved = collect($export['reviews'])->firstWhere('status', 'approved');
+        $this->assertSame(['kind' => 'doctor', 'name' => $doctor->full_name, 'slug' => 'ana-petrovska'], $approved['about']);
+        $this->assertSame('Внимателна и јасна.', $approved['body']);
+        $this->assertSame('Лични податоци во текстот.', collect($export['reviews'])->firstWhere('status', 'rejected')['rejection_note']);
+
+        $this->assertEqualsCanonicalizing(['Прашање за вакцини', 'Мое на чекање'], array_column($export['forum_topics'], 'title'));
+        $this->assertSame('Мој одговор', $export['forum_posts'][0]['body']);
+        $this->assertSame('Прашање за вакцини', $export['forum_posts'][0]['topic_title']);
+
+        $this->assertCount(1, $export['consents']);
+        $this->assertSame('forum_community_rules', $export['consents'][0]['type']);
+        $this->assertSame($topic->id, $export['consents'][0]['forum_topic_id']);
+        $this->assertSame($acceptedAt->toIso8601String(), $export['consents'][0]['accepted_at']);
+
+        $this->assertSame('Firefox · Linux', $export['devices'][0]['name']);
+        $this->assertSame('user.login', $export['activity'][0]['event']);
+    }
+
+    public function test_the_export_never_includes_another_members_data(): void
+    {
+        $member = User::factory()->create(['email' => 'mine@example.com']);
+        $other = User::factory()->create([
+            'name' => 'Друг Корисник',
+            'display_name' => 'Друг К.',
+            'email' => 'other@example.com',
+        ]);
+        $moderator = User::factory()->moderator()->create(['name' => 'Модератор Тим', 'email' => 'mod@example.com']);
+
+        // Another member's topic that the member replied to, later taken down.
+        $othersTopic = ForumTopic::factory()->create([
+            'user_id' => $other->id,
+            'title' => 'Туѓа тема што е симната',
+            'status' => ForumContentStatus::Rejected,
+            'moderated_by_id' => $moderator->id,
+        ]);
+        ForumPost::factory()->create(['user_id' => $member->id, 'forum_topic_id' => $othersTopic->id, 'moderated_by_id' => $moderator->id]);
+        ForumPost::factory()->create(['user_id' => $other->id, 'forum_topic_id' => $othersTopic->id, 'body' => 'Туѓ одговор']);
+        Review::factory()->approved()->create(['user_id' => $other->id, 'body' => 'Туѓа рецензија']);
+        $other->createToken('Туѓ уред');
+        AnalyticsEvent::query()->create(['event' => 'user.login', 'user_id' => $other->id, 'occurred_at' => now()]);
+
+        $raw = json_encode($this->download($member), JSON_UNESCAPED_UNICODE);
+
+        foreach (['Друг', 'other@example.com', 'Туѓа тема', 'Туѓ одговор', 'Туѓа рецензија', 'Туѓ уред', 'Модератор', 'mod@example.com'] as $foreign) {
+            $this->assertStringNotContainsString($foreign, (string) $raw);
+        }
+
+        $export = json_decode((string) $raw, true);
+        $this->assertCount(1, $export['forum_posts']);
+        $this->assertNull($export['forum_posts'][0]['topic_title']);
+        $this->assertSame([], $export['reviews']);
+        $this->assertSame([], $export['activity']);
+    }
+
+    public function test_the_export_is_rate_limited_per_account(): void
+    {
+        $member = User::factory()->create();
+        Sanctum::actingAs($member);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->get('/api/v1/me/export')->assertOk();
+        }
+
+        $this->getJson('/api/v1/me/export')
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'account.export_throttled')
+            ->assertHeader('Retry-After');
+
+        // Another member has their own budget.
+        Sanctum::actingAs(User::factory()->create());
+        $this->get('/api/v1/me/export')->assertOk();
+    }
+
+    public function test_the_export_requires_a_session(): void
+    {
+        $this->getJson('/api/v1/me/export')->assertUnauthorized();
+    }
+}
