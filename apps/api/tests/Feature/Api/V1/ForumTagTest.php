@@ -11,7 +11,9 @@ use App\Models\ForumTopic;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -95,6 +97,34 @@ class ForumTagTest extends TestCase
 
         $this->assertSame(1, ForumTag::query()->count());
         $this->assertSame('проширени вени', ForumTag::query()->value('name'));
+    }
+
+    public function test_a_keyword_created_concurrently_is_reused_not_a_500(): void
+    {
+        // Another request inserts the same keyword right after our lookup
+        // found nothing, before our insert.
+        $raced = false;
+        DB::listen(function (QueryExecuted $query) use (&$raced): void {
+            if ($raced || ! str_starts_with($query->sql, 'select') || ! str_contains($query->sql, '"forum_tags"') || ! str_contains($query->sql, 'match_key')) {
+                return;
+            }
+
+            $raced = true;
+            DB::table('forum_tags')->insert([
+                'name' => 'проширени вени',
+                'match_key' => $query->bindings[0],
+                'latin' => 'prosireni veni',
+                'slug' => 'prosireni-veni-raced',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $this->topic('Прва', ['проширени вени']);
+
+        $this->assertTrue($raced);
+        $this->assertSame(1, ForumTag::query()->count());
+        $this->assertSame(['prosireni-veni-raced'], ForumTopic::query()->sole()->tags->pluck('slug')->all());
     }
 
     public function test_topic_detail_carries_tags_and_last_post_at(): void

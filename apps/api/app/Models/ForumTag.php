@@ -6,6 +6,8 @@ use App\Support\Forum\ForumTagNormalizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A forum keyword. See the forum_tags migration and ForumTagNormalizer.
@@ -52,12 +54,19 @@ class ForumTag extends Model
             return $existing;
         }
 
-        return self::query()->create([
-            'name' => $name,
-            'match_key' => $key,
-            'latin' => ForumTagNormalizer::latin($name),
-            'slug' => self::freeSlug(ForumTagNormalizer::slug($name)),
-        ]);
+        try {
+            // In a savepoint, so a lost race does not abort a surrounding
+            // PostgreSQL transaction.
+            return DB::transaction(fn (): self => self::query()->create([
+                'name' => $name,
+                'match_key' => $key,
+                'latin' => ForumTagNormalizer::latin($name),
+                'slug' => self::freeSlug(ForumTagNormalizer::slug($name)),
+            ]));
+        } catch (UniqueConstraintViolationException $e) {
+            // Two topics created the same new keyword at once: use theirs.
+            return self::query()->where('match_key', $key)->first() ?? throw $e;
+        }
     }
 
     /**
