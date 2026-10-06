@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\RejectInvalidUtf8;
+use App\Http\Responses\ApiResponse;
 use App\Models\TriageFlow;
 use App\Models\User;
 use App\Observers\TriageFlowObserver;
@@ -114,7 +115,7 @@ class AppServiceProvider extends ServiceProvider
         // The display name is what every review and forum post shows; renaming
         // is occasional, so a burst of renames is someone cycling identities.
         RateLimiter::for('api-profile', function (Request $request) {
-            return Limit::perHour(10)->by('profile:'.($request->user()?->id ?? $request->ip()));
+            return Limit::perHour(10)->by('profile:'.($request->user()->id ?? $request->ip()));
         });
 
         RateLimiter::for('api-reviews', function (Request $request) {
@@ -136,6 +137,19 @@ class AppServiceProvider extends ServiceProvider
             $userId = $request->user()?->id;
 
             return Limit::perDay(30)->by($userId ?? $request->ip());
+        });
+
+        // Reads every row the member owns; a handful a day is plenty.
+        RateLimiter::for('api-account-export', function (Request $request) {
+            return Limit::perHour(5)
+                ->by('account-export:'.($request->user()->id ?? $request->ip()))
+                ->response(fn (Request $request, array $headers) => ApiResponse::errorCode('account.export_throttled', 429)
+                    ->withHeaders($headers));
+        });
+
+        // Account deletion checks the password: bound the guesses a stolen token buys.
+        RateLimiter::for('api-account-delete', function (Request $request) {
+            return Limit::perHour(5)->by('account-delete:'.($request->user()->id ?? $request->ip()));
         });
 
         // Guidance is called from the browser directly, so these see a real client

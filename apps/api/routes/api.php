@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
+use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -122,5 +124,14 @@ Route::prefix('v1')->group(function (): void {
         // and profile 503 but a direct POST would otherwise still accept reviews.
         Route::post('/pharmacies/{slug}/reviews', [ReviewController::class, 'storeForPharmacy'])
             ->middleware(['module:pharmacies', 'can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
+    });
+
+    // Account data rights and devices (D5, D6).
+    Route::middleware('auth:sanctum')->prefix('me')->group(function (): void {
+        Route::get('/export', [AccountController::class, 'export'])->middleware('throttle:api-account-export');
+        Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
+        Route::get('/tokens', [TokenController::class, 'index']);
+        Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
+        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
     });
 });

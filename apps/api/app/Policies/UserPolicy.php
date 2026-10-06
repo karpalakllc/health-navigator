@@ -29,6 +29,12 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
+        // A deleted (anonymised) account is an empty shell kept for its public
+        // content; giving it an address or password again would revive it.
+        if ($model->isAnonymised()) {
+            return false;
+        }
+
         $permitted = $model->isStaff()
             ? $user->can('staff.update')
             : $user->can('clients.update');

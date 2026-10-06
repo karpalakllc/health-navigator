@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Actions;
+
+use App\Models\User;
+use App\Support\Media\ImageOptimizer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
+/**
+ * Account deletion by anonymisation in place (D5).
+ *
+ * Reviews and forum topics/posts reference users with restrictOnDelete, and
+ * they stay public after the author leaves, so the row is kept as an empty
+ * shell: every personal field is cleared, the address is freed for a new
+ * registration, every way back in (tokens, password, panel sessions, reset
+ * links, roles) is removed, and public surfaces render the author as a deleted
+ * user (User::publicName(), ForumAuthorResource).
+ *
+ * Not reversible. The caller is responsible for authorising it (password
+ * re-entry for self-service; AccountController refuses staff accounts).
+ */
+final class AnonymiseUser
+{
+    /** Reserved TLD (RFC 2606): never deliverable, never anyone's real address. */
+    private const PLACEHOLDER_DOMAIN = 'deleted.invalid';
+
+    public function __construct(
+        private readonly ImageOptimizer $images,
+    ) {}
+
+    public function handle(User $user): void
+    {
+        $avatarPath = DB::transaction(function () use ($user): ?string {
+            /** @var User $locked */
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->isAnonymised()) {
+                return null;
+            }
+
+            $previousEmail = (string) $locked->email;
+            $avatarPath = $locked->avatar_path;
+
+            $locked->forceFill([
+                'name' => '',
+                'display_name' => null,
+                // Unique, lower-case (EmailAddress::normalize) and unguessable, so
+                // the original address is free and this one can never be claimed.
+                'email' => 'deleted-'.$locked->getKey().'-'.Str::lower(Str::random(16)).'@'.self::PLACEHOLDER_DOMAIN,
+                'email_verified_at' => null,
+                'registration_contested_at' => null,
+                'password' => Hash::make(Str::random(64)),
+                'remember_token' => null,
+                'avatar_path' => null,
+                'app_authentication_secret' => null,
+                'app_authentication_recovery_codes' => null,
+                'suspended_at' => null,
+                'suspension_reason' => null,
+                'suspended_by_id' => null,
+                'anonymised_at' => $locked->freshTimestamp(),
+            ])->save();
+
+            $locked->revokeApiTokens();
+            $locked->syncRoles([]);
+            $locked->syncPermissions([]);
+            $locked->moderatedForumCategories()->detach();
+
+            DB::table('sessions')->where('user_id', $locked->getKey())->delete();
+            DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))
+                ->where('email', $previousEmail)
+                ->delete();
+
+            // Dashboard counts keep working; the events stop pointing at anyone.
+            DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);
+
+            return $avatarPath;
+        });
+
+        // Only once nothing points at it: a rolled-back deletion keeps its photo.
+        if (is_string($avatarPath) && $avatarPath !== '') {
+            $this->images->delete($avatarPath);
+        }
+
+        $user->refresh();
+    }
+}

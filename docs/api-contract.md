@@ -107,6 +107,37 @@ mechanism for the Next.js web client and future mobile clients.
   доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
   `DisplayName::rejection()`). **Not unique.**
 
+**Account data rights and devices (D5, D6, D7):**
+
+- **Suspension.** Staff with `clients.suspend` can suspend a client account
+  in the admin panel (reason required, staff-only). Correct credentials for a
+  suspended account return `403` with code `auth.account_suspended` and no
+  token — like the rules above, only reachable with the right password. Its
+  existing tokens are refused (`401`, not deleted) from the next request on,
+  including on optional-auth routes, and work again once the suspension is
+  lifted. Its content is not touched.
+- `GET /me/export` downloads the caller's own data as one JSON attachment
+  (`format: zdravje360.account-export`, `version: 1`): `profile`, `reviews`,
+  `forum_topics`, `forum_posts`, `consents` (forum community-rules acceptance
+  per topic, with time), `devices` and `activity` (the caller's own analytics
+  events). Nothing about other members: replies name another member's topic
+  only while it is approved. `Cache-Control: no-store`. 5 per hour
+  (`429`, code `account.export_throttled`).
+- `DELETE /me` with `{ "password": "…" }` deletes the account by
+  anonymisation: name, display name, email (replaced with a non-deliverable
+  placeholder, so the address can register again), password, avatar (file
+  removed), roles, community-moderation scopes, tokens, panel sessions and
+  reset links are cleared; reviews and forum content stay public with the
+  author shown as `Избришан корисник` (`author.member_since` `null`, counts
+  `0`). Wrong password: `422` on `password`. Staff accounts: `403`, code
+  `account.staff_cannot_delete`. 5 attempts per hour.
+- `GET /me/tokens` lists the caller's active tokens (`id, name, created_at,
+  last_used_at, expires_at, is_current`), current first. `name` is the login's
+  `device_name` (the web tier sends a coarse "browser · OS" label).
+  `DELETE /me/tokens/{id}` revokes one (another member's id is `404`, like an
+  unknown one); `DELETE /me/tokens` revokes all but the current one and
+  returns `revoked`.
+
 **Web client:** Next.js stores the bearer token in an httpOnly cookie via route
 handlers under `/api/session/*`; the browser never reads the token. Mobile uses
 the bearer token directly.
@@ -123,6 +154,8 @@ limiters are layered on top:
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
 | `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
+| `api-account-export` | `GET /me/export` | 5/hour per user |
+| `api-account-delete` | `DELETE /me` (password re-entry) | 5/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
@@ -141,6 +174,9 @@ nobody can hold an account locked by merely sending traffic.
 <!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
+| `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
+| `DELETE` | `/me/tokens` | `auth:sanctum` |
+| `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | — |
@@ -156,9 +192,11 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
 | `GET` | `/me` | `auth:sanctum` |
+| `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
+| `GET` | `/me/tokens` | `auth:sanctum` |
 | `GET` | `/pharmacies` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
