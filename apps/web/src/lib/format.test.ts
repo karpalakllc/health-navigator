@@ -98,7 +98,7 @@ describe("formatForumLastActivity", () => {
   });
 
   it("walks from just now through minutes, hours and days", () => {
-    expect(at(ago(20_000))).toBe("што само");
+    expect(at(ago(20_000))).toBe("пред малку");
     expect(at(ago(5 * MINUTE))).toBe("пред 5 мин.");
     expect(at(ago(60 * MINUTE))).toBe("пред 1 час");
     expect(at(ago(3 * 60 * MINUTE))).toBe("пред 3 часа");
