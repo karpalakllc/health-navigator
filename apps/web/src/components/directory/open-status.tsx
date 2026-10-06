@@ -23,6 +23,12 @@ export function openStatusText(status: OpenStatus): string {
 /**
  * „Отворено до 14:00“ in care green, or „Сега затворено · Денес: …“ in ink-2.
  * Nothing at all when the hours do not parse — no guessing.
+ *
+ * `now` is required so whoever renders this fixes the clock: a server
+ * component passes the request time. Client components (the list cards,
+ * which are server-rendered AND hydrated) use LiveOpenStatusLine instead —
+ * computing the clock on both sides disagrees whenever the status flips
+ * between the two renders.
  */
 export function OpenStatusLine({
   hours,
@@ -30,7 +36,7 @@ export function OpenStatusLine({
   className,
 }: {
   hours: Record<string, string> | unknown[] | null | undefined;
-  now?: Date;
+  now: Date;
   className?: string;
 }) {
   const status = openStatus(officeHoursRows(hours, now), now);
@@ -50,8 +56,7 @@ export function OpenStatusLine({
       )}
     >
       <Icon name="clock" size={20} />
-      {/* Minutes tick between the server render and hydration. */}
-      <span suppressHydrationWarning>{openStatusText(status)}</span>
+      <span>{openStatusText(status)}</span>
     </p>
   );
 }

@@ -81,8 +81,10 @@ function tabsFor(isLoggedIn: boolean, pathname: string): Tab[] {
  * Форум · Профил. White bar, 28px top corners, the sheet shadow, 72px plus
  * the safe-area inset. The current tab has aria-current="page", ink 600
  * label, a sand pill behind the icon and a 4px coral tick. Switched-off
- * modules are left out. The layout pads <body> by --tabbar-space so content
- * and the footer are never hidden behind it.
+ * modules are left out. Nothing pads <body>: the site footer's bottom padding
+ * includes --tabbar-space (so its sand runs under the bar and its last line
+ * clears it), and html's scroll-padding-bottom keeps a focused or scrolled-to
+ * element above the bar (globals.css).
  */
 export function BottomTabBar({
   isLoggedIn,

@@ -5,7 +5,8 @@ import { t } from "@/i18n/t";
 
 /**
  * „Не сте сигурни каде да се обратите?“: the guidance teaser. White card,
- * apricot compass circle, reading-face body, ink „Започни“ and the 194 line.
+ * apricot compass circle, reading-face body and the ink „Започни“. No 194
+ * line here: the emergency numbers live inside the guidance flow itself.
  */
 export function HomeGuidanceCard({ className }: { className?: string }) {
   return (
@@ -22,21 +23,14 @@ export function HomeGuidanceCard({ className }: { className?: string }) {
       <p className="type-reading mt-2 text-ink lg:mt-3">
         {t("home.guideBody")}
       </p>
-      <div className="mt-5 flex flex-col items-start gap-4 lg:mt-6 lg:flex-row lg:items-center lg:gap-5">
-        <Button href="/guidance" size="lg" trailingIcon="arrow-right">
-          {t("home.guideCta")}
-        </Button>
-        <p className="type-meta text-ink-2">
-          {t("home.guideEmergencyLead")}{" "}
-          <a
-            href="tel:194"
-            className="inline-flex min-h-12 items-center font-semibold text-ink underline underline-offset-[3px] lg:min-h-0"
-          >
-            194
-          </a>
-          .
-        </p>
-      </div>
+      <Button
+        href="/guidance"
+        size="lg"
+        trailingIcon="arrow-right"
+        className="mt-5 lg:mt-6"
+      >
+        {t("home.guideCta")}
+      </Button>
     </section>
   );
 }

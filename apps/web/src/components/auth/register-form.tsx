@@ -6,12 +6,20 @@ import { PasswordField } from "@/components/auth/password-input";
 import { PrivacyNote } from "@/components/auth/privacy-note";
 import { TextField } from "@/components/auth/text-field";
 import { Button, TextLink } from "@/components/ui/button";
+import { ErrorSummary } from "@/components/ui/error-summary";
 import { FormError } from "@/components/ui/form-message";
 import { Notice } from "@/components/ui/notice";
 import {
   DISPLAY_NAME_MAX_LENGTH,
   suggestDisplayName,
 } from "@/lib/display-name";
+import {
+  compactErrors,
+  emailError,
+  mapApiFieldErrors,
+  passwordConfirmationError,
+  requiredError,
+} from "@/lib/form-validation";
 import { t, type MessageKey } from "@/i18n/t";
 
 type RegisterFormProps = {
@@ -30,23 +38,18 @@ const FIELDS: Array<{ field: Field; label: MessageKey }> = [
   { field: "password_confirmation", label: "auth.registerPasswordConfirm" },
 ];
 
-/** The first message per field from a Laravel 422 `errors` bag. */
+const FIELD_NAMES = FIELDS.map(({ field }) => field);
+
+/**
+ * Every field's errors from a Laravel 422 `errors` bag, in our words, under
+ * the right field: the API files the „confirmed“ rule under `password`, but
+ * the person has to fix the confirmation field.
+ */
 function fieldErrorsFrom(errors: unknown): Partial<Record<Field, string>> {
-  const out: Partial<Record<Field, string>> = {};
-
-  if (!errors || typeof errors !== "object") {
-    return out;
-  }
-
-  for (const { field } of FIELDS) {
-    const messages = (errors as Record<string, unknown>)[field];
-
-    if (Array.isArray(messages) && typeof messages[0] === "string") {
-      out[field] = messages[0];
-    }
-  }
-
-  return out;
+  return mapApiFieldErrors(errors, FIELD_NAMES, {
+    passwordField: "password",
+    confirmationField: "password_confirmation",
+  });
 }
 
 /** Stable ids: the summary links to them; errors are `<id>-error`. */
@@ -71,6 +74,15 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  // Bumped on every rejected submit so focus moves to the summary each time.
+  const [rejections, setRejections] = useState(0);
+
+  useEffect(() => {
+    if (rejections > 0) {
+      summaryRef.current?.focus();
+    }
+  }, [rejections]);
 
   // The success card replaces a taller form, so without this the viewport is
   // left below it (showing the footer) and focus is on a removed button.
@@ -91,7 +103,25 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setFieldErrors({});
+
+    const local = compactErrors<Field>({
+      name: requiredError(name),
+      display_name: requiredError(displayName),
+      email: emailError(email),
+      password: requiredError(password),
+      password_confirmation: passwordConfirmationError(
+        password,
+        passwordConfirmation,
+      ),
+    });
+
+    setFieldErrors(local);
+
+    if (Object.keys(local).length > 0) {
+      setRejections((count) => count + 1);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -110,16 +140,17 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        // Each field shows its own message; the alert keeps the summary
-        // (Laravel's "… (и уште N грешки)" names only the first one).
-        setFieldErrors(fieldErrorsFrom(payload.errors));
-        setError(
-          payload.message ??
-            payload.errors?.display_name?.[0] ??
-            payload.errors?.email?.[0] ??
-            payload.errors?.password?.[0] ??
-            t("auth.registerFailed"),
-        );
+        // Each field shows its own message and the summary lists them all
+        // (Laravel's "… (и уште N грешки)" names only the first one). A
+        // reply without field errors (rate limit, server) keeps its message.
+        const mapped = fieldErrorsFrom(payload.errors);
+        setFieldErrors(mapped);
+
+        if (Object.keys(mapped).length > 0) {
+          setRejections((count) => count + 1);
+        } else {
+          setError(payload.message ?? t("auth.registerFailed"));
+        }
         return;
       }
 
@@ -156,7 +187,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField
           id={fieldId("name")}
           label={t("auth.registerName")}
@@ -214,36 +245,18 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           value={passwordConfirmation}
           onChange={setPasswordConfirmation}
         />
-        {error ? (
-          <div className="flex flex-col gap-3 rounded-input border-2 border-ink bg-white p-4">
-            <FormError>{error}</FormError>
-            {/* With several rejected fields, a link to each (the alert's
-                text names only the first). One error needs no list. */}
-            {rejected.length > 1 ? (
-              <div className="flex flex-col gap-1 pl-7">
-                <p className="type-meta text-ink-2">
-                  {t("auth.errorSummaryIntro")}
-                </p>
-                <ul className="flex flex-col">
-                  {rejected.map(({ field, label }) => (
-                    <li key={field}>
-                      <a
-                        href={`#${fieldId(field)}`}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          document.getElementById(fieldId(field))?.focus();
-                        }}
-                        className="link-underline inline-flex min-h-12 items-center type-body font-semibold text-ink"
-                      >
-                        {t(label)}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
+        {/* Every rejected field, named and linked, with its message. */}
+        {rejected.length > 0 ? (
+          <ErrorSummary
+            ref={summaryRef}
+            items={rejected.map(({ field, label }) => ({
+              id: fieldId(field),
+              label: t(label),
+              message: fieldErrors[field] ?? "",
+            }))}
+          />
         ) : null}
+        {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
           size="lg"

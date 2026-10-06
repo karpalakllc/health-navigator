@@ -109,6 +109,42 @@ describe("GuidanceWizard", () => {
     ).toHaveAttribute("href", "tel:112");
   });
 
+  it("uses neutral copy, not „Според вашите одговори…“, after the urgent-help button", async () => {
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+
+    await screen.findByRole("heading", { name: emergency.title });
+    expect(
+      screen.getByText(t("guidance.emergencyShortcutBody")),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(emergency.body)).toBeNull();
+  });
+
+  it("keeps the urgent-help button compact on question steps, full width on the intro", async () => {
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+    const intro = screen.getByRole("button", {
+      name: t("guidance.emergencyNow"),
+    });
+    expect(intro).toHaveClass("w-full", "btn-lg");
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+
+    const step = screen.getByRole("button", {
+      name: t("guidance.emergencyNow"),
+    });
+    expect(step).toHaveClass("btn-md", "bg-emergency");
+    expect(step).not.toHaveClass("w-full");
+  });
+
   it("shows the call links when the normal flow ends in the emergency outcome", async () => {
     // An admin-authored rule (or the API's fallback) can route the ordinary
     // question path to the emergency outcome; it must look like one.
@@ -130,6 +166,8 @@ describe("GuidanceWizard", () => {
     expect(
       screen.getByRole("link", { name: "Повикај 194 (Брза помош)" }),
     ).toHaveAttribute("href", "tel:194");
+    // Reached through answers, so the outcome's own wording stays.
+    expect(screen.getByText(emergency.body)).toBeInTheDocument();
   });
 
   it("moves focus to the new step's heading on every step change", async () => {
@@ -594,5 +632,41 @@ describe("GuidanceWizard outcome care ladder", () => {
     );
     await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
     expect(api.startGuidanceSession).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * Продолжи starts a session; pressing the emergency shortcut before that
+ * request returns used to start a second one, and the first, landing late,
+ * wrote its handle back into storage the emergency path had just cleared.
+ */
+describe("GuidanceWizard session start shared between handlers", () => {
+  it("uses one session for Продолжи and the emergency shortcut, and leaves storage cleared", async () => {
+    const first = deferred<{ id: string; token: string }>();
+    api.startGuidanceSession
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ id: "session-2", token: "token-2" });
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+    await screen.findByRole("heading", {
+      name: t("guidance.emergencyInterimTitle"),
+    });
+    await act(async () => first.resolve({ id: "session-1", token: "token-1" }));
+    await screen.findByRole("heading", { name: emergency.title });
+
+    expect(api.startGuidanceSession).toHaveBeenCalledTimes(1);
+    expect(api.completeGuidanceEmergency).toHaveBeenCalledWith({
+      id: "session-1",
+      token: "token-1",
+    });
+    expect(window.sessionStorage.getItem("guidance_session")).toBeNull();
   });
 });

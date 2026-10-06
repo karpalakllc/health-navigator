@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { SortSelect } from "@/components/directory/filter-controls";
 import { Pagination } from "@/components/directory/pagination";
 import { reviewsBasePath } from "@/components/reviews/review-paths";
@@ -42,6 +43,46 @@ export function ReviewsPanel({
 }: ReviewsPanelProps) {
   const router = useRouter();
   const basePath = reviewsBasePath(kind, slug);
+  // Set when the form posts; the refresh that follows swaps the form for the
+  // pending card, and the viewport (and focus) must follow it there.
+  const justSubmitted = useRef(false);
+  const viewerStatus = viewerReview?.status ?? null;
+
+  useEffect(() => {
+    if (!justSubmitted.current) {
+      return;
+    }
+
+    const target =
+      viewerStatus === "pending"
+        ? document.getElementById(PENDING_REVIEW_ID)
+        : viewerStatus === "approved"
+          ? document.getElementById("reviews-title")
+          : null;
+
+    if (!target) {
+      return;
+    }
+
+    justSubmitted.current = false;
+    if (!target.hasAttribute("tabindex")) {
+      target.setAttribute("tabindex", "-1");
+    }
+    target.scrollIntoView?.({ block: "center" });
+    target.focus({ preventScroll: true });
+  }, [viewerStatus]);
+
+  // A profile opened at #reviews / #review-form: the section can arrive after
+  // the browser's own jump to the fragment (streaming), so jump again once.
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (hash !== "#reviews" && hash !== "#review-form") {
+      return;
+    }
+
+    document.getElementById(hash.slice(1))?.scrollIntoView?.();
+  }, []);
 
   function buildHref(next: { page?: number; sort?: string; rating?: string }) {
     const params = new URLSearchParams();
@@ -131,33 +172,57 @@ export function ReviewsPanel({
       ) : null}
 
       {isLoggedIn && (!viewerReview || viewerReview.status === "rejected") ? (
-        <ReviewForm kind={kind} slug={slug} />
+        <ReviewForm
+          kind={kind}
+          slug={slug}
+          onSubmitted={() => {
+            justSubmitted.current = true;
+          }}
+        />
       ) : null}
 
       {!isLoggedIn ? (
         <Card
           tone="sand"
           padding="md"
-          className="flex flex-wrap items-center gap-x-1 gap-y-1 type-body text-ink"
+          className="flex items-start gap-3 type-body text-ink"
         >
-          <Icon name="user" size={22} className="mr-2" />
-          <Link
-            href={loginHref(`${basePath}#reviews`)}
-            className="link-underline inline-flex min-h-12 items-center font-semibold text-ink"
-          >
-            {t("nav.login")}
-          </Link>
-          <span>{t("reviews.loginToSubmit")}</span>
+          <Icon name="user" size={22} className="mt-0.5 shrink-0" />
+          {/* One sentence: the link stays inline so the rest of it does not
+              wrap onto a line of its own on a phone. */}
+          <p>
+            <Link
+              href={loginHref(`${basePath}#reviews`)}
+              className="link-underline font-semibold text-ink"
+            >
+              {t("nav.login")}
+            </Link>{" "}
+            {t("reviews.loginToSubmit")}
+          </p>
         </Card>
       ) : null}
     </div>
   );
 }
 
+/** The pending card's id: focus lands here after a review is sent. */
+const PENDING_REVIEW_ID = "review-pending";
+
 function PendingReviewCard({ review }: { review: ViewerReview }) {
   return (
-    <Card as="article" tone="sand" padding="md" className="flex flex-col gap-2">
-      <p className="type-body font-semibold text-ink">
+    <Card
+      as="article"
+      id={PENDING_REVIEW_ID}
+      tabIndex={-1}
+      aria-labelledby={`${PENDING_REVIEW_ID}-title`}
+      tone="sand"
+      padding="md"
+      className="flex flex-col gap-2"
+    >
+      <p
+        id={`${PENDING_REVIEW_ID}-title`}
+        className="type-body font-semibold text-ink"
+      >
         {t("reviews.pendingTitle")}
       </p>
       <p className="type-meta text-ink-2">{t("reviews.pendingBody")}</p>

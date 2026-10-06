@@ -6,18 +6,31 @@ import { TextField } from "@/components/auth/text-field";
 import { Button, TextLink } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
+import { emailError, focusField } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
+
+const FORGOT_EMAIL_ID = "forgot-email";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
+  const [emailProblem, setEmailProblem] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setSuccess(false);
+
+    const problem = emailError(email);
+    setEmailProblem(problem);
+
+    if (problem) {
+      focusField(FORGOT_EMAIL_ID);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -66,9 +79,15 @@ export function ForgotPasswordForm() {
       {success ? (
         <PrivacyNote />
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+        >
           <TextField
+            id={FORGOT_EMAIL_ID}
             label={t("auth.email")}
+            error={emailProblem}
             type="email"
             name="email"
             autoComplete="email"

@@ -4,6 +4,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Tag } from "@/components/ui/tag";
 import type { DoctorListItem } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { formatRating } from "@/lib/rating";
 import { t } from "@/i18n/t";
 
 /*
@@ -18,7 +19,7 @@ function doctorMeta(doctor: DoctorListItem): string {
     .join(" · ");
 }
 
-/** „Профил: д-р …“ — starts with the visible label (WCAG 2.5.3). */
+/** „Види профил: д-р …“ — starts with the visible label (WCAG 2.5.3). */
 function profileLabel(visible: string, doctor: DoctorListItem): string {
   return `${visible}: ${doctor.full_name}`;
 }
@@ -33,7 +34,7 @@ function Rating({ doctor }: { doctor: DoctorListItem }) {
     <span className="inline-flex items-center gap-1.5">
       <StarRating value={average} size="sm" />
       <span className="type-meta font-semibold text-ink">
-        {average.toFixed(1).replace(".", ",")}
+        {formatRating(average)}
       </span>
       <span className="type-meta text-ink-2">({count})</span>
     </span>
@@ -95,9 +96,9 @@ export function HomeFeaturedDoctorsCard({
               variant="soft"
               size="sm"
               trailingIcon="chevron-right"
-              aria-label={profileLabel(t("home.profileShort"), doctor)}
+              aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
             >
-              {t("home.profileShort")}
+              {t("doctors.viewProfile")}
             </Button>
           </li>
         ))}
@@ -151,9 +152,9 @@ export function HomeFeaturedDoctorsRail({
                 href={`/doctors/${doctor.slug}`}
                 variant="soft"
                 fullWidth
-                aria-label={profileLabel(t("home.viewProfile"), doctor)}
+                aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
               >
-                {t("home.viewProfile")}
+                {t("doctors.viewProfile")}
               </Button>
             </div>
           </li>

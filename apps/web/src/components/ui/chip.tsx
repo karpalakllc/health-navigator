@@ -79,7 +79,10 @@ export function RemovableChip({
   label: string;
   /** Either a handler… */
   onRemove?: () => void;
-  /** …or a URL without this filter (works without JS). */
+  /**
+   * …or a URL without this filter (works without JS). With both, the link
+   * stays the no-JS fallback and a hydrated click runs `onRemove` instead.
+   */
   removeHref?: string;
   className?: string;
 }) {
@@ -95,6 +98,14 @@ export function RemovableChip({
           href={removeHref}
           aria-label={removeLabel}
           className={removeClass}
+          onClick={
+            onRemove
+              ? (event) => {
+                  event.preventDefault();
+                  onRemove();
+                }
+              : undefined
+          }
         >
           <Icon name="x" size={18} />
         </Link>

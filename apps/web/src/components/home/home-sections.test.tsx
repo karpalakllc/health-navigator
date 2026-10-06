@@ -173,7 +173,7 @@ describe("HomeDirectoryTiles", () => {
 });
 
 describe("HomeGuidanceCard", () => {
-  it("starts the guidance and offers 194 as a tel: link", () => {
+  it("starts the guidance without repeating the emergency numbers", () => {
     render(<HomeGuidanceCard />);
 
     expect(
@@ -182,10 +182,8 @@ describe("HomeGuidanceCard", () => {
     expect(
       screen.getByRole("link", { name: t("home.guideCta") }),
     ).toHaveAttribute("href", "/guidance");
-    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
-      "href",
-      "tel:194",
-    );
+    // 194/112 belong to the guidance flow and the footer, not this teaser.
+    expect(document.querySelector('a[href^="tel:"]')).toBeNull();
   });
 });
 

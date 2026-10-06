@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
-import { AccountLayout } from "@/components/account/account-layout";
+import {
+  AccountLayout,
+  AccountPage,
+} from "@/components/account/account-layout";
 import { AccountPageHero } from "@/components/account/account-page-hero";
 import { Pagination } from "@/components/directory/pagination";
 import {
   ForumActivityItem,
   ForumActivitySection,
 } from "@/components/forum/forum-activity-list";
-import { PageShell } from "@/components/ui/page-shell";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchMyForumPosts, fetchMyForumTopics } from "@/lib/api/forum";
 import { ApiRequestError } from "@/lib/api/server";
@@ -53,108 +54,105 @@ export default async function AccountForumPage({
   }
 
   return (
-    <>
-      <PageHeroBleed>
-        <AccountPageHero
-          badge={t("nav.myForum")}
-          title={t("account.forumActivity")}
-          description={t("account.forumHeroDescription")}
-        />
-      </PageHeroBleed>
-
-      <PageShell className="pb-16">
-        <AccountLayout current="forum">
-          <ForumActivitySection
-            id="my-forum-topics"
-            title={t("account.topicsHeading")}
-            pagination={
-              <Pagination
-                basePath="/account/forum"
-                currentPage={topics.meta.current_page}
-                lastPage={topics.meta.last_page}
-                total={topics.meta.total}
-                searchParams={{}}
-                pageParam="topics_page"
+    <AccountPage>
+      <AccountPageHero
+        badge={t("nav.myForum")}
+        title={t("account.forumActivity")}
+        description={t("account.forumHeroDescription")}
+      />
+      <AccountLayout current="forum">
+        <ForumActivitySection
+          id="my-forum-topics"
+          title={t("account.topicsHeading")}
+          pagination={
+            <Pagination
+              basePath="/account/forum"
+              currentPage={topics.meta.current_page}
+              lastPage={topics.meta.last_page}
+              total={topics.meta.total}
+              searchParams={{}}
+              pageParam="topics_page"
+              label={`${t("account.topicsHeading")}: ${t("pagination.label")}`}
+            />
+          }
+        >
+          {topics.data.length === 0 ? (
+            <li className="px-5 py-4 type-body text-ink-2">
+              {t("account.noTopicsYet")}
+            </li>
+          ) : (
+            topics.data.map((topic) => (
+              <ForumActivityItem
+                key={`${topic.slug}-${topic.created_at}`}
+                title={topic.title}
+                href={
+                  topic.status === "approved"
+                    ? `/forum/${topic.category.slug}/${topic.slug}`
+                    : undefined
+                }
+                status={topic.status}
+                rejectionNote={
+                  topic.status === "rejected" ? topic.rejection_note : null
+                }
+                meta={
+                  <>
+                    {topic.category.name}
+                    <span aria-hidden="true"> · </span>
+                    {formatForumReplyCount(topic.replies_count)}
+                    {topic.last_post_at || topic.published_at ? (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        {formatForumLastActivity(
+                          topic.last_post_at ?? topic.published_at,
+                        )}
+                      </>
+                    ) : null}
+                  </>
+                }
               />
-            }
-          >
-            {topics.data.length === 0 ? (
-              <li className="px-5 py-4 type-body text-ink-2">
-                {t("account.noTopicsYet")}
-              </li>
-            ) : (
-              topics.data.map((topic) => (
-                <ForumActivityItem
-                  key={`${topic.slug}-${topic.created_at}`}
-                  title={topic.title}
-                  href={
-                    topic.status === "approved"
-                      ? `/forum/${topic.category.slug}/${topic.slug}`
-                      : undefined
-                  }
-                  status={topic.status}
-                  rejectionNote={
-                    topic.status === "rejected" ? topic.rejection_note : null
-                  }
-                  meta={
-                    <>
-                      {topic.category.name}
-                      <span aria-hidden="true"> · </span>
-                      {formatForumReplyCount(topic.replies_count)}
-                      {topic.last_post_at || topic.published_at ? (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          {formatForumLastActivity(
-                            topic.last_post_at ?? topic.published_at,
-                          )}
-                        </>
-                      ) : null}
-                    </>
-                  }
-                />
-              ))
-            )}
-          </ForumActivitySection>
+            ))
+          )}
+        </ForumActivitySection>
 
-          <ForumActivitySection
-            id="my-forum-replies"
-            title={t("account.repliesHeading")}
-            pagination={
-              <Pagination
-                basePath="/account/forum"
-                currentPage={posts.meta.current_page}
-                lastPage={posts.meta.last_page}
-                total={posts.meta.total}
-                searchParams={{}}
-                pageParam="posts_page"
+        <ForumActivitySection
+          id="my-forum-replies"
+          title={t("account.repliesHeading")}
+          pagination={
+            <Pagination
+              basePath="/account/forum"
+              currentPage={posts.meta.current_page}
+              lastPage={posts.meta.last_page}
+              total={posts.meta.total}
+              searchParams={{}}
+              pageParam="posts_page"
+              label={`${t("account.repliesHeading")}: ${t("pagination.label")}`}
+            />
+          }
+        >
+          {posts.data.length === 0 ? (
+            <li className="px-5 py-4 type-body text-ink-2">
+              {t("account.noRepliesYet")}
+            </li>
+          ) : (
+            posts.data.map((post) => (
+              <ForumActivityItem
+                key={post.id}
+                title={post.topic.title}
+                href={
+                  post.status === "approved"
+                    ? `/forum/${post.topic.category_slug}/${post.topic.slug}`
+                    : undefined
+                }
+                status={post.status}
+                rejectionNote={
+                  post.status === "rejected" ? post.rejection_note : null
+                }
+                body={post.body}
               />
-            }
-          >
-            {posts.data.length === 0 ? (
-              <li className="px-5 py-4 type-body text-ink-2">
-                {t("account.noRepliesYet")}
-              </li>
-            ) : (
-              posts.data.map((post) => (
-                <ForumActivityItem
-                  key={post.id}
-                  title={post.topic.title}
-                  href={
-                    post.status === "approved"
-                      ? `/forum/${post.topic.category_slug}/${post.topic.slug}`
-                      : undefined
-                  }
-                  status={post.status}
-                  rejectionNote={
-                    post.status === "rejected" ? post.rejection_note : null
-                  }
-                  body={post.body}
-                />
-              ))
-            )}
-          </ForumActivitySection>
-        </AccountLayout>
-      </PageShell>
-    </>
+            ))
+          )}
+        </ForumActivitySection>
+      </AccountLayout>
+    </AccountPage>
   );
 }

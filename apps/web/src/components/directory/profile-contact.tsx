@@ -31,7 +31,8 @@ export type ContactInfo = {
   coordinates?: { latitude: number | null; longitude: number | null };
   /** Id of the hours section, for the status row's link. */
   hoursAnchor?: string;
-  now?: Date;
+  /** Request time, fixed on the server so status and hours agree. */
+  now: Date;
 };
 
 function hostOf(url: string): string | undefined {

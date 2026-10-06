@@ -35,8 +35,8 @@ const CSS = `
     font-size: 16px; color: #5e514b; }
   .ge-card .ge-note a { color: #2a2220; font-weight: 700; text-decoration: underline;
     text-decoration-thickness: 2px; text-underline-offset: 4px; }
-  .ge-body :focus-visible { outline: 3px solid #0b0c0c; outline-offset: 0;
-    box-shadow: 0 0 0 6px #ffdd00; }
+  .ge-body :focus-visible { outline: 2px solid #2a2220; outline-offset: 2px;
+    box-shadow: 0 0 0 6px #fcdfcc; }
   @media (min-width: 1024px) {
     .ge-header { padding: 24px; }
     .ge-card { margin-top: 64px; padding: 48px; }
@@ -100,7 +100,7 @@ export default function GlobalError({
                 {t("errors.home")}
               </a>
             </div>
-            {/* The header's „Итно 194“ pill is gone with the layout. */}
+            {/* The footer, and its 194/112 line, is gone with the layout. */}
             <p className="ge-note">
               {t("footer.emergency")} <a href="tel:194">194</a>{" "}
               {t("footer.emergencyOr")} <a href="tel:112">112</a>{" "}

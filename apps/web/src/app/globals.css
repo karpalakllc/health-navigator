@@ -6,7 +6,7 @@
  * Colour roles are split and never swapped:
  *   - coral  #ff5757: logo mark, 4px card top edge, active-tab tick, link
  *     underline. Never text, never a fill behind text, never a button.
- *   - emergency #b42318: only the „Итно 194“ pill and 194/112 tel: links,
+ *   - emergency #b42318: only the guidance 194/112 tel: buttons,
  *     always with a 2px ink frame. Never errors, never decoration.
  *   - ink #2a2220: text and EVERY action (pill buttons).
  *   - star #a14806: rating stars only.
@@ -28,8 +28,12 @@
   --color-emergency: #b42318;
   --color-star: #a14806;
   --color-white: #ffffff;
-  --color-focus: #ffdd00;
-  --color-focus-ink: #0b0c0c;
+  /* Pressed state for the 194/112 call buttons (still ≥4.5:1 with white). */
+  --color-emergency-hover: #9a1d13;
+  /* Focus: a 2px ink ring (≥12:1 on cream, white, sand and apricot) on a
+     soft apricot halo. The halo is decoration; the ink ring carries 1.4.11. */
+  --color-focus-ring: var(--color-ink);
+  --color-focus-halo: var(--color-apricot);
 
   /* ---- semantic aliases (prefer these in components) ------------------ */
   --color-background: var(--color-cream);
@@ -43,24 +47,6 @@
   --color-action-foreground: var(--color-white);
   --color-border: var(--color-line);
   --color-border-strong: var(--color-line-strong);
-
-  /* ---- legacy — remove after page migration --------------------------- */
-  /* Old shadcn-style names still used by un-migrated pages. Values are
-     re-pointed at D2a so those pages stop failing contrast (white on coral,
-     #66758a meta) while they wait for phase B. Do not use in new code. */
-  --color-card: var(--color-white);
-  --color-card-foreground: var(--color-ink);
-  --color-primary: var(--color-ink);
-  --color-primary-foreground: var(--color-white);
-  --color-secondary: var(--color-sand);
-  --color-secondary-foreground: var(--color-ink);
-  --color-muted: var(--color-sand);
-  --color-muted-foreground: var(--color-ink-2);
-  --color-accent: var(--color-care);
-  --color-accent-foreground: var(--color-white);
-  --color-destructive: var(--color-emergency);
-  --color-warning: #f59e0b;
-  --color-ring: var(--color-focus-ink);
 
   /* ---- radii (monotonic: sm < md < lg < xl < 2xl < 3xl) --------------- */
   /* The old theme had --radius-2xl (16px) smaller than --radius-xl (20px). */
@@ -253,7 +239,40 @@
 @layer base {
   html {
     scroll-padding-top: calc(var(--header-h) + 0.75rem);
+    /* WCAG 2.4.11: a field focused by Tab must not land under the bottom tab
+       bar (0 on desktop) … */
+    scroll-padding-bottom: calc(var(--tabbar-space) + 0.75rem);
     -webkit-text-size-adjust: 100%;
+  }
+
+  /* … nor under a sticky bottom action bar (profile call bar, the guidance
+     „Продолжи“, the new-topic submit bar: 12 + 56 + 12px), nor under the
+     list pages' sticky search strip (8 + 56 + 12px). All three are mobile
+     only, as are these paddings. */
+  @media (width < 64rem) {
+    html:has([data-sticky-action-bar]:not([data-hidden])) {
+      scroll-padding-bottom: calc(var(--tabbar-space) + 5rem + 0.75rem);
+    }
+
+    html:has([data-sticky-search-strip]) {
+      scroll-padding-top: calc(var(--header-h) + 4.75rem + 0.75rem);
+    }
+  }
+
+  /* WebKit's own „×“ in search fields is system blue: redraw it in ink
+     (the Lucide x, 20px) so it stays in the palette. */
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 0.5rem;
+    background-color: var(--color-ink);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    cursor: pointer;
   }
 
   body {
@@ -277,24 +296,6 @@
     opacity: 1;
   }
 
-  /*
-   * The focus ring from the mockups (GOV.UK pattern): a 3px ink outline with
-   * a yellow halo, identical on every control and every background.
-   */
-  :where(
-    a,
-    button,
-    input,
-    select,
-    textarea,
-    summary,
-    [tabindex]
-  ):focus-visible {
-    outline: 3px solid var(--color-focus-ink);
-    outline-offset: 0;
-    box-shadow: 0 0 0 6px var(--color-focus);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -304,6 +305,66 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/*
+ * Focus. Unlayered on purpose: unlayered rules beat every @layer, so a
+ * component's own box-shadow (shadow-card on the search pill, the chip ring)
+ * can never swallow the halo. Specificity stays zero through :where().
+ *
+ * - Keyboard (:focus-visible): a 2px ink outline 2px off the element, sitting
+ *   on a 6px apricot halo, so the ring reads on ink buttons, white cards and
+ *   the apricot hero alike (ink vs apricot 12.3:1, cream 14.5:1, white 15.6:1;
+ *   the apricot gap also separates it from ink and emergency-red buttons).
+ * - Text inputs, selects and textareas (any :focus, mouse too): bordered
+ *   controls turn their border ink and thicken it by 1px, plus the halo;
+ *   borderless inputs (inside the search pills) get the keyboard ring.
+ */
+:where(
+  a,
+  button,
+  summary,
+  [tabindex]:not([tabindex="-1"]),
+  input,
+  select,
+  textarea
+):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-focus-halo);
+}
+
+:where(
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="file"],
+    [type="range"],
+    [type="hidden"]
+  ),
+  select,
+  textarea
+):focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-focus-halo);
+}
+
+.field-control:focus {
+  border-color: var(--color-focus-ring);
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--color-focus-ring),
+    0 0 0 5px var(--color-focus-halo);
+}
+
+/* Chips whose real input is visually hidden: ring the label instead. */
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--color-focus-halo);
   }
 }
 
@@ -450,9 +511,6 @@
     padding-right: 3rem;
     cursor: pointer;
   }
-  .field-control:focus-visible {
-    border-color: var(--color-ink);
-  }
   .field-control[aria-invalid="true"] {
     border: 2px solid var(--color-ink);
   }
@@ -507,115 +565,5 @@
     background: var(--color-ink);
     color: var(--color-white);
     box-shadow: inset 0 0 0 1px var(--color-ink);
-  }
-}
-
-/* ======================================================================== */
-/* legacy — remove after page migration                                     */
-/* ======================================================================== */
-/* Utilities un-migrated pages still reference. They are flattened to the
-   D2a surface model (white card + card shadow, no glass, no blobs, no
-   gradients, no motion) so old pages sit calmly inside the new shell. */
-@layer utilities {
-  .surface-glass,
-  .surface-glass-strong,
-  .content-card,
-  .directory-card,
-  .trust-badge-compact {
-    background: var(--color-white);
-    border: 0;
-    box-shadow: var(--shadow-card);
-  }
-
-  .trust-badge-compact {
-    min-height: 58px;
-    border-radius: var(--radius-card);
-  }
-
-  .directory-hero-panel,
-  .profile-hero-panel {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--radius-sheet);
-    background: var(--color-white);
-    border: 0;
-    box-shadow: var(--shadow-card);
-  }
-
-  .filters-card {
-    position: relative;
-    border-radius: var(--radius-card);
-    background: var(--color-white);
-    border: 0;
-    box-shadow: var(--shadow-card);
-  }
-
-  .filters-card-nested {
-    box-shadow: none;
-  }
-
-  .directory-tag {
-    display: inline-flex;
-    min-height: 32px;
-    align-items: center;
-    border-radius: 999px;
-    background: var(--color-sand);
-    padding: 0 12px;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: var(--color-ink);
-  }
-
-  .directory-tag-teal {
-    background: var(--color-care-tint);
-    color: var(--color-care);
-  }
-
-  .hero-mesh-grid,
-  .hero-blob-red,
-  .hero-blob-teal {
-    display: none;
-  }
-
-  .icon-soft-red {
-    background: var(--color-apricot);
-    color: var(--color-ink);
-  }
-
-  .icon-soft-teal {
-    background: var(--color-care-tint);
-    color: var(--color-care);
-  }
-
-  .btn-gradient-primary,
-  .btn-gradient-teal {
-    background: var(--color-ink);
-    color: var(--color-white);
-    box-shadow: none;
-  }
-
-  .btn-gradient-primary:hover,
-  .btn-gradient-teal:hover {
-    background: var(--color-action-hover);
-  }
-
-  .glass {
-    background-color: var(--color-white);
-    border-color: var(--color-line);
-  }
-
-  .card-lift,
-  .card-hover {
-    transition: box-shadow 150ms var(--ease-out-soft);
-  }
-
-  .heading-accent {
-    color: inherit;
-  }
-
-  /* D2a uses 400/500/600/700 only; heavy weights close Cyrillic counters. */
-  .font-black,
-  .font-extrabold {
-    font-weight: 700;
   }
 }

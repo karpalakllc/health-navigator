@@ -225,7 +225,9 @@ export function HoursTable({
             </th>
             <td
               className={cn(
-                "py-3 pl-2 pr-3 text-right tabular-nums",
+                // The range never breaks mid-value („07:30–“ / „20:00“);
+                // the day label and its „Денес“ tag wrap instead.
+                "whitespace-nowrap py-3 pl-2 pr-3 text-right tabular-nums",
                 row.closed ? "text-ink-2" : "text-ink",
                 row.isToday && "rounded-r-lg",
               )}

@@ -53,7 +53,7 @@ export function HomeForumTransparency({
   return (
     <div
       className={cn(
-        "grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-6",
+        "grid gap-4 lg:grid-cols-12 lg:items-stretch lg:gap-6",
         className,
       )}
     >
@@ -113,7 +113,7 @@ export function HomeForumTransparency({
                 <Icon name={item.icon} />
               </span>
               <div className="min-w-0">
-                <h3 className="font-ui text-[1.0625rem] font-semibold leading-6 text-ink">
+                <h3 className="type-body font-semibold text-ink">
                   {t(item.titleKey)}
                 </h3>
                 <p className="type-meta mt-0.5 text-ink-2">{t(item.bodyKey)}</p>

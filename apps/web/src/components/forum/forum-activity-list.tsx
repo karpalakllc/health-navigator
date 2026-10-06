@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ForumStatusTag } from "@/components/forum/forum-status-tag";
+import { ModerationStatusTag } from "@/components/account/moderation-status-tag";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { t } from "@/i18n/t";
@@ -52,7 +52,7 @@ export function ForumActivityItem({
   return (
     <li className="flex flex-col gap-2 border-t border-line px-5 py-4 first:border-t-0">
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <p className="min-w-0 flex-1 font-ui text-[1.0625rem] leading-6 font-semibold text-ink">
+        <p className="min-w-0 flex-1 type-body font-semibold text-ink">
           {href ? (
             <Link
               href={href}
@@ -64,7 +64,7 @@ export function ForumActivityItem({
             title
           )}
         </p>
-        <ForumStatusTag status={status} />
+        <ModerationStatusTag status={status} />
       </div>
       {meta ? <p className="type-meta text-ink-2">{meta}</p> : null}
       {body ? (

@@ -39,7 +39,7 @@ export function ForumCategoryList({
               <Icon name="message-circle" size={22} />
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
-              <Heading className="font-ui text-[1.0625rem] leading-6 font-semibold text-ink">
+              <Heading className="type-body font-semibold text-ink">
                 <Link
                   href={`/forum/${category.slug}`}
                   className="decoration-coral decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"

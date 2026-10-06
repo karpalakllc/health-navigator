@@ -15,6 +15,7 @@ export default function NotFound() {
           action="/search"
           method="get"
           role="search"
+          aria-label={t("search.title")}
           className="flex flex-col gap-3"
         >
           <label htmlFor="not-found-q" className="type-label text-ink">

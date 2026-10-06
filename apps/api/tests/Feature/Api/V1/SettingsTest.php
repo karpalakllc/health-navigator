@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\SiteSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SettingsTest extends TestCase
@@ -32,6 +33,19 @@ class SettingsTest extends TestCase
             ->assertJsonPath('data.registrations_enabled', true)
             ->assertJsonPath('data.footer_emergency_text', 'Custom emergency text.')
             ->assertJsonPath('data.copyright_name', 'Test Co');
+    }
+
+    /**
+     * The admin "Site font" setting was removed with the D2a redesign: the
+     * column is dropped and the public payload no longer carries it.
+     */
+    public function test_the_site_font_setting_is_gone(): void
+    {
+        $this->assertFalse(Schema::hasColumn('site_settings', 'site_font_family'));
+
+        $this->getJson('/api/v1/settings/public')
+            ->assertOk()
+            ->assertJsonMissingPath('data.site_font_family');
     }
 
     /**

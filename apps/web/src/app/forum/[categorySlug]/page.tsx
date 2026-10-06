@@ -12,7 +12,6 @@ import {
   forumPageClass,
 } from "@/components/forum/forum-layout";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ForumTopicList } from "@/components/forum/forum-topic-row";
 import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { BackLink } from "@/components/ui/back-link";
@@ -133,7 +132,6 @@ export default async function CategoryTopicsPage({
       <ForumColumns
         main={
           <>
-            <ForumSafetyNotice />
             <Card padding="md" className="flex flex-col gap-4">
               <ForumTopicSearch
                 defaultQuery={query.q}

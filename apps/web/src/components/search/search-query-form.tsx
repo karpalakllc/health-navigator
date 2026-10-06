@@ -23,6 +23,7 @@ export function SearchQueryForm({
   return (
     <form
       role="search"
+      aria-label={t("search.title")}
       action="/search"
       method="get"
       className="rounded-card bg-white p-4 shadow-card lg:p-5"

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import { t } from "@/i18n/t";
 
 /**
  * Form feedback that screen readers actually hear. A plain <p> appearing after
@@ -27,7 +28,12 @@ export function FormError({
     >
       {/* Ink + warning icon, never red: errors must not look like emergency. */}
       <Icon name="alert-triangle" size={20} className="mt-0.5" />
-      <span>{children}</span>
+      {/* „Грешка:“ like FieldError, so a form-level error reads the same.
+          The message keeps its own element so it can still be found (and
+          read) as exactly the text that was passed in. */}
+      <span>
+        <span>{t("ui.errorPrefix")}</span> <span>{children}</span>
+      </span>
     </p>
   );
 }

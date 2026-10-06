@@ -54,6 +54,16 @@ describe("DoctorCard", () => {
     expect(screen.getByText("23 рецензии")).toBeInTheDocument();
   });
 
+  it("writes a whole-number average as „5,0“, like every other rating", () => {
+    render(
+      <DoctorCard
+        doctor={{ ...marko, review_summary: { count: 2, average_rating: 5 } }}
+      />,
+    );
+
+    expect(screen.getByText("5,0")).toBeInTheDocument();
+  });
+
   it("says so when there are no reviews instead of showing zero stars", () => {
     render(<DoctorCard doctor={marko} />);
 

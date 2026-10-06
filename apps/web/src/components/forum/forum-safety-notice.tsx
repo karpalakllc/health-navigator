@@ -3,8 +3,8 @@ import { t } from "@/i18n/t";
 
 /**
  * The persistent forum safety note: support, not medical advice; 194/112 as
- * bold ink tel: links. Deliberately soft (chip-tint), never a red fill — the
- * header's „Итно 194“ pill stays the one emergency control.
+ * bold ink tel: links. Deliberately soft (chip-tint), never a red fill. Shown
+ * only on the forum home and the new-topic composer, not on every page.
  */
 export function ForumSafetyNotice({ className }: { className?: string }) {
   return (

@@ -72,8 +72,6 @@ export default async function RootLayout({
 }>) {
   const settings = await fetchPublicSettings();
 
-  // settings.site_font_family (geist/inter/system) is no longer honoured:
-  // the D2a type system is Geologica + Source Sans 3.
   return (
     <html
       lang="mk"
@@ -91,8 +89,8 @@ export default async function RootLayout({
               <PlausibleAnalytics />
               <SkipLink />
               <SiteHeader />
-              {/* The one <main> of the page (PageShell is a <div>), so it also
-                  covers the hero; tabIndex lets the skip link move focus here. */}
+              {/* The one <main> of the page, so it also covers the hero;
+                  tabIndex lets the skip link move focus here. */}
               <main
                 id={MAIN_CONTENT_ID}
                 tabIndex={-1}

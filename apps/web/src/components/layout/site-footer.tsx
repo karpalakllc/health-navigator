@@ -30,11 +30,11 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * Sand footer with 28px top corners. Mobile: logo, a 2-column link grid
- * (48px rows), the disclaimer and copyright. Desktop: a 12-column grid
- * (5 brand + 3 link columns) and a ruled bottom line. The 194/112 line is
- * plain ink-2 text here — the header's „Итно 194“ pill is the emergency
- * action, so the footer no longer repeats it as a red box. The sand runs
- * down behind the mobile tab bar (bottom padding = --tabbar-space).
+ * (48px rows), then the bottom lines. Desktop: a 12-column grid (5 brand +
+ * 3 link columns) and a ruled bottom line. The bottom line carries the site's
+ * only standing safety copy: ONE quiet 194/112 sentence and ONE disclaimer
+ * (both admin-editable settings), in ink-2 — no red box, no repeats. The sand
+ * runs down behind the mobile tab bar (bottom padding = --tabbar-space).
  */
 export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
   const year = new Date().getFullYear();
@@ -52,7 +52,7 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
               <span className="sr-only">, {t("nav.homeLink")}</span>
             </Link>
             <p className="mt-3 max-w-[420px] type-body text-ink">
-              {t("footer.informational")}
+              {t("footer.tagline")}
             </p>
           </div>
 
@@ -134,9 +134,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 lg:mt-10 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-          <div className="flex flex-col gap-2 type-meta text-ink-2">
+          <div className="flex max-w-[760px] flex-col gap-1 type-meta text-ink-2">
             <p>{settings.footer_emergency_text}</p>
-            <p>{settings.footer_disclaimer_text}</p>
+            <p>
+              {t("footer.informational")} {settings.footer_disclaimer_text}
+            </p>
           </div>
           <p className="type-meta text-ink-2 lg:whitespace-nowrap">
             {tFormat("footer.copyright", {

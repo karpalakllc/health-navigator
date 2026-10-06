@@ -8,14 +8,14 @@ import { t } from "@/i18n/t";
  * D2a: 194 is the largest target on the screen (64px filled emergency pill
  * with the 2px ink frame); 112 is a white pill with the same frame and
  * emergency-red text (6.57:1). Emergency red is reserved for these and the
- * header „Итно 194“ pill.
+ * guidance urgent-help button.
  */
 export function EmergencyCallLinks() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
       <a
         href="tel:194"
-        className="inline-flex min-h-16 items-center justify-center gap-3 rounded-full border-2 border-ink bg-emergency px-5 py-2 text-center text-lg font-bold leading-6 text-balance text-white no-underline hover:bg-[#9a1d13]"
+        className="inline-flex min-h-16 items-center justify-center gap-3 rounded-full border-2 border-ink bg-emergency px-5 py-2 text-center text-lg font-bold leading-6 text-balance text-white no-underline hover:bg-emergency-hover"
       >
         <Icon name="phone" size={24} />
         <span>{t("guidance.call194")}</span>

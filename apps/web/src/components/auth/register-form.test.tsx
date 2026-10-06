@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { RegisterForm } from "@/components/auth/register-form";
@@ -96,46 +96,102 @@ describe("RegisterForm", () => {
     }
   });
 
-  it("sends both password fields so the API can check they match", async () => {
+  it("sends both password fields so the API can check them too", async () => {
     const fetch = mockFetch({ status: 201, body: { data: {} } });
     render(<RegisterForm registrationsEnabled />);
 
-    await fillAndSubmit({
-      password: "lozinka12345",
-      confirmation: "drugacija999",
-    });
+    await fillAndSubmit({ password: "lozinka12345" });
 
     expect(requestBody(fetch)).toEqual({
       name: "Ана",
       display_name: "Ана",
       email: "ana@example.mk",
       password: "lozinka12345",
-      password_confirmation: "drugacija999",
+      password_confirmation: "lozinka12345",
     });
   });
 
-  it("surfaces the API's mismatch error as an alert", async () => {
-    mockFetch({
-      status: 422,
-      body: {
-        message: "Потврдата на лозинката не се совпаѓа.",
-        errors: { password: ["Потврдата на лозинката не се совпаѓа."] },
-      },
-    });
+  it("catches a mismatched confirmation before sending, under that field", async () => {
+    const fetch = mockFetch({ status: 202, body: { data: {} } });
     render(<RegisterForm registrationsEnabled />);
 
     await fillAndSubmit({ confirmation: "drugacija999" });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Потврдата на лозинката не се совпаѓа.",
+    expect(fetch).not.toHaveBeenCalled();
+    const confirmation = screen.getByLabelText(
+      t("auth.registerPasswordConfirm"),
     );
+    expect(confirmation).toHaveAttribute("aria-invalid", "true");
+    expect(confirmation).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("auth.passwordMismatch")}`,
+    );
+    expect(screen.getByLabelText(t("auth.password"))).not.toHaveAttribute(
+      "aria-invalid",
+    );
+    expect(screen.getByRole("alert")).toHaveFocus();
   });
 
-  it("falls back to the first password error when there is no message", async () => {
+  it("checks required fields and the e-mail shape in Macedonian, not with browser bubbles", async () => {
+    const fetch = mockFetch({ status: 202, body: { data: {} } });
+    const user = userEvent.setup();
+    const { container } = render(<RegisterForm registrationsEnabled />);
+
+    expect(container.querySelector("form")).toHaveAttribute("novalidate");
+
+    await user.type(screen.getByLabelText(t("auth.email")), "ana@");
+    await user.click(screen.getByRole("button", { name: t("auth.register") }));
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText(t("auth.registerName")),
+    ).toHaveAccessibleDescription(new RegExp(t("ui.fieldRequired")));
+    expect(screen.getByLabelText(t("auth.email"))).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailInvalid")}`,
+    );
+    // The summary names all four rejected fields.
+    const summary = screen.getByRole("alert");
+    for (const label of [
+      t("auth.registerName"),
+      t("auth.email"),
+      t("auth.password"),
+      t("auth.registerPasswordConfirm"),
+    ]) {
+      expect(
+        within(summary).getByRole("link", { name: label }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("files the API's „confirmed“ password error under the confirmation field", async () => {
     mockFetch({
       status: 422,
       body: {
-        errors: { password: ["Лозинката мора да има најмалку 10 знаци."] },
+        message: "Потврдата на полето лозинка не се совпаѓа.",
+        errors: { password: ["Потврдата на полето лозинка не се совпаѓа."] },
+      },
+    });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      t("auth.passwordMismatch"),
+    );
+    expect(
+      screen.getByLabelText(t("auth.registerPasswordConfirm")),
+    ).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(t("auth.password"))).not.toHaveAttribute(
+      "aria-invalid",
+    );
+  });
+
+  it("says the password rules in its own words when the API rejects the password", async () => {
+    mockFetch({
+      status: 422,
+      body: {
+        errors: {
+          password: ["Полето лозинка мора да има најмалку 10 знаци."],
+        },
       },
     });
     render(<RegisterForm registrationsEnabled />);
@@ -143,7 +199,21 @@ describe("RegisterForm", () => {
     await fillAndSubmit({ password: "kratka" });
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Лозинката мора да има најмалку 10 знаци.",
+      t("auth.passwordTooWeak"),
+    );
+  });
+
+  it("keeps the API's message when the rejection names no field", async () => {
+    mockFetch({
+      status: 429,
+      body: { message: "Премногу обиди. Обидете се подоцна." },
+    });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Премногу обиди. Обидете се подоцна.",
     );
   });
 
@@ -192,15 +262,19 @@ describe("RegisterForm", () => {
 
     await fillAndSubmit({ password: "kratka" });
 
-    // The summary stays the single alert.
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "(и уште 2 грешки)",
-    );
+    // The summary is the single alert, in our words, not Laravel's
+    // "… (и уште 2 грешки)".
+    const summary = await screen.findByRole("alert");
+    expect(summary).toHaveTextContent(t("ui.errorSummaryTitle"));
+    expect(summary).not.toHaveTextContent("(и уште 2 грешки)");
 
+    // The „confirmed“ error filed under `password` lands on the
+    // confirmation field; the length error stays on the password.
     const expected: Array<[string, string]> = [
-      [t("auth.registerName"), "Името е задолжително."],
-      [t("auth.email"), "Е-адресата мора да биде валидна."],
-      [t("auth.password"), "Лозинката мора да има најмалку 10 знаци."],
+      [t("auth.registerName"), t("ui.fieldRequired")],
+      [t("auth.email"), t("ui.emailInvalid")],
+      [t("auth.password"), t("auth.passwordTooWeak")],
+      [t("auth.registerPasswordConfirm"), t("auth.passwordMismatch")],
     ];
     for (const [label, message] of expected) {
       const field = screen.getByLabelText(label);
@@ -212,12 +286,14 @@ describe("RegisterForm", () => {
       );
       // The message is not folded into the field's name.
       expect(field).toHaveAccessibleName(label);
+      // And the summary repeats it, linked to the field.
+      expect(
+        within(summary).getByRole("link", { name: label }),
+      ).toHaveAttribute("href", `#${field.id}`);
     }
-
-    const confirmation = screen.getByLabelText(
-      t("auth.registerPasswordConfirm"),
-    );
-    expect(confirmation).not.toHaveAttribute("aria-invalid");
+    expect(
+      screen.getByLabelText(t("auth.registerDisplayName")),
+    ).not.toHaveAttribute("aria-invalid");
   });
 
   it("links every rejected field from the error summary", async () => {
@@ -253,7 +329,7 @@ describe("RegisterForm", () => {
     expect(screen.getByLabelText(t("auth.password"))).toHaveFocus();
   });
 
-  it("lists no summary links when only one field failed", async () => {
+  it("lists only the fields that failed, and takes focus", async () => {
     mockFetch({
       status: 422,
       body: {
@@ -264,11 +340,13 @@ describe("RegisterForm", () => {
     render(<RegisterForm registrationsEnabled />);
 
     await fillAndSubmit();
-    await screen.findByRole("alert");
+    const summary = await screen.findByRole("alert");
 
+    expect(within(summary).getAllByRole("link")).toHaveLength(1);
     expect(
-      screen.queryByRole("link", { name: t("auth.email") }),
-    ).not.toBeInTheDocument();
+      within(summary).getByRole("link", { name: t("auth.email") }),
+    ).toBeInTheDocument();
+    expect(summary).toHaveFocus();
   });
 
   it("states the password rules up front", () => {

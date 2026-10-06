@@ -46,7 +46,6 @@ type Props = {
 
 export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [session, setSession] = useState<GuidanceSessionHandle | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [redFlags, setRedFlags] = useState<string[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -57,6 +56,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   // own flag so neither can switch the other's indicator off.
   const [loading, setLoading] = useState(false);
   const [emergencySaving, setEmergencySaving] = useState(false);
+  // True when the visitor pressed „Потребна ми е итна помош“ rather than
+  // reaching the emergency outcome through answers: the outcome's own body
+  // („Според вашите одговори…“) would then be wrong, so a neutral one shows.
+  const [emergencyFromShortcut, setEmergencyFromShortcut] = useState(false);
 
   const currentStep = flow.steps[stepIndex];
   const optionIdPrefix = useId();
@@ -93,37 +96,76 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
     // API answers, and the outcome's heading then replaces the interim one.
   }, [phase, stepIndex, outcome]);
 
+  /*
+   * The session handle lives in refs, not state: two handlers can ask for it
+   * in the same tick (Продолжи, then the emergency shortcut while the start
+   * is still in flight) and must share ONE start request instead of opening
+   * two sessions. `storageEpoch` is bumped whenever the stored handle is
+   * cleared (an outcome, a restart); a start that settles after that does not
+   * write its handle back.
+   */
+  const session = useRef<GuidanceSessionHandle | null>(null);
+  const starting = useRef<Promise<GuidanceSessionHandle> | null>(null);
+  const storageEpoch = useRef(0);
+
+  function clearStoredSession() {
+    storageEpoch.current++;
+    session.current = null;
+    starting.current = null;
+    window.sessionStorage.removeItem(SESSION_KEY);
+  }
+
   const ensureSession = useCallback(
     async (fresh = false): Promise<GuidanceSessionHandle> => {
-      if (session && !fresh) {
-        return session;
-      }
-
       if (fresh) {
+        session.current = null;
+        starting.current = null;
         window.sessionStorage.removeItem(SESSION_KEY);
-      }
+      } else {
+        if (session.current) {
+          return session.current;
+        }
+        if (starting.current) {
+          return starting.current;
+        }
 
-      const stored =
-        typeof window !== "undefined" && !fresh
-          ? parseStoredGuidanceSession(
-              window.sessionStorage.getItem(SESSION_KEY),
-            )
-          : null;
+        const stored = parseStoredGuidanceSession(
+          window.sessionStorage.getItem(SESSION_KEY),
+        );
+        if (stored) {
+          session.current = stored;
 
-      if (stored) {
-        setSession(stored);
-
-        return stored;
+          return stored;
+        }
       }
 
       window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
-      const started = await startGuidanceSession();
-      window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
-      setSession(started);
+      const epoch = storageEpoch.current;
+      const request = startGuidanceSession().then(
+        (started) => {
+          if (starting.current === request) {
+            starting.current = null;
+          }
+          if (storageEpoch.current === epoch) {
+            window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
+            session.current = started;
+          }
 
-      return started;
+          return started;
+        },
+        (error: unknown) => {
+          if (starting.current === request) {
+            starting.current = null;
+          }
+
+          throw error;
+        },
+      );
+      starting.current = request;
+
+      return request;
     },
-    [session],
+    [],
   );
 
   /**
@@ -171,7 +213,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       }
 
       setOutcome(result);
-      window.sessionStorage.removeItem(SESSION_KEY);
+      clearStoredSession();
     } catch (e) {
       if (generation.current === gen) {
         setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
@@ -229,6 +271,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
 
   async function handleRedFlagsContinue() {
     if (redFlags.length > 0) {
+      setEmergencyFromShortcut(false);
       await enterEmergency(async (current) => {
         await saveGuidanceAnswers(current, [
           { step_key: "red_flags", values: redFlags },
@@ -252,13 +295,13 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   }
 
   async function handleEmergencyNow() {
+    setEmergencyFromShortcut(true);
     await enterEmergency(completeGuidanceEmergency);
   }
 
   function handleRestart() {
     generation.current++;
-    window.sessionStorage.removeItem(SESSION_KEY);
-    setSession(null);
+    clearStoredSession();
     setAccepted(false);
     setRedFlags([]);
     setStepIndex(0);
@@ -267,6 +310,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
     setError(null);
     setLoading(false);
     setEmergencySaving(false);
+    setEmergencyFromShortcut(false);
     setPhase("intro");
   }
 
@@ -330,7 +374,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       return () => {
         setOutcome(result);
         setPhase("result");
-        window.sessionStorage.removeItem(SESSION_KEY);
+        clearStoredSession();
       };
     }, t("guidance.saveError"));
   }
@@ -390,7 +434,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
                 ))}
               </ul>
             ) : null}
-            <EmergencyShortcutButton onEmergency={handleEmergencyNow} />
+            <EmergencyShortcutButton
+              onEmergency={handleEmergencyNow}
+              className="w-full lg:w-auto lg:self-start"
+            />
           </div>
         </Card>
 
@@ -512,7 +559,11 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       <div data-guidance-step className="flex flex-col gap-6 lg:gap-8">
         {pageTitle}
         {isEmergency ? (
-          <EmergencyOutcome outcome={outcome} headingRef={headingRef} />
+          <EmergencyOutcome
+            outcome={outcome}
+            fromShortcut={phase === "emergency" && emergencyFromShortcut}
+            headingRef={headingRef}
+          />
         ) : (
           <OutcomeView
             outcome={outcome}
@@ -621,7 +672,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
  */
 function StickyContinue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+    <div
+      data-sticky-action-bar
+      className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+    >
       {children}
     </div>
   );
@@ -648,34 +702,36 @@ function StepTopBar({
       >
         {t("common.back")}
       </Button>
-      <EmergencyShortcutButton
-        onEmergency={onEmergency}
-        className="w-full lg:w-auto"
-      />
+      <EmergencyShortcutButton onEmergency={onEmergency} size="md" />
     </div>
   );
 }
 
 /**
- * „Потребна ми е итна помош“: the strongest action on every step, in the
- * emergency treatment (red, white text, 2px ink frame). It is never disabled —
- * not even while an ordinary answer is saving; the wizard's generation guard
- * keeps that late answer from replacing the emergency screen.
+ * „Потребна ми е итна помош“, in the emergency treatment (red, white text,
+ * 2px ink frame) on the intro and on every step. Full-width 56px on the intro;
+ * a compact 48px pill beside Back on the steps, so the steps stay calm while
+ * the button stays in view. It is never disabled — not even while an ordinary
+ * answer is saving; the wizard's generation guard keeps that late answer from
+ * replacing the emergency screen.
  */
 function EmergencyShortcutButton({
   onEmergency,
+  size = "lg",
   className,
 }: {
   onEmergency: () => void;
+  size?: "md" | "lg";
   className?: string;
 }) {
   return (
     <Button
-      size="lg"
+      size={size}
       leadingIcon="alert-triangle"
       onClick={onEmergency}
       className={cn(
-        "border-2 border-ink bg-emergency text-white hover:bg-[#9a1d13]",
+        "border-2 border-ink bg-emergency text-white hover:bg-emergency-hover",
+        size === "md" && "px-4",
         className,
       )}
     >
@@ -686,15 +742,18 @@ function EmergencyShortcutButton({
 
 function EmergencyOutcome({
   outcome,
+  fromShortcut,
   headingRef,
 }: {
   outcome: GuidanceOutcome;
+  /** Reached through the urgent-help button, not through answers. */
+  fromShortcut: boolean;
   headingRef: React.Ref<HTMLHeadingElement>;
 }) {
   return (
     <EmergencyCard
       title={outcome.title}
-      body={outcome.body}
+      body={fromShortcut ? t("guidance.emergencyShortcutBody") : outcome.body}
       headingRef={headingRef}
     >
       <p className="type-reading text-ink">

@@ -83,15 +83,15 @@ describe("ForumNewTopicComposer", () => {
 
   it("preselects a known default category and ignores an unknown one", () => {
     const { unmount } = renderComposer("koza");
-    expect(
-      screen.getByLabelText(requiredLabel("forum.categories")),
-    ).toHaveValue("koza");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "koza",
+    );
     unmount();
 
     renderComposer("nepostoi");
-    expect(
-      screen.getByLabelText(requiredLabel("forum.categories")),
-    ).toHaveValue("srce");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "srce",
+    );
   });
 
   it("asks for one consent covering rules, diagnosis and emergencies", () => {
@@ -101,6 +101,19 @@ describe("ForumNewTopicComposer", () => {
     expect(label).toHaveTextContent("правилата на заедницата");
     expect(label).toHaveTextContent("не дава дијагноза или третман");
     expect(label).toHaveTextContent("194 или 112");
+  });
+
+  it("shows the forum safety note with 194/112 before the form", () => {
+    renderComposer();
+
+    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
+      "href",
+      "tel:194",
+    );
+    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
+      "href",
+      "tel:112",
+    );
   });
 
   it("keeps submit disabled until the consent is ticked", async () => {
@@ -114,9 +127,45 @@ describe("ForumNewTopicComposer", () => {
     expect(submitButton()).toBeDisabled();
   });
 
+  it("checks the title and message lengths in Macedonian before sending", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    renderComposer();
+
+    const title = screen.getByLabelText(requiredLabel("common.title"));
+    const body = screen.getByLabelText(requiredLabel("common.message"));
+    expect(title.closest("form")).toHaveAttribute("novalidate");
+
+    await user.type(title, "Ко");
+    await consentAll(user);
+    await user.click(submitButton());
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(title).toHaveAttribute("aria-invalid", "true");
+    expect(title).toHaveAccessibleDescription(
+      new RegExp("Напишете најмалку 5 знаци"),
+    );
+    expect(body).toHaveAccessibleDescription(new RegExp(t("ui.fieldRequired")));
+    expect(title).toHaveFocus();
+
+    // Fixing the title clears its error as the person types.
+    await user.type(title, "нтрола");
+    expect(title).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("labels the single category select in the singular", () => {
+    renderComposer();
+
+    expect(
+      screen.getByRole("combobox", { name: requiredLabel("forum.category") }),
+    ).toBeInTheDocument();
+    expect(t("forum.category")).toBe("Категорија");
+  });
+
   it("links the missing-consent error to the checkbox", async () => {
     const user = userEvent.setup();
     renderComposer();
+    await fill(user);
 
     expect(consentBox()).not.toHaveAttribute("aria-describedby");
     // The button is disabled, so submit the form directly (e.g. Enter key

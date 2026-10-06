@@ -6,7 +6,6 @@ import {
   ForumPostCard,
   isSameAuthor,
 } from "@/components/forum/forum-post-card";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
@@ -175,8 +174,6 @@ export default async function TopicDetailPage({
                 isLocked={topic.is_locked}
               />
             ) : null}
-
-            <ForumSafetyNotice />
 
             <ForumPostCard
               post={originalPost}

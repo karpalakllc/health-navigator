@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DirectoryCardGrid } from "@/components/directory/directory-card-grid";
+import { ResultsGrid } from "@/components/directory/results-grid";
 import { DoctorCard } from "@/components/directory/doctor-card";
 import { FacilityCard } from "@/components/directory/facility-card";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
@@ -62,13 +62,13 @@ export async function UnifiedSearchResults({
       total: doctors.meta.total,
       viewAllHref: directorySearchHref("/doctors", q, cityParam),
       body: (
-        <DirectoryCardGrid>
+        <ResultsGrid>
           {doctors.data.map((doctor) => (
             <li key={doctor.slug}>
               <DoctorCard doctor={doctor} />
             </li>
           ))}
-        </DirectoryCardGrid>
+        </ResultsGrid>
       ),
     },
     {
@@ -77,13 +77,13 @@ export async function UnifiedSearchResults({
       total: facilities.meta.total,
       viewAllHref: directorySearchHref("/facilities", q, cityParam),
       body: (
-        <DirectoryCardGrid>
+        <ResultsGrid>
           {facilities.data.map((facility) => (
             <li key={facility.slug}>
               <FacilityCard facility={facility} />
             </li>
           ))}
-        </DirectoryCardGrid>
+        </ResultsGrid>
       ),
     },
     {
@@ -92,13 +92,13 @@ export async function UnifiedSearchResults({
       total: pharmacies.meta.total,
       viewAllHref: directorySearchHref("/pharmacies", q, cityParam),
       body: (
-        <DirectoryCardGrid>
+        <ResultsGrid>
           {pharmacies.data.map((pharmacy) => (
             <li key={pharmacy.slug}>
               <PharmacyCard pharmacy={pharmacy} />
             </li>
           ))}
-        </DirectoryCardGrid>
+        </ResultsGrid>
       ),
     },
     {
@@ -122,13 +122,13 @@ export async function UnifiedSearchResults({
       total: products.meta.total,
       viewAllHref: directorySearchHref("/products", q, cityParam),
       body: (
-        <DirectoryCardGrid>
+        <ResultsGrid>
           {products.data.map((product) => (
             <li key={product.slug}>
               <ProductCard product={product} />
             </li>
           ))}
-        </DirectoryCardGrid>
+        </ResultsGrid>
       ),
     },
   ].filter((section) => section.total > 0);

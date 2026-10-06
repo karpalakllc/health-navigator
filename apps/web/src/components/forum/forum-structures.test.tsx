@@ -5,7 +5,7 @@ import {
   isSameAuthor,
 } from "@/components/forum/forum-post-card";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
-import { ForumStatusTag } from "@/components/forum/forum-status-tag";
+import { ModerationStatusTag } from "@/components/account/moderation-status-tag";
 import { ForumTopicList } from "@/components/forum/forum-topic-row";
 import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
 import { t } from "@/i18n/t";
@@ -148,6 +148,44 @@ describe("ForumPostCard", () => {
     );
   });
 
+  it("shows the member-since year and the post count under the name", () => {
+    render(<ForumPostCard post={post(member)} />);
+
+    // 2 topics + 5 replies = 7 posts.
+    expect(screen.getByText("Член од 2025 · 7 објави")).toBeInTheDocument();
+  });
+
+  it("uses the singular for one post and drops a missing join date", () => {
+    render(
+      <ForumPostCard
+        post={post({
+          ...member,
+          member_since: null,
+          topics_count: 0,
+          posts_count: 21,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("21 објава")).toBeInTheDocument();
+    expect(screen.queryByText(/Член од/)).not.toBeInTheDocument();
+  });
+
+  it("reads the join year in Skopje time (new year's eve UTC)", () => {
+    render(
+      <ForumPostCard
+        post={post({
+          ...member,
+          member_since: "2024-12-31T23:30:00+00:00",
+          topics_count: 1,
+          posts_count: 0,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Член од 2025 · 1 објава")).toBeInTheDocument();
+  });
+
   it("highlights a team member's reply with the care border and tag", () => {
     render(<ForumPostCard post={post({ ...member, is_team_member: true })} />);
 
@@ -203,13 +241,13 @@ describe("isSameAuthor", () => {
   });
 });
 
-describe("ForumStatusTag", () => {
+describe("ModerationStatusTag (forum activity)", () => {
   it.each([
     ["pending", t("account.statusPending")],
     ["approved", t("account.statusApproved")],
     ["rejected", t("account.statusRejected")],
   ])("labels %s", (status, label) => {
-    render(<ForumStatusTag status={status} />);
+    render(<ModerationStatusTag status={status} />);
 
     expect(screen.getByText(label)).toBeInTheDocument();
   });

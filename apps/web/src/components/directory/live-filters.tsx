@@ -9,7 +9,11 @@ export type FilterValues = Record<string, string>;
 export type LiveFilters = {
   /** What the controls show: the URL's filters plus edits not yet applied. */
   values: FilterValues;
-  /** Change one filter. Text waits for a pause in typing; the rest apply now. */
+  /**
+   * Change one filter. Text waits for a pause in typing and replaces the
+   * history entry; every other change applies now as a new entry, so Back
+   * undoes it.
+   */
   set: (name: string, value: string, options?: { debounce?: boolean }) => void;
   /** Reset the given filters (all of them by default) and apply. */
   clear: (names?: string[]) => void;
@@ -41,10 +45,17 @@ export function filterHref(basePath: string, values: FilterValues): string {
 /**
  * Filters that apply as you change them (shared requirement: "filters apply
  * live and keep the scroll position"). The URL stays the source of truth: a
- * change replaces the URL without scrolling, the server renders the new
- * results and count, and the controls follow the URL again. Edits still in
- * flight are kept as a draft on top, so typing is never overwritten by a
- * response for an older keystroke.
+ * change navigates without scrolling, the server renders the new results and
+ * count, and the controls follow the URL again. Edits still in flight are
+ * kept as a draft on top, so typing is never overwritten by a response for an
+ * older keystroke.
+ *
+ * History: a discrete change (chip, switch, select, sort, „Исчисти“, a
+ * submitted search) pushes an entry, so the browser's Back undoes it; the
+ * debounced text applied while typing only replaces the current entry, so
+ * Back doesn't step through every pause. A pending debounce is dropped as soon
+ * as the person follows a link or goes Back, so a late timer can't pull them
+ * back to the list.
  */
 export function useLiveFilters({
   basePath,
@@ -65,12 +76,31 @@ export function useLiveFilters({
     latest.current = values;
   });
 
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    function cancelTyping() {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+    }
+    // Navigation is starting elsewhere: a link click (Next's <Link> included,
+    // which reaches the document before it routes) or Back/Forward.
+    function onClick(event: MouseEvent) {
+      const target = event.target;
+      if (target instanceof Element && target.closest("a[href]")) {
+        cancelTyping();
+      }
+    }
+
+    document.addEventListener("click", onClick, true);
+    window.addEventListener("popstate", cancelTyping);
+
+    return () => {
+      cancelTyping();
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("popstate", cancelTyping);
+    };
+  }, []);
 
   const hrefFor = useCallback(
     (next: FilterValues) => filterHref(basePath, next),
@@ -78,13 +108,13 @@ export function useLiveFilters({
   );
 
   const navigate = useCallback(
-    (next: FilterValues) => {
+    (next: FilterValues, history: "push" | "replace") => {
       if (timer.current) {
         clearTimeout(timer.current);
         timer.current = null;
       }
       startTransition(() => {
-        router.replace(hrefFor(next), { scroll: false });
+        router[history](hrefFor(next), { scroll: false });
         // Dropped together with the navigation; keystrokes typed meanwhile
         // are functional updates and survive the rebase.
         setDraft({});
@@ -102,13 +132,13 @@ export function useLiveFilters({
       if (options.debounce) {
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(
-          () => navigate(latest.current),
+          () => navigate(latest.current, "replace"),
           TYPING_DELAY_MS,
         );
         return;
       }
 
-      navigate(next);
+      navigate(next, "push");
     },
     [navigate],
   );
@@ -121,14 +151,15 @@ export function useLiveFilters({
       }
       setDraft(next);
       latest.current = next;
-      navigate(next);
+      navigate(next, "push");
     },
     [navigate],
   );
 
   const flush = useCallback(() => {
+    // An explicit „apply“ (Enter, „Прикажи N резултати“) is a step of its own.
     if (timer.current) {
-      navigate(latest.current);
+      navigate(latest.current, "push");
     }
   }, [navigate]);
 
