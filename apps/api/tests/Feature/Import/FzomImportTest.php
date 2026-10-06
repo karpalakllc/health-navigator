@@ -219,6 +219,32 @@ class FzomImportTest extends TestCase
         $this->assertSame(0, $second->count('facilities_created'));
     }
 
+    public function test_a_row_without_specialty_takes_one_from_the_work_unit_activity(): void
+    {
+        $extra = <<<'XML'
+          <Lekar>
+            <TipDogovor>Специјалистичко - консултативна здравствена заштита ЈЗУ (Здравствени домови)</TipDogovor>
+            <TipDogovorID>12</TipDogovorID>
+            <DanocenBroj>4000000000011</DanocenBroj>
+            <ShifraZU>9000011</ShifraZU>
+            <ZdravstvenaUstanova>ЈЗУ ЗДРАВСТВЕН ДОМ ТЕСТОВО</ZdravstvenaUstanova>
+            <Dejnost>ДЕТСКИ БОЛЕСТИ</Dejnost>
+            <Specijalnosti></Specijalnosti>
+            <Mesto>ТЕСТОВО</Mesto>
+            <Faksimil>900014</Faksimil>
+            <Ime>ОСМА</Ime>
+            <Prezime>ДЕТСКА</Prezime>
+          </Lekar>
+        </Lekari>
+        XML;
+        $spec = str_replace('</Lekari>', $extra, (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml')));
+
+        $run = $this->import(files: $this->files($this->writeSpec($spec)));
+
+        $this->assertSame(1, $run->count('doctors_specialty_from_activity'));
+        $this->assertSame(['pedijatrija'], Doctor::query()->where('fzo_facsimile', '900014')->firstOrFail()->specialties->pluck('slug')->all());
+    }
+
     public function test_a_link_staff_removed_is_not_added_back(): void
     {
         $this->import();

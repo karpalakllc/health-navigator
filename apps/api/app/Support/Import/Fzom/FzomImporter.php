@@ -9,6 +9,7 @@ use App\Models\Facility;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\SourceRecord;
+use App\Models\SpecialtyAlias;
 use App\Support\Import\DirectoryWriter;
 use App\Support\Import\ImportContext;
 use App\Support\Import\NameKey;
@@ -189,6 +190,20 @@ final class FzomImporter
                 $ids = array_merge($ids, $result['ids']);
                 $excluded = array_merge($excluded, $result['excluded']);
                 $unmapped = array_merge($unmapped, $result['unmapped']);
+            }
+
+            // No specialty on any contract: the activity (`Dejnost`) of the
+            // work unit, when it names a specialty unambiguously.
+            if ($ids === [] && $excluded === [] && $unmapped === []) {
+                foreach ($doctor['contracts'] as $contract) {
+                    $slug = FzomSpecialtyCatalog::activityDefaultFor(SpecialtyAlias::keyFor((string) $contract['activity']));
+
+                    if ($slug !== null) {
+                        $ids[] = $resolver->specialtyId($slug);
+                    }
+                }
+
+                $context->increment($ids === [] ? 'doctors_without_specialty' : 'doctors_specialty_from_activity');
             }
 
             if ($ids === [] && $excluded !== [] && $unmapped === []) {
@@ -472,7 +487,11 @@ final class FzomImporter
                         $dental = $specialtyIds !== [] && collect($specialtyIds)->every(fn (int $id): bool => in_array($id, $this->dentalSpecialtyIds(), true));
                         $context->increment($dental ? 'dentists_created' : 'doctors_created');
                         $context->record('doctor', 'create', $doctor, $label);
-                        $context->review(ImportReviewKind::New, 'doctor:'.$doctor->getKey(), $label, ['dentist' => $dental], $doctor);
+                        $context->review(ImportReviewKind::New, 'doctor:'.$doctor->getKey(), $label, [
+                            'dentist' => $dental,
+                            // Mostly laboratory staff: check they are doctors before publishing.
+                            'no_specialty' => $specialtyIds === [],
+                        ], $doctor);
                     } else {
                         $context->increment('doctors_matched');
                     }

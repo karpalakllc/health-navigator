@@ -227,6 +227,26 @@ final class FzomSpecialtyCatalog
     ];
 
     /**
+     * Work-unit activities (`Dejnost`) that name a specialty, used only for
+     * a person with no specialty on any contract.
+     *
+     * @var array<string, string>
+     */
+    public const ACTIVITIES = [
+        'ДЕТСКИ БОЛЕСТИ' => 'pedijatrija',
+        'БЕЛОДРОБНИ ЗАБОЛУВАЊА КАЈ ДЕЦА' => 'pedijatrija',
+        'НЕВРОПСИХИЈАТРИСКИ БОЛЕСТИ' => 'psihijatrija',
+        'МЕНТАЛНО ЗДРАВЈЕ НА ДЕЦА И МЛАДИНЦИ' => 'detska-psihijatrija',
+    ];
+
+    public static function activityDefaultFor(string $activityKey): ?string
+    {
+        $slug = self::ACTIVITIES[$activityKey] ?? self::ALIASES[$activityKey] ?? null;
+
+        return $slug === self::EXCLUDED ? null : $slug;
+    }
+
+    /**
      * Default for a wording: a slug, EXCLUDED, or null (unknown).
      */
     public static function defaultFor(string $rawKey): ?string
