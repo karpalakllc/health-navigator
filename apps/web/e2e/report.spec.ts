@@ -72,8 +72,9 @@ test.describe("reports", () => {
     await row.getByRole("button", { name: /hide content/i }).click();
     // Filament renders a confirmation modal as an alertdialog.
     const modal = admin.getByRole("alertdialog", { name: /hide content/i });
+    // The reason is required and starts prefilled; replace it.
     await modal
-      .getByLabel(/note to the author/i)
+      .getByRole("textbox", { name: /reason \(shown to the author\)/i })
       .fill("Рецензијата содржи навредлив тон.");
     await modal.getByRole("button", { name: /confirm|submit/i }).click();
     await expect(
