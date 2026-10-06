@@ -77,7 +77,7 @@ final class InstitutionsJsonImporter
         $baseDir = dirname($jsonPath);
         $provenance = new ProvenanceWriter($context);
         $writer = new DirectoryWriter($context, $provenance);
-        $specialties = new SpecialtyResolver($context, self::SOURCE);
+        $specialties = new SpecialtyResolver($context, self::SOURCE, SpecialtyText::EXTRA_ALIASES);
         $this->indexFacilities();
 
         foreach (array_chunk($data['institutions'], max(1, (int) config('import.batch_size') / 10)) as $batch) {
@@ -338,7 +338,7 @@ final class InstitutionsJsonImporter
 
         $fullName = TextCase::person(self::withoutTitles($rawName));
         $sourceUrl = self::url($worker['source_url'] ?? null);
-        $resolved = $specialties->resolve(self::str($worker['specialty'] ?? null));
+        $resolved = $specialties->resolve(implode(',', SpecialtyText::wordings(self::str($worker['specialty'] ?? null))) ?: null);
         $specialtyIds = $resolved['ids'];
 
         if ($specialtyIds === [] && $role === 'dentist') {

@@ -25,6 +25,8 @@ final class SpecialtyResolver
     public function __construct(
         private readonly ImportContext $context,
         private readonly string $aliasSource,
+        /** @var array<string, string> wording => slug, consulted before the ФЗОМ catalogue */
+        private readonly array $extraDefaults = [],
     ) {
         SpecialtyAlias::query()->where('source', $aliasSource)->get()
             ->each(function (SpecialtyAlias $alias): void {
@@ -94,7 +96,7 @@ final class SpecialtyResolver
             return $this->aliases[$key];
         }
 
-        $default = FzomSpecialtyCatalog::defaultFor($key);
+        $default = $this->extraDefaults[$key] ?? FzomSpecialtyCatalog::defaultFor($key);
 
         $alias = SpecialtyAlias::query()->create([
             'source' => $this->aliasSource,
