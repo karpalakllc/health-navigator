@@ -11,6 +11,27 @@ import { t, tFormat } from "@/i18n/t";
 const linkClass =
   "inline-flex min-h-12 items-center text-[1.0625rem] leading-[1.375rem] text-ink no-underline hover:underline hover:decoration-coral hover:decoration-2 hover:underline-offset-4 lg:min-h-10";
 
+/**
+ * The admin's 194/112 sentence with each emergency number as a tap-to-call
+ * link inside it: same quiet line, underlined like any inline text link, no
+ * buttons. Other text (and any other number) stays as written.
+ */
+export function EmergencyLine({ text }: { text: string }) {
+  return (
+    <p>
+      {text.split(/(?<!\d)(194|112)(?!\d)/).map((part, index) =>
+        index % 2 === 1 ? (
+          <a key={index} href={`tel:${part}`} className="link-underline">
+            {part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </p>
+  );
+}
+
 export async function SiteFooter() {
   const settings = await fetchPublicSettings();
 
@@ -135,7 +156,7 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
 
         <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 lg:mt-10 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
           <div className="flex max-w-[760px] flex-col gap-1 type-meta text-ink-2">
-            <p>{settings.footer_emergency_text}</p>
+            <EmergencyLine text={settings.footer_emergency_text} />
             <p>
               {t("footer.informational")} {settings.footer_disclaimer_text}
             </p>
