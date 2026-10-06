@@ -46,6 +46,20 @@ export const mk = {
     guidance: "Насоки за симптоми",
     home: "Почетна",
     skipToContent: "Прескокни до содржината",
+    // D2a shell: wordmark, bottom tab bar and the desktop header search.
+    wordmark: "Здравје360",
+    homeLink: "почетна",
+    primary: "Главна навигација",
+    sections: "Делови",
+    tabSearch: "Барај",
+    tabGuidance: "Насоки",
+    tabProfile: "Профил",
+    searchWhat: "Што барате?",
+    searchWhere: "Каде?",
+    searchWhatPlaceholder: "Лекар, специјалност, аптека…",
+    searchWherePlaceholder: "Град",
+    searchSubmit: "Пребарај",
+    signedInAs: "Најавени сте како {name}",
   },
   footer: {
     informational:
@@ -266,6 +280,17 @@ export const mk = {
     apiError: "Барањето до серверот не успеа.",
     draftLegal: "Нацрт — потребен правен преглед.",
     ratingOutOf: "/ 5",
+  },
+  // Shared primitives (src/components/ui).
+  ui: {
+    errorPrefix: "Грешка:",
+    required: "задолжително",
+    removeFilter: "Отстрани филтер: {label}",
+    featured: "Истакнат",
+    verified: "Верификуван",
+    emergencyPill: "Итно 194",
+    emergencyPillSr: "повикај Брза помош",
+    loading: "Се вчитува…",
   },
   auth: {
     // Verify-then-activate registration (audit M1): signup does not create a

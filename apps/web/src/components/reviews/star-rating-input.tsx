@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef } from "react";
+import { STAR_PATH } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 import { starRatingLabel } from "@/lib/rating";
 
@@ -68,7 +70,7 @@ export function StarRatingInput({
   return (
     <div className="flex flex-col gap-2">
       <div
-        className="flex gap-1"
+        className="-ml-2 flex"
         role="radiogroup"
         aria-label={t("reviews.rating")}
         aria-required="true"
@@ -88,18 +90,35 @@ export function StarRatingInput({
             disabled={disabled}
             onClick={() => select(star)}
             onKeyDown={(event) => handleKeyDown(event, star)}
-            className={`rounded px-1 text-2xl leading-none transition focus-visible:outline-2 focus-visible:outline-primary ${
-              value !== null && star <= value
-                ? "text-amber-500"
-                : "text-zinc-300 hover:text-amber-300"
-            } disabled:cursor-not-allowed disabled:opacity-60`}
+            className={cn(
+              "inline-flex size-12 items-center justify-center rounded-full text-star transition-colors",
+              "hover:bg-sand disabled:cursor-not-allowed disabled:hover:bg-transparent",
+            )}
             aria-label={starRatingLabel(star)}
           >
-            <span aria-hidden>★</span>
+            <svg
+              width={32}
+              height={32}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d={STAR_PATH}
+                fill={value !== null && star <= value ? "currentColor" : "none"}
+                stroke={
+                  value !== null && star <= value
+                    ? "currentColor"
+                    : "var(--color-line-strong)"
+                }
+                strokeWidth={1.4}
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         ))}
       </div>
-      <p className="text-xs text-zinc-500" aria-hidden>
+      <p className="type-meta text-ink-2" aria-hidden>
         {value === null
           ? t("reviews.ratingNone")
           : `${value}${t("common.ratingOutOf")}`}

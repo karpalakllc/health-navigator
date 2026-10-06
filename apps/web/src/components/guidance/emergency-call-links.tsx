@@ -1,23 +1,31 @@
+import { Icon } from "@/components/ui/icons";
 import { t } from "@/i18n/t";
 
 /**
  * Tap-to-call links for the emergency outcome. Real tel: anchors, so a phone
  * dials straight away instead of the visitor copying a number from the text.
+ *
+ * D2a: 194 is the largest target on the screen (64px filled emergency pill
+ * with the 2px ink frame); 112 is a white pill with the same frame and
+ * emergency-red text (6.57:1). Emergency red is reserved for these and the
+ * header „Итно 194“ pill.
  */
 export function EmergencyCallLinks() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
       <a
         href="tel:194"
-        className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-destructive px-5 py-3 text-base font-bold text-white transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="inline-flex min-h-16 items-center justify-center gap-3 rounded-full border-2 border-ink bg-emergency px-7 text-lg font-bold leading-6 text-white no-underline hover:bg-[#9a1d13]"
       >
-        {t("guidance.call194")}
+        <Icon name="phone" size={24} />
+        <span>{t("guidance.call194")}</span>
       </a>
       <a
         href="tel:112"
-        className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-destructive/40 bg-card px-5 py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border-2 border-ink bg-white px-6 text-base font-semibold leading-6 text-emergency no-underline hover:bg-sand"
       >
-        {t("guidance.call112")}
+        <Icon name="phone" size={20} />
+        <span>{t("guidance.call112")}</span>
       </a>
     </div>
   );

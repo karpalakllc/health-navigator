@@ -1,242 +1,585 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — D2a „Праска“ (see docs in the redesign handoff).
+ *
+ * Colour roles are split and never swapped:
+ *   - coral  #ff5757: logo mark, 4px card top edge, active-tab tick, link
+ *     underline. Never text, never a fill behind text, never a button.
+ *   - emergency #b42318: only the „Итно 194“ pill and 194/112 tel: links,
+ *     always with a 2px ink frame. Never errors, never decoration.
+ *   - ink #2a2220: text and EVERY action (pill buttons).
+ *   - star #a14806: rating stars only.
+ * Contrast (WCAG 2.x) for every text pairing is in d2-palettes.md; all ≥4.5:1.
+ */
+@theme {
+  /* ---- palette -------------------------------------------------------- */
+  --color-ink: #2a2220;
+  --color-ink-2: #5e514b;
+  --color-cream: #fbf6f1;
+  --color-sand: #f6ebe2;
+  --color-line: #eaded5;
+  --color-line-strong: #857369;
+  --color-apricot: #fcdfcc;
+  --color-chip-tint: #fde9dd;
+  --color-coral: #ff5757;
+  --color-care: #2f6b4f;
+  --color-care-tint: #e4f1ea;
+  --color-emergency: #b42318;
+  --color-star: #a14806;
+  --color-white: #ffffff;
+  --color-focus: #ffdd00;
+  --color-focus-ink: #0b0c0c;
+
+  /* ---- semantic aliases (prefer these in components) ------------------ */
+  --color-background: var(--color-cream);
+  --color-surface: var(--color-white);
+  --color-surface-soft: var(--color-sand);
+  --color-surface-feature: var(--color-apricot);
+  --color-foreground: var(--color-ink);
+  --color-foreground-muted: var(--color-ink-2);
+  --color-action: var(--color-ink);
+  --color-action-hover: #000000;
+  --color-action-foreground: var(--color-white);
+  --color-border: var(--color-line);
+  --color-border-strong: var(--color-line-strong);
+
+  /* ---- legacy — remove after page migration --------------------------- */
+  /* Old shadcn-style names still used by un-migrated pages. Values are
+     re-pointed at D2a so those pages stop failing contrast (white on coral,
+     #66758a meta) while they wait for phase B. Do not use in new code. */
+  --color-card: var(--color-white);
+  --color-card-foreground: var(--color-ink);
+  --color-primary: var(--color-ink);
+  --color-primary-foreground: var(--color-white);
+  --color-secondary: var(--color-sand);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-sand);
+  --color-muted-foreground: var(--color-ink-2);
+  --color-accent: var(--color-care);
+  --color-accent-foreground: var(--color-white);
+  --color-destructive: var(--color-emergency);
+  --color-warning: #f59e0b;
+  --color-ring: var(--color-focus-ink);
+
+  /* ---- radii (monotonic: sm < md < lg < xl < 2xl < 3xl) --------------- */
+  /* The old theme had --radius-2xl (16px) smaller than --radius-xl (20px). */
+  --radius-sm: 0.5rem; /* 8  — small inner bits (today row uses 12 = lg) */
+  --radius-md: 0.625rem; /* 10 */
+  --radius-lg: 0.75rem; /* 12 */
+  --radius-xl: 1rem; /* 16 — map placeholder */
+  --radius-2xl: 1.25rem; /* 20 — cards */
+  --radius-3xl: 1.75rem; /* 28 — hero band, sheets, bottom bar, footer */
+  --radius-input: 0.875rem; /* 14 — inputs, textareas, selects */
+  --radius-card: 1.25rem; /* 20 */
+  --radius-sheet: 1.75rem; /* 28 */
+  --radius-pill: 999px; /* buttons, chips, tags, search pills */
+
+  /* ---- elevation: exactly two shadows --------------------------------- */
+  --shadow-card:
+    0 1px 2px rgb(42 34 32 / 0.06), 0 6px 20px rgb(42 34 32 / 0.06);
+  --shadow-sheet: 0 -8px 32px rgb(42 34 32 / 0.14);
+
+  /* ---- motion --------------------------------------------------------- */
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* next/font sets --font-geologica / --font-source-sans on <html>. */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
-  --color-background: #f7f6f3;
-  --color-surface: rgb(255 255 255 / 0.86);
-  --color-foreground: hsl(220 25% 10%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(220 25% 10%);
-  --color-primary: #ff5757;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: hsl(210 18% 94%);
-  --color-secondary-foreground: hsl(220 25% 20%);
-  --color-muted: hsl(210 15% 93%);
-  --color-muted-foreground: hsl(215 15% 47%);
-  --color-accent: #256c70;
-  --color-accent-foreground: #ffffff;
-  --color-destructive: hsl(0 72% 51%);
-  --color-warning: hsl(38 92% 50%);
-  --color-border: hsl(214 20% 90%);
-  --color-ring: #ff5757;
-
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1rem;
+  --font-sans: var(--font-geologica), system-ui, sans-serif;
+  --font-ui: var(--font-geologica), system-ui, sans-serif;
+  --font-reading: var(--font-source-sans), system-ui, sans-serif;
 }
 
-body {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  -webkit-font-smoothing: antialiased;
+/*
+ * Layout constants. Spacing uses Tailwind's 4px scale: the D2 steps
+ * 4/8/12/16/20/24/32/40/56/80 are 1/2/3/4/5/6/8/10/14/20.
+ */
+:root {
+  --gutter: 1.25rem; /* 20px mobile side gutter */
+  --container: 77.5rem; /* 1240px desktop container */
+  --header-h: 3.75rem; /* 60px mobile header */
+  --tabbar-h: 4.5rem; /* 72px bottom tab bar, excl. safe area */
+  --tabbar-space: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
 }
 
-/** Fixed wash behind page content; pointer-events none in layout. */
-.app-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-  background-color: var(--color-background);
-  background-image:
-    radial-gradient(
-      ellipse 100% 80% at 50% -30%,
-      color-mix(in srgb, var(--color-primary) 16%, transparent),
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 70% 50% at 100% 10%,
-      color-mix(in srgb, var(--color-accent) 12%, transparent),
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse 55% 40% at 0% 95%,
-      color-mix(in srgb, var(--color-primary) 10%, transparent),
-      transparent 45%
-    );
-}
-
-.hero-shell {
-  position: relative;
-  isolation: isolate;
-}
-
-.hero-shell::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(
-    125deg,
-    color-mix(in srgb, var(--color-primary) 22%, transparent),
-    transparent 40%,
-    color-mix(in srgb, var(--color-accent) 16%, transparent)
-  );
-  opacity: 0.38;
-  animation: hero-glow 14s ease-in-out infinite alternate;
-}
-
-@keyframes hero-glow {
-  from {
-    opacity: 0.28;
-    filter: blur(0);
-  }
-  to {
-    opacity: 0.48;
-    filter: blur(1px);
+@media (width >= 64rem) {
+  :root {
+    --gutter: 1.5rem;
+    --header-h: 8.3125rem; /* 80px row + 52px nav row + 1px rule */
+    --tabbar-space: 0px;
   }
 }
 
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* ---- type scale (mobile → desktop at lg) ------------------------------ */
+/* Geologica unless noted. Weights 400/500/600/700 only. */
+@utility type-display {
+  font-family: var(--font-ui);
+  font-size: 2.125rem; /* 34/40 → 56/62 */
+  line-height: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  @media (width >= 64rem) {
+    font-size: 3.5rem;
+    line-height: 3.875rem;
   }
-  to {
+}
+
+@utility type-h1 {
+  font-family: var(--font-ui);
+  font-size: 1.75rem; /* 28/34 → 40/46 */
+  line-height: 2.125rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  @media (width >= 64rem) {
+    font-size: 2.5rem;
+    line-height: 2.875rem;
+  }
+}
+
+@utility type-h2 {
+  font-family: var(--font-ui);
+  font-size: 1.375rem; /* 22/28 → 30/36 */
+  line-height: 1.75rem;
+  font-weight: 600;
+  @media (width >= 64rem) {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+}
+
+@utility type-h3 {
+  font-family: var(--font-ui);
+  font-size: 1.1875rem; /* 19/26 → 22/28 */
+  line-height: 1.625rem;
+  font-weight: 600;
+  @media (width >= 64rem) {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+}
+
+@utility type-body {
+  font-family: var(--font-ui);
+  font-size: 1.0625rem; /* 17/24 → 18/26 — UI text, lists, labels */
+  line-height: 1.5rem;
+  font-weight: 400;
+  @media (width >= 64rem) {
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+  }
+}
+
+@utility type-reading {
+  font-family: var(--font-reading);
+  font-size: 1.125rem; /* Source Sans 3 18/28 → 19/30 — bios, reviews, posts */
+  line-height: 1.75rem;
+  font-weight: 400;
+  @media (width >= 64rem) {
+    font-size: 1.1875rem;
+    line-height: 1.875rem;
+  }
+}
+
+@utility type-button {
+  font-family: var(--font-ui);
+  font-size: 1.0625rem; /* 17/22 */
+  line-height: 1.375rem;
+  font-weight: 600;
+}
+
+@utility type-label {
+  font-family: var(--font-ui);
+  font-size: 1rem; /* 16/22 — form labels */
+  line-height: 1.375rem;
+  font-weight: 600;
+}
+
+@utility type-meta {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem; /* 15/22 → 16/24, use with text-ink-2 */
+  line-height: 1.375rem;
+  font-weight: 400;
+  @media (width >= 64rem) {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+}
+
+@utility type-chip {
+  font-family: var(--font-ui);
+  font-size: 1rem; /* 16/20 */
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+@utility type-tag {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem; /* 15/20 — non-interactive tags */
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+@utility type-tab {
+  font-family: var(--font-ui);
+  font-size: 0.875rem; /* 14/16 — bottom-tab labels only (the 14px floor) */
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+/* Reading measure: ≈68ch for long text on desktop. */
+@utility measure {
+  max-width: 68ch;
+}
+
+/* Hides a horizontal scroller's bar (chip rows); keep a partial chip visible. */
+@utility scroll-row {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Coral underline link (the ink text carries the contrast). */
+@utility link-underline {
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-coral);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+@layer base {
+  html {
+    scroll-padding-top: calc(var(--header-h) + 0.75rem);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (width >= 64rem) {
+    body {
+      font-size: 1.125rem;
+      line-height: 1.625rem;
+    }
+  }
+
+  ::placeholder {
+    color: var(--color-ink-2);
     opacity: 1;
-    transform: translateY(0);
+  }
+
+  /*
+   * The focus ring from the mockups (GOV.UK pattern): a 3px ink outline with
+   * a yellow halo, identical on every control and every background.
+   */
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+    outline: 3px solid var(--color-focus-ink);
+    outline-offset: 0;
+    box-shadow: 0 0 0 6px var(--color-focus);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-@keyframes accent-bar {
-  from {
-    transform: scaleX(0.35);
-    opacity: 0.65;
+/*
+ * Primitive classes (src/components/ui). They live in the components layer so
+ * a utility passed through `className` always wins over them.
+ */
+@layer components {
+  /* ---- Button ---------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-pill);
+    border: 0;
+    font-family: var(--font-ui);
+    font-size: 1.0625rem;
+    line-height: 1.375rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color 150ms var(--ease-out-soft),
+      border-color 150ms var(--ease-out-soft),
+      color 150ms var(--ease-out-soft);
   }
-  to {
-    transform: scaleX(1);
-    opacity: 1;
+  .btn-sm {
+    min-height: 2.75rem; /* 44 — only inside dense rows (≥8px gaps) */
+    padding: 0 1rem;
+    font-size: 1rem;
+  }
+  .btn-md {
+    min-height: 3rem; /* 48 */
+    padding: 0 1.25rem;
+  }
+  .btn-lg {
+    min-height: 3.5rem; /* 56 mobile / 52 desktop */
+    padding: 0 1.75rem;
+  }
+  @media (width >= 64rem) {
+    .btn-lg {
+      min-height: 3.25rem;
+    }
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-white);
+  }
+  .btn-primary:hover {
+    background: var(--color-action-hover);
+  }
+  .btn-secondary {
+    background: var(--color-white);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1.5px var(--color-ink);
+  }
+  .btn-secondary:hover {
+    background: var(--color-sand);
+  }
+  .btn-soft {
+    background: var(--color-sand);
+    color: var(--color-ink);
+  }
+  .btn-soft:hover {
+    background: var(--color-line);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink);
+  }
+  .btn-ghost:hover {
+    background: var(--color-sand);
+  }
+  .btn-white {
+    background: var(--color-white);
+    color: var(--color-ink);
+  }
+  .btn-white:hover {
+    background: var(--color-sand);
+  }
+  /* Disabled: sand + ink-2 (6.5:1), not a washed-out primary. */
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    background: var(--color-sand);
+    color: var(--color-ink-2);
+    box-shadow: inset 0 0 0 1.5px var(--color-line);
+    cursor: not-allowed;
+  }
+  .btn[aria-busy="true"] {
+    cursor: progress;
+  }
+  .btn-icon {
+    padding: 0;
+    flex: none;
+    aspect-ratio: 1;
+  }
+
+  /* ---- Card ------------------------------------------------------------ */
+  .card {
+    position: relative;
+    background: var(--color-white);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .card-edge {
+    overflow: hidden;
+  }
+  .card-edge::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--color-coral);
+    pointer-events: none;
+  }
+
+  /* ---- Form controls --------------------------------------------------- */
+  .field-control {
+    display: block;
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-input);
+    border: 1.5px solid var(--color-line-strong);
+    background: var(--color-white);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+  }
+  textarea.field-control {
+    min-height: 10rem;
+    padding: 0.875rem 1rem;
+    font-family: var(--font-reading);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    resize: vertical;
+  }
+  select.field-control {
+    appearance: none;
+    padding-right: 3rem;
+    cursor: pointer;
+  }
+  .field-control:focus-visible {
+    border-color: var(--color-ink);
+  }
+  .field-control[aria-invalid="true"] {
+    border: 2px solid var(--color-ink);
+  }
+  .field-control:disabled {
+    background: var(--color-sand);
+    color: var(--color-ink-2);
+    cursor: not-allowed;
+  }
+
+  /* ---- Tag / chip ------------------------------------------------------ */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-ui);
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-white);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+    font-family: var(--font-ui);
+    font-size: 1rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    white-space: nowrap;
+    flex: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 150ms var(--ease-out-soft),
+      color 150ms var(--ease-out-soft);
+  }
+  .chip:hover {
+    background: var(--color-sand);
+  }
+  .chip[aria-pressed="true"],
+  .chip[aria-current="page"],
+  .chip-selected {
+    background: var(--color-ink);
+    color: var(--color-white);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
   }
 }
 
-@keyframes mesh-float-a {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(18px, -14px);
-  }
-}
-
-@keyframes mesh-float-b {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(-16px, 16px);
-  }
-}
-
+/* ======================================================================== */
+/* legacy — remove after page migration                                     */
+/* ======================================================================== */
+/* Utilities un-migrated pages still reference. They are flattened to the
+   D2a surface model (white card + card shadow, no glass, no blobs, no
+   gradients, no motion) so old pages sit calmly inside the new shell. */
 @layer utilities {
-  .surface-glass {
-    background: rgb(255 255 255 / 0.86);
-    border: 1px solid rgb(255 255 255 / 0.84);
-    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
-  }
-
-  .surface-glass-strong {
-    background: rgb(255 255 255 / 0.92);
-    border: 1px solid rgb(255 255 255 / 0.88);
-    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
-  }
-
-  /** How-it-works panel — same glass look, tighter shadow so it does not bleed into sections below. */
-  .how-card {
-    background: rgb(255 255 255 / 0.92);
-    border: 1px solid rgb(255 255 255 / 0.88);
-    box-shadow: 0 12px 32px rgb(16 30 36 / 0.06);
-  }
-
-  .directory-hero-panel {
-    position: relative;
-    overflow: hidden;
-    border-radius: 34px;
-    background: rgb(255 255 255 / 0.78);
-    border: 1px solid rgb(255 255 255 / 0.84);
-    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
-  }
-
-  .profile-hero-panel {
-    position: relative;
-    overflow: hidden;
-    border-radius: 32px;
-    background: rgb(255 255 255 / 0.86);
-    border: 1px solid rgb(255 255 255 / 0.84);
-    box-shadow: 0 22px 56px rgb(16 30 36 / 0.09);
-  }
-
-  .filters-card {
-    position: relative;
-    border-radius: 28px;
-    background: rgb(255 255 255 / 0.88);
-    border: 1px solid rgb(255 255 255 / 0.86);
-    box-shadow: 0 18px 48px rgb(16 30 36 / 0.08);
-  }
-
-  /** Nested inside directory hero — no extra shadow (parent carries depth). */
-  .filters-card-nested {
-    box-shadow: none;
-  }
-
-  .directory-card {
-    background: rgb(255 255 255 / 0.86);
-    border: 1px solid rgb(255 255 255 / 0.84);
-    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
-  }
-
-  .directory-card.card-lift:hover {
-    box-shadow: 0 22px 56px rgb(16 30 36 / 0.1);
-  }
-
-  .content-card {
-    background: rgb(255 255 255 / 0.86);
-    border: 1px solid rgb(255 255 255 / 0.84);
-    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+  .surface-glass,
+  .surface-glass-strong,
+  .how-card,
+  .content-card,
+  .directory-card,
+  .trust-badge-compact {
+    background: var(--color-white);
+    border: 0;
+    box-shadow: var(--shadow-card);
   }
 
   .trust-badge-compact {
     min-height: 58px;
-    border-radius: 20px;
-    background: rgb(255 255 255 / 0.82);
-    border: 1px solid rgb(255 255 255 / 0.88);
-    box-shadow: 0 14px 40px rgb(16 30 36 / 0.07);
+    border-radius: var(--radius-card);
+  }
+
+  .directory-hero-panel,
+  .profile-hero-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-sheet);
+    background: var(--color-white);
+    border: 0;
+    box-shadow: var(--shadow-card);
+  }
+
+  .filters-card {
+    position: relative;
+    border-radius: var(--radius-card);
+    background: var(--color-white);
+    border: 0;
+    box-shadow: var(--shadow-card);
+  }
+
+  .filters-card-nested {
+    box-shadow: none;
   }
 
   .directory-tag {
     display: inline-flex;
-    min-height: 36px;
+    min-height: 32px;
     align-items: center;
     border-radius: 999px;
-    background: #f1f4f6;
-    padding: 0 13px;
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: #5d6771;
+    background: var(--color-sand);
+    padding: 0 12px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-ink);
   }
 
   .directory-tag-teal {
-    background: #eef8f8;
-    color: var(--color-accent);
+    background: var(--color-care-tint);
+    color: var(--color-care);
   }
 
-  .hero-mesh-grid {
-    background-image:
-      linear-gradient(rgb(37 108 112 / 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(37 108 112 / 0.055) 1px, transparent 1px);
-    background-size: 34px 34px;
-    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.5), transparent 75%);
+  .hero-mesh-grid,
+  .hero-blob-red,
+  .hero-blob-teal {
+    display: none;
   }
 
   .rail-scroll-x {
     overflow-x: auto;
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -245,134 +588,53 @@ body {
     display: none;
   }
 
-  .hero-blob-red {
-    background: linear-gradient(180deg, #ffd6d6, var(--color-primary));
-    animation: mesh-float-a 12s ease-in-out infinite;
-  }
-
-  .hero-blob-teal {
-    background: linear-gradient(180deg, #b7d9db, var(--color-accent));
-    animation: mesh-float-b 13s ease-in-out infinite;
-  }
-
   .icon-soft-red {
-    background: #fff1f1;
-    color: var(--color-primary);
+    background: var(--color-apricot);
+    color: var(--color-ink);
   }
 
   .icon-soft-teal {
-    background: #eef8f8;
-    color: var(--color-accent);
+    background: var(--color-care-tint);
+    color: var(--color-care);
   }
 
-  .btn-gradient-primary {
-    background: linear-gradient(180deg, #ff7b7b, #ef4b4b);
-    color: #ffffff;
-    box-shadow: 0 14px 28px rgb(255 87 87 / 0.24);
+  .btn-gradient-primary,
+  .btn-gradient-teal,
+  .step-no-gradient {
+    background: var(--color-ink);
+    color: var(--color-white);
+    box-shadow: none;
   }
 
-  .btn-gradient-teal {
-    background: linear-gradient(180deg, #317d82, var(--color-accent));
-    color: #ffffff;
-    box-shadow: 0 14px 28px rgb(37 108 112 / 0.18);
-  }
-
-  .card-lift {
-    transition:
-      box-shadow 0.28s ease,
-      transform 0.28s ease;
-  }
-
-  .card-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
+  .btn-gradient-primary:hover,
+  .btn-gradient-teal:hover {
+    background: var(--color-action-hover);
   }
 
   .forum-band-gradient {
-    background: linear-gradient(180deg, #2f7d81, var(--color-accent));
-    box-shadow: 0 12px 32px rgb(16 30 36 / 0.08);
-  }
-
-  .step-no-gradient {
-    background: linear-gradient(180deg, #ff7d7d, var(--color-primary));
+    background: var(--color-apricot);
+    color: var(--color-ink);
+    box-shadow: none;
   }
 
   .glass {
-    background-color: color-mix(in srgb, var(--color-card) 85%, transparent);
-    backdrop-filter: blur(12px);
-    border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+    background-color: var(--color-white);
+    border-color: var(--color-line);
   }
 
+  .card-lift,
   .card-hover {
-    transition:
-      box-shadow 0.22s ease,
-      transform 0.22s ease,
-      border-color 0.22s ease;
+    transition: box-shadow 150ms var(--ease-out-soft);
   }
 
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 28px 90px rgb(16 30 36 / 0.12);
-    border-color: color-mix(
-      in srgb,
-      var(--color-primary) 30%,
-      var(--color-border)
-    );
-  }
-
-  .text-gradient {
-    background-image: linear-gradient(
-      135deg,
-      var(--color-primary),
-      var(--color-accent)
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
+  .text-gradient,
   .heading-accent {
-    background-image: linear-gradient(
-      95deg,
-      var(--color-foreground) 0%,
-      color-mix(in srgb, var(--color-primary) 35%, var(--color-foreground)) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: inherit;
   }
 
-  .animate-fade-up {
-    animation: fade-up 0.55s ease-out both;
-  }
-
-  .animate-accent-bar {
-    transform-origin: left center;
-    animation: accent-bar 0.65s ease-out 0.12s both;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-shell::before {
-    animation: none;
-    opacity: 0.32;
-    filter: none;
-  }
-
-  .card-hover:hover,
-  .card-lift:hover {
-    transform: none;
-  }
-
-  .hero-blob-red,
-  .hero-blob-teal {
-    animation: none !important;
-  }
-
-  .animate-fade-up,
-  .animate-accent-bar {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
+  /* D2a uses 400/500/600/700 only; heavy weights close Cyrillic counters. */
+  .font-black,
+  .font-extrabold {
+    font-weight: 700;
   }
 }

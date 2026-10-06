@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 
 /**
@@ -19,9 +20,14 @@ export function FormError({
     <p
       id={id}
       role="alert"
-      className={cn("text-sm text-destructive", className)}
+      className={cn(
+        "flex items-start gap-2 type-body font-semibold text-ink",
+        className,
+      )}
     >
-      {children}
+      {/* Ink + warning icon, never red: errors must not look like emergency. */}
+      <Icon name="alert-triangle" size={20} className="mt-0.5" />
+      <span>{children}</span>
     </p>
   );
 }
@@ -51,10 +57,8 @@ export function FormSuccess({
       className={
         filled
           ? cn(
-              "text-sm",
-              tone === "success"
-                ? "font-medium text-emerald-700 dark:text-emerald-400"
-                : "text-muted-foreground",
+              "type-body",
+              tone === "success" ? "font-semibold text-care" : "text-ink-2",
               className,
             )
           : "sr-only"
