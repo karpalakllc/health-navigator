@@ -40,7 +40,9 @@ return [
     'auth' => [
         'invalid_credentials' => 'Внесените податоци за најава се неточни.',
         'logged_out' => 'Одјавени сте.',
-        'registration_pending' => 'Испративме порака со линк за потврда.',
+        // Conditional on purpose: an address that already has an account gets an
+        // "already registered" notice instead of a link (N6).
+        'registration_pending' => 'Ако адресата може да се користи, ви испративме порака со следниот чекор. Проверете го сандачето.',
         'privacy_note' => 'Од безбедносни причини не откриваме дали адресата е веќе регистрирана.',
         'throttled' => 'Премногу неуспешни обиди. Обидете се повторно за :seconds секунди.',
         'email_unverified' => 'Потврдете ја вашата е-адреса пред да продолжите. Проверете го сандачето или побарајте нов линк.',
