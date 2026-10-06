@@ -71,9 +71,21 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 9. Start a **queue worker** (see below).
 10. Add **scheduler** cron (see below).
 11. `php artisan search:reindex` when `SCOUT_DRIVER=meilisearch` (after content import).
+    **Required on this release** (the redesign): unified search now sorts by
+    `is_featured`, which the existing Meilisearch indexes neither hold nor
+    accept as a sortable attribute until they are rebuilt. Skip it and
+    featured profiles do not lead search results (or Meilisearch rejects the
+    sort). Run it after `migrate --force`, before sending traffic.
 12. Verify `GET /api/v1/health` and Filament login.
 
 **Seed safety:** `PlatformUserSeeder`, `DoctorDirectorySeeder`, and other directory seeders **only run in `local`, `testing` and `development`** (or with `SEED_LOCAL_DEMO=true`). Do not rely on them in staging/prod except via intentional imports — and never set `SEED_LOCAL_DEMO=true` in production, which would also create demo moderator/member accounts with weak passwords. `platform:bootstrap` creates the production admin itself; it does not depend on the seeder.
+
+**Never use `APP_ENV=development` on a publicly reachable host.** `development`
+counts as a non-deployed environment (`App\Support\DeploymentEnvironment`), so
+besides the demo seeders it lets the rich demo seeder attach the bundled
+Unsplash stock photos — real people's faces — to fictional doctors, and shows
+them on a public site. Public hosts use `staging` or `production` only;
+`development` is for a developer's own machine.
 
 **Client addresses:** the web tier vouches for the visitor's address on every
 server-side API call (route handlers *and* server rendering) by sending
