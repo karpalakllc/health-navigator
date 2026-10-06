@@ -1,39 +1,57 @@
 import Link from "next/link";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
+import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icons";
 import type { ForumTopicListItem } from "@/lib/api/forum";
 import { formatForumReplyCount } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
+/** „Слични теми“: title + reply count rows with a chevron. */
 export function ForumRelatedTopics({
   topics,
   categorySlug,
+  className,
 }: {
   topics: ForumTopicListItem[];
   categorySlug: string;
+  className?: string;
 }) {
   return (
-    <ProfileContentCard title={t("forum.relatedTopics")}>
+    <Card
+      as="section"
+      padding="md"
+      aria-labelledby="forum-related-heading"
+      className={cn("flex flex-col gap-2", className)}
+    >
+      <h2 id="forum-related-heading" className="type-h3 text-ink">
+        {t("forum.relatedTopics")}
+      </h2>
       {topics.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {t("forum.noRelatedTopics")}
-        </p>
+        <p className="type-meta text-ink-2">{t("forum.noRelatedTopics")}</p>
       ) : (
-        <ul className="space-y-3">
+        <ul>
           {topics.map((topic) => (
-            <li key={topic.slug}>
-              <Link
-                href={`/forum/${categorySlug}/${topic.slug}`}
-                className="block rounded-xl border border-border/80 bg-muted/20 px-3 py-2.5 transition hover:border-primary/30 hover:bg-primary/5"
-              >
-                <p className="font-semibold text-foreground">{topic.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+            <li
+              key={topic.slug}
+              className="relative flex min-h-14 items-center gap-3 border-t border-line py-3 first:border-t-0"
+            >
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <Link
+                  href={`/forum/${categorySlug}/${topic.slug}`}
+                  className="font-ui text-[1.0625rem] leading-6 font-semibold text-ink decoration-coral decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"
+                >
+                  {topic.title}
+                </Link>
+                <p className="flex items-center gap-1.5 type-meta text-ink-2">
+                  <Icon name="message-circle" size={16} />
                   {formatForumReplyCount(topic.replies_count)}
                 </p>
-              </Link>
+              </div>
+              <Icon name="chevron-right" size={20} className="text-ink" />
             </li>
           ))}
         </ul>
       )}
-    </ProfileContentCard>
+    </Card>
   );
 }

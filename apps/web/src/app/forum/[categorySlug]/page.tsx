@@ -1,15 +1,23 @@
 import { notFound } from "next/navigation";
-import { DirectoryHero } from "@/components/design/directory-hero";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
-import { TrustRibbon } from "@/components/design/trust-ribbon";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
-import { EmptyState } from "@/components/directory/empty-state";
-import { FilterStatsRow } from "@/components/directory/filter-stats-row";
 import { Pagination } from "@/components/directory/pagination";
-import { ForumCategoryToolbar } from "@/components/forum/forum-category-toolbar";
-import { ForumTopicCard } from "@/components/forum/forum-topic-card";
+import {
+  ForumCategoryToolbar,
+  newTopicHref,
+} from "@/components/forum/forum-category-toolbar";
+import {
+  ForumColumns,
+  ForumEmpty,
+  ForumPageHead,
+  forumPageClass,
+} from "@/components/forum/forum-layout";
+import { ForumRulesCard } from "@/components/forum/forum-rules-band";
+import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
+import { ForumTopicList } from "@/components/forum/forum-topic-row";
 import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
-import { PageShell } from "@/components/ui/page-shell";
+import { BackLink } from "@/components/ui/back-link";
+import { Button, TextLink } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
@@ -89,57 +97,14 @@ export default async function CategoryTopicsPage({
     notFound();
   }
 
-  return (
-    <>
-      <PageHeroBleed>
-        <DirectoryHero
-          badge={
-            <>
-              <ForumIcon />
-              {category.name}
-            </>
-          }
-          title={category.name}
-          description={category.description ?? t("forum.description")}
-          stat={
-            <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-              {tCount("forum.topicsCount", topics.meta.total)}
-            </span>
-          }
-          filters={
-            <div className="filters-card filters-card-nested space-y-4 p-4 sm:p-5">
-              <ForumTopicSearch
-                defaultQuery={query.q}
-                action={`/forum/${categorySlug}`}
-              />
-              <ForumCategoryToolbar
-                categorySlug={categorySlug}
-                currentSort={sort}
-                searchQuery={query.q}
-                isLoggedIn={Boolean(token)}
-              />
-            </div>
-          }
-        />
-        <TrustRibbon
-          variant="compact"
-          columns={3}
-          items={[
-            {
-              text: t("forum.rulesModeration"),
-              icon: <ShieldIcon />,
-              tone: "teal",
-            },
-            {
-              text: t("forum.rulesNoDiagnosis"),
-              icon: <InfoIcon />,
-              tone: "red",
-            },
-          ]}
-        />
-      </PageHeroBleed>
+  const searching = Boolean(query.q?.trim());
 
-      <PageShell className="gap-8 pb-16">
+  return (
+    <div className={`${forumPageClass} gap-6 lg:gap-8`}>
+      <div className="lg:hidden">
+        <BackLink href="/forum" label={t("forum.title")} />
+      </div>
+      <div className="-mb-6 hidden lg:block">
         <Breadcrumbs
           items={[
             { label: t("common.home"), href: "/" },
@@ -147,91 +112,92 @@ export default async function CategoryTopicsPage({
             { label: category.name },
           ]}
         />
+      </div>
 
-        <FilterStatsRow
-          label={tCount("forum.topicsCount", topics.meta.total)}
-          clearHref={query.q ? `/forum/${categorySlug}` : undefined}
-        />
-
-        {topics.data.length === 0 ? (
-          <EmptyState
-            title={t("forum.noTopics")}
-            clearHref={query.q ? `/forum/${categorySlug}` : undefined}
-            clearLabel={query.q ? t("common.clearFilters") : undefined}
-          />
-        ) : (
-          <ul className="grid gap-3">
-            {topics.data.map((topic) => (
-              <li key={topic.slug}>
-                <ForumTopicCard topic={topic} categorySlug={categorySlug} />
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <Pagination
-          basePath={`/forum/${categorySlug}`}
-          currentPage={topics.meta.current_page}
-          lastPage={topics.meta.last_page}
-          total={topics.meta.total}
-          searchParams={{
-            q: query.q,
-            ...(sort !== "latest" ? { sort } : {}),
-          }}
-        />
-      </PageShell>
-    </>
-  );
-}
-
-function ForumIcon() {
-  return (
-    <svg
-      className="h-4 w-4 text-primary"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
-        strokeLinejoin="round"
+      <ForumPageHead
+        title={category.name}
+        lead={category.description ?? undefined}
+        meta={tCount("forum.topicsCount", topics.meta.total)}
+        actions={
+          <Button
+            href={newTopicHref(categorySlug, Boolean(token))}
+            size="lg"
+            leadingIcon="message-circle"
+            className="w-full sm:w-auto"
+          >
+            {t("forum.newTopic")}
+          </Button>
+        }
       />
-    </svg>
-  );
-}
 
-function ShieldIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M12 3l8 4v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"
-        strokeLinejoin="round"
+      <ForumColumns
+        main={
+          <>
+            <ForumSafetyNotice />
+            <Card padding="md" className="flex flex-col gap-4">
+              <ForumTopicSearch
+                defaultQuery={query.q}
+                action={`/forum/${categorySlug}`}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <ForumCategoryToolbar
+                  categorySlug={categorySlug}
+                  currentSort={sort}
+                  searchQuery={query.q}
+                />
+                {searching ? (
+                  <TextLink href={`/forum/${categorySlug}`}>
+                    {t("common.clearFilters")}
+                  </TextLink>
+                ) : null}
+              </div>
+            </Card>
+
+            {topics.data.length === 0 ? (
+              <ForumEmpty
+                title={t("forum.noTopics")}
+                action={
+                  searching ? (
+                    <Button href={`/forum/${categorySlug}`} variant="secondary">
+                      {t("common.clearFilters")}
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <ForumTopicList
+                headingLevel={2}
+                label={category.name}
+                topics={topics.data.map((topic) => ({
+                  href: `/forum/${categorySlug}/${topic.slug}`,
+                  title: topic.title,
+                  authorName: topic.author_name,
+                  repliesCount: topic.replies_count,
+                  lastActivityAt: topic.last_post_at ?? topic.published_at,
+                  isPinned: topic.is_pinned,
+                  isLocked: topic.is_locked,
+                }))}
+              />
+            )}
+
+            <Pagination
+              basePath={`/forum/${categorySlug}`}
+              currentPage={topics.meta.current_page}
+              lastPage={topics.meta.last_page}
+              total={topics.meta.total}
+              searchParams={{
+                q: query.q,
+                ...(sort !== "latest" ? { sort } : {}),
+              }}
+            />
+          </>
+        }
+        aside={
+          <aside className="flex flex-col gap-5 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]">
+            <ForumRulesCard settings={settings} />
+          </aside>
+        }
       />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
-    </svg>
+    </div>
   );
 }

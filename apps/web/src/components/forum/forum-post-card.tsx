@@ -1,12 +1,19 @@
+import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
-import { ForumAuthorCard } from "@/components/forum/forum-author-card";
+import { Tag, VerifiedTag } from "@/components/ui/tag";
+import { Monogram } from "@/components/ui/user-avatar";
 import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
-import { formatForumDateTime } from "@/lib/format";
+import { cn } from "@/lib/cn";
+import { formatForumDateTime, formatForumLastActivity } from "@/lib/format";
 import { t } from "@/i18n/t";
 
 type ForumPostCardProps = {
   post: ForumPost;
   isOriginalPost?: boolean;
+  /** Posted by the person who opened the topic: shows the „Автор“ tag. */
+  isTopicAuthor?: boolean;
+  /** Post actions (e.g. „Одговори“), rendered under the body. */
+  actions?: ReactNode;
 };
 
 function resolveAuthor(post: ForumPost): ForumAuthor {
@@ -17,55 +24,91 @@ function resolveAuthor(post: ForumPost): ForumAuthor {
       topics_count: 0,
       posts_count: 0,
       is_team_member: false,
+      is_forum_moderator: false,
     }
   );
 }
 
+/** Staff (the Здравје360 team) and forum moderators get the care highlight. */
+export function staffLabel(author: ForumAuthor): string | null {
+  if (author.is_team_member) {
+    return t("forum.authorTeam");
+  }
+
+  if (author.is_forum_moderator === true) {
+    return t("forum.authorForumModerator");
+  }
+
+  return null;
+}
+
+/**
+ * Same person as the topic's author. The API exposes no user id, so this
+ * pairs the public name with the account's creation instant — two accounts
+ * that share both are not a realistic case.
+ */
+export function isSameAuthor(a: ForumAuthor, b: ForumAuthor): boolean {
+  return (
+    a.name === b.name &&
+    a.member_since !== null &&
+    a.member_since === b.member_since
+  );
+}
+
+/**
+ * One post: a white card with a monogram header (name, „Автор“ / staff tag,
+ * relative time), the body in the reading face, then the actions. The opening
+ * post carries the coral top edge; staff replies a 1px care-green border.
+ */
 export function ForumPostCard({
   post,
   isOriginalPost = false,
+  isTopicAuthor = false,
+  actions,
 }: ForumPostCardProps) {
   const author = resolveAuthor(post);
+  const staff = staffLabel(author);
 
   return (
     <Card
-      className={
-        isOriginalPost
-          ? "overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card"
-          : "overflow-hidden"
-      }
+      as="article"
+      edge={isOriginalPost}
+      padding="none"
+      data-staff={staff ? "true" : undefined}
+      className={cn(
+        "flex flex-col gap-4 p-5 lg:px-8 lg:py-7",
+        staff && "border border-care",
+      )}
     >
-      <article className="flex flex-col lg:flex-row">
-        <aside className="border-b border-border/80 bg-muted/20 lg:w-52 lg:shrink-0 lg:border-b-0 lg:border-r lg:bg-muted/15 xl:w-56">
-          <ForumAuthorCard author={author} variant="sidebar" />
-        </aside>
-
-        <div className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">
-          <header className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3">
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {isOriginalPost ? t("forum.originalPost") : t("forum.reply")}
-              </p>
-              {!isOriginalPost ? (
-                <p className="text-sm font-medium text-foreground lg:hidden">
-                  {author.name}
-                </p>
+      <header className="flex items-start gap-3">
+        <Monogram name={author.name} size={44} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="font-ui text-[1.0625rem] leading-6 font-semibold text-ink">
+              {isOriginalPost ? (
+                <span className="sr-only">{t("forum.originalPost")}: </span>
               ) : null}
-            </div>
-            {post.published_at ? (
+              {author.name}
+            </p>
+            {isTopicAuthor ? <Tag>{t("forum.authorBadge")}</Tag> : null}
+            {staff ? <VerifiedTag>{staff}</VerifiedTag> : null}
+          </div>
+          {post.published_at ? (
+            <p className="type-meta text-ink-2">
               <time
                 dateTime={post.published_at}
-                className="shrink-0 text-xs text-muted-foreground"
+                title={formatForumDateTime(post.published_at)}
               >
-                {formatForumDateTime(post.published_at)}
+                {formatForumLastActivity(post.published_at)}
               </time>
-            ) : null}
-          </header>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground sm:text-base">
-            {post.body}
-          </p>
+            </p>
+          ) : null}
         </div>
-      </article>
+      </header>
+      <div className="measure whitespace-pre-wrap break-words type-reading text-ink">
+        {post.body}
+      </div>
+      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </Card>
   );
 }

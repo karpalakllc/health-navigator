@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
-import { t } from "@/i18n/t";
-import { cn } from "@/lib/cn";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { FormError } from "@/components/ui/form-message";
+import { Icon } from "@/components/ui/icons";
+import { t } from "@/i18n/t";
 
 type ForumTopicModerationToolbarProps = {
   categorySlug: string;
@@ -14,88 +15,11 @@ type ForumTopicModerationToolbarProps = {
   isLocked: boolean;
 };
 
-function ModerationIconButton({
-  label,
-  pressed,
-  onClick,
-  disabled,
-  children,
-}: {
-  label: string;
-  pressed: boolean;
-  onClick: () => void;
-  disabled: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      aria-pressed={pressed}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex size-10 items-center justify-center rounded-lg border text-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        pressed
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M12 17v5M9 3h6l1 7h-4l1 7H9l1-7H7L9 3z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function LockIcon({ locked }: { locked: boolean }) {
-  return locked ? (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
-    </svg>
-  ) : (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 7.5-1" strokeLinecap="round" />
-    </svg>
-  );
-}
-
+/**
+ * Moderators only: pin/lock on a sand strip above the thread. Each button
+ * names the action it will take („Откачи тема“ while pinned); the state itself
+ * shows as the „Закачено“ / „Заклучено“ tags by the title after the refresh.
+ */
 export function ForumTopicModerationToolbar({
   categorySlug,
   topicSlug,
@@ -150,39 +74,39 @@ export function ForumTopicModerationToolbar({
   }
 
   return (
-    <div className="grid gap-2 rounded-xl border border-border/80 bg-muted/30 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <Card
+      as="section"
+      tone="sand"
+      padding="sm"
+      aria-labelledby="forum-moderation-heading"
+      className="flex flex-col gap-3"
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <h2
+          id="forum-moderation-heading"
+          className="flex items-center gap-2 type-label text-ink"
+        >
+          <Icon name="shield-check" size={20} />
           {t("forum.moderationTools")}
-        </span>
-        <ModerationIconButton
-          label={isPinned ? t("forum.unpinTopic") : t("forum.pinTopic")}
-          pressed={isPinned}
-          disabled={pending}
-          onClick={() => updateModeration({ is_pinned: !isPinned })}
-        >
-          <PinIcon />
-        </ModerationIconButton>
-        <ModerationIconButton
-          label={isLocked ? t("forum.unlockTopic") : t("forum.lockTopic")}
-          pressed={isLocked}
-          disabled={pending}
-          onClick={() => updateModeration({ is_locked: !isLocked })}
-        >
-          <LockIcon locked={isLocked} />
-        </ModerationIconButton>
-      </div>
-      {(isPinned || isLocked) && (
+        </h2>
         <div className="flex flex-wrap gap-2">
-          {isPinned ? (
-            <Badge variant="primary">{t("forum.pinned")}</Badge>
-          ) : null}
-          {isLocked ? (
-            <Badge variant="secondary">{t("forum.locked")}</Badge>
-          ) : null}
+          <Button
+            variant="white"
+            disabled={pending}
+            onClick={() => updateModeration({ is_pinned: !isPinned })}
+          >
+            {isPinned ? t("forum.unpinTopic") : t("forum.pinTopic")}
+          </Button>
+          <Button
+            variant="white"
+            disabled={pending}
+            onClick={() => updateModeration({ is_locked: !isLocked })}
+          >
+            {isLocked ? t("forum.unlockTopic") : t("forum.lockTopic")}
+          </Button>
         </div>
-      )}
+      </div>
       {error ? <FormError>{error}</FormError> : null}
-    </div>
+    </Card>
   );
 }
