@@ -1,9 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReviewList } from "@/components/reviews/review-list";
 import type { PublicReview } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { tFormat } from "@/i18n/t";
 import { router } from "../../../test/next-navigation";
 
 function review(overrides: Partial<PublicReview> = {}): PublicReview {
