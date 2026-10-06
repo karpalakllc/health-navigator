@@ -16,8 +16,9 @@ if (dsn) {
       process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
     tracesSampleRate: 0,
     sendDefaultPii: false,
-    // Filters credentials from request bodies AND from URLs: the request URL,
-    // query string, Referer and navigation/fetch breadcrumbs.
+    // Drops query strings (reset tokens, search terms) from the request URL,
+    // query string, Referer and navigation/fetch breadcrumbs, and credential
+    // keys from request bodies.
     // Also drops the per-view SettingsUnavailableError (see beforeSendFilter).
     beforeSend: (event, hint) => beforeSendFilter(event, hint),
   });

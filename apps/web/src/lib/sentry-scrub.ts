@@ -1,10 +1,15 @@
 /**
- * Strips credentials from Sentry events before they leave the process.
+ * Strips credentials and search terms from Sentry events before they leave the
+ * process.
  *
- * Request bodies were already filtered, but URLs were not: a password-reset link
- * carries `?token=…&email=…`, and Sentry records URLs in several places — the
- * request itself, its query string, the Referer header, and every navigation and
- * fetch breadcrumb. Shared by the browser and server configs.
+ * Sentry records URLs in several places — the request itself, its query
+ * string, the Referer header, and every navigation and fetch breadcrumb — and
+ * the query string is where this site's sensitive values live: a password-reset
+ * link carries `?token=…&email=…`, and a directory or search URL carries what
+ * the visitor typed (`?q=кардиолог`, a city, a specialty) — health intent.
+ * Query strings are therefore dropped wholesale (origin and path are kept, which
+ * is enough to locate a bug), and request bodies lose credential keys. Shared
+ * by the browser and server configs.
  */
 
 import { isSettingsUnavailable } from "@/lib/api/public-settings";
@@ -16,62 +21,24 @@ function isSensitive(key: string): boolean {
   return SENSITIVE_KEYS.includes(key.toLowerCase());
 }
 
-function scrubParams(params: URLSearchParams): boolean {
-  let changed = false;
-
-  for (const key of new Set(params.keys())) {
-    if (isSensitive(key)) {
-      params.set(key, FILTERED);
-      changed = true;
-    }
-  }
-
-  return changed;
-}
-
-const PROBE_ORIGIN = "https://scrub.invalid";
-
-/** Filters sensitive query parameters, keeping the URL absolute or relative as given. */
+/**
+ * Drops the query string and fragment, keeping origin and path. A relative URL
+ * stays relative; an absolute one also loses any user:password@.
+ */
 export function scrubUrl(url: string): string {
-  let parsed: URL;
+  const path = url.split(/[?#]/, 1)[0];
 
   try {
-    parsed = new URL(url, PROBE_ORIGIN);
+    const parsed = new URL(path);
+    return parsed.origin === "null"
+      ? path
+      : `${parsed.origin}${parsed.pathname}`;
   } catch {
-    return url;
+    return path;
   }
-
-  if (!scrubParams(parsed.searchParams)) {
-    return url;
-  }
-
-  return parsed.origin === PROBE_ORIGIN && !url.startsWith(PROBE_ORIGIN)
-    ? `${parsed.pathname}${parsed.search}${parsed.hash}`
-    : parsed.toString();
 }
 
 type QueryParams = string | Record<string, string> | Array<[string, string]>;
-
-function scrubQuery(query: QueryParams): QueryParams {
-  if (typeof query === "string") {
-    const params = new URLSearchParams(query);
-    return scrubParams(params) ? params.toString() : query;
-  }
-
-  if (Array.isArray(query)) {
-    return query.map(([key, value]): [string, string] => [
-      key,
-      isSensitive(key) ? FILTERED : value,
-    ]);
-  }
-
-  return Object.fromEntries(
-    Object.entries(query).map(([key, value]) => [
-      key,
-      isSensitive(key) ? FILTERED : value,
-    ]),
-  );
-}
 
 type ScrubbableEvent = {
   request?: {
@@ -95,7 +62,7 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
     }
 
     if (request.query_string !== undefined) {
-      request.query_string = scrubQuery(request.query_string);
+      delete request.query_string;
     }
 
     if (request.data && typeof request.data === "object") {
