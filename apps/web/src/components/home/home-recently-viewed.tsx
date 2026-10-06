@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
-import { Button } from "@/components/ui/button";
+import { buttonClassName } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import {
   clearRecentlyViewed,
@@ -51,30 +52,35 @@ export function HomeRecentlyViewed({ className }: { className?: string }) {
           aria-labelledby="home-recent-title"
           className={cn("min-w-0", className)}
         >
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <div className="flex min-w-0 flex-col gap-1">
-              <h2 id="home-recent-title" className="type-h2 text-ink">
-                {t("homeSections.recentTitle")}
-              </h2>
-              <p className="type-meta text-ink-2">
-                {t("homeSections.recentLead")}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              // Phones wrap it under the heading: line its text up with it.
-              className="max-sm:-ml-5"
-              leadingIcon="x"
+          {/* The clear control shares the heading's row: a 44px icon
+              button on phones (named by aria-label), icon + „Исчисти“ from sm. */}
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="home-recent-title" className="type-h2 min-w-0 text-ink">
+              {t("homeSections.recentTitle")}
+            </h2>
+            <button
+              type="button"
               aria-label={t("homeSections.recentClearLabel")}
+              className={buttonClassName({
+                variant: "ghost",
+                size: "sm",
+                className: "-mr-3 flex-none max-sm:w-11 max-sm:px-0",
+              })}
               onClick={() => {
                 wrapperRef.current?.focus({ preventScroll: true });
                 clearRecentlyViewed();
                 setStatus(t("homeSections.recentCleared"));
               }}
             >
-              {t("homeSections.recentClear")}
-            </Button>
+              <Icon name="x" size={20} />
+              <span className="max-sm:sr-only">
+                {t("homeSections.recentClear")}
+              </span>
+            </button>
           </div>
+          <p className="mt-1 type-meta text-ink-2">
+            {t("homeSections.recentLead")}
+          </p>
           <ul className="scroll-row -mx-5 mt-3 flex gap-3 px-5 pb-4 pt-1 lg:mx-0 lg:mt-5 lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0">
             {entries.map((entry) => (
               <li
@@ -96,7 +102,9 @@ export function HomeRecentlyViewed({ className }: { className?: string }) {
                     <span className="block truncate font-ui text-base font-semibold leading-5">
                       {entry.name}
                     </span>{" "}
-                    <span className="mt-0.5 block truncate text-[0.9375rem] leading-5 text-ink-2">
+                    {/* One line in the phone rail; up to two in the
+                        narrower desktop grid cells. */}
+                    <span className="mt-0.5 block truncate text-[0.9375rem] leading-5 text-ink-2 lg:line-clamp-2 lg:whitespace-normal">
                       {entry.subtitle ?? KIND_LABEL[entry.kind]()}
                     </span>
                   </span>

@@ -3,11 +3,13 @@ import { Icon } from "@/components/ui/icons";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { HomeSpecialty } from "@/lib/api/home";
 import { cn } from "@/lib/cn";
+import { fitToColumns } from "@/lib/grid-fit";
 import { specialtyIcon } from "@/lib/specialty-icons";
 import { t, tCount } from "@/i18n/t";
 
-/** Shown on phones; the rest (up to 8) join from the sm breakpoint. */
-const MOBILE_COUNT = 6;
+/** Phones show at most six, wider layouts at most eight. */
+const MOBILE_MAX = 6;
+const WIDE_MAX = 8;
 
 /**
  * „Популарни специјалности“: the specialties with the most published doctors
@@ -25,6 +27,13 @@ export function HomeSpecialties({
     return null;
   }
 
+  // Whole rows only, so no card is left alone on the last row: 2 columns on
+  // phones, 3 from sm, 4 from lg.
+  const total = specialties.length;
+  const phone = fitToColumns(total, 2, MOBILE_MAX);
+  const tablet = fitToColumns(total, 3, WIDE_MAX);
+  const desktop = fitToColumns(total, 4, WIDE_MAX);
+
   return (
     <section aria-labelledby="home-specialties-title" className={className}>
       <SectionHeader
@@ -37,7 +46,12 @@ export function HomeSpecialties({
         {specialties.map((specialty, index) => (
           <li
             key={specialty.slug}
-            className={cn("flex", index >= MOBILE_COUNT && "max-sm:hidden")}
+            className={cn(
+              "flex",
+              index >= phone && "max-sm:hidden",
+              index >= tablet && "sm:max-lg:hidden",
+              index >= desktop && "lg:hidden",
+            )}
           >
             <Link
               href={`/doctors?specialty=${encodeURIComponent(specialty.slug)}`}
@@ -57,11 +71,6 @@ export function HomeSpecialties({
                   )}
                 </span>
               </span>
-              <Icon
-                name="chevron-right"
-                size={20}
-                className="icon-nudge hidden text-ink-2 lg:block"
-              />
             </Link>
           </li>
         ))}

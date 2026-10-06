@@ -47,14 +47,45 @@ describe("HomeSpecialties („Популарни специјалности“)"
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
-  it("shows six on phones and the rest from the sm breakpoint", () => {
+  /** How many items each layout shows, read from the responsive classes. */
+  function visibleCounts(items: HTMLElement[]) {
+    const shown = (hiddenClass: string) =>
+      items.filter((li) => !li.classList.contains(hiddenClass)).length;
+    return {
+      phone: shown("max-sm:hidden"),
+      tablet: shown("sm:max-lg:hidden"),
+      desktop: shown("lg:hidden"),
+    };
+  }
+
+  it("shows six on phones and eight on wider layouts when there are eight", () => {
     render(<HomeSpecialties specialties={specialties} />);
 
     const items = screen.getAllByRole("listitem");
     expect(items).toHaveLength(8);
-    expect(
-      items.filter((li) => li.className.includes("max-sm:hidden")),
-    ).toHaveLength(2);
+    expect(visibleCounts(items)).toEqual({ phone: 6, tablet: 6, desktop: 8 });
+  });
+
+  it("never leaves a lone card on the last row", () => {
+    render(<HomeSpecialties specialties={specialties.slice(0, 5)} />);
+
+    // 2 columns → 4, 3 columns → 3, 4 columns → 4.
+    expect(visibleCounts(screen.getAllByRole("listitem"))).toEqual({
+      phone: 4,
+      tablet: 3,
+      desktop: 4,
+    });
+  });
+
+  it("has no drill-in chevrons on the cards", () => {
+    const { container } = render(<HomeSpecialties specialties={specialties} />);
+
+    for (const link of screen.getAllByRole("link")) {
+      if (link.getAttribute("href") === "/doctors") continue;
+      // Only the specialty's own icon remains.
+      expect(link.querySelectorAll("svg")).toHaveLength(1);
+    }
+    expect(container.innerHTML).not.toContain("m9 18 6-6-6-6");
   });
 
   it("renders nothing without data", () => {
