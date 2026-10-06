@@ -21,6 +21,10 @@ import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { pageMetadata } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/site-url";
+import { websiteJsonLd } from "@/lib/structured-data";
+import { JsonLd } from "@/components/seo/json-ld";
+import { mk } from "@/i18n/mk";
 import { t } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
@@ -138,6 +142,13 @@ export default async function Home() {
 
   return (
     <div className="mx-auto w-full max-w-[1240px] lg:px-6">
+      <JsonLd
+        data={websiteJsonLd(
+          mk.meta.title,
+          absoluteUrl("/"),
+          mk.meta.description,
+        )}
+      />
       <HomeHero
         quickLinks={highlights.specialties.slice(0, QUICK_LINKS).map((s) => ({
           href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,

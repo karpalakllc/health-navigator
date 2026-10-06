@@ -23,6 +23,10 @@ class ForumTopicInfolist
                 TextEntry::make('title'),
                 TextEntry::make('category.name')->label('Category'),
                 TextEntry::make('user.name')->label('Author'),
+                TextEntry::make('tags.name')
+                    ->label('Keywords')
+                    ->badge()
+                    ->placeholder('None'),
                 TextEntry::make('body')->columnSpanFull(),
                 TextEntry::make('rejection_note')
                     ->visible(fn ($record): bool => filled($record->rejection_note))

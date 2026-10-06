@@ -222,8 +222,11 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
 | `GET` | `/forum/categories/{category}/topics/{topic}` | `module:forum`, `auth.sanctum.optional` |
+| `GET` | `/forum/tags` | `module:forum`, `cache.public:60` |
+| `GET` | `/forum/tags/{tag}` | `module:forum`, `cache.public:60` |
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
+| `GET` | `/forum/topics/related` | `module:forum`, `cache.public:60` |
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |

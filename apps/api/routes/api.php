@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
+use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
@@ -208,4 +209,12 @@ Route::prefix('v1')->group(function (): void {
     // „Ова е мој профил“: a member asks staff to link them to a profile.
     Route::post('/doctors/{slug}/claim-requests', [DoctorClaimController::class, 'store'])
         ->middleware(['auth:sanctum', 'verified', 'throttle:5,1440,api-doctor-claims']);
+
+    // Forum keywords and profile ↔ forum links (W5-S, docs/seo.md). Anonymous
+    // and identical for everyone, so shared caches may keep them for 60 s.
+    Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
+        Route::get('/forum/tags', [ForumTagController::class, 'index']);
+        Route::get('/forum/tags/{tag}', [ForumTagController::class, 'show']);
+        Route::get('/forum/topics/related', [ForumTagController::class, 'related']);
+    });
 });

@@ -11,6 +11,7 @@ import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { mk } from "@/i18n/mk";
 import { cn } from "@/lib/cn";
+import { siteVerification } from "@/lib/metadata";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,10 @@ const geologica = Geologica({
 const sourceSans = Source_Sans_3({
   variable: "--font-source-sans",
   subsets: ["latin", "cyrillic"],
-  style: ["normal", "italic"],
+  // Upright only: nothing on the site sets italic, and the italic faces were
+  // two more preloaded files (~47 KB) on every first visit, competing with
+  // the page for a mobile connection.
+  style: ["normal"],
   display: "swap",
 });
 
@@ -48,10 +52,13 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchPublicSettings();
   const faviconCacheKey = settings.favicon_url?.split("/").pop() ?? "default";
+  const verification = siteVerification();
 
   return {
     title: mk.meta.title,
     description: mk.meta.description,
+    // Search Console / Bing ownership tags; see docs/seo.md.
+    ...(verification ? { verification } : {}),
     icons: settings.favicon_url
       ? {
           icon: `${settings.favicon_url}?v=${faviconCacheKey}`,

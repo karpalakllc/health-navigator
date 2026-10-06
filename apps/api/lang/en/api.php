@@ -70,6 +70,7 @@ return [
 
     'forum' => [
         'topic_locked' => 'This topic is locked and does not accept new replies.',
+        'tag_invalid' => 'Each keyword needs 2–40 letters or digits and cannot be only a number.',
     ],
 
     'review' => [

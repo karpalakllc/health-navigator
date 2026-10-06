@@ -1,6 +1,6 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
+import { reportException } from "@/lib/sentry-client";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusPanel } from "@/components/system/status-panel";
@@ -21,7 +21,7 @@ export default function Error({
     // reports it once a minute (recognised by digest — production masks the
     // name and message).
     if (!isSettingsUnavailable(error)) {
-      Sentry.captureException(error);
+      reportException(error);
     }
     console.error(error);
   }, [error]);

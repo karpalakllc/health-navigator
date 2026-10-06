@@ -226,6 +226,48 @@ describe("ForumNewTopicComposer", () => {
     });
   });
 
+  it("sends optional keywords as a list", async () => {
+    const fetch = mockFetch({
+      status: 201,
+      body: { data: { status: "pending" } },
+    });
+    const user = userEvent.setup();
+    renderComposer("koza");
+
+    await fill(user);
+    await user.type(
+      screen.getByLabelText(t("seo.composerTagsLabel")),
+      "#притисок, мерење, притисок",
+    );
+    await consentAll(user);
+    await user.click(submitButton());
+
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/account/forum"),
+    );
+    expect(requestBody(fetch)).toMatchObject({
+      tags: ["притисок", "мерење"],
+    });
+  });
+
+  it("refuses more than five keywords before sending", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    renderComposer("koza");
+
+    await fill(user);
+    const field = screen.getByLabelText(t("seo.composerTagsLabel"));
+    await user.type(field, "аа, бб, вв, гг, дд, ѓѓ");
+    await consentAll(user);
+    await user.click(submitButton());
+
+    expect(field).toHaveAccessibleDescription(
+      expect.stringContaining(t("seo.composerTagsTooMany")),
+    );
+    expect(field).toHaveFocus();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("shows an API refusal as an alert and stays on the page", async () => {
     mockFetch({ status: 429, body: { message: "Премногу нови теми." } });
     const user = userEvent.setup();

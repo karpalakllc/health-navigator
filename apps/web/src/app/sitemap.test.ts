@@ -6,7 +6,8 @@ const fetchFacilities = vi.hoisted(() => vi.fn());
 const fetchPharmacies = vi.hoisted(() => vi.fn());
 const fetchProducts = vi.hoisted(() => vi.fn());
 const fetchForumCategories = vi.hoisted(() => vi.fn());
-const fetchForumTopicSearch = vi.hoisted(() => vi.fn());
+const fetchForumTopics = vi.hoisted(() => vi.fn());
+const fetchForumTags = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/settings", () => ({ loadPublicSettings }));
 vi.mock("@/lib/api/doctors", () => ({ fetchDoctors }));
@@ -15,7 +16,8 @@ vi.mock("@/lib/api/pharmacies", () => ({ fetchPharmacies }));
 vi.mock("@/lib/api/products", () => ({ fetchProducts }));
 vi.mock("@/lib/api/forum", () => ({
   fetchForumCategories,
-  fetchForumTopicSearch,
+  fetchForumTopics,
+  fetchForumTags,
 }));
 
 import sitemap, { revalidate } from "@/app/sitemap";
@@ -53,6 +55,7 @@ describe("sitemap", () => {
   it("does not advertise the noindex search page", async () => {
     const list = await urls();
 
+    expect(list).toContain("https://zdravje.test/transparency");
     expect(list).toContain("https://zdravje.test/doctors");
     expect(list.some((url) => url.includes("/search"))).toBe(false);
   });
@@ -106,5 +109,85 @@ describe("sitemap", () => {
 
     expect(list).toContain("https://zdravje.test/products/ibuprofen-400");
     expect(list).toContain("https://zdravje.test/doctors/d-r-ana");
+  });
+});
+
+describe("sitemap forum entries", () => {
+  beforeEach(() => {
+    loadPublicSettings.mockResolvedValue({ ...modulesOn, public_forum: true });
+    fetchForumCategories.mockResolvedValue([
+      { slug: "hirurgija", name: "Хирургија", description: null },
+    ]);
+    fetchForumTopics.mockResolvedValue({
+      data: [
+        {
+          slug: "operacija-za-prosireni-veni",
+          last_post_at: "2026-10-05T10:00:00+02:00",
+          published_at: "2026-10-01T10:00:00+02:00",
+        },
+        {
+          slug: "bez-odgovor",
+          last_post_at: null,
+          published_at: "2026-09-01T10:00:00+02:00",
+        },
+      ],
+      meta: { last_page: 1 },
+    });
+    fetchForumTags.mockResolvedValue({
+      data: [
+        {
+          slug: "prosireni-veni",
+          topics_count: 4,
+          last_activity_at: "2026-10-05T10:00:00+02:00",
+        },
+        { slug: "retko", topics_count: 2, last_activity_at: null },
+      ],
+      meta: { last_page: 1 },
+    });
+  });
+
+  it("lists every topic per category from the topic listing, with lastmod from activity", async () => {
+    const entries = await sitemap();
+    const byUrl = new Map(entries.map((entry) => [entry.url, entry]));
+
+    expect(fetchForumTopics).toHaveBeenCalledWith(
+      "hirurgija",
+      { page: 1, per_page: 50 },
+      { revalidate },
+    );
+    expect(
+      byUrl.get(
+        "https://zdravje.test/forum/hirurgija/operacija-za-prosireni-veni",
+      )?.lastModified,
+    ).toBe("2026-10-05T10:00:00+02:00");
+    expect(
+      byUrl.get("https://zdravje.test/forum/hirurgija/bez-odgovor")
+        ?.lastModified,
+    ).toBe("2026-09-01T10:00:00+02:00");
+    expect(
+      byUrl.get("https://zdravje.test/forum/hirurgija")?.lastModified,
+    ).toBe("2026-10-05T10:00:00+02:00");
+  });
+
+  it("lists only indexable tag pages (three or more topics)", async () => {
+    const list = await urls();
+
+    expect(fetchForumTags).toHaveBeenCalledWith(
+      { min_topics: 3, page: 1, per_page: 50 },
+      { revalidate },
+    );
+    expect(list).toContain("https://zdravje.test/forum/tags/prosireni-veni");
+    expect(list).not.toContain("https://zdravje.test/forum/tags/retko");
+  });
+
+  it("keeps the directory when the forum categories fail", async () => {
+    fetchForumCategories.mockRejectedValue(
+      new Error("API request failed (500)"),
+    );
+
+    const list = await urls();
+
+    expect(list).toContain("https://zdravje.test/doctors/d-r-ana");
+    expect(list.some((url) => url.includes("/forum/"))).toBe(false);
   });
 });

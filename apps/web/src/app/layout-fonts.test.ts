@@ -44,6 +44,10 @@ describe("root layout fonts", () => {
     expect(options).toContain(`variable: "${variable}"`);
   });
 
+  it("preloads no italic faces (nothing on the site is set in italic)", () => {
+    expect(source).not.toMatch(/style:\s*\[[^\]]*"italic"/);
+  });
+
   it("keeps the document in Macedonian", () => {
     expect(source).toMatch(/lang="mk"/);
   });
