@@ -13,19 +13,25 @@ import "./globals.css";
 
 export const dynamic = "force-dynamic";
 
+/*
+ * The site is Macedonian, so every face needs the Cyrillic subset — with only
+ * "latin" the text fell back to a system font. Basic "cyrillic" (U+0400–045F)
+ * holds the whole alphabet, ѓ ќ ѕ љ њ џ ј included; "cyrillic-ext" covers other
+ * languages' letters and would only add a preloaded file per face.
+ */
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
