@@ -43,7 +43,7 @@ function stubMotion(reduce: boolean) {
 function page() {
   document.body.innerHTML = `
     <section id="above" data-reveal=""></section>
-    <section id="below" data-reveal=""></section>`;
+    <section id="below" data-reveal=""><a id="link" href="#x">Link</a></section>`;
   const at = (id: string, top: number) =>
     vi
       .spyOn(document.getElementById(id)!, "getBoundingClientRect")
@@ -98,5 +98,17 @@ describe("RevealObserver", () => {
       "data-reveal",
       "shown",
     );
+  });
+
+  it("shows a hidden section the moment something inside it takes focus", () => {
+    stubMotion(false);
+    render(<RevealObserver />);
+
+    const below = document.getElementById("below")!;
+    expect(below).toHaveAttribute("data-reveal", "pending");
+
+    document.getElementById("link")!.focus();
+    expect(below).toHaveAttribute("data-reveal", "shown");
+    expect(observed).toEqual([]);
   });
 });

@@ -13,7 +13,8 @@ export const REVEAL_READY_CLASS = "js-reveal";
  * mount, only sections still below the fold are marked `pending` (faded and
  * 8px down by the CSS), and each is shown once when it enters the viewport.
  * Sections already on screen are never touched, so nothing above the fold
- * blinks. With reduced motion or no IntersectionObserver it does nothing.
+ * blinks. A section is also shown the moment anything inside it takes
+ * keyboard focus. With reduced motion or no IntersectionObserver it does nothing.
  * Runs again after every client-side navigation.
  */
 export function RevealObserver() {
@@ -38,8 +39,26 @@ export function RevealObserver() {
           }
         }
       },
-      { rootMargin: "0px 0px -8% 0px" },
+      // No negative margin: a section peeking into the viewport is shown,
+      // so nothing on screen stays faded out.
+      { rootMargin: "0px" },
     );
+
+    // Tabbing into a section that has not scrolled into view yet (the
+    // browser scrolls it in, but the observer may not have fired) must
+    // never leave the focused control invisible.
+    const onFocusIn = (event: FocusEvent) => {
+      let el =
+        event.target instanceof Element
+          ? event.target.closest('[data-reveal="pending"]')
+          : null;
+      while (el) {
+        el.setAttribute("data-reveal", "shown");
+        observer.unobserve(el);
+        el = el.parentElement?.closest('[data-reveal="pending"]') ?? null;
+      }
+    };
+    document.addEventListener("focusin", onFocusIn);
 
     const viewport = window.innerHeight;
     for (const el of document.querySelectorAll<HTMLElement>(
@@ -54,6 +73,7 @@ export function RevealObserver() {
     }
 
     return () => {
+      document.removeEventListener("focusin", onFocusIn);
       observer.disconnect();
       // Never leave a section hidden once nobody is watching it.
       for (const el of document.querySelectorAll('[data-reveal="pending"]')) {
