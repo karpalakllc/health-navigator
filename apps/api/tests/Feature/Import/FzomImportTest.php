@@ -187,7 +187,7 @@ class FzomImportTest extends TestCase
         $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->count());
     }
 
-    public function test_a_row_without_facility_code_joins_the_one_coded_facility_with_its_tax_number(): void
+    public function test_contract_units_of_one_institution_are_one_facility(): void
     {
         $extra = <<<'XML'
           <Lekar>
@@ -202,6 +202,19 @@ class FzomImportTest extends TestCase
             <Ime>СЕДМИ</Ime>
             <Prezime>БЕЗШИФРОВ</Prezime>
           </Lekar>
+          <Lekar>
+            <TipDogovor>Болничка здравствена заштита ЈЗУ (Општи болници)</TipDogovor>
+            <TipDogovorID>16</TipDogovorID>
+            <DanocenBroj>4000000000010</DanocenBroj>
+            <ShifraZU>9000099</ShifraZU>
+            <ZdravstvenaUstanova>ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО</ZdravstvenaUstanova>
+            <RabotnaEdinica>ГИНЕКОЛОГИЈА</RabotnaEdinica>
+            <Specijalnosti>АКУШЕРСТВО И ГИНЕКОЛОГИЈА</Specijalnosti>
+            <Mesto>ТЕСТОВО</Mesto>
+            <Faksimil>900015</Faksimil>
+            <Ime>ДЕВЕТА</Ime>
+            <Prezime>ДРУГОШИФРОВА</Prezime>
+          </Lekar>
         </Lekari>
         XML;
         $spec = str_replace('</Lekari>', $extra, (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml')));
@@ -209,10 +222,13 @@ class FzomImportTest extends TestCase
 
         $run = $this->import(files: $files);
 
-        $this->assertSame(1, $run->count('facilities_folded_by_tax_number'));
         $this->assertSame(4, Facility::query()->count());
         $doctor = Doctor::query()->where('fzo_facsimile', '900013')->firstOrFail();
         $this->assertSame(['9000010'], $doctor->facilities->pluck('fzo_code')->all());
+        // A second ФЗО code of the same hospital (another contract unit).
+        $other = Doctor::query()->where('fzo_facsimile', '900015')->firstOrFail();
+        $this->assertSame(['9000010'], $other->facilities->pluck('fzo_code')->all());
+        $this->assertSame('Гинекологија', DB::table('doctor_facility')->where('doctor_id', $other->getKey())->value('work_unit'));
 
         $second = $this->import(files: $files);
         $this->assertSame(0, $second->count('fields_updated'));

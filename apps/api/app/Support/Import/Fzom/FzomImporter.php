@@ -88,7 +88,7 @@ final class FzomImporter
                     continue;
                 }
 
-                $facilityKey = $row->facilityKey();
+                $facilityKey = self::facilityKey($row);
 
                 if ($facilityKey === null) {
                     $context->increment('rows_without_facility');
@@ -96,7 +96,11 @@ final class FzomImporter
                     continue;
                 }
 
-                $facilities[$facilityKey]['code'] ??= $row->facilityCode;
+                if ($row->facilityCode !== null) {
+                    $facilities[$facilityKey]['codes'][$row->facilityCode] = true;
+                }
+
+                $facilities[$facilityKey]['codes'] ??= [];
                 $facilities[$facilityKey]['tax_number'] ??= $row->taxNumber;
                 $facilities[$facilityKey]['names'][$row->facilityName] = ($facilities[$facilityKey]['names'][$row->facilityName] ?? 0) + 1;
                 $facilities[$facilityKey]['towns'][(string) $row->town] = ($facilities[$facilityKey]['towns'][(string) $row->town] ?? 0) + 1;
@@ -123,51 +127,14 @@ final class FzomImporter
             throw new RuntimeException('The ФЗОМ files contain no doctor rows; refusing to import an empty list.');
         }
 
-        return $this->foldUncodedFacilities($context, $facilities, $doctors);
-    }
-
-    /**
-     * A few rows carry a tax number but no ФЗО code. When exactly one coded
-     * facility in the snapshot has that tax number, they are that facility;
-     * otherwise (no code, or several units under one tax number) they stay
-     * a facility of their own rather than being guessed into one.
-     *
-     * @param  array<string, array<string, mixed>>  $facilities
-     * @param  array<string, array<string, mixed>>  $doctors
-     * @return array{0: array<string, array<string, mixed>>, 1: array<string, array<string, mixed>>}
-     */
-    private function foldUncodedFacilities(ImportContext $context, array $facilities, array $doctors): array
-    {
-        $codesByTax = [];
-
         foreach ($facilities as $key => $facility) {
-            if ($facility['code'] !== null && $facility['tax_number'] !== null) {
-                $codesByTax[$facility['tax_number']][] = $key;
-            }
+            $codes = array_map('strval', array_keys($facility['codes']));
+            sort($codes, SORT_STRING);
+            $facilities[$key]['codes'] = $codes;
+            // The register code shown to staff and used for matching: the
+            // lowest of the institution's contract-unit codes (stable).
+            $facilities[$key]['code'] = $codes[0] ?? null;
         }
-
-        $remap = [];
-
-        foreach ($facilities as $key => $facility) {
-            if ($facility['code'] === null && count($codesByTax[$facility['tax_number']] ?? []) === 1) {
-                $remap[$key] = $codesByTax[$facility['tax_number']][0];
-                unset($facilities[$key]);
-            }
-        }
-
-        if ($remap === []) {
-            return [$facilities, $doctors];
-        }
-
-        foreach ($doctors as $facsimile => $doctor) {
-            foreach ($doctor['contracts'] as $index => $contract) {
-                if (isset($remap[$contract['facility']])) {
-                    $doctors[$facsimile]['contracts'][$index]['facility'] = $remap[$contract['facility']];
-                }
-            }
-        }
-
-        $context->increment('facilities_folded_by_tax_number', count($remap));
 
         return [$facilities, $doctors];
     }
@@ -289,7 +256,8 @@ final class FzomImporter
                 $records = SourceRecord::query()->where('source', self::SOURCE)
                     ->whereIn('external_key', array_map(fn ($key): string => 'facility:'.$key, array_keys($batch)))
                     ->get()->keyBy('external_key');
-                $byCode = Facility::withTrashed()->whereIn('fzo_code', array_filter(array_column($batch, 'code')))->get()->keyBy('fzo_code');
+                $allCodes = array_merge([], ...array_values(array_column($batch, 'codes')));
+                $byCode = Facility::withTrashed()->whereIn('fzo_code', $allCodes)->get()->keyBy('fzo_code');
                 $writer->provenance()->preload(FieldProvenance::SUBJECT_FACILITY, $byCode->pluck('id')->map(fn ($id): int => (int) $id)->all());
 
                 foreach ($batch as $key => $data) {
@@ -312,10 +280,11 @@ final class FzomImporter
                         'type' => $type->value,
                         'ownership' => $ownership,
                         'contract_types' => $types,
+                        'codes' => $data['codes'],
                     ];
                     $sourceRecord = $records->get('facility:'.$key);
                     $facility = $sourceRecord?->subject_id !== null ? Facility::withTrashed()->find($sourceRecord->subject_id) : null;
-                    $facility ??= $data['code'] !== null ? $byCode->get($data['code']) : null;
+                    $facility ??= collect($data['codes'])->map(fn (string $code) => $byCode->get($code))->filter()->first();
                     $facility ??= $this->facilityByTaxNumber($data['tax_number']);
 
                     $stored = $writer->sourceRecord('facility:'.$key, FieldProvenance::SUBJECT_FACILITY, $payload, $sourceRecord);
@@ -592,6 +561,23 @@ final class FzomImporter
         }
 
         $context->increment($subjectType === FieldProvenance::SUBJECT_DOCTOR ? 'doctors_absent' : 'facilities_absent', count($absent));
+    }
+
+    /**
+     * One facility per institution: the legal entity (tax number, ЕДБ) in
+     * one town. ФЗОМ lists an institution once per contract unit (a
+     * hospital can have twenty ФЗО codes, all with the same name), so the
+     * ФЗО code alone would split one hospital into many profiles. The tax
+     * number plus town always carries a single institution name in the
+     * register. Rows without a tax number fall back to the ФЗО code.
+     */
+    private static function facilityKey(FzomRow $row): ?string
+    {
+        if ($row->taxNumber !== null) {
+            return 'edb:'.$row->taxNumber.':'.NameKey::for((string) $row->town);
+        }
+
+        return $row->facilityCode !== null ? 'zu:'.$row->facilityCode : null;
     }
 
     /**

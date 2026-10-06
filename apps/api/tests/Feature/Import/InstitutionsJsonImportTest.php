@@ -188,6 +188,25 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertSame('д-р', $existing->refresh()->title);
     }
 
+    public function test_register_names_with_municipality_and_quotes_still_match(): void
+    {
+        $city = Facility::factory()->create(['name' => 'ЈЗУ Градска Општа Болница 8 Ми Септември', 'city' => 'Скопје - Карпош', 'type' => 'hospital', 'website' => null, 'phone' => null]);
+        $clinic = Facility::factory()->create(['name' => 'ЈЗУ Универзитетска Клиника за Кардиологија', 'city' => 'Скопје - Центар', 'type' => 'hospital', 'website' => null]);
+
+        $run = $this->runImport($this->dataset(['name_mk' => 'ЈЗУ Градска општа болница „8-ми Септември“ – Скопје', 'town' => 'Скопје', 'website' => null, 'workers' => []]));
+        $this->assertSame(1, $run->count('facilities_matched'));
+        $this->assertSame(0, $run->count('facilities_matched_by_partial_name'));
+        $this->assertSame('+389 2 000 0000', $city->refresh()->phone);
+
+        $run = $this->runImport($this->dataset([
+            'slug' => 'kardio', 'name_mk' => 'ЈЗУ Универзитетска клиника за кардиологија и кардиоваскуларна хирургија – Скопје',
+            'town' => 'Скопје', 'website' => null, 'workers' => [], 'logo' => null, 'covers' => [],
+        ]));
+        $this->assertSame(1, $run->count('facilities_matched_by_partial_name'));
+        $this->assertSame(2, Facility::query()->count());
+        $this->assertSame(1, ImportReviewItem::query()->where('item_key', 'like', 'website-facility-partial:%')->where('subject_id', $clinic->getKey())->count());
+    }
+
     public function test_staff_can_switch_and_take_down_images_and_a_re_import_respects_it(): void
     {
         $path = $this->dataset();

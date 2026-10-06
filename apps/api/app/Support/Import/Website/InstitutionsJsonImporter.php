@@ -60,8 +60,8 @@ final class InstitutionsJsonImporter
     /** @var array<string, list<int>> */
     private array $byHost = [];
 
-    /** @var array<string, list<int>> */
-    private array $byNameTown = [];
+    /** @var array<string, array<int, list<string>>> town key => facility id => name words */
+    private array $byTown = [];
 
     public function __construct(private readonly ImageOptimizer $images) {}
 
@@ -144,7 +144,8 @@ final class InstitutionsJsonImporter
         }
 
         if ($facility === null) {
-            $candidates = $this->facilityCandidates($name, $town, $website);
+            $match = $this->facilityCandidates($name, $town, $website);
+            $candidates = $match['ids'];
 
             if (count($candidates) > 1) {
                 $context->increment('facilities_ambiguous');
@@ -156,6 +157,13 @@ final class InstitutionsJsonImporter
             }
 
             $facility = $candidates !== [] ? Facility::query()->find($candidates[0]) : null;
+
+            if ($facility !== null && $match['fuzzy']) {
+                $context->increment('facilities_matched_by_partial_name');
+                $context->review(ImportReviewKind::Unmatched, 'website-facility-partial:'.$key, 'Check: '.$name.' matched to '.$facility->name, [
+                    'reason' => 'partial_name_match', 'facility_id' => $facility->getKey(), 'source_url' => $sourceUrl,
+                ], $facility);
+            }
         }
 
         $isNew = $facility === null;
@@ -420,17 +428,17 @@ final class InstitutionsJsonImporter
         }
 
         $sameSpecialty = DB::table('doctor_specialty')->whereIn('doctor_id', $ids)->whereIn('specialty_id', $specialtyIds ?: [0])->pluck('doctor_id');
-        $townKey = $town !== null ? NameKey::for($town) : null;
+        $townKey = self::townKey($town);
 
         return $byName
-            ->filter(fn (Doctor $doctor): bool => $sameSpecialty->contains($doctor->id) && $townKey !== null && NameKey::for((string) $doctor->city) === $townKey)
+            ->filter(fn (Doctor $doctor): bool => $sameSpecialty->contains($doctor->id) && $townKey !== '' && self::townKey($doctor->city) === $townKey)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
     }
 
     private function indexFacilities(): void
     {
         $this->byHost = [];
-        $this->byNameTown = [];
+        $this->byTown = [];
 
         Facility::query()->clinical()->get(['id', 'name', 'city', 'website'])->each(fn (Facility $facility) => $this->remember($facility));
     }
@@ -444,35 +452,72 @@ final class InstitutionsJsonImporter
             $this->byHost[$host][] = $id;
         }
 
-        $key = self::institutionKey((string) $facility->name).'|'.NameKey::for((string) $facility->city);
-
-        if (! in_array($id, $this->byNameTown[$key] ?? [], true)) {
-            $this->byNameTown[$key][] = $id;
-        }
+        $town = self::townKey($facility->city);
+        $this->byTown[$town][$id] = self::nameTokens((string) $facility->name, $town);
     }
 
     /**
-     * @return list<int>
+     * Same website host; else, in the same town, the same significant name
+     * words; else the one facility whose name words (at least three) are all
+     * in the website's longer name ("… за кардиологија" in "… за
+     * кардиологија и кардиоваскуларна хирургија"), reported for checking.
+     *
+     * @return array{ids: list<int>, fuzzy: bool}
      */
     private function facilityCandidates(string $name, ?string $town, ?string $website): array
     {
         $host = self::host($website);
 
         if ($host !== null && isset($this->byHost[$host])) {
-            return $this->byHost[$host];
+            return ['ids' => $this->byHost[$host], 'fuzzy' => false];
         }
 
-        return $this->byNameTown[self::institutionKey($name).'|'.NameKey::for((string) $town)] ?? [];
+        $townKey = self::townKey($town);
+        $tokens = self::nameTokens($name, $townKey);
+        $exact = [];
+        $contained = [];
+
+        foreach ($this->byTown[$townKey] ?? [] as $id => $candidate) {
+            if ($candidate === $tokens) {
+                $exact[] = $id;
+            } elseif (count($candidate) >= 3 && array_diff($candidate, $tokens) === []) {
+                $contained[] = $id;
+            }
+        }
+
+        if ($exact !== []) {
+            return ['ids' => $exact, 'fuzzy' => false];
+        }
+
+        return ['ids' => count($contained) === 1 ? $contained : [], 'fuzzy' => count($contained) === 1];
     }
 
-    private static function institutionKey(string $name): string
+    /**
+     * The town part of "Скопје - Карпош" (the register adds the municipality).
+     */
+    private static function townKey(?string $town): string
     {
-        $tokens = array_filter(
-            explode(' ', NameKey::for($name)),
-            fn (string $token): bool => ! in_array($token, self::LEGAL_WORDS, true),
-        );
+        $first = preg_split('/\s+[-–—]\s+/u', trim((string) $town))[0] ?? '';
 
-        return implode(' ', $tokens);
+        return NameKey::for((string) $first);
+    }
+
+    /**
+     * Significant words of an institution name, sorted: no legal form, no
+     * town, no punctuation or quotes.
+     *
+     * @return list<string>
+     */
+    private static function nameTokens(string $name, string $townKey): array
+    {
+        $town = $townKey === '' ? [] : explode(' ', $townKey);
+        $tokens = array_values(array_unique(array_filter(
+            explode(' ', NameKey::for($name)),
+            fn (string $token): bool => $token !== '' && ! in_array($token, self::LEGAL_WORDS, true) && ! in_array($token, $town, true),
+        )));
+        sort($tokens, SORT_STRING);
+
+        return $tokens;
     }
 
     private static function host(?string $url): ?string

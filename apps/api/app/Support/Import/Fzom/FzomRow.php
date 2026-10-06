@@ -32,17 +32,4 @@ final readonly class FzomRow
         public ?string $validFrom,
         public ?string $validTo,
     ) {}
-
-    /**
-     * Stable key of the institution: the ФЗО code, or the tax number for the
-     * few rows without one.
-     */
-    public function facilityKey(): ?string
-    {
-        if ($this->facilityCode !== null) {
-            return 'zu:'.$this->facilityCode;
-        }
-
-        return $this->taxNumber !== null ? 'edb:'.$this->taxNumber : null;
-    }
 }
