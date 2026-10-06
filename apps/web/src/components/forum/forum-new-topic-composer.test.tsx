@@ -103,6 +103,19 @@ describe("ForumNewTopicComposer", () => {
     expect(label).toHaveTextContent("194 или 112");
   });
 
+  it("shows the forum safety note with 194/112 before the form", () => {
+    renderComposer();
+
+    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
+      "href",
+      "tel:194",
+    );
+    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
+      "href",
+      "tel:112",
+    );
+  });
+
   it("keeps submit disabled until the consent is ticked", async () => {
     const user = userEvent.setup();
     renderComposer();

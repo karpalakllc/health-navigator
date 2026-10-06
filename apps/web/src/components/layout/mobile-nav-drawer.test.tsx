@@ -105,15 +105,14 @@ describe("Mobile nav drawer", () => {
 });
 
 describe("Header bar", () => {
-  it("always offers the 194 emergency call", () => {
+  it("has no emergency call pill (194/112 live in guidance and the footer)", () => {
     setPathname("/");
     render(<SiteHeaderBar isLoggedIn={false} modules={modules} />);
 
     expect(
-      screen.getByRole("link", {
-        name: new RegExp(`^${t("ui.emergencyPill")}`),
-      }),
-    ).toHaveAttribute("href", "tel:194");
+      document.querySelector('a[href="tel:194"], a[href="tel:112"]'),
+    ).toBeNull();
+    expect(screen.queryByText("Итно 194")).toBeNull();
   });
 
   it("has a labelled GET search form to /search", () => {

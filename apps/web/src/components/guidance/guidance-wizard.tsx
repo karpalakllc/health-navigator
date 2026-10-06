@@ -57,6 +57,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   // own flag so neither can switch the other's indicator off.
   const [loading, setLoading] = useState(false);
   const [emergencySaving, setEmergencySaving] = useState(false);
+  // True when the visitor pressed „Потребна ми е итна помош“ rather than
+  // reaching the emergency outcome through answers: the outcome's own body
+  // („Според вашите одговори…“) would then be wrong, so a neutral one shows.
+  const [emergencyFromShortcut, setEmergencyFromShortcut] = useState(false);
 
   const currentStep = flow.steps[stepIndex];
   const optionIdPrefix = useId();
@@ -229,6 +233,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
 
   async function handleRedFlagsContinue() {
     if (redFlags.length > 0) {
+      setEmergencyFromShortcut(false);
       await enterEmergency(async (current) => {
         await saveGuidanceAnswers(current, [
           { step_key: "red_flags", values: redFlags },
@@ -252,6 +257,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   }
 
   async function handleEmergencyNow() {
+    setEmergencyFromShortcut(true);
     await enterEmergency(completeGuidanceEmergency);
   }
 
@@ -267,6 +273,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
     setError(null);
     setLoading(false);
     setEmergencySaving(false);
+    setEmergencyFromShortcut(false);
     setPhase("intro");
   }
 
@@ -390,7 +397,10 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
                 ))}
               </ul>
             ) : null}
-            <EmergencyShortcutButton onEmergency={handleEmergencyNow} />
+            <EmergencyShortcutButton
+              onEmergency={handleEmergencyNow}
+              className="w-full lg:w-auto lg:self-start"
+            />
           </div>
         </Card>
 
@@ -512,7 +522,11 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       <div data-guidance-step className="flex flex-col gap-6 lg:gap-8">
         {pageTitle}
         {isEmergency ? (
-          <EmergencyOutcome outcome={outcome} headingRef={headingRef} />
+          <EmergencyOutcome
+            outcome={outcome}
+            fromShortcut={phase === "emergency" && emergencyFromShortcut}
+            headingRef={headingRef}
+          />
         ) : (
           <OutcomeView
             outcome={outcome}
@@ -648,34 +662,36 @@ function StepTopBar({
       >
         {t("common.back")}
       </Button>
-      <EmergencyShortcutButton
-        onEmergency={onEmergency}
-        className="w-full lg:w-auto"
-      />
+      <EmergencyShortcutButton onEmergency={onEmergency} size="md" />
     </div>
   );
 }
 
 /**
- * „Потребна ми е итна помош“: the strongest action on every step, in the
- * emergency treatment (red, white text, 2px ink frame). It is never disabled —
- * not even while an ordinary answer is saving; the wizard's generation guard
- * keeps that late answer from replacing the emergency screen.
+ * „Потребна ми е итна помош“, in the emergency treatment (red, white text,
+ * 2px ink frame) on the intro and on every step. Full-width 56px on the intro;
+ * a compact 48px pill beside Back on the steps, so the steps stay calm while
+ * the button stays in view. It is never disabled — not even while an ordinary
+ * answer is saving; the wizard's generation guard keeps that late answer from
+ * replacing the emergency screen.
  */
 function EmergencyShortcutButton({
   onEmergency,
+  size = "lg",
   className,
 }: {
   onEmergency: () => void;
+  size?: "md" | "lg";
   className?: string;
 }) {
   return (
     <Button
-      size="lg"
+      size={size}
       leadingIcon="alert-triangle"
       onClick={onEmergency}
       className={cn(
-        "border-2 border-ink bg-emergency text-white hover:bg-[#9a1d13]",
+        "border-2 border-ink bg-emergency text-white hover:bg-emergency-hover",
+        size === "md" && "px-4",
         className,
       )}
     >
@@ -686,15 +702,18 @@ function EmergencyShortcutButton({
 
 function EmergencyOutcome({
   outcome,
+  fromShortcut,
   headingRef,
 }: {
   outcome: GuidanceOutcome;
+  /** Reached through the urgent-help button, not through answers. */
+  fromShortcut: boolean;
   headingRef: React.Ref<HTMLHeadingElement>;
 }) {
   return (
     <EmergencyCard
       title={outcome.title}
-      body={outcome.body}
+      body={fromShortcut ? t("guidance.emergencyShortcutBody") : outcome.body}
       headingRef={headingRef}
     >
       <p className="type-reading text-ink">

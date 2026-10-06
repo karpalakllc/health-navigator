@@ -58,9 +58,7 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
       {hasTags ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {facility.has_emergency_services ? (
-            <Tag tone="care" icon="shield-check">
-              {t("facilities.emergencyAvailable")}
-            </Tag>
+            <Tag icon="building">{t("facilities.emergencyAvailable")}</Tag>
           ) : null}
           {facility.departments_count > 0 ? (
             <Tag>

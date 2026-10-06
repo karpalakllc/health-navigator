@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import { EmergencyCallLinks } from "@/components/guidance/emergency-call-links";
 import { Button, IconButton, TextLink } from "@/components/ui/button";
 import { FilterChip, RemovableChip } from "@/components/ui/chip";
-import { EmergencyPill } from "@/components/ui/emergency-pill";
 import { Notice, NoticeTelLink } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StarRating } from "@/components/ui/star-rating";
@@ -142,16 +141,6 @@ describe("Chips", () => {
 });
 
 describe("Emergency", () => {
-  it("the pill dials 194 and its name starts with the visible text", () => {
-    render(<EmergencyPill />);
-
-    const pill = screen.getByRole("link", {
-      name: new RegExp(`^${t("ui.emergencyPill")}`),
-    });
-    expect(pill).toHaveAttribute("href", "tel:194");
-    expect(pill).toHaveClass("bg-emergency", "border-ink", "border-2");
-  });
-
   it("the guidance call links keep their names and tel: targets", () => {
     render(<EmergencyCallLinks />);
 
@@ -245,7 +234,6 @@ describe("StarRating, Monogram, tags, SectionHeader", () => {
         <IconButton icon="flag" label="Пријави" />
         <FilterChip selected>Прима нови пациенти</FilterChip>
         <RemovableChip label="Скопје" onRemove={() => {}} />
-        <EmergencyPill />
         <StarRating value={4.5} />
         <FeaturedTag />
       </div>,

@@ -176,7 +176,7 @@ export default async function Home() {
   const popular = bySize.slice(0, POPULAR_SPECIALTIES);
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] pb-14 lg:px-6 lg:pb-20">
+    <div className="mx-auto w-full max-w-[1240px] lg:px-6">
       <HomeHero
         quickLinks={bySize.slice(0, QUICK_LINKS).map((s) => ({
           href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,
@@ -216,19 +216,20 @@ export default async function Home() {
         </div>
       </div>
 
-      <HomeTrustRow
-        items={[
-          t("home.trustRowModerated"),
-          t("home.trustRowInformational"),
-          t("home.trustRowLocal"),
-        ]}
-        className="mt-10 px-5 lg:mt-20 lg:px-0"
-      />
-
       <HomeHowItWorksSection className="mt-14 px-5 lg:mt-20 lg:px-0" />
 
       <HomeForumTransparency
         showForum={forumOn}
+        className="mt-10 px-5 lg:mt-14 lg:px-0"
+      />
+
+      {/* Last before the footer, as in the D2a mockup. */}
+      <HomeTrustRow
+        items={[
+          t("home.trustRowModerated"),
+          t("home.trustRowClarity"),
+          t("home.trustRowLocal"),
+        ]}
         className="mt-10 px-5 lg:mt-14 lg:px-0"
       />
     </div>

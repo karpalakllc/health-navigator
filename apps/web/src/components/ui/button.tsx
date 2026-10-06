@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 /*
  * The one button family. Every action is an ink pill (primary); secondary is
  * a white pill with a 1.5px ink ring; soft is sand; white sits on apricot
- * surfaces. Never coral, never emergency red (that is EmergencyPill).
+ * surfaces. Never coral, never emergency red (only the guidance 194/112 calls).
  *
  * Styles are the .btn* classes in globals.css (components layer), so any
  * utility passed in `className` overrides them.

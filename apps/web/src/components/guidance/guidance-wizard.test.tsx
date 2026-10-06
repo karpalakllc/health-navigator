@@ -109,6 +109,42 @@ describe("GuidanceWizard", () => {
     ).toHaveAttribute("href", "tel:112");
   });
 
+  it("uses neutral copy, not „Според вашите одговори…“, after the urgent-help button", async () => {
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+
+    await screen.findByRole("heading", { name: emergency.title });
+    expect(
+      screen.getByText(t("guidance.emergencyShortcutBody")),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(emergency.body)).toBeNull();
+  });
+
+  it("keeps the urgent-help button compact on question steps, full width on the intro", async () => {
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+    const intro = screen.getByRole("button", {
+      name: t("guidance.emergencyNow"),
+    });
+    expect(intro).toHaveClass("w-full", "btn-lg");
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+
+    const step = screen.getByRole("button", {
+      name: t("guidance.emergencyNow"),
+    });
+    expect(step).toHaveClass("btn-md", "bg-emergency");
+    expect(step).not.toHaveClass("w-full");
+  });
+
   it("shows the call links when the normal flow ends in the emergency outcome", async () => {
     // An admin-authored rule (or the API's fallback) can route the ordinary
     // question path to the emergency outcome; it must look like one.
@@ -130,6 +166,8 @@ describe("GuidanceWizard", () => {
     expect(
       screen.getByRole("link", { name: "Повикај 194 (Брза помош)" }),
     ).toHaveAttribute("href", "tel:194");
+    // Reached through answers, so the outcome's own wording stays.
+    expect(screen.getByText(emergency.body)).toBeInTheDocument();
   });
 
   it("moves focus to the new step's heading on every step change", async () => {

@@ -10,7 +10,6 @@ import { SiteBrandMark } from "@/components/layout/site-brand-mark";
 import { SiteNav } from "@/components/layout/site-nav";
 import type { AuthUser } from "@/lib/api/me";
 import { Button, IconButton } from "@/components/ui/button";
-import { EmergencyPill } from "@/components/ui/emergency-pill";
 import { loginHref } from "@/lib/auth/login-href";
 import type { ModuleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
@@ -36,12 +35,14 @@ function placeholderUser(): AuthUser {
 
 /**
  * Header rows.
- *  - Mobile (<lg, 60px): logo · „Итно 194“ · menu button (opens the drawer
- *    with every section, search and the account / sign-in).
- *  - Desktop (lg+): row 1 (80px) logo · search pill · „Итно 194“ · account or
- *    „Најава“; row 2 (52px) the section links.
- * The one „Итно 194“ pill serves both. Exactly one <nav> (row 2) sits in the
- * banner landmark; the bottom tab bar is a separate landmark outside it.
+ *  - Mobile (<lg, 60px): logo · menu button (opens the drawer with every
+ *    section, search and the account / sign-in).
+ *  - Desktop (lg+): row 1 (80px) logo · search pill · account or „Најава“;
+ *    row 2 (52px) the section links.
+ * No emergency pill: this is a directory, not a hospital. 194/112 live in the
+ * symptom-guidance flow and as one quiet line in the footer. Exactly one <nav>
+ * (row 2) sits in the banner landmark; the bottom tab bar is a separate
+ * landmark outside it.
  */
 export function SiteHeaderBar({
   isLoggedIn,
@@ -75,8 +76,6 @@ export function SiteHeaderBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-2 lg:justify-end lg:gap-3">
-          <EmergencyPill />
-
           {accountUser ? (
             <div className="hidden lg:block">
               <HeaderAccountMenu user={accountUser} />

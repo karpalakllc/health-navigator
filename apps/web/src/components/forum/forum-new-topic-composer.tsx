@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatCharCounter } from "@/components/forum/char-counter";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
+import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Input, Select, Textarea } from "@/components/ui/field";
@@ -105,6 +106,9 @@ export function ForumNewTopicComposer({
         className="max-lg:bg-transparent max-lg:shadow-none lg:p-8"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {/* One of the two places the safety note shows (with the forum
+              home): before someone writes about their health. */}
+          <ForumSafetyNotice />
           <Select
             label={t("forum.categories")}
             value={categorySlug}

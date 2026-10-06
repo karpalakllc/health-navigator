@@ -63,7 +63,9 @@ export const mk = {
   },
   footer: {
     informational:
-      "Zdravje360 обезбедува само информативна содржина. Не ја заменува советот од лиценциран здравствен работник.",
+      "Zdravje360 е само информативен директориум и не го заменува советот од лиценциран здравствен работник.",
+    tagline:
+      "Лекари, здравствени установи, аптеки и искуства на пациенти, на едно место.",
     emergency: "При медицинска итност повикајте",
     emergencyOr: "или",
     emergencyEnd: "веднаш.",
@@ -160,15 +162,14 @@ export const mk = {
     tileGuidanceSub: "Каде да се обратам?",
     guideTitle: "Не сте сигурни каде да се обратите?",
     guideBody:
-      "Одговорете на неколку кратки прашања и ќе ви покажеме дали е доволна грижа дома, аптека, матичен лекар или итна помош. Не е дијагноза.",
+      "Одговорете на неколку кратки прашања и ќе ви покажеме дали е доволна грижа дома, аптека, матичен лекар или итна помош.",
     guideCta: "Започни",
-    guideEmergencyLead: "Итно? Повикајте",
     communityHeading: "Од заедницата",
     communityAll: "Сите теми",
     communityUnanswered: "Без одговор",
     popularSpecialties: "Популарни специјалности",
     trustRowModerated: "Рецензиите и објавите се проверуваат пред објава",
-    trustRowInformational: "Информативно — не е дијагноза ни замена за лекар",
+    trustRowClarity: "Јасно каде да се обратите",
     trustRowLocal: "Создадено за корисници и установи во Македонија",
   },
   errors: {
@@ -236,8 +237,6 @@ export const mk = {
     removeFilter: "Отстрани филтер: {label}",
     featured: "Истакнат",
     verified: "Верификуван",
-    emergencyPill: "Итно 194",
-    emergencyPillSr: "повикај Брза помош",
     loading: "Се вчитува…",
   },
   auth: {
@@ -580,7 +579,7 @@ export const mk = {
     empty: "Нема установи што одговараат на филтрите.",
     allTypes: "Сите типови",
     allDepartments: "Сите одделенија",
-    emergencyFilter: "Итна помош",
+    emergencyFilter: "Со итно одделение",
     emergencyBadge: "Итна помош",
     kindPrivateClinic: "Приватна клиника",
     kindPublicHospital: "Јавна болница",
@@ -595,11 +594,7 @@ export const mk = {
     departments: "Одделенија и услуги",
     departmentCount: "{count} одделенија",
     departmentCountOne: "{count} одделение",
-    emergencyAvailable: "Итна помош достапна",
-    emergencyNotAvailable: "Без итна помош",
-    emergencyBannerTitle: "Итна медицинска помош",
-    emergencyBannerBody:
-      "Оваа установа наведува дека нуди итна помош. При животна опасност повикајте 194 веднаш — не користете ја оваа страница наместо итна повик.",
+    emergencyAvailable: "Има итно одделение",
     quickActionsTitle: "Брзи акции",
     sidebarContactTitle: "Контакт и локација",
     sidebarCall: "Јави се",
@@ -939,6 +934,8 @@ export const mk = {
     saveError: "Одговорите не може да се зачуваат.",
     emergencyError: "Не може да се евидентира итен случај.",
     emergencyInterimTitle: "Веднаш повикајте итна помош",
+    emergencyShortcutBody:
+      "Ако мислите дека е итно, не чекајте: повикајте ја службата за итна помош веднаш. Не ја користете оваа веб-страница наместо итна медицинска помош.",
     selectOption: "Изберете опција за да продолжите.",
     emergencyResultNote:
       "Не продолжувајте со општиот прашалник. Контактирајте итна помош:",

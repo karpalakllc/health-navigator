@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
-import { FacilityEmergencyBanner } from "@/components/directory/facility-emergency-banner";
 import {
   ProfileCallBar,
   ProfileContactCard,
@@ -160,12 +159,10 @@ export default async function FacilityDetailPage({
               tags={
                 <>
                   {facility.has_emergency_services ? (
-                    <Tag tone="care" icon="shield-check">
+                    <Tag icon="building">
                       {t("facilities.emergencyAvailable")}
                     </Tag>
-                  ) : (
-                    <Tag>{t("facilities.emergencyNotAvailable")}</Tag>
-                  )}
+                  ) : null}
                   {facility.departments.length > 0 ? (
                     <Tag>
                       {tCount(
@@ -179,10 +176,6 @@ export default async function FacilityDetailPage({
             />
 
             <ProfileContactList info={contact} />
-
-            {facility.has_emergency_services ? (
-              <FacilityEmergencyBanner />
-            ) : null}
 
             {facility.description ? (
               <ProfileSection id="about" title={t("facilities.about")}>

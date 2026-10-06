@@ -53,7 +53,7 @@ export function HomeForumTransparency({
   return (
     <div
       className={cn(
-        "grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-6",
+        "grid gap-4 lg:grid-cols-12 lg:items-stretch lg:gap-6",
         className,
       )}
     >

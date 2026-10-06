@@ -5,7 +5,8 @@ import { cn } from "@/lib/cn";
 /*
  * Inline notes. None of them is red: the forum/guidance safety note is the
  * soft chip-tint surface with ink text, and its 194/112 are bold ink tel:
- * links (use <NoticeTelLink>), so it never competes with the emergency pill.
+ * links (use <NoticeTelLink>), so it never competes with the red 194/112 calls
+ * of the guidance emergency view.
  */
 const TONES = {
   /** General information, e.g. „Цените се информативни…“. */
