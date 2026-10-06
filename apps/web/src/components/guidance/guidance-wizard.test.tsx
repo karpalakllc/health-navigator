@@ -124,6 +124,18 @@ describe("GuidanceWizard", () => {
     expect(screen.queryByText(emergency.body)).toBeNull();
   });
 
+  it("carries the one-line 194/112 reminder on the safety-check step too", async () => {
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+
+    expect(screen.getByText(t("forum.safetyEmergency"))).toBeInTheDocument();
+  });
+
   it("keeps the urgent-help button compact on question steps, full width on the intro", async () => {
     const user = userEvent.setup();
     render(<GuidanceWizard flow={flow} />);

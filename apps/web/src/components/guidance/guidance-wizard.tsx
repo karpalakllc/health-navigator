@@ -515,6 +515,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
           </ul>
         </fieldset>
         {error ? <FormError>{error}</FormError> : null}
+        <GuidanceSafetyNotice compact />
         <StickyContinue>
           <Button
             size="lg"
