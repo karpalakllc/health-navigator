@@ -23,9 +23,11 @@ class PharmacyController extends Controller
         $query = Facility::query()
             ->published()
             ->pharmacy()
-            // Featured first within the filters, then by name.
+            // Featured first within the filters, then by name; the id breaks
+            // ties between equal names so pages never overlap or skip rows.
             ->orderByDesc('is_featured')
-            ->orderBy('name');
+            ->orderBy('name')
+            ->orderBy('facilities.id');
 
         if (! empty($validated['city'])) {
             $query->cityContains($validated['city']);

@@ -189,4 +189,62 @@ class FeaturedOrderingTest extends TestCase
         $this->assertSame(['is_featured:desc'], $engine->lastSearch(config('scout.prefix').'doctors')['params']['sort'] ?? null);
         $this->assertSame(['is_featured:desc'], $engine->lastSearch(config('scout.prefix').'facilities')['params']['sort'] ?? null);
     }
+
+    /**
+     * Rows that share a name come back in id order, on one page or across
+     * pages. They are inserted in the reverse of their ids, so a database
+     * that returns ties in storage or index order (Postgres does) would list
+     * them differently without the id key.
+     *
+     * @var array<string, int>
+     */
+    private const TWINS = ['twin-c' => 300, 'twin-b' => 200, 'twin-a' => 100];
+
+    /**
+     * @return list<string>
+     */
+    private function pagedSlugs(string $uri): array
+    {
+        $slugs = [];
+        foreach (range(1, count(self::TWINS)) as $page) {
+            $slugs = [...$slugs, ...$this->slugs($uri.(str_contains($uri, '?') ? '&' : '?').'per_page=1&page='.$page)];
+        }
+
+        return $slugs;
+    }
+
+    public function test_doctors_with_the_same_name_page_in_a_stable_order(): void
+    {
+        foreach (self::TWINS as $slug => $id) {
+            $this->doctor('Same Name', false, ['id' => $id, 'slug' => $slug]);
+        }
+
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->slugs('/api/v1/doctors?sort=name'));
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->pagedSlugs('/api/v1/doctors?sort=name'));
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->slugs('/api/v1/doctors?sort=rating'));
+    }
+
+    public function test_facilities_with_the_same_name_page_in_a_stable_order(): void
+    {
+        foreach (self::TWINS as $slug => $id) {
+            Facility::factory()->create([
+                'id' => $id, 'slug' => $slug, 'name' => 'Same Name', 'type' => FacilityType::Clinic,
+            ]);
+        }
+
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->slugs('/api/v1/facilities?type=clinic'));
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->pagedSlugs('/api/v1/facilities?type=clinic'));
+    }
+
+    public function test_pharmacies_with_the_same_name_page_in_a_stable_order(): void
+    {
+        SiteSetting::current()->update(['public_pharmacies' => true]);
+
+        foreach (self::TWINS as $slug => $id) {
+            Facility::factory()->pharmacy()->create(['id' => $id, 'slug' => $slug, 'name' => 'Same Name']);
+        }
+
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->slugs('/api/v1/pharmacies'));
+        $this->assertSame(['twin-a', 'twin-b', 'twin-c'], $this->pagedSlugs('/api/v1/pharmacies'));
+    }
 }

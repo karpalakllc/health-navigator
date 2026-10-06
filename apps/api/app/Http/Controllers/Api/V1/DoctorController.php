@@ -57,6 +57,9 @@ class DoctorController extends Controller
             $query->orderBy('doctors.full_name');
         }
 
+        // Names repeat; the id keeps pages from overlapping or skipping rows.
+        $query->orderBy('doctors.id');
+
         $perPage = $validated['per_page'] ?? 15;
 
         $paginator = $query->paginate($perPage)->withQueryString();
