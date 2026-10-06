@@ -62,7 +62,6 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
             kind="doctor"
             avatarUrl={doctor.avatar_url}
             name={doctor.full_name}
-            alt={doctor.full_name}
             size={featured ? 64 : 56}
           />
           <div className={cn("min-w-0 flex-1", featured ? "pt-2" : "pt-1")}>

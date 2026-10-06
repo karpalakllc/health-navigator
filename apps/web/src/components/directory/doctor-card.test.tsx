@@ -97,23 +97,27 @@ describe("DoctorCard", () => {
 describe("DoctorCard photo", () => {
   const photo = "https://media.zdravje360.mk/media/doctors/marko.webp";
 
-  it("shows the API photo named after the doctor, at a fixed size", () => {
-    render(<DoctorCard doctor={{ ...marko, avatar_url: photo }} />);
+  it("shows the API photo at a fixed size, decorative next to the name", () => {
+    const { container } = render(
+      <DoctorCard doctor={{ ...marko, avatar_url: photo }} />,
+    );
 
-    const img = screen.getByRole("img", { name: "д-р Марко Стојанов" });
+    const img = container.querySelector("img")!;
+    // The name is the card's heading right beside it: no second reading.
+    expect(img).toHaveAttribute("alt", "");
     expect(img).toHaveAttribute("src", photo);
     expect(img).toHaveAttribute("width", "56");
     expect(img).toHaveAttribute("height", "56");
   });
 
   it("falls back to the monogram when the photo fails to load", () => {
-    render(<DoctorCard doctor={{ ...marko, avatar_url: photo }} />);
+    const { container } = render(
+      <DoctorCard doctor={{ ...marko, avatar_url: photo }} />,
+    );
 
-    fireEvent.error(screen.getByRole("img", { name: "д-р Марко Стојанов" }));
+    fireEvent.error(container.querySelector("img")!);
 
-    expect(
-      screen.queryByRole("img", { name: "д-р Марко Стојанов" }),
-    ).not.toBeInTheDocument();
+    expect(container.querySelector("img")).not.toBeInTheDocument();
     expect(screen.getByText("МС")).toBeInTheDocument();
   });
 });

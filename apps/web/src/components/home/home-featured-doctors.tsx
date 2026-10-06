@@ -84,7 +84,6 @@ export function HomeFeaturedDoctorsCard({
               kind="doctor"
               avatarUrl={doctor.avatar_url}
               name={doctor.full_name}
-              alt={doctor.full_name}
               size={44}
             />
             <div className="min-w-0 flex-1">
@@ -148,7 +147,6 @@ export function HomeFeaturedDoctorsRail({
                 kind="doctor"
                 avatarUrl={doctor.avatar_url}
                 name={doctor.full_name}
-                alt={doctor.full_name}
                 size={56}
               />
               <div className="flex min-h-8 flex-wrap justify-end gap-2">

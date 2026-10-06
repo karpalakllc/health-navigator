@@ -25,8 +25,10 @@ type DirectoryAvatarProps = {
   /** circle (doctors) or rounded square (a facility's / pharmacy's logo). */
   shape?: "circle" | "square";
   /**
-   * The photo's alt text. A doctor's photo is named after the doctor; a
-   * logo next to its own name stays decorative ("").
+   * The photo's alt text, used only for an uploaded photo: the admin's
+   * generic placeholder image is never named after anyone. Cards leave it
+   * decorative ("") since the name sits right next to it; the profile
+   * header names a doctor's photo.
    */
   alt?: string;
   className?: string;
@@ -96,7 +98,7 @@ export function DirectoryAvatar({
         <img
           ref={imageRef}
           src={src}
-          alt={alt}
+          alt={avatarUrl ? alt : ""}
           width={size}
           height={size}
           loading={loading}
