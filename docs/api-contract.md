@@ -155,6 +155,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
+| `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/me` | `auth:sanctum` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
@@ -209,6 +210,16 @@ nobody can hold an account locked by merely sending traffic.
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.
+- `GET /home/highlights` feeds the home page in one call: `specialties`
+  (up to 8 published specialties with at least one published doctor, by
+  `doctors_count`), `cities` (up to 12 `{name, doctors_count}`, published
+  doctors only, because each links to `/doctors?city=`), and `recent_reviews`
+  (up to 4 approved reviews with a body, newest `published_at` first, of
+  published doctors, clinical facilities and — while that module is on —
+  pharmacies: `id`, `rating`, `excerpt` ≤160 characters, `author_name` (the
+  public display name), `published_at`, `target {kind, slug, name}`). Cached
+  server side for at most 5 minutes and busted by doctor, specialty, facility
+  and review saves.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a

@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\FacilityType;
 use App\Models\Concerns\DeletesReplacedMedia;
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +21,7 @@ use Laravel\Scout\Searchable;
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
-    use DeletesReplacedMedia, HasFactory, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -41,6 +43,16 @@ class Facility extends Model
         'is_featured',
         'published_at',
     ];
+
+    /**
+     * GET /home/highlights names facilities and pharmacies as review targets.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::HOME_HIGHLIGHTS];
+    }
 
     protected function casts(): array
     {
