@@ -45,7 +45,8 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 6. **Required:** `php artisan platform:preflight`. It checks the cached
    configuration — APP_KEY, debug off, https URLs, `TRUSTED_PROXIES`, mail
    transport, queue and cache drivers, secure session cookie, CORS origins, token
-   expiry, the admin address, demo seeding, Meilisearch credentials — and exits
+   expiry, the admin address, demo seeding, Meilisearch credentials, object-storage
+   media credentials — and exits
    non-zero on any error. Do not migrate or send traffic until it passes. Warnings
    (Sentry DSN, the local `public` media disk) do not fail it but should be read.
    Add `--json` for machine-readable output in a deploy script.
@@ -168,11 +169,65 @@ Local defaults remain in `config/cors.php` (`localhost:3000`).
 
 ## Media on object storage
 
-When `MEDIA_DISK` points at object storage (S3, R2, …), images are served from that
-bucket's host rather than the API. The web CSP `img-src` (`apps/web/src/proxy.ts`)
-and `images.remotePatterns` (`apps/web/next.config.ts`) currently allow only the API
-origin, so the media host must be added there before switching, or every logo and
-avatar is blocked.
+Object storage is the recommended media disk for any deployment: the local `public`
+disk only survives on a persistent volume. `MEDIA_DISK=s3` works with any
+S3-compatible store — AWS S3, Cloudflare R2, Backblaze B2, MinIO. Variables (see
+[env.production.example](./env.production.example)):
+
+| Variable | Purpose |
+| --- | --- |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | A key scoped to this bucket: put, get, delete. |
+| `AWS_DEFAULT_REGION`, `AWS_BUCKET` | `auto` for R2. |
+| `AWS_ENDPOINT` | Non-AWS only: the provider's S3 API endpoint. |
+| `AWS_USE_PATH_STYLE_ENDPOINT` | `true` for MinIO. |
+| `AWS_URL` | Public https base that media URLs are built from: a CDN, or the bucket's public domain. Required with `AWS_ENDPOINT` — an R2/B2 API endpoint is not publicly readable. |
+| `MEDIA_VISIBILITY` | `public` (default) sends the `public-read` ACL. Use `private` for buckets that refuse ACLs and grant read with a bucket policy instead. |
+
+`platform:preflight` fails when the bucket, region or keys are missing or `AWS_URL`
+is not https, and warns when `AWS_ENDPOINT` is set without `AWS_URL`.
+
+**What is written.** Each upload gets a new random filename and is never rewritten
+(a replacement is a new object; the old one is deleted). Every object is stored with
+an explicit `Content-Type` (`image/webp`, `image/svg+xml`, …), `Content-Disposition:
+inline` and `Cache-Control: public, max-age=31536000, immutable`
+(`MEDIA_CACHE_CONTROL`). So a CDN in front of the bucket can cache indefinitely, and
+nothing needs purging.
+
+**Public read.** Grant anonymous `s3:GetObject` on the media prefix only (default
+`media/`, `MEDIA_DIRECTORY`) — never list, and never the whole bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::YOUR-BUCKET/media/*"
+  }]
+}
+```
+
+New AWS buckets have *Block Public Access* on and ACLs disabled ("bucket owner
+enforced"): allow the policy above under Block Public Access, and set
+`MEDIA_VISIBILITY=private` (a `public-read` ACL is rejected). On R2, connect a custom
+domain (or enable r2.dev) for the bucket and use it as `AWS_URL`.
+
+**CORS is not needed.** The site only renders media with plain `<img>` and the
+browser fetches them without CORS. Add a bucket CORS rule only if a future feature
+reads image bytes from script (canvas, `fetch`).
+
+**Web tier.** Set `NEXT_PUBLIC_MEDIA_URL` on the web build to the same value as
+`AWS_URL`. Its origin is added to the CSP `img-src` (`apps/web/src/proxy.ts`), and a
+path-scoped `images.remotePatterns` entry is added (`apps/web/next.config.ts`).
+Production requires https, and an invalid value fails the build. Without it, every
+logo and avatar from the bucket is blocked by the CSP. It is inlined at build time,
+so change it with a rebuild.
+
+**Switching an existing deployment.** Copy `storage/app/public/media` into the
+bucket under the same `media/` keys first. Rows that stored a full
+`…/storage/media/…` URL on the API host (or on localhost) are rebased onto the bucket
+automatically. Other hosts are left as they are.
 
 ## Transactional email
 

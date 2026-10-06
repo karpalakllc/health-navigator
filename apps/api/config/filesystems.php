@@ -42,11 +42,18 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
-            'visibility' => 'public',
+            // Same setting as media.visibility; see config/media.php.
+            'visibility' => env('MEDIA_VISIBILITY', 'public'),
             'throw' => false,
             'report' => false,
         ],
 
+        // The media disk on object storage (MEDIA_DISK=s3). Any S3-compatible
+        // store works: AWS_ENDPOINT points at R2/Backblaze/MinIO (MinIO also
+        // needs AWS_USE_PATH_STYLE_ENDPOINT=true), and AWS_URL is the public
+        // base media URLs are built from — a CDN or the bucket's public domain.
+        // Without AWS_URL the SDK's object URL is used, which only works for a
+        // publicly readable AWS bucket.
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -56,6 +63,8 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            // Same setting as media.visibility; see config/media.php.
+            'visibility' => env('MEDIA_VISIBILITY', 'public'),
             'throw' => false,
             'report' => false,
         ],

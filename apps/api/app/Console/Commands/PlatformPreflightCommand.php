@@ -226,6 +226,45 @@ class PlatformPreflightCommand extends Command
         if ($disk === 'public') {
             $this->addWarning('media.disk', 'MEDIA_DISK is "public" (local storage). On an ephemeral PaaS filesystem every uploaded logo and avatar is lost on redeploy — use object storage, or a persistent volume plus `php artisan storage:link`.');
         }
+
+        if (config("filesystems.disks.{$disk}.driver") === 's3') {
+            $this->checkObjectStorageDisk($disk);
+        }
+    }
+
+    /**
+     * The s3 disk is built lazily, and with `throw` off a write to a bucket it
+     * cannot reach just returns false — so a missing credential surfaces as the
+     * first admin's logo upload failing, not as a boot error.
+     */
+    private function checkObjectStorageDisk(string $disk): void
+    {
+        $prefix = "filesystems.disks.{$disk}";
+        $required = [
+            'bucket' => 'AWS_BUCKET',
+            'region' => 'AWS_DEFAULT_REGION',
+            'key' => 'AWS_ACCESS_KEY_ID',
+            'secret' => 'AWS_SECRET_ACCESS_KEY',
+        ];
+
+        foreach ($required as $key => $variable) {
+            if (blank(config("{$prefix}.{$key}"))) {
+                $this->addError("{$prefix}.{$key}", "MEDIA_DISK \"{$disk}\" is object storage but {$variable} is unset.");
+            }
+        }
+
+        $url = config("{$prefix}.url");
+
+        if (filled($url)) {
+            // Media URLs go into https pages; an http base is blocked as mixed content.
+            if (parse_url((string) $url, PHP_URL_SCHEME) !== 'https') {
+                $this->addError("{$prefix}.url", 'AWS_URL (the public media base) must be an https URL.');
+            }
+        } elseif (filled(config("{$prefix}.endpoint"))) {
+            // An R2/B2/MinIO API endpoint is not a public read URL, so every media
+            // URL built from it is unreachable for visitors.
+            $this->addWarning("{$prefix}.url", 'AWS_ENDPOINT is set but AWS_URL is not: media URLs will point at the S3 API endpoint, which providers such as R2 do not serve publicly. Set AWS_URL to the bucket\'s public domain or CDN.');
+        }
     }
 
     private function checkSearch(): void

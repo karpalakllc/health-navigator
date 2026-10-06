@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { mediaImgSrc } from "@/lib/media-origin";
 
 /**
  * Per-request Content-Security-Policy with a script nonce.
@@ -33,6 +34,8 @@ export function proxy(request: NextRequest) {
   };
 
   const apiOrigin = originOf(process.env.NEXT_PUBLIC_API_URL);
+  // Media on object storage is served from the bucket/CDN, not the API.
+  const mediaOrigin = mediaImgSrc(process.env.NEXT_PUBLIC_MEDIA_URL, !isDev);
 
   // Error reporting and analytics have to be allowed to send, or the CSP silently
   // turns them off — which looks exactly like "nothing is going wrong". The Sentry
@@ -46,7 +49,13 @@ export function proxy(request: NextRequest) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    ["img-src 'self'", "data:", "https://api.dicebear.com", apiOrigin]
+    [
+      "img-src 'self'",
+      "data:",
+      "https://api.dicebear.com",
+      apiOrigin,
+      mediaOrigin,
+    ]
       .filter(Boolean)
       .join(" "),
     // Report violations so a future tightening does not fail silently the way

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\FakeS3MediaDisk;
 use Tests\TestCase;
 
 class MeAvatarTest extends TestCase
@@ -66,6 +67,35 @@ class MeAvatarTest extends TestCase
         $user->refresh();
         $this->assertNotNull($user->avatar_path);
         $this->assertStringEndsWith('.webp', $user->avatar_path);
+    }
+
+    public function test_avatar_upload_lands_on_object_storage_with_public_cacheable_headers(): void
+    {
+        $s3 = FakeS3MediaDisk::install(['url' => 'https://media.zdravje360.mk']);
+        config(['media.visibility' => 'public', 'media.cache_control' => 'public, max-age=31536000, immutable']);
+        SiteSetting::current()->update(['profile_avatar_min_messages' => 0]);
+
+        $user = User::factory()->create([
+            'user_kind' => UserKind::Client,
+            'avatar_path' => 'media/users/avatars/old.webp',
+        ]);
+
+        $this->withToken($user->createToken('test')->plainTextToken)
+            ->postJson('/api/v1/me/avatar', ['avatar' => UploadedFile::fake()->image('avatar.jpg', 200, 200)])
+            ->assertOk()
+            ->assertJsonPath('data.user.avatar_url', 'https://media.zdravje360.mk/'.$user->fresh()->avatar_path);
+
+        $puts = $s3->commands('PutObject');
+        $this->assertCount(1, $puts);
+        $this->assertSame($user->fresh()->avatar_path, $puts[0]['Key']);
+        $this->assertSame('public-read', $puts[0]['ACL']);
+        $this->assertSame('image/webp', $puts[0]['ContentType']);
+        $this->assertSame('public, max-age=31536000, immutable', $puts[0]['CacheControl']);
+
+        $this->assertSame(['media/users/avatars/old.webp'], array_map(
+            fn ($command) => $command['Key'],
+            $s3->commands('DeleteObject'),
+        ));
     }
 
     public function test_me_includes_avatar_initials_and_profile_meta(): void
