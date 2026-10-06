@@ -4,7 +4,6 @@ namespace Tests\Feature\Filament;
 
 use App\Enums\ForumContentStatus;
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\ForumTopics\Pages\ListForumTopics;
 use App\Filament\Resources\Staff\Pages\EditStaffUser;
 use App\Models\ForumCategory;
@@ -44,7 +43,6 @@ class AdminPanelActionsTest extends TestCase
     private function admin(): User
     {
         $admin = User::factory()->create([
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
         ]);
         $admin->syncRoles(['Administrator']);
@@ -120,7 +118,6 @@ class AdminPanelActionsTest extends TestCase
         $theirs = ForumCategory::factory()->create();
 
         $moderator = User::factory()->create([
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
         ]);
         $moderator->assignRole('Forum Moderator');
@@ -134,7 +131,6 @@ class AdminPanelActionsTest extends TestCase
         $admin = $this->admin();
 
         $staff = User::factory()->create([
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
             'password' => Hash::make('old-password-here'),
         ]);
@@ -157,7 +153,6 @@ class AdminPanelActionsTest extends TestCase
     public function test_a_forum_moderator_cannot_reach_the_staff_resource(): void
     {
         $moderator = User::factory()->create([
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
         ]);
         $moderator->assignRole('Forum Moderator');

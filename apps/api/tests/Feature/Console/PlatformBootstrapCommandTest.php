@@ -3,7 +3,6 @@
 namespace Tests\Feature\Console;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\PlatformUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,7 +50,6 @@ class PlatformBootstrapCommandTest extends TestCase
     {
         $squatter = User::factory()->unverified()->create([
             'email' => self::EMAIL,
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 
@@ -66,7 +64,6 @@ class PlatformBootstrapCommandTest extends TestCase
     {
         $owner = User::factory()->create([
             'email' => self::EMAIL,
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 
@@ -122,7 +119,6 @@ class PlatformBootstrapCommandTest extends TestCase
         config(['zdravje.admin.email' => 'Ops@Example.com']);
         $squatter = User::factory()->create([
             'email' => 'ops@example.com',
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 
@@ -143,7 +139,6 @@ class PlatformBootstrapCommandTest extends TestCase
         $pending = User::factory()->unverified()->create([
             'email' => self::EMAIL,
             'password' => 'whoever1signedup',
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 
@@ -161,7 +156,6 @@ class PlatformBootstrapCommandTest extends TestCase
     {
         $contested = User::factory()->create([
             'email' => self::EMAIL,
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
             'registration_contested_at' => now(),
         ]);
@@ -191,7 +185,7 @@ class PlatformBootstrapCommandTest extends TestCase
 
     public function test_the_migration_verifies_existing_staff_only(): void
     {
-        $staff = User::factory()->unverified()->create(['user_kind' => UserKind::Staff, 'role' => UserRole::Moderator]);
+        $staff = User::factory()->unverified()->create(['user_kind' => UserKind::Staff]);
         $client = User::factory()->unverified()->create(['user_kind' => UserKind::Client]);
 
         $files = glob(database_path('migrations/*_verify_existing_staff_accounts.php')) ?: [];

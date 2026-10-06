@@ -6,7 +6,6 @@ use App\Enums\FacilityType;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumCategory;
@@ -17,6 +16,7 @@ use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
+use App\Support\RoleCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -109,8 +109,8 @@ class E2ESeeder extends Seeder
         }
 
         $this->seedSiteSettings();
-        $this->seedUsers();
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->seedUsers();
         $this->call(TriageSeeder::class);
         $this->seedDirectory();
         $this->seedForum();
@@ -142,8 +142,8 @@ class E2ESeeder extends Seeder
     private function seedUsers(): void
     {
         $staff = [
-            self::ADMIN_TOTP_SECRET => $this->user(self::ADMIN_EMAIL, 'E2E Администратор', UserRole::Admin, UserKind::Staff),
-            self::STAFF_MODERATOR_TOTP_SECRET => $this->user(self::STAFF_MODERATOR_EMAIL, 'E2E Модератор', UserRole::Moderator, UserKind::Staff),
+            self::ADMIN_TOTP_SECRET => $this->user(self::ADMIN_EMAIL, 'E2E Администратор', RoleCatalog::ADMINISTRATOR, UserKind::Staff),
+            self::STAFF_MODERATOR_TOTP_SECRET => $this->user(self::STAFF_MODERATOR_EMAIL, 'E2E Модератор', RoleCatalog::MODERATOR, UserKind::Staff),
         ];
 
         // Only once the schema has app authentication. Set through the model so
@@ -153,28 +153,31 @@ class E2ESeeder extends Seeder
                 $user->forceFill(['app_authentication_secret' => $secret])->save();
             }
         }
-        $this->user(self::COMMUNITY_MODERATOR_EMAIL, 'E2E Форум модератор', UserRole::Member, UserKind::Client);
-        $this->user(self::MEMBER_EMAIL, 'E2E Член', UserRole::Member, UserKind::Client);
+        $this->user(self::COMMUNITY_MODERATOR_EMAIL, 'E2E Форум модератор', RoleCatalog::MEMBER, UserKind::Client);
+        $this->user(self::MEMBER_EMAIL, 'E2E Член', RoleCatalog::MEMBER, UserKind::Client);
 
         foreach (self::MUTABLE_MEMBER_PREFIXES as $prefix) {
             for ($attempt = 0; $attempt < self::ATTEMPTS; $attempt++) {
-                $this->user("{$prefix}-{$attempt}@e2e.test", "E2E {$prefix} {$attempt}", UserRole::Member, UserKind::Client);
+                $this->user("{$prefix}-{$attempt}@e2e.test", "E2E {$prefix} {$attempt}", RoleCatalog::MEMBER, UserKind::Client);
             }
         }
     }
 
-    private function user(string $email, string $name, UserRole $role, UserKind $kind): User
+    private function user(string $email, string $name, string $role, UserKind $kind): User
     {
-        return User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => $email],
             [
                 'name' => $name,
                 'password' => self::PASSWORD,
-                'role' => $role,
                 'user_kind' => $kind,
                 'email_verified_at' => now(),
             ],
         );
+
+        $user->syncRoles([$role]);
+
+        return $user;
     }
 
     private function seedDirectory(): void
@@ -320,7 +323,7 @@ class E2ESeeder extends Seeder
         );
 
         $communityModerator = User::query()->where('email', self::COMMUNITY_MODERATOR_EMAIL)->firstOrFail();
-        $communityModerator->syncRoles(['Forum Moderator']);
+        $communityModerator->syncRoles([RoleCatalog::MEMBER, RoleCatalog::FORUM_MODERATOR]);
         $communityModerator->moderatedForumCategories()->sync([$published->id]);
     }
 

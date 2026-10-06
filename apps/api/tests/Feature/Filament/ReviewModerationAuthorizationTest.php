@@ -4,7 +4,6 @@ namespace Tests\Feature\Filament;
 
 use App\Enums\ReviewStatus;
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\Reviews\Pages\ListReviews;
 use App\Filament\Resources\Reviews\Pages\ViewReview;
 use App\Models\Review;
@@ -37,7 +36,6 @@ class ReviewModerationAuthorizationTest extends TestCase
     private function staffWithRole(string $roleName): User
     {
         $user = User::factory()->create([
-            'role' => UserRole::Moderator,
             'user_kind' => UserKind::Staff,
         ]);
         $user->syncRoles([$roleName]);

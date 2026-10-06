@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\User;
 use App\Support\EmailAddress;
+use App\Support\RoleCatalog;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 
@@ -26,37 +26,47 @@ class PlatformUserSeeder extends Seeder
             return;
         }
 
-        User::query()->updateOrCreate(
+        $admin = User::query()->updateOrCreate(
             ['email' => EmailAddress::normalize((string) config('zdravje.admin.email'))],
             [
                 'name' => 'Platform Admin',
                 'password' => config('zdravje.admin.password') ?? 'password',
-                'role' => UserRole::Admin,
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
             ],
         );
 
-        User::query()->updateOrCreate(
+        $moderator = User::query()->updateOrCreate(
             ['email' => EmailAddress::normalize((string) config('zdravje.seed.moderator.email'))],
             [
                 'name' => 'Platform Moderator',
                 'password' => config('zdravje.seed.moderator.password'),
-                'role' => UserRole::Moderator,
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
             ],
         );
 
-        User::query()->updateOrCreate(
+        $member = User::query()->updateOrCreate(
             ['email' => EmailAddress::normalize((string) config('zdravje.seed.member.email'))],
             [
                 'name' => 'Test Member',
                 'password' => config('zdravje.seed.member.password'),
-                'role' => UserRole::Member,
                 'user_kind' => UserKind::Client,
                 'email_verified_at' => now(),
             ],
         );
+
+        // Only to an account holding no role yet, so a reseed never undoes a
+        // promotion or demotion made in the panel.
+        $this->ensureRole($admin, RoleCatalog::ADMINISTRATOR);
+        $this->ensureRole($moderator, RoleCatalog::MODERATOR);
+        $this->ensureRole($member, RoleCatalog::MEMBER);
+    }
+
+    private function ensureRole(User $user, string $role): void
+    {
+        if (! $user->roles()->exists()) {
+            $user->assignRole(RoleCatalog::ensure($role));
+        }
     }
 }

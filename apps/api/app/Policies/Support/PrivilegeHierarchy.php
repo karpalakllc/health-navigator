@@ -2,8 +2,9 @@
 
 namespace App\Policies\Support;
 
-use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\PermissionCatalog;
+use App\Support\RoleCatalog;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -13,22 +14,20 @@ use Spatie\Permission\Models\Role;
  * than they hold themselves.
  *
  * Without it, anyone with `staff.update` could give themselves (or an
- * accomplice) the Administrator role, set the legacy `role` column to admin,
- * or change an administrator's email and password and log in as them; anyone
- * with `roles.update` could add every permission to their own role.
+ * accomplice) the Administrator role, or change an administrator's email and
+ * password and log in as them; anyone with `roles.update` could add every
+ * permission to their own role.
  *
  * The rule for a non-administrator is "never beyond yourself": they may only
  * grant roles and permissions they already hold, may only manage accounts
  * whose permissions are a subset of their own, and may never touch the
  * Administrator role, its holders, or their own role.
  *
- * "Administrator" here is the Spatie role, deliberately — not User::isAdmin(),
- * whose fallbacks (the legacy column, `settings.update`) are exactly what a
- * lower-privileged actor could manipulate.
+ * "Administrator" is the Spatie role — the same test User::isAdmin() makes.
  */
 final class PrivilegeHierarchy
 {
-    public const ADMINISTRATOR_ROLE = 'Administrator';
+    public const ADMINISTRATOR_ROLE = RoleCatalog::ADMINISTRATOR;
 
     public static function isAdministrator(User $user): bool
     {
@@ -41,13 +40,17 @@ final class PrivilegeHierarchy
             return true;
         }
 
-        // The legacy column still makes User::isAdmin() true, so an account
-        // carrying it is protected as an administrator too.
-        if (self::isAdministrator($target) || $target->role === UserRole::Admin) {
+        if (self::isAdministrator($target)) {
             return false;
         }
 
-        return self::holdsAll($actor, $target->getAllPermissions()->pluck('name'));
+        // Member permissions are rights over the holder's own contributions,
+        // not privileges over anyone else. Counting them would make every
+        // client unmanageable by staff who (rightly) cannot post reviews.
+        return self::holdsAll(
+            $actor,
+            $target->getAllPermissions()->pluck('name')->diff(PermissionCatalog::member()),
+        );
     }
 
     public static function canGrantRole(User $actor, Role $role): bool
@@ -74,11 +77,6 @@ final class PrivilegeHierarchy
         }
 
         return self::canGrantRole($actor, $role);
-    }
-
-    public static function canGrantUserRoleColumn(User $actor, UserRole $role): bool
-    {
-        return $role !== UserRole::Admin || self::isAdministrator($actor);
     }
 
     /**

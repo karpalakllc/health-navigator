@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\DB;
  * genuine single registrant just sets their password once more.
  *
  * Scope matches AuthController::notifyExistingAccount(): unverified client
- * accounts holding no role. Staff and role holders were never "pending".
+ * accounts holding no role beyond Member (which every registration gets since
+ * 2026_10_10). Staff and role holders were never "pending".
  */
 return new class extends Migration
 {
@@ -28,16 +29,19 @@ return new class extends Migration
         $modelHasRoles = config('permission.table_names.model_has_roles', 'model_has_roles');
         $morphKey = config('permission.column_names.model_morph_key', 'model_id');
         $morphType = (new User)->getMorphClass();
+        $roles = config('permission.table_names.roles', 'roles');
 
         DB::table('users')
             ->where('user_kind', 'client')
             ->whereNull('email_verified_at')
             ->whereNull('registration_contested_at')
-            ->whereNotExists(function ($query) use ($modelHasRoles, $morphKey, $morphType): void {
+            ->whereNotExists(function ($query) use ($modelHasRoles, $morphKey, $morphType, $roles): void {
                 $query->selectRaw('1')
                     ->from($modelHasRoles)
+                    ->join($roles, "{$roles}.id", '=', "{$modelHasRoles}.role_id")
                     ->whereColumn("{$modelHasRoles}.{$morphKey}", 'users.id')
-                    ->where("{$modelHasRoles}.model_type", $morphType);
+                    ->where("{$modelHasRoles}.model_type", $morphType)
+                    ->where("{$roles}.name", '!=', 'Member');
             })
             ->update(['registration_contested_at' => DB::raw('CURRENT_TIMESTAMP')]);
     }

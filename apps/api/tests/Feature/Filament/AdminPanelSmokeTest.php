@@ -3,7 +3,6 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\ForumCategories\Pages\CreateForumCategory;
 use App\Filament\Resources\ForumCategories\Pages\EditForumCategory;
 use App\Models\ForumCategory;
@@ -39,7 +38,6 @@ class AdminPanelSmokeTest extends TestCase
         SiteSetting::current();
 
         $admin = User::factory()->create([
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
             // Enrolled in two-factor: without it every page redirects to the
             // MFA set-up page (StaffMultiFactorAuthenticationTest covers that).
@@ -216,7 +214,6 @@ class AdminPanelSmokeTest extends TestCase
     public function test_a_member_cannot_reach_the_panel(): void
     {
         $member = User::factory()->create([
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
         ]);
 

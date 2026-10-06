@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
@@ -15,6 +14,7 @@ use App\Mail\WelcomeMail;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Support\FrontendUrl;
+use App\Support\RoleCatalog;
 use App\Support\VerificationMailer;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
@@ -171,14 +171,21 @@ class AuthController extends Controller
         }
 
         try {
-            $user = User::query()->create([
-                'name' => $name,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'role' => UserRole::Member,
-                'user_kind' => UserKind::Client,
-                'email_verified_at' => null,
-            ]);
+            // The Member role is what lets the account post reviews and forum
+            // content; created together so no account exists without it.
+            $user = DB::transaction(function () use ($name, $email, $hashedPassword): User {
+                $user = User::query()->create([
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $hashedPassword,
+                    'user_kind' => UserKind::Client,
+                    'email_verified_at' => null,
+                ]);
+
+                $user->assignRole(RoleCatalog::ensure(RoleCatalog::MEMBER));
+
+                return $user;
+            });
         } catch (UniqueConstraintViolationException) {
             // Lost a race with a concurrent signup for the same address. Treat it
             // exactly like the "already registered" branch above.
@@ -297,7 +304,13 @@ class AuthController extends Controller
      */
     private function notifyExistingAccount(User $user): void
     {
-        if (! $user->hasVerifiedEmail() && $user->isClient() && ! $user->roles()->exists()) {
+        // Every registration holds the Member role, so only a role beyond it
+        // (one an administrator granted) takes the account out of "pending".
+        if (
+            ! $user->hasVerifiedEmail()
+            && $user->isClient()
+            && ! $user->roles()->where('name', '!=', RoleCatalog::MEMBER)->exists()
+        ) {
             if ($user->registration_contested_at === null) {
                 $user->forceFill(['registration_contested_at' => now()])->save();
             }

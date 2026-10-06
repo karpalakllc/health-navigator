@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Mail\AccountExistsMail;
 use App\Mail\WelcomeMail;
 use App\Models\AnalyticsEvent;
@@ -98,7 +97,6 @@ class AccountSecurityTest extends TestCase
             'name' => 'Platform Admin',
             'email' => $email,
             'password' => 'staff1password',
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
             'email_verified_at' => $verifiedAt,
         ]);
@@ -622,7 +620,6 @@ class AccountSecurityTest extends TestCase
             'name' => 'Legacy',
             'email' => $email,
             'password' => Hash::make('sufficiently1long'),
-            'role' => 'member',
             'user_kind' => 'client',
             'created_at' => now(),
             'updated_at' => now(),

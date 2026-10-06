@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +33,6 @@ class ApiHardeningTest extends TestCase
         $user = User::factory()->create([
             'email' => 'member@example.com',
             'password' => 'password',
-            'role' => UserRole::Member,
         ]);
 
         for ($i = 0; $i < 5; $i++) {
@@ -57,7 +55,7 @@ class ApiHardeningTest extends TestCase
         $this->forgetRateLimits();
 
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 

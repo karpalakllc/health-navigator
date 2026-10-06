@@ -2,15 +2,20 @@
 
 namespace Database\Seeders;
 
-use App\Enums\UserKind;
-use App\Enums\UserRole;
-use App\Models\User;
 use App\Support\PermissionCatalog;
+use App\Support\RoleCatalog;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Creates the permission catalogue and the built-in roles with their default
+ * permissions. It never touches who holds which role: assignments are made by
+ * registration, the admin panel, platform:bootstrap and the demo seeders, and
+ * re-running this must not undo a manual promotion or demotion. (It used to
+ * re-sync every account from the legacy `users.role` column on each run.)
+ */
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
@@ -21,30 +26,8 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($name, 'web');
         }
 
-        $administrator = Role::findOrCreate('Administrator', 'web');
-        $administrator->syncPermissions(PermissionCatalog::all());
-
-        $moderator = Role::findOrCreate('Moderator', 'web');
-        $moderator->syncPermissions(PermissionCatalog::moderatorDefaults());
-
-        $forumModerator = Role::findOrCreate('Forum Moderator', 'web');
-        $forumModerator->syncPermissions(PermissionCatalog::forumModeratorDefaults());
-
-        User::query()
-            ->where('role', UserRole::Admin)
-            ->each(fn (User $user) => $user->syncRoles([$administrator]));
-
-        User::query()
-            ->where('role', UserRole::Moderator)
-            ->each(fn (User $user) => $user->syncRoles([$moderator]));
-
-        User::query()
-            ->where('user_kind', UserKind::Staff)
-            ->whereDoesntHave('roles')
-            ->each(function (User $user): void {
-                $user->assignRole(
-                    $user->role === UserRole::Admin ? 'Administrator' : 'Moderator',
-                );
-            });
+        foreach (RoleCatalog::defaults() as $role => $permissions) {
+            Role::findOrCreate($role, 'web')->syncPermissions($permissions);
+        }
     }
 }

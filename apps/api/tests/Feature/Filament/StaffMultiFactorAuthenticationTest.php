@@ -3,7 +3,6 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Models\SiteSetting;
@@ -48,7 +47,6 @@ class StaffMultiFactorAuthenticationTest extends TestCase
     {
         $admin = User::factory()->create([
             'password' => self::PASSWORD,
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
             'app_authentication_secret' => $secret,
             'app_authentication_recovery_codes' => $recoveryCodes === []
@@ -64,7 +62,6 @@ class StaffMultiFactorAuthenticationTest extends TestCase
     {
         $moderator = User::factory()->create([
             'password' => self::PASSWORD,
-            'role' => UserRole::Member,
             'user_kind' => UserKind::Client,
             'app_authentication_secret' => $secret,
         ]);

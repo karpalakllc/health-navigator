@@ -10,6 +10,7 @@ use App\Notifications\VerifyEmailNotification;
 use App\Support\EmailAddress;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
+use App\Support\RoleCatalog;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
@@ -31,7 +32,7 @@ use Laravel\Sanctum\HasApiTokens;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'user_kind', 'avatar_path'])]
+#[Fillable(['name', 'email', 'password', 'user_kind', 'avatar_path'])]
 // The second-factor columns are hidden here as well as by Filament's traits, so
 // that dropping a trait can never start serialising them.
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
@@ -48,7 +49,6 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'email_verified_at' => 'datetime',
             'registration_contested_at' => 'datetime',
             'password' => 'hashed',
-            'role' => UserRole::class,
             'user_kind' => UserKind::class,
             // Ciphertext under APP_KEY; the recovery codes inside are also hashed.
             'app_authentication_secret' => 'encrypted',
@@ -127,13 +127,33 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             );
     }
 
+    /**
+     * The Administrator role and nothing else. The legacy `role` column and
+     * holding `settings.update` used to count too; both were things a
+     * lower-privileged account could end up with without being an administrator.
+     */
     public function isAdmin(): bool
     {
-        return $this->hasRole('Administrator')
-            || $this->can('settings.update')
-            || $this->role === UserRole::Admin;
+        return $this->hasRole(RoleCatalog::ADMINISTRATOR);
     }
 
+    /**
+     * The coarse account type the API reports as `role` (the web app labels it
+     * on the account page). Derived for display only — never authorize on it.
+     */
+    public function accountRole(): UserRole
+    {
+        return match (true) {
+            $this->isAdmin() => UserRole::Admin,
+            $this->isStaff() => UserRole::Moderator,
+            default => UserRole::Member,
+        };
+    }
+
+    /**
+     * `user_kind` segments accounts into the Staff and Clients admin resources.
+     * It does not grant anything; permissions come from Spatie roles.
+     */
     public function isStaff(): bool
     {
         return $this->user_kind === UserKind::Staff;
@@ -146,7 +166,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     public function isForumModerator(): bool
     {
-        return $this->hasRole('Forum Moderator');
+        return $this->hasRole(RoleCatalog::FORUM_MODERATOR);
     }
 
     /**

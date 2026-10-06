@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
 use App\Models\TriageSession;
@@ -181,7 +180,7 @@ class SecurityRegressionTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
 
         $category = ForumCategory::factory()->create(['is_published' => true]);

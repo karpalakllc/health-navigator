@@ -2,8 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
 use App\Models\User;
@@ -31,7 +29,7 @@ class ForumTopicModerationParityTest extends TestCase
 
     public function test_a_topic_without_a_category_is_not_moderatable_by_either_path(): void
     {
-        $moderator = User::factory()->create(['role' => UserRole::Moderator, 'user_kind' => UserKind::Staff]);
+        $moderator = User::factory()->staff()->create();
         $moderator->syncRoles(['Moderator']);
 
         $topic = ForumTopic::factory()->create();
@@ -48,14 +46,14 @@ class ForumTopicModerationParityTest extends TestCase
         $inScope = ForumTopic::factory()->create(['forum_category_id' => $mine->getKey()]);
         $outOfScope = ForumTopic::factory()->create(['forum_category_id' => $theirs->getKey()]);
 
-        $scoped = User::factory()->create(['role' => UserRole::Member, 'user_kind' => UserKind::Client]);
+        $scoped = User::factory()->create();
         $scoped->assignRole('Forum Moderator');
         $scoped->moderatedForumCategories()->attach($mine);
 
-        $staff = User::factory()->create(['role' => UserRole::Moderator, 'user_kind' => UserKind::Staff]);
+        $staff = User::factory()->staff()->create();
         $staff->syncRoles(['Moderator']);
 
-        $member = User::factory()->create(['role' => UserRole::Member, 'user_kind' => UserKind::Client]);
+        $member = User::factory()->create();
 
         foreach ([$scoped, $staff, $member] as $user) {
             foreach ([$inScope, $outOfScope] as $topic) {

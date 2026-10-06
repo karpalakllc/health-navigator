@@ -3,7 +3,6 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Pages\Auth\Login;
 use App\Models\SiteSetting;
 use App\Models\User;
@@ -44,7 +43,6 @@ class AdminRememberMeTest extends TestCase
     {
         $admin = User::factory()->create([
             'password' => self::PASSWORD,
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
             'app_authentication_secret' => $secret,
         ]);
