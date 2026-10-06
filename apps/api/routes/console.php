@@ -40,6 +40,12 @@ Schedule::command('queue:prune-failed --hours=720')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Sign-ups never verified within zdravje.accounts.unverified_prune_days (7).
+Schedule::command('accounts:prune-unverified')
+    ->dailyAt('04:40')
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Released usernames are held back from others for six months, then the
 // private record of them goes too.
 Schedule::command('model:prune', ['--model' => [UsernameHistory::class]])

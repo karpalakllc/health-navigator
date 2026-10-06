@@ -182,9 +182,13 @@ class AuthController extends Controller
             // The Member role is what lets the account post reviews and forum
             // content; created together so no account exists without it.
             $user = DB::transaction(function () use ($name, $username, $email, $hashedPassword): User {
+                // The chosen name is only held once the address is verified
+                // (AssignRequestedUsername); until then the account carries a
+                // temporary one (User::booted()). Holding it now would make the
+                // availability check tell a new address from a registered one.
                 $user = User::query()->forceCreate([
                     'name' => $name,
-                    'username' => $username,
+                    'requested_username' => $username,
                     'email' => $email,
                     'password' => $hashedPassword,
                     'user_kind' => UserKind::Client,
@@ -199,7 +203,7 @@ class AuthController extends Controller
 
                 return $user;
             });
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $e) {
             // Lost a race with a concurrent signup for the same address. Treat it
             // exactly like the "already registered" branch above.
             $raced = User::query()->where('email', $email)->first();
@@ -210,10 +214,9 @@ class AuthController extends Controller
                 return $this->registrationAccepted();
             }
 
-            // Not the address, so the username: someone took it a moment ago.
-            throw ValidationException::withMessages([
-                'username' => [__('validation.custom.username.taken')],
-            ]);
+            // Nothing else is unique on a new account: the username is a
+            // fresh temporary one, so this is not a name collision to report.
+            throw $e;
         }
 
         VerificationMailer::sendVerificationLink($user);

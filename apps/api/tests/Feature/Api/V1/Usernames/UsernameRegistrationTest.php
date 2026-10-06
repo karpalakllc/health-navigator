@@ -52,14 +52,12 @@ class UsernameRegistrationTest extends TestCase
 
         $user = User::query()->where('email', 'marija@example.com')->sole();
 
-        $this->assertSame('Bitolchanka', $user->username);
-        $this->assertSame('bitolchanka', $user->username_normalized);
-        $this->assertFalse($user->must_choose_username);
+        // Held privately until the address is verified (RequestedUsernameTest).
+        $this->assertSame('Bitolchanka', $user->requested_username);
         $this->assertNull($user->username_changed_at);
         $this->assertSame('Марија Костовска', $user->name);
         $this->assertTrue($user->terms_accepted_at->equalTo(now()));
         $this->assertSame(config('zdravje.legal.terms_version'), $user->terms_version);
-        $this->assertSame('Bitolchanka', $user->publicName());
     }
 
     public function test_the_terms_checkbox_is_required(): void
