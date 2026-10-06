@@ -3,13 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { CommunityTopicCard } from "@/components/home/community-topic-card";
 import { HomeDirectoryTiles } from "@/components/home/home-directory-tiles";
+import { HomeCommunity } from "@/components/home/home-community";
 import { HomeGuidanceCard } from "@/components/home/home-guidance-card";
 import { HomeFeaturedDoctorsRail } from "@/components/home/home-featured-doctors";
 import { HomeHero } from "@/components/home/home-hero";
 import { buildHeroStats, buildHomeTiles } from "@/components/home/home-tiles";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
-import { HEADER_SEARCH_INPUT_ID } from "@/components/layout/header-search";
 import type { ForumTopicSearchItem } from "@/lib/api/forum";
 import type { DoctorListItem } from "@/lib/api/types";
 import { t } from "@/i18n/t";
@@ -97,14 +97,12 @@ describe("HomeForumTransparency (owner-kept forum band + „Зошто ова е
 });
 
 describe("HomeHero", () => {
-  it("has the h1, a GET search form to /search and the quick links", async () => {
-    const { container } = render(
-      <HomeHero
-        quickLinks={[
-          { href: "/doctors?specialty=kardiologija", label: "Кардиологија" },
-        ]}
-      />,
-    );
+  const specialties = [
+    { slug: "kardiologija", name: "Кардиологија", doctors_count: 4 },
+  ];
+
+  it("has the h1, a master search to /search and the specialty chips", async () => {
+    const { container } = render(<HomeHero specialties={specialties} />);
 
     expect(
       screen.getByRole("heading", { level: 1, name: t("home.heroHeading") }),
@@ -115,9 +113,13 @@ describe("HomeHero", () => {
     expect(
       within(form).getByRole("searchbox", { name: t("nav.searchWhat") }),
     ).toHaveAttribute("name", "q");
+    // The city is a picker inside the same pill, not a second field.
+    expect(within(form).queryByRole("textbox")).toBeNull();
     expect(
-      within(form).getByRole("textbox", { name: t("nav.searchWhere") }),
-    ).toHaveAttribute("name", "city");
+      within(form).getByRole("button", {
+        name: t("homeSearch.cityTriggerNone"),
+      }),
+    ).toHaveAttribute("aria-haspopup", "dialog");
 
     const quick = screen.getByRole("list", { name: t("home.quickLinksAria") });
     expect(
@@ -130,10 +132,56 @@ describe("HomeHero", () => {
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
+  it("searches every section at once, with the picked city", async () => {
+    const user = userEvent.setup();
+    render(
+      <HomeHero
+        knownCities={[
+          { name: "Скопје", doctors_count: 6, facilities_count: 4 },
+        ]}
+      />,
+    );
+    const form = screen.getByRole("search") as HTMLFormElement;
+
+    await user.type(
+      within(form).getByRole("searchbox", { name: t("nav.searchWhat") }),
+      "кардио",
+    );
+    await user.click(
+      within(form).getByRole("button", {
+        name: t("homeSearch.cityTriggerNone"),
+      }),
+    );
+    await user.type(screen.getByRole("combobox"), "Карпош{Enter}");
+
+    // /search covers doctors, specialties, facilities, pharmacies, products
+    // and forum topics; nothing narrows it to one type.
+    expect(Array.from(new FormData(form).entries())).toEqual([
+      ["q", "кардио"],
+      ["city", "Скопје"],
+    ]);
+    expect(form.getAttribute("action")).toBe("/search");
+    expect(
+      within(form).getByText(
+        "Пребарува лекари, специјалности, установи, аптеки, производи и форумот.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("names only the enabled sections in the scope line", () => {
+    render(
+      <HomeHero
+        modules={{ pharmacies: false, products: false, forum: true }}
+      />,
+    );
+    expect(
+      screen.getByText("Пребарува лекари, специјалности, установи и форумот."),
+    ).toBeInTheDocument();
+  });
+
   it("opens with the value line and a decorative illustration, not the wordmark", () => {
     const { container } = render(
       <HomeHero
-        quickLinks={[]}
         stats={[
           { icon: "stethoscope", label: "14 лекари" },
           { icon: "building", label: "6 установи" },
@@ -155,32 +203,21 @@ describe("HomeHero", () => {
     expect(art).toHaveAttribute("focusable", "false");
     // A fixed viewBox reserves the box before paint (no layout shift).
     expect(art).toHaveAttribute("viewBox", "0 0 480 360");
+    // The soft shapes behind the band are decoration too.
+    expect(container.querySelector("[data-hero-shapes]")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
-  it("leaves the value line out when no totals are known", () => {
-    render(<HomeHero quickLinks={[]} />);
+  it("leaves the value line and chips out when nothing is known", () => {
+    render(<HomeHero />);
     expect(
       screen.queryByRole("list", { name: t("home.heroStatsAria") }),
     ).toBeNull();
-  });
-
-  it("the desktop prompt moves focus into the header search", async () => {
-    render(
-      <>
-        <input id={HEADER_SEARCH_INPUT_ID} aria-label="header q" />
-        <HomeHero quickLinks={[]} />
-      </>,
-    );
-    // jsdom has no layout: make the header input count as rendered.
-    const header = screen.getByLabelText("header q");
-    Object.defineProperty(header, "offsetParent", { value: document.body });
-
-    const prompt = screen.getByRole("link", {
-      name: t("home.heroSearchPrompt"),
-    });
-    expect(prompt).toHaveAttribute("href", "/search");
-    await userEvent.click(prompt);
-    expect(header).toHaveFocus();
+    expect(
+      screen.queryByRole("list", { name: t("home.quickLinksAria") }),
+    ).toBeNull();
   });
 });
 
@@ -414,5 +451,47 @@ describe("CommunityTopicCard", () => {
     render(<CommunityTopicCard topic={{ ...topic, replies_count: 0 }} />);
 
     expect(screen.getByText(t("home.communityUnanswered"))).toBeInTheDocument();
+  });
+});
+
+describe("HomeCommunity („Од заедницата“ band)", () => {
+  const topic: ForumTopicSearchItem = {
+    slug: "voda",
+    title: "Колку вода дневно во топло време?",
+    author_name: "Ана М.",
+    replies_count: 1,
+    last_post_at: null,
+    published_at: null,
+    category: { slug: "naviki", name: "Исхрана и навики" },
+  };
+
+  it("stands apart on the sage band with the topic count and „Сите теми“", async () => {
+    const { container } = render(
+      <HomeCommunity topics={[topic]} totalTopics={12} />,
+    );
+
+    const band = screen.getByRole("region", {
+      name: t("home.communityHeading"),
+    });
+    // A different surface from the cream page and the white/apricot cards.
+    expect(band.className.split(/\s+/)).toContain("bg-care-tint");
+    expect(band).toHaveTextContent(`12 ${t("homeSearch.communityTopicsUnit")}`);
+    expect(
+      within(band).getByRole("link", { name: topic.title }),
+    ).toHaveAttribute("href", "/forum/naviki/voda");
+    for (const link of within(band).getAllByRole("link", {
+      name: t("home.communityAll"),
+    })) {
+      expect(link).toHaveAttribute("href", "/forum");
+    }
+    expect(
+      container.querySelector('svg[data-spot-illustration="community"]'),
+    ).toHaveAttribute("aria-hidden", "true");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("renders nothing without topics", () => {
+    const { container } = render(<HomeCommunity topics={[]} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

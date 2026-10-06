@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CitiesIllustration } from "@/components/home/home-spot-illustrations";
 import { Icon } from "@/components/ui/icons";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { HomeCity } from "@/lib/api/home";
@@ -22,11 +23,14 @@ export function HomeCities({
 
   return (
     <section aria-labelledby="home-cities-title" className={className}>
-      <SectionHeader
-        id="home-cities-title"
-        title={t("homeSections.citiesTitle")}
-        description={t("homeSections.citiesLead")}
-      />
+      <div className="flex items-end justify-between gap-4">
+        <SectionHeader
+          id="home-cities-title"
+          title={t("homeSections.citiesTitle")}
+          description={t("homeSections.citiesLead")}
+        />
+        <CitiesIllustration className="w-28 shrink-0 lg:w-40" />
+      </div>
       <ul className="mt-4 flex flex-wrap gap-2 lg:mt-5 lg:gap-3">
         {cities.map((city) => (
           <li key={city.name} className="max-w-full">

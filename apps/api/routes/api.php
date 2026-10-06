@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -217,4 +218,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/forum/tags/{tag}', [ForumTagController::class, 'show']);
         Route::get('/forum/topics/related', [ForumTagController::class, 'related']);
     });
+
+    // Cities that hold published profiles, for the web's city picker (W5-H).
+    Route::get('/locations/cities', [LocationController::class, 'cities'])->middleware('cache.public:60');
 });

@@ -15,6 +15,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { fetchUnifiedSearch } from "@/lib/api/search";
 import type { UnifiedSearchResult } from "@/lib/api/types";
 import { directorySearchHref } from "@/lib/search";
+import { specialtyIcon } from "@/lib/specialty-icons";
 import { t, tCount, tFormat } from "@/i18n/t";
 
 type UnifiedSearchResultsProps = {
@@ -54,6 +55,8 @@ export async function UnifiedSearchResults({
   }
 
   const { doctors, facilities, pharmacies, products, forum_topics } = result;
+  // Matching specialties: shortcuts into the doctor list, same city.
+  const specialties = result.specialties ?? [];
 
   const sections: Section[] = [
     {
@@ -168,6 +171,36 @@ export async function UnifiedSearchResults({
                     </li>
                   ))
                 : null}
+            </ul>
+          </nav>
+        ) : null}
+
+        {specialties.length > 0 ? (
+          <nav aria-label={t("homeSearch.resultsSpecialties")}>
+            <p className="type-meta mb-2 font-semibold text-ink">
+              {t("homeSearch.resultsSpecialties")}
+            </p>
+            <ul className="scroll-row -mx-5 -my-2.5 flex gap-2 overflow-x-auto px-5 py-2.5 lg:mx-0 lg:flex-wrap lg:px-0">
+              {specialties.map((specialty) => (
+                <li key={specialty.slug} className="flex-none">
+                  <ChipLink
+                    href={directorySearchHref(
+                      "/doctors",
+                      undefined,
+                      cityParam,
+                      {
+                        specialty: specialty.slug,
+                      },
+                    )}
+                    icon={specialtyIcon(specialty)}
+                  >
+                    {specialty.name}
+                    <span className="ml-1.5 text-ink-2">
+                      {specialty.doctors_count}
+                    </span>
+                  </ChipLink>
+                </li>
+              ))}
             </ul>
           </nav>
         ) : null}

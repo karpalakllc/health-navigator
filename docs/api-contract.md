@@ -230,6 +230,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
+| `GET` | `/locations/cities` | `cache.public:60` |
 | `GET` | `/me` | `auth:sanctum` |
 | `GET` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/doctor/reviews` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
