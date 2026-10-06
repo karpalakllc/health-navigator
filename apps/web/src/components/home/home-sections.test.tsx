@@ -495,3 +495,21 @@ describe("HomeCommunity („Од заедницата“ band)", () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe("HomeFeaturedDoctorsRail title", () => {
+  it("is „Истакнати лекари“ only for the featured variant", () => {
+    const { unmount } = render(<HomeFeaturedDoctorsRail doctors={[doctor]} />);
+    expect(
+      screen.getByRole("region", { name: t("home.featuredDoctors") }),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(<HomeFeaturedDoctorsRail doctors={[doctor]} variant="topRated" />);
+    expect(
+      screen.getByRole("region", { name: t("home.topRatedDoctors") }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: t("home.featuredDoctors") }),
+    ).not.toBeInTheDocument();
+  });
+});

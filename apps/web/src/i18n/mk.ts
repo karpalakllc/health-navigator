@@ -82,6 +82,7 @@ export const mk = {
   home: {
     searchPlaceholder: "Пребарајте лекар, установа или производ…",
     featuredDoctors: "Истакнати лекари",
+    topRatedDoctors: "Најдобро оценети лекари",
     doctorsTitle: "Лекари",
     doctorsDesc: "Преглед на специјалисти со филтри по град и специјалност.",
     facilitiesTitle: "Установи",
