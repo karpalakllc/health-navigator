@@ -61,4 +61,20 @@ class ImportReviewActionsTest extends TestCase
         $this->assertFalse($actions->publish($fromWebsite, $staff));
         $this->assertSame(ImportReviewStatus::Resolved, $fromWebsite->refresh()->status);
     }
+
+    public function test_a_long_item_key_fits_the_column_on_every_database_and_stays_idempotent(): void
+    {
+        // A website wording of 200 characters: 'specialty:website:<wording>' is far over 128.
+        $key = 'specialty:website:'.str_repeat('СУБСПЕЦИЈАЛИЗАЦИЈА ПО ', 9);
+
+        $first = ImportReviewItem::raise('website', ImportReviewKind::Unmatched, $key, 'Долг текст');
+        $second = ImportReviewItem::raise('website', ImportReviewKind::Unmatched, $key, 'Долг текст');
+
+        $this->assertLessThanOrEqual(ImportReviewItem::KEY_LENGTH, mb_strlen($first->item_key));
+        $this->assertSame($first->getKey(), $second->getKey());
+        $this->assertStringStartsWith('specialty:website:СУБСПЕЦИЈАЛИЗАЦИЈА', $first->item_key);
+
+        ImportReviewItem::autoResolve('website', ImportReviewKind::Unmatched, $key, 'mapped');
+        $this->assertSame(ImportReviewStatus::Resolved, $first->refresh()->status);
+    }
 }

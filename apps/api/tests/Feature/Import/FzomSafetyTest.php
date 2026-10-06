@@ -3,6 +3,7 @@
 namespace Tests\Feature\Import;
 
 use App\Enums\ImportReviewKind;
+use App\Enums\ImportReviewStatus;
 use App\Enums\ImportRunStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
@@ -159,5 +160,47 @@ class FzomSafetyTest extends TestCase
         $this->artisan('import:fzom', ['--spec' => $spec])->assertSuccessful();
 
         $this->assertSame(0, Doctor::query()->where('import_missing_runs', '>', 0)->count());
+    }
+
+    public function test_a_dismissed_missing_item_stays_dismissed_while_the_doctor_stays_away(): void
+    {
+        config(['import.max_missing_ratio' => 0.5]);
+        $this->runSnapshot(range(0, 9));
+        $gone = Doctor::query()->where('fzo_facsimile', '800009')->firstOrFail();
+
+        $this->runSnapshot(range(0, 8));
+        $run = $this->runSnapshot(range(0, 8));
+        $this->assertSame(1, $run->count('review_missing'));
+        $item = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Missing)->where('subject_id', $gone->getKey())->firstOrFail();
+        $item->resolve(ImportReviewStatus::Dismissed, 'dismissed', null);
+
+        $run = $this->runSnapshot(range(0, 8));
+        $this->assertSame(0, $run->count('review_missing'), 'Not counted as new again.');
+        $this->assertSame(0, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Missing)->count());
+
+        // Back, then away twice again: that is new.
+        $this->runSnapshot(range(0, 9));
+        $this->runSnapshot(range(0, 8));
+        $run = $this->runSnapshot(range(0, 8));
+        $this->assertSame(1, $run->count('review_missing'));
+        $this->assertSame(1, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Missing)->count());
+    }
+
+    public function test_a_dismissed_ambiguous_row_stays_dismissed_until_it_changes(): void
+    {
+        foreach ([1, 2] as $_) {
+            Doctor::factory()->create(['full_name' => 'Име '.self::surname(3), 'city' => 'Пробно']);
+        }
+
+        $specialty = Specialty::query()->firstOrCreate(['slug' => 'interna-medicina'], ['name' => 'Интерна медицина']);
+        Doctor::query()->each(fn (Doctor $doctor) => $doctor->specialties()->syncWithoutDetaching([$specialty->getKey()]));
+
+        $run = $this->runSnapshot(range(0, 5));
+        $this->assertSame(1, $run->count('doctors_ambiguous'));
+        ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Unmatched)->firstOrFail()->resolve(ImportReviewStatus::Dismissed, 'dismissed', null);
+
+        $run = $this->runSnapshot(range(0, 5));
+        $this->assertSame(0, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Unmatched)->count());
+        $this->assertSame(0, $run->count('review_unmatched'));
     }
 }

@@ -64,7 +64,12 @@ without the minimised marker (`.minimised`) is deleted on the next run.
   `licence`) is never written by any import.
 - **Missing ≠ deleted.** A record absent from two consecutive complete
   ФЗОМ snapshots (`IMPORT_MISSING_AFTER_RUNS`) is queued as **missing**.
-  Staff decide (hide or keep). A partial run (`--pzz` or `--spec` alone)
+  Staff decide (hide or keep). It is queued once, when it crosses the
+  threshold; **Dismiss** sticks while the record stays away (it is queued
+  again only after it came back and left again). Likewise a dismissed
+  ambiguous match or unmapped wording stays dismissed while the source row
+  is the same, and the run counts (`review_*`, the alerts) count only new
+  items. A partial run (`--pzz` or `--spec` alone)
   updates what its file lists and never counts anyone as missing.
 - **Safety stop.** A complete ФЗОМ apply in which more than 20 %
   (`IMPORT_MAX_MISSING_RATIO`) of the doctors of the previous complete

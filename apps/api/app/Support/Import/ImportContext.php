@@ -86,8 +86,13 @@ final class ImportContext
      */
     public function review(ImportReviewKind $kind, string $itemKey, string $title, array $details = [], ?Model $subject = null): void
     {
-        ImportReviewItem::raise($this->source, $kind, $itemKey, $title, $details, $subject, $this->run->getKey());
-        $this->increment('review_'.$kind->value);
+        $item = ImportReviewItem::raise($this->source, $kind, $itemKey, $title, $details, $subject, $this->run->getKey());
+
+        // Counts (and so the alerts) are what is new in this run: not an
+        // item refreshed while open, nor one staff dismissed before.
+        if ($item->wasRecentlyCreated) {
+            $this->increment('review_'.$kind->value);
+        }
     }
 
     private static function stringify(mixed $value): string

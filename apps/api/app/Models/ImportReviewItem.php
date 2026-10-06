@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * One entry in the import review queue. Raised idempotently: while an item
  * with the same (source, kind, item_key) is open, a re-run refreshes it
- * instead of adding another.
+ * instead of adding another; one staff dismissed stays dismissed while its
+ * details are the same.
  *
  * @property ImportReviewKind $kind
  * @property ImportReviewStatus $status
@@ -19,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ImportReviewItem extends Model
 {
+    /** Length of the item_key column. */
+    public const KEY_LENGTH = 128;
+
     protected $fillable = [
         'import_run_id',
         'source',
@@ -60,16 +64,25 @@ class ImportReviewItem extends Model
         ?Model $subject = null,
         ?int $runId = null,
     ): self {
-        $item = static::query()
-            ->where('source', $source)
-            ->where('kind', $kind)
-            ->where('item_key', $itemKey)
-            ->where('status', ImportReviewStatus::Open)
-            ->first() ?? new self([
-                'source' => $source,
-                'kind' => $kind,
-                'item_key' => $itemKey,
-            ]);
+        $itemKey = self::key($itemKey);
+        $same = fn () => static::query()->where('source', $source)->where('kind', $kind)->where('item_key', $itemKey);
+        $item = $same()->where('status', ImportReviewStatus::Open)->first();
+
+        // Staff dismissed exactly this before: it stays dismissed until the
+        // underlying data changes (different details).
+        if ($item === null) {
+            $dismissed = $same()->where('status', ImportReviewStatus::Dismissed)->latest('id')->first();
+
+            if ($dismissed !== null && $dismissed->details == $details) {
+                return $dismissed;
+            }
+        }
+
+        $item ??= new self([
+            'source' => $source,
+            'kind' => $kind,
+            'item_key' => $itemKey,
+        ]);
 
         $item->fill([
             'title' => mb_substr($title, 0, 255),
@@ -91,7 +104,7 @@ class ImportReviewItem extends Model
         static::query()
             ->where('source', $source)
             ->where('kind', $kind)
-            ->where('item_key', $itemKey)
+            ->where('item_key', self::key($itemKey))
             ->where('status', ImportReviewStatus::Open)
             ->update([
                 'status' => ImportReviewStatus::Resolved->value,
@@ -99,6 +112,17 @@ class ImportReviewItem extends Model
                 'resolved_at' => now(),
                 'updated_at' => now(),
             ]);
+    }
+
+    /**
+     * The stored item_key (string(128)): a longer key — a long specialty
+     * wording, a website key — keeps a readable prefix and a hash of the
+     * whole, so it never overflows the column (Postgres refuses, SQLite
+     * would silently accept).
+     */
+    public static function key(string $itemKey): string
+    {
+        return mb_strlen($itemKey) <= self::KEY_LENGTH ? $itemKey : mb_substr($itemKey, 0, self::KEY_LENGTH - 41).'#'.sha1($itemKey);
     }
 
     public static function subjectTypeOf(Model $subject): string

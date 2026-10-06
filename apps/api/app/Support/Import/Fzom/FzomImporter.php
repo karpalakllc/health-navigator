@@ -636,13 +636,17 @@ final class FzomImporter
         foreach (array_chunk($absent, 500) as $chunk) {
             $model::withTrashed()->whereIn('id', $chunk)->toBase()->increment('import_missing_runs');
 
-            $model::query()->whereIn('id', $chunk)->where('import_missing_runs', '>=', $threshold)->get()
+            // Queued once, on the run that crosses the threshold: a dismissed
+            // item stays dismissed while the record stays away.
+            $model::query()->whereIn('id', $chunk)->where('import_missing_runs', $threshold)->get()
                 ->each(function (Doctor|Facility $subject) use ($context, $subjectType): void {
                     $label = (string) ($subject->getAttribute('full_name') ?? $subject->getAttribute('name'));
                     $context->record($subjectType, 'missing', $subject, $label, note: 'Absent from '.$subject->import_missing_runs.' consecutive runs.');
                     $context->review(ImportReviewKind::Missing, $subjectType.':'.$subject->getKey(), $label, [
                         'runs' => (int) $subject->import_missing_runs,
                         'published' => (bool) $subject->is_published,
+                        // A new absence (back in between) is a new item.
+                        'last_seen_at' => $subject->import_last_seen_at?->toDateTimeString(),
                     ], $subject);
                 });
         }
