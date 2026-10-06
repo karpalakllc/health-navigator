@@ -173,4 +173,31 @@ class TransactionalMailTest extends TestCase
                 && $mail->actionUrl === FrontendUrl::to('/account/reviews');
         });
     }
+
+    public function test_a_refused_review_mail_offers_the_one_resend_and_then_says_it_is_final(): void
+    {
+        Mail::fake();
+        $doctor = Doctor::factory()->create();
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
+        $review = Review::factory()->create([
+            'user_id' => $member->id,
+            'reviewable_type' => Doctor::class,
+            'reviewable_id' => $doctor->id,
+            'status' => ReviewStatus::Pending,
+        ]);
+
+        $review->reject($moderator, 'Лични податоци.');
+
+        Mail::assertQueued(UgcRejectedMail::class, fn (UgcRejectedMail $mail): bool => $mail->canResubmit && ! $mail->finalRefusal
+            && str_contains($mail->render(), 'еднаш да ја измените и да ја испратите повторно'));
+
+        Mail::fake();
+        $review->fresh()->resubmit(4, 'Изменето.', []);
+        $review->fresh()->reject($moderator, 'Сè уште лични податоци.');
+
+        Mail::assertQueued(UgcRejectedMail::class, fn (UgcRejectedMail $mail): bool => ! $mail->canResubmit && $mail->finalRefusal
+            && str_contains($mail->render(), 'Оваа одлука е конечна.')
+            && ! str_contains($mail->render(), 'еднаш да ја измените'));
+    }
 }

@@ -54,7 +54,7 @@ final class UgcMailer
      */
     public static function notifyRejected(Model $model, bool $removed = false): void
     {
-        self::sendToAuthor($model, function (User $user, array $payload) use ($removed): void {
+        self::sendToAuthor($model, function (User $user, array $payload) use ($model, $removed): void {
             Mail::to($user)->queue(new UgcRejectedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
@@ -64,6 +64,9 @@ final class UgcMailer
                 masculine: $payload['masculine'],
                 rejectionNote: $payload['rejection_note'] ?? null,
                 removed: $removed,
+                canResubmit: ! $removed && $model instanceof Review && $model->canBeResubmitted(),
+                finalRefusal: ! $removed && $model instanceof Review && ! $model->isRemoved()
+                    && (int) $model->resubmission_count >= Review::MAX_RESUBMISSIONS,
             ));
         });
     }
