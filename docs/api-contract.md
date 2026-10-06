@@ -206,6 +206,8 @@ nobody can hold an account locked by merely sending traffic.
 | Method | Path | Guards |
 |--------|------|--------|
 | `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
+| `DELETE` | `/me/doctor/change-requests/{changeRequest}` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `DELETE` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `DELETE` | `/me/tokens` | `auth:sanctum` |
 | `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
 | `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
@@ -226,6 +228,8 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
 | `GET` | `/me` | `auth:sanctum` |
+| `GET` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
+| `GET` | `/me/doctor/reviews` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
@@ -245,6 +249,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/triage/flow` | `module:guidance` |
 | `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
+| `PATCH` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
@@ -252,6 +257,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/auth/logout` | `auth:sanctum` |
 | `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
+| `POST` | `/doctors/{slug}/claim-requests` | `auth:sanctum`, `verified`, `throttle:5,1440,api-doctor-claims` |
 | `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
@@ -259,11 +265,14 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
+| `POST` | `/me/doctor/avatar` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `POST` | `/me/doctor/change-requests` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
 <!-- END generated route table -->
@@ -321,8 +330,10 @@ nobody can hold an account locked by merely sending traffic.
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
   `meta.rating_counts` is `{"1": n, …, "5": n}` over **approved** reviews of the
   profile, independent of the `rating` filter and the page. Each review carries
-  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at}`:
-  the doctor's or facility's official reply, plain text) and, **only on a
+  `helpful_count`, `response` (`null`, or `{body, responder_name, responded_at,
+  source}`: the doctor's or facility's reply, plain text; `source` is `staff`
+  when staff entered it on the profile's behalf, `doctor` when the linked
+  doctor wrote it — shown only once approved) and, **only on a
   signed-in request**, `viewer.has_voted_helpful`; anonymous payloads carry no
   viewer state. Each review also carries `aspects` (`{code: 1–5}`, possibly
   empty). **Removed reviews** (published, then taken down) stay in the list as
@@ -363,6 +374,46 @@ nobody can hold an account locked by merely sending traffic.
   signed-in request the topic and each reply carry `viewer.is_own` (the web
   hides „Пријави“ on it), and the topic's `viewer.can_moderate` is present only
   when true; anonymous payloads carry no `viewer`.
+- **Doctor accounts („Мој профил“).** Staff link one member account to one
+  doctor profile (admin panel). `GET /me` then carries
+  `user.managed_doctor` (`{slug, full_name, is_published}`, else `null`).
+  Everything under `/me/doctor` (verified accounts) resolves the profile from
+  the account, never from the URL; an unlinked, suspended or deleted account
+  gets **404** `doctor_account.not_linked`.
+  `GET /me/doctor` returns `doctor` (current values; `specialties` and
+  `facilities` as `{id, name, is_primary}`, `language_ids`,
+  `clinical_interest_ids`, `procedure_ids`), `pending_change_request`,
+  `recent_change_requests`, `stats {review_count, average_rating,
+  unanswered_reviews, pending_replies}`, `settings.replies_require_moderation`
+  and the `options` the selects offer. `PATCH /me/doctor` saves `bio`, `phone`,
+  `email`, `consultation_fee_note`, `accepts_new_patients`, `office_hours`
+  (day → hours), `language_ids`, `clinical_interest_ids`, `procedure_ids`
+  at once (plain text; any other key is ignored — slug, publication,
+  featured and sponsored are never the doctor's). `POST /me/doctor/avatar`
+  (multipart `avatar`, ≤ 5 MB) re-encodes the photo to WebP.
+  `POST /me/doctor/change-requests` takes `full_name`, `title`,
+  `subspecialty`, `education`, `years_experience`, `city`, `specialty_ids` /
+  `primary_specialty_id`, `facility_ids` / `primary_facility_id` and an
+  optional `message`; it stores the field-level diff `{field: {old, new}}`
+  for staff (201), 422 `doctor_account.no_changes` when nothing differs, 409
+  `doctor_account.change_request_pending` while one waits. `DELETE
+  /me/doctor/change-requests/{id}` withdraws a pending one.
+  `GET /me/doctor/reviews?filter=all|unanswered` lists the profile's approved
+  reviews (public author name only) with `reply {body, source, status,
+  responded_at, rejection_note}` and `can_reply`. `PUT
+  /me/doctor/reviews/{id}/reply` (`body`, 2–2000, plain text) writes or
+  replaces the doctor's one reply — `pending` until staff approve while
+  `doctor_replies_require_moderation` is on (default), and an edit waits
+  again; 409 `doctor_account.reply_staff_exists` under a staff-entered
+  response. `DELETE` removes the doctor's own reply. A review of another
+  profile is 404. The linked doctor cannot review their own profile (422
+  `review`).
+- `POST /doctors/{slug}/claim-requests` („Ова е мој профил“; verified member)
+  takes `message` (10–1000) and `contact` (5–255). 201 on the first request,
+  200 for a repeat while it is pending; 409 `doctor_account.claim_taken`,
+  `claim_already_yours` or `claim_already_manager`; 429
+  `doctor_account.claim_limit` beyond 3 open requests. Staff verify the person
+  outside the platform and assign the account in the admin panel.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.
@@ -404,6 +455,11 @@ Authorization uses **Spatie roles and permissions** only. Built-in roles:
   role, optionally scoped to specific categories via `forum_category_moderator`.
   A scoped moderator is refused outside their categories, on both the API and
   the admin panel.
+
+- `doctors.assign_owner` (link or unlink a doctor's account, handle profile
+  claims) and `audit.view` (the admin activity log) are held by the
+  Administrator only by default. Deciding a doctor's change request needs
+  `doctors.update`; moderating a doctor's reply needs `reviews.respond`.
 
 See [community-moderator-onboarding.md](./community-moderator-onboarding.md).
 

@@ -123,12 +123,25 @@ export function ReviewList({
 export function OfficialResponse({ response }: { response: ReviewResponse }) {
   const date = formatMkDate(response.responded_at);
 
+  // The doctor's own reply („Мој профил“) is labelled apart from one staff
+  // entered on the profile's behalf, and signed with the doctor's name.
+  const fromDoctor = response.source === "doctor";
+
   return (
     <section className="flex flex-col gap-1.5 rounded-2xl border-l-4 border-line-strong bg-sand p-4">
+      {fromDoctor ? (
+        <p className="type-meta font-semibold text-ink-2">
+          {t("doctorDashboard.publicLabel")}
+        </p>
+      ) : null}
       <h3 className="type-label text-ink">
-        {response.responder_name
-          ? tFormat("reviewResponse.title", { name: response.responder_name })
-          : t("reviewResponse.titleGeneric")}
+        {fromDoctor && response.responder_name
+          ? response.responder_name
+          : response.responder_name
+            ? tFormat("reviewResponse.title", {
+                name: response.responder_name,
+              })
+            : t("reviewResponse.titleGeneric")}
       </h3>
       {date && response.responded_at ? (
         <time dateTime={response.responded_at} className="type-meta text-ink-2">

@@ -32,6 +32,8 @@ class ViewReview extends ViewRecord
                     $data['rejection_note'] ?? null,
                 )),
             ReviewResponseActions::respond(),
+            ReviewResponseActions::approveDoctorReply(),
+            ReviewResponseActions::rejectDoctorReply(),
             ReviewResponseActions::remove(),
         ];
     }

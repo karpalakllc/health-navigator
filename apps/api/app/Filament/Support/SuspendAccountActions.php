@@ -42,6 +42,14 @@ final class SuspendAccountActions
 
                 $record->suspend($actor, trim((string) $data['reason']));
 
+                // Audit log: who suspended whom, and when. The reason stays
+                // on the account only (staff-only text about a member).
+                activity('accounts')
+                    ->performedOn($record)
+                    ->causedBy($actor)
+                    ->event('suspended')
+                    ->log('suspended');
+
                 Notification::make()
                     ->title('Account suspended')
                     ->success()
@@ -65,6 +73,12 @@ final class SuspendAccountActions
                 abort_unless($actor instanceof User && $actor->can('suspend', $record), 403);
 
                 $record->unsuspend();
+
+                activity('accounts')
+                    ->performedOn($record)
+                    ->causedBy($actor)
+                    ->event('unsuspended')
+                    ->log('unsuspended');
 
                 Notification::make()
                     ->title('Suspension lifted')

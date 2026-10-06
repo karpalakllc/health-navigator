@@ -16,6 +16,7 @@ import {
   ProfileSection,
   ProfileTagList,
 } from "@/components/directory/profile-parts";
+import { DoctorClaimLink } from "@/components/doctor-dashboard/doctor-claim-link";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
@@ -304,6 +305,8 @@ export default async function DoctorDetailPage({
               summary={doctor.review_summary}
               searchParams={reviewQuery}
             />
+
+            <DoctorClaimLink slug={slug} />
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}

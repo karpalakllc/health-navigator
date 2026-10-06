@@ -21,7 +21,9 @@ final class ReviewResponseActions
         return Action::make('respond')
             ->label(fn (Review $record): string => $record->hasResponse() ? 'Edit response' : 'Add official response')
             ->icon('heroicon-o-chat-bubble-left-ellipsis')
-            ->visible(fn (Review $record): bool => self::allowed($record))
+            // A doctor's own reply is approved or rejected below, not rewritten
+            // under staff's name; removing it stays possible.
+            ->visible(fn (Review $record): bool => self::allowed($record) && ! $record->hasDoctorReply())
             ->modalDescription('Entered on behalf of the reviewed doctor or facility, after they sent it to us. Shown publicly under the review, signed with the profile name. Plain text, in Macedonian.')
             ->fillForm(fn (Review $record): array => ['response_body' => $record->response_body])
             ->form([
@@ -33,7 +35,7 @@ final class ReviewResponseActions
                     ->rows(6),
             ])
             ->action(function (Review $record, array $data): void {
-                if (! self::allowed($record)) {
+                if (! self::allowed($record) || $record->hasDoctorReply()) {
                     return;
                 }
 
@@ -67,6 +69,58 @@ final class ReviewResponseActions
                 $record->removeResponse();
 
                 Notification::make()->title('Response removed')->success()->send();
+            });
+    }
+
+    /**
+     * A linked doctor's own reply („Мој профил“) waits here while
+     * doctor_replies_require_moderation is on. Approving publishes it under
+     * the review with the „Одговор од лекарот“ label.
+     */
+    public static function approveDoctorReply(): Action
+    {
+        return Action::make('approveDoctorReply')
+            ->label('Approve doctor reply')
+            ->icon('heroicon-o-check-badge')
+            ->color('success')
+            ->visible(fn (Review $record): bool => $record->hasPendingDoctorReply() && self::mayRespond($record))
+            ->requiresConfirmation()
+            ->modalDescription('Check that the reply does not reveal or confirm anything about a patient (not even that the reviewer was one), then publish it.')
+            ->action(function (Review $record): void {
+                if (! $record->hasPendingDoctorReply() || ! self::mayRespond($record)) {
+                    return;
+                }
+
+                $record->approveDoctorReply(self::actor());
+
+                Notification::make()->title('Doctor reply published')->success()->send();
+            });
+    }
+
+    public static function rejectDoctorReply(): Action
+    {
+        return Action::make('rejectDoctorReply')
+            ->label('Reject doctor reply')
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->visible(fn (Review $record): bool => $record->hasPendingDoctorReply() && self::mayRespond($record))
+            ->modalDescription('The reply stays unpublished. The doctor sees this reason on their dashboard and can rewrite the reply.')
+            ->schema([
+                Textarea::make('response_rejection_note')
+                    ->label('Reason (shown to the doctor)')
+                    ->required()
+                    ->minLength(5)
+                    ->maxLength(500)
+                    ->rows(3),
+            ])
+            ->action(function (Review $record, array $data): void {
+                if (! $record->hasPendingDoctorReply() || ! self::mayRespond($record)) {
+                    return;
+                }
+
+                $record->rejectDoctorReply(self::actor(), trim((string) ($data['response_rejection_note'] ?? '')));
+
+                Notification::make()->title('Doctor reply rejected')->success()->send();
             });
     }
 

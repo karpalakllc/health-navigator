@@ -74,7 +74,7 @@ class E2ESeeder extends Seeder
     public const ATTEMPTS = 3;
 
     /** @var list<string> each becomes "{prefix}-{attempt}@e2e.test" */
-    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported', 'account'];
+    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported', 'account', 'doctor'];
 
     public const SPECIALTY_SLUG = 'e2e-kardiologija';
 
@@ -101,6 +101,15 @@ class E2ESeeder extends Seeder
     /** One distinctive word, so a search that leaks the topic cannot match anything else. */
     public const HIDDEN_FORUM_TOPIC_TITLE = 'Ксилофонска тема во скриена категорија';
 
+    /**
+     * Doctor accounts (e2e/doctor-claim.spec.ts): one unmanaged profile per
+     * attempt, "{prefix}-{attempt}", for "doctor-{attempt}@e2e.test" to be
+     * assigned to, with one published review to reply to.
+     */
+    public const DOCTOR_CLAIM_SLUG_PREFIX = 'e2e-doctor-claim';
+
+    public const DOCTOR_CLAIM_NAME_PREFIX = 'д-р Петар Тестовски';
+
     public function run(): void
     {
         // Narrower than DeploymentEnvironment::NON_DEPLOYED: a shared
@@ -120,6 +129,7 @@ class E2ESeeder extends Seeder
         $this->seedForum();
         $this->seedReviews();
         $this->seedReportableReviews();
+        $this->seedDoctorClaimProfiles();
     }
 
     /**
@@ -383,6 +393,45 @@ class E2ESeeder extends Seeder
             $review->reports()->delete();
             DB::table('review_helpful_votes')->where('review_id', $review->id)->delete();
             $review->forceFill(['helpful_count' => 0])->save();
+        }
+    }
+
+    /**
+     * Re-seeding returns each profile to unmanaged, with no change requests
+     * and its review without a reply.
+     */
+    private function seedDoctorClaimProfiles(): void
+    {
+        $author = User::query()->where('email', self::MEMBER_EMAIL)->firstOrFail();
+
+        for ($attempt = 0; $attempt < self::ATTEMPTS; $attempt++) {
+            $doctor = Doctor::query()->updateOrCreate(
+                ['slug' => self::DOCTOR_CLAIM_SLUG_PREFIX."-{$attempt}"],
+                [
+                    'full_name' => self::DOCTOR_CLAIM_NAME_PREFIX." {$attempt}",
+                    'title' => 'д-р',
+                    'bio' => 'Профил за E2E тестови на „Мој профил“.',
+                    'city' => 'Скопје',
+                    'phone' => "+389 70 100 00{$attempt}",
+                    'accepts_new_patients' => true,
+                    'is_published' => true,
+                    'published_at' => now(),
+                ],
+            );
+
+            $doctor->forceFill(['owner_user_id' => null, 'owner_linked_at' => null, 'owner_linked_by_id' => null])->save();
+            $doctor->changeRequests()->delete();
+
+            $review = Review::query()->updateOrCreate(
+                ['user_id' => $author->id, 'reviewable_type' => Doctor::class, 'reviewable_id' => $doctor->id],
+                [
+                    'rating' => 5,
+                    'body' => "Внимателен и јасен лекар (E2E {$attempt}).",
+                    'status' => ReviewStatus::Approved,
+                    'published_at' => now()->subDays(2),
+                ],
+            );
+            $review->removeResponse();
         }
     }
 }

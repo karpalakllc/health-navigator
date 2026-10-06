@@ -17,6 +17,7 @@ final class PermissionCatalog
             self::guidance(),
             self::member(),
             self::usernames(),
+            self::doctorAccountsAndAudit(),
         );
     }
 
@@ -132,6 +133,23 @@ final class PermissionCatalog
             'content_reports.view',
             'content_reports.resolve',
             'reviews.respond',
+        ];
+    }
+
+    /**
+     * Doctor accounts (W5-C): assigning a member account to a doctor profile
+     * (and handling „Ова е мој профил“ requests), and reading the audit log.
+     * Administrator only by default. Approving a doctor's change request
+     * needs doctors.update; moderating a doctor's reply needs reviews.respond.
+     * Added after launch, so a migration grants them to existing roles too.
+     *
+     * @return list<string>
+     */
+    public static function doctorAccountsAndAudit(): array
+    {
+        return [
+            'doctors.assign_owner',
+            'audit.view',
         ];
     }
 

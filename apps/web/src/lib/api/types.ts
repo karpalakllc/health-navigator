@@ -166,6 +166,8 @@ export type ReviewResponse = {
   body: string;
   responder_name: string | null;
   responded_at: string | null;
+  /** `doctor`: written by the linked doctor („Одговор од лекарот“); `staff`: entered on the profile's behalf. */
+  source?: "staff" | "doctor";
 };
 
 export type DoctorDetail = {

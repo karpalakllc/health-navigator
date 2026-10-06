@@ -218,6 +218,13 @@ class ReviewController extends Controller
 
         $user = $request->user();
 
+        // The doctor managing the profile cannot rate it („Мој профил“).
+        if ($reviewable instanceof Doctor && $reviewable->isOwnedBy($user)) {
+            throw ValidationException::withMessages([
+                'review' => [__('api.review.own_profile')],
+            ]);
+        }
+
         if (
             Review::query()
                 ->where('user_id', $user->id)

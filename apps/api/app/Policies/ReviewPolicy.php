@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Enums\ReviewStatus;
+use App\Models\Doctor;
 use App\Models\Review;
 use App\Models\User;
 use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
@@ -48,6 +50,20 @@ class ReviewPolicy
     public function respond(User $user, Review $review): bool
     {
         return $user->can('reviews.respond');
+    }
+
+    /**
+     * A linked doctor's own reply: only under a published review of the
+     * profile their account manages. Hiding, editing or deleting the review
+     * itself stays with staff.
+     */
+    public function replyAsDoctor(User $user, Review $review): bool
+    {
+        $doctor = $review->reviewable;
+
+        return $review->status === ReviewStatus::Approved
+            && $doctor instanceof Doctor
+            && $user->can('manageOwnProfile', $doctor);
     }
 
     public function delete(User $user, Review $review): bool

@@ -29,6 +29,23 @@ describe("AccountSubNav", () => {
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
+  it("offers „Мој профил“ only to an account that manages a doctor profile", async () => {
+    const { container, rerender } = render(<AccountSubNav current="doctor" />);
+
+    expect(
+      screen.queryByRole("link", { name: t("doctorDashboard.navLabel") }),
+    ).toBeNull();
+
+    rerender(<AccountSubNav current="doctor" showDoctor />);
+
+    const link = screen.getByRole("link", {
+      name: t("doctorDashboard.navLabel"),
+    });
+    expect(link).toHaveAttribute("href", "/account/doctor");
+    expect(link).toHaveAttribute("aria-current", "page");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
   it("leaves room for the focus ring inside the scrolling row", () => {
     render(<AccountSubNav current="reviews" />);
 

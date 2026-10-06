@@ -29,7 +29,7 @@ export const staffTotpSecrets = {
  * (E2ESeeder::ATTEMPTS), so a retry starts from an untouched account.
  */
 export function attemptUser(
-  prefix: "reviewer" | "forum" | "reset" | "reported" | "account",
+  prefix: "reviewer" | "forum" | "reset" | "reported" | "account" | "doctor",
   retry: number,
 ): string {
   return `${prefix}-${retry}@e2e.test`;
@@ -39,6 +39,23 @@ export const doctor = {
   slug: "e2e-ana-testovska",
   name: "д-р Ана Тестовска",
 } as const;
+
+/**
+ * „Мој профил“ (doctor-claim.spec.ts): one unmanaged profile per attempt
+ * (E2ESeeder::DOCTOR_CLAIM_*), for "doctor-{retry}@e2e.test", with one
+ * published review by the member account.
+ */
+export function claimDoctor(retry: number): {
+  slug: string;
+  name: string;
+  reviewBody: string;
+} {
+  return {
+    slug: `e2e-doctor-claim-${retry}`,
+    name: `д-р Петар Тестовски ${retry}`,
+    reviewBody: `Внимателен и јасен лекар (E2E ${retry}).`,
+  };
+}
 
 export const facilitySlug = "e2e-klinika-centar";
 export const pharmacySlug = "e2e-apteka-centar";

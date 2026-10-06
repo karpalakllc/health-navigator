@@ -76,6 +76,7 @@ return [
         'duplicate' => 'You have already submitted a review for this profile.',
         'helpful_own' => 'You cannot mark your own review as helpful.',
         'aspect_unknown' => 'One of the extra ratings does not exist for this profile.',
+        'own_profile' => 'You cannot review the profile you manage.',
     ],
 
     'report' => [
@@ -105,6 +106,33 @@ return [
             'body' => 'We could not load detailed guidance. If you are worried about your health, contact a healthcare professional or emergency services (194 / 112).',
             'home' => 'Home',
             'emergency' => 'Emergency numbers',
+        ],
+    ],
+
+    // „Мој профил“: a doctor's own account (W5-C).
+    'doctor_account' => [
+        'not_linked' => 'This account is not linked to a doctor profile.',
+        'no_changes' => 'Nothing differs from the current profile.',
+        'change_request_pending' => 'You already have a change request waiting for review. Wait for the decision or withdraw it.',
+        'change_request_received' => 'Request sent. The profile keeps its current details until the team reviews it.',
+        'reply_staff_exists' => 'This review already has a response entered by the team. Contact us to change it.',
+        'reply_pending' => 'Reply saved. It will be published once the team has reviewed it.',
+        'reply_published' => 'Reply published.',
+        'office_hours_day' => 'Choose a day of the week.',
+        'claim_received' => 'Request sent. The team will contact you to confirm the profile is yours.',
+        'claim_taken' => 'Another account already manages this profile. If you think this is a mistake, contact us.',
+        'claim_already_yours' => 'You already manage this profile.',
+        'claim_already_manager' => 'Your account already manages a doctor profile.',
+        'claim_limit' => 'You have several open requests. Wait for the team to review them.',
+        'fields' => [
+            'full_name' => 'full name',
+            'title' => 'title',
+            'subspecialty' => 'subspecialty',
+            'education' => 'education',
+            'years_experience' => 'years of experience',
+            'city' => 'city',
+            'specialties' => 'specialties',
+            'facilities' => 'workplaces',
         ],
     ],
 

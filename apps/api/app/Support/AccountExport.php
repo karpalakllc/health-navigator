@@ -3,9 +3,12 @@
 namespace App\Support;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\ReviewResponseSource;
 use App\Models\AnalyticsEvent;
 use App\Models\ContentReport;
 use App\Models\Doctor;
+use App\Models\DoctorChangeRequest;
+use App\Models\DoctorClaimRequest;
 use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -88,6 +91,8 @@ final class AccountExport
             'properties' => $event->properties,
             'occurred_at' => $event->occurred_at->toIso8601String(),
         ]);
+        echo ',';
+        $this->writeDoctorAccount();
 
         echo '}';
     }
@@ -234,6 +239,49 @@ final class AccountExport
     private function reports(): Builder
     {
         return ContentReport::query()->where('user_id', $this->user->getKey());
+    }
+
+    /**
+     * „Мој профил“: the doctor profile this account manages, its change
+     * requests and replies, and its „Ова е мој профил“ requests. Staff who
+     * decided them are not named.
+     */
+    private function writeDoctorAccount(): void
+    {
+        $managed = Doctor::withTrashed()->where('owner_user_id', $this->user->getKey())->first();
+
+        echo $this->member('managed_doctor', $managed ? [
+            'slug' => $managed->slug,
+            'full_name' => $managed->full_name,
+            'linked_at' => $managed->owner_linked_at?->toIso8601String(),
+        ] : null).',';
+
+        $this->writeList('doctor_change_requests', DoctorChangeRequest::query()->where('user_id', $this->user->getKey()), fn (DoctorChangeRequest $request): array => [
+            'changes' => $request->changes,
+            'message' => $request->message,
+            'status' => $request->status->value,
+            'rejection_reason' => $request->rejection_reason,
+            'created_at' => $request->created_at?->toIso8601String(),
+            'reviewed_at' => $request->reviewed_at?->toIso8601String(),
+        ]);
+        echo ',';
+        $this->writeList('doctor_claim_requests', DoctorClaimRequest::query()->where('user_id', $this->user->getKey()), fn (DoctorClaimRequest $claim): array => [
+            'doctor_slug' => $claim->doctor?->slug,
+            'message' => $claim->message,
+            'contact' => $claim->contact,
+            'status' => $claim->status->value,
+            'created_at' => $claim->created_at?->toIso8601String(),
+        ]);
+        echo ',';
+        $this->writeList('doctor_replies', Review::query()
+            ->where('response_by_id', $this->user->getKey())
+            ->where('response_source', ReviewResponseSource::Doctor), fn (Review $review): array => [
+                'review_id' => $review->getKey(),
+                'body' => $review->response_body,
+                'status' => $review->response_status?->value,
+                'rejection_note' => $review->response_rejection_note,
+                'responded_at' => $review->response_at?->toIso8601String(),
+            ]);
     }
 
     /**

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { apiGetPaginatedServer, apiGetServer } from "@/lib/api/server";
 
 export type ProfileAvatarMeta = {
@@ -23,6 +24,14 @@ export type AuthUser = {
   avatar_url: string | null;
   avatar_initials: string;
   profile_avatar: ProfileAvatarMeta;
+  /** „Мој профил“: the doctor profile staff linked to this account, if any. */
+  managed_doctor?: ManagedDoctorSummary | null;
+};
+
+export type ManagedDoctorSummary = {
+  slug: string;
+  full_name: string;
+  is_published: boolean;
 };
 
 export type MyReview = {
@@ -42,6 +51,22 @@ export async function fetchMe(): Promise<AuthUser> {
   const data = await apiGetServer<{ user: AuthUser }>("/me");
   return data.user;
 }
+
+/**
+ * One /me per request for the parts of a page that only need to know whether
+ * the account manages a doctor profile (the account nav), however many of
+ * them ask. Null when signed out or the API is unreachable: the nav then
+ * simply leaves the entry out.
+ */
+export const fetchManagedDoctor = cache(
+  async (): Promise<ManagedDoctorSummary | null> => {
+    try {
+      return (await fetchMe()).managed_doctor ?? null;
+    } catch {
+      return null;
+    }
+  },
+);
 
 export async function fetchMyReviews(page = 1) {
   return apiGetPaginatedServer<MyReview>(`/me/reviews?page=${page}`);
