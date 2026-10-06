@@ -229,6 +229,12 @@ describe("DoctorClaimForm", () => {
         exact: false,
       }),
     ).toHaveAccessibleDescription(/Внесете телефон или е-адреса\./);
+    // It takes a phone or an e-mail: not autofilled as a phone number.
+    expect(
+      screen.getByLabelText(t("doctorDashboard.claimContact"), {
+        exact: false,
+      }),
+    ).not.toHaveAttribute("autocomplete", "tel");
 
     await user.type(
       screen.getByLabelText(t("doctorDashboard.claimMessage"), {

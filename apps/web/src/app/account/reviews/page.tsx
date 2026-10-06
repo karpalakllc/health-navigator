@@ -153,7 +153,7 @@ export default async function AccountReviewsPage({
                   {review.can_resubmit && href ? (
                     <Link
                       href={`${href}#review-form`}
-                      className="link-underline self-start type-body font-semibold text-ink"
+                      className="link-underline inline-flex min-h-12 items-center self-start type-body font-semibold text-ink"
                     >
                       {t("account.resubmitLink")}
                     </Link>

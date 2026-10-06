@@ -98,7 +98,8 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
             name="contact"
             required
             maxLength={255}
-            autoComplete="tel"
+            // Phone or e-mail: no single autofill token fits.
+            autoComplete="off"
             value={contact}
             error={errors.contact}
             onChange={(event) => setContact(event.target.value)}
