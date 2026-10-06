@@ -213,7 +213,31 @@ class AuthController extends Controller
             return redirect()->away(FrontendUrl::to('/verify-email?status=verified_set_password'));
         }
 
-        $user->markEmailAsVerified();
+        // Same guard as a contested settlement: a double click, or a password
+        // reset verifying the address meanwhile, also read it as unverified, and
+        // only the request that flips it announces it. A sign-up that contested
+        // the address in between leaves it for the next hit to settle instead.
+        $verifiedAt = $user->freshTimestamp();
+
+        $verified = User::query()
+            ->whereKey($user->getKey())
+            ->whereNull('email_verified_at')
+            ->whereNull('registration_contested_at')
+            ->toBase()
+            ->update([
+                'email_verified_at' => $verifiedAt,
+                'updated_at' => $verifiedAt,
+            ]);
+
+        if ($verified !== 1) {
+            return redirect()->away(FrontendUrl::to('/verify-email?status=already'));
+        }
+
+        $user->forceFill([
+            'email_verified_at' => $verifiedAt,
+            'updated_at' => $verifiedAt,
+        ])->syncOriginal();
+
         event(new Verified($user));
 
         $this->analytics->record('user.registered', $user);

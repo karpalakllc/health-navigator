@@ -5,17 +5,21 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Mail\AccountExistsMail;
+use App\Mail\WelcomeMail;
+use App\Models\AnalyticsEvent;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Support\FrontendUrl;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Bootstrap\SetRequestForConsole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -281,6 +285,42 @@ class AccountSecurityTest extends TestCase
         $this->assertTrue($raced);
         Notification::assertNotSentTo($user, ResetPasswordNotification::class);
         $this->assertTrue(Hash::check('the1winnerssetting', $user->fresh()->password));
+    }
+
+    /**
+     * The same race on an uncontested link: a double click, or a password
+     * reset verifying the address, lands between this request's read and its
+     * write. Only the request that flips the account may announce it — a
+     * second Verified event, user.registered row and welcome mail are
+     * duplicates.
+     */
+    public function test_a_second_concurrent_hit_on_an_uncontested_link_does_not_verify_again(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $this->registerAs('Real Owner', 'owner1password');
+
+        $user = User::query()->where('email', 'victim@example.com')->sole();
+        $link = $this->latestVerificationLink($user);
+
+        Event::fake([Verified::class]);
+
+        $raced = false;
+        User::retrieved(function (User $retrieved) use (&$raced): void {
+            if ($raced || $retrieved->email !== 'victim@example.com') {
+                return;
+            }
+            $raced = true;
+            DB::table('users')->where('id', $retrieved->id)->update(['email_verified_at' => now()]);
+        });
+
+        $this->get($link)->assertRedirect(FrontendUrl::to('/verify-email?status=already'));
+
+        $this->assertTrue($raced);
+        Event::assertNotDispatched(Verified::class);
+        Mail::assertNotQueued(WelcomeMail::class);
+        $this->assertFalse(AnalyticsEvent::query()->where('event', 'user.registered')->exists());
     }
 
     public function test_verifying_a_contested_account_revokes_its_tokens(): void
