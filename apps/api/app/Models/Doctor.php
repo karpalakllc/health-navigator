@@ -126,7 +126,25 @@ class Doctor extends Model
             'is_featured' => 'boolean',
             'is_sponsored' => 'boolean',
             'years_experience' => 'integer',
+            'licence_valid_until' => 'date',
+            'licence_checked_at' => 'datetime',
+            'import_last_seen_at' => 'datetime',
+            'import_missing_runs' => 'integer',
         ];
+    }
+
+    /**
+     * „Лиценца: важечка“ — the only licence fact a public profile shows.
+     * The number stays internal; the expiry date is not shown either: the
+     * list is refreshed every four months, so a date would look precise
+     * while being up to four months stale, and a status checked against
+     * today's date is right on the day it is read.
+     */
+    public function hasValidLicence(): bool
+    {
+        return $this->licence_number !== null
+            && $this->licence_valid_until !== null
+            && $this->licence_valid_until->endOfDay()->isFuture();
     }
 
     /**
