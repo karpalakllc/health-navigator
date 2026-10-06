@@ -72,6 +72,28 @@ class Doctor extends Model
                 ]);
             }
         });
+
+        // A deleted profile (soft or hard) is never re-created by an import
+        // (ImportSuppression); restoring it lifts that again. A suppression
+        // from an upheld objection stays until staff lift it.
+        static::deleting(function (Doctor $doctor): void {
+            ImportSuppression::forDoctor($doctor, ImportSuppression::REASON_DELETED, self::actingStaff());
+        });
+
+        static::restored(function (Doctor $doctor): void {
+            ImportSuppression::query()->active()
+                ->where('doctor_id', $doctor->getKey())
+                ->where('reason', ImportSuppression::REASON_DELETED)
+                ->get()
+                ->each(fn (ImportSuppression $suppression) => $suppression->lift(self::actingStaff()));
+        });
+    }
+
+    private static function actingStaff(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
     }
 
     /**

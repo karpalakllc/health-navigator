@@ -9,10 +9,12 @@ use App\Filament\Resources\Doctors\Pages\EditDoctor;
 use App\Filament\Resources\ImportReviewItems\Pages\ListImportReviewItems;
 use App\Filament\Resources\ImportReviewItems\Pages\ViewImportReviewItem;
 use App\Filament\Resources\ImportRuns\Pages\ListImportRuns;
+use App\Filament\Resources\ImportSuppressions\Pages\ListImportSuppressions;
 use App\Models\Doctor;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
+use App\Models\ImportSuppression;
 use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
@@ -163,5 +165,30 @@ class ImportAdminTest extends TestCase
         Livewire::test(ListImportRuns::class)
             ->callTableAction('downloadDiff', $run)
             ->assertFileDownloaded('import-fzom-'.$run->getKey().'.csv');
+    }
+
+    public function test_suppressed_profiles_are_listed_and_only_imports_manage_lifts_one(): void
+    {
+        $doctor = Doctor::factory()->create(['full_name' => 'Измислен Отстранет']);
+        $doctor->delete();
+        $suppression = ImportSuppression::query()->active()->firstOrFail();
+
+        $this->actingAs($this->staff(RoleCatalog::MODERATOR));
+        $this->get('/admin/import-suppressions')->assertForbidden();
+
+        $viewer = $this->staff(RoleCatalog::ADMINISTRATOR);
+        $viewer->syncRoles([]);
+        $viewer->givePermissionTo(['admin.access', 'imports.view']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->actingAs($viewer);
+        Livewire::test(ListImportSuppressions::class)
+            ->assertCanSeeTableRecords([$suppression])
+            ->assertSee('Измислен Отстранет')
+            ->assertTableActionHidden('lift', $suppression);
+
+        $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
+        Livewire::test(ListImportSuppressions::class)->callTableAction('lift', $suppression);
+
+        $this->assertFalse($suppression->refresh()->isActive());
     }
 }

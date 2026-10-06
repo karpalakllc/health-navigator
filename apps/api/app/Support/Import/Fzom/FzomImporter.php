@@ -14,6 +14,7 @@ use App\Models\SourceRecord;
 use App\Models\SpecialtyAlias;
 use App\Support\Import\DirectoryWriter;
 use App\Support\Import\ImportContext;
+use App\Support\Import\ImportSuppressions;
 use App\Support\Import\NameKey;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
@@ -82,7 +83,7 @@ final class FzomImporter
         $context->increment('doctors_in_source', count($doctors));
 
         $facilityIds = $this->importFacilities($context, $writer, $facilities);
-        $seenDoctorIds = $this->importDoctors($context, $writer, $doctors, $facilityIds);
+        $seenDoctorIds = $this->importDoctors($context, $writer, $doctors, $facilityIds, new ImportSuppressions);
 
         $this->touchSeen(array_merge(
             array_map(fn ($key): string => 'facility:'.$key, array_keys($facilities)),
@@ -415,13 +416,13 @@ final class FzomImporter
      * @param  array<string, int>  $facilityIds
      * @return list<int> doctor ids seen in this run
      */
-    private function importDoctors(ImportContext $context, DirectoryWriter $writer, array $doctors, array $facilityIds): array
+    private function importDoctors(ImportContext $context, DirectoryWriter $writer, array $doctors, array $facilityIds, ImportSuppressions $suppressions): array
     {
         $seen = [];
         $primaryTypes = array_map('intval', (array) config('import.fzom.primary_care_contract_types'));
 
         foreach (array_chunk($doctors, (int) config('import.batch_size'), true) as $batch) {
-            DB::transaction(function () use ($context, $writer, $batch, $facilityIds, $primaryTypes, &$seen): void {
+            DB::transaction(function () use ($context, $writer, $batch, $facilityIds, $primaryTypes, $suppressions, &$seen): void {
                 $records = SourceRecord::query()->where('source', self::SOURCE)
                     ->whereIn('external_key', array_map(fn ($fax): string => 'doctor:'.$fax, array_keys($batch)))
                     ->get()->keyBy('external_key');
@@ -467,6 +468,19 @@ final class FzomImporter
 
                     $sourceRecord = $records->get('doctor:'.$facsimile);
                     $doctor = $byFacsimile->get($facsimile);
+
+                    // Removed on objection or deleted by staff: not created,
+                    // updated or stored again (and never "missing").
+                    if ($suppressions->facsimile($facsimile) || $suppressions->doctorId($doctor?->getKey())) {
+                        $context->increment('doctors_suppressed');
+
+                        if ($doctor !== null) {
+                            $seen[] = (int) $doctor->getKey();
+                        }
+
+                        continue;
+                    }
+
                     $stored = $writer->sourceRecord('doctor:'.$facsimile, FieldProvenance::SUBJECT_DOCTOR, $payload, $sourceRecord);
 
                     if ($doctor !== null && $stored['unchanged'] && $sourceRecord?->subject_id === $doctor->getKey()) {
@@ -478,6 +492,17 @@ final class FzomImporter
 
                     if ($doctor === null) {
                         $candidates = $this->nameCandidates($fullName, array_keys($links), $specialtyIds, $city);
+
+                        if (array_filter($candidates, fn (int $id): bool => $suppressions->doctorId($id)) !== []
+                            || ($candidates === [] && $suppressions->name($fullName, $city, onlyWithoutFacsimile: true))) {
+                            $context->increment('doctors_suppressed');
+
+                            if ($sourceRecord === null) {
+                                $stored['record']->delete();
+                            }
+
+                            continue;
+                        }
 
                         if (count($candidates) > 1) {
                             $context->increment('doctors_ambiguous');

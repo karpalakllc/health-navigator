@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A public request about a doctor or facility profile: a correction („Пријави
@@ -155,6 +156,10 @@ class ProfileCorrection extends Model
     /**
      * Close the request with staff's note. Returns false when it was already
      * closed (two people in the queue at once): the first decision stands.
+     *
+     * Upholding a doctor's objection removes the profile in the same
+     * transaction: it is unpublished (if it still exists) and suppressed, so
+     * no import creates or publishes it again (ImportSuppression).
      */
     public function close(ProfileCorrectionStatus $outcome, User $staff, string $note): bool
     {
@@ -162,16 +167,24 @@ class ProfileCorrection extends Model
             return false;
         }
 
-        $closed = self::query()
-            ->whereKey($this->getKey())
-            ->open()
-            ->update([
-                'status' => $outcome->value,
-                'resolved_by_id' => $staff->getKey(),
-                'resolved_at' => now(),
-                'resolution_note' => $note,
-                'updated_at' => now(),
-            ]);
+        $closed = DB::transaction(function () use ($outcome, $staff, $note): int {
+            $closed = self::query()
+                ->whereKey($this->getKey())
+                ->open()
+                ->update([
+                    'status' => $outcome->value,
+                    'resolved_by_id' => $staff->getKey(),
+                    'resolved_at' => now(),
+                    'resolution_note' => $note,
+                    'updated_at' => now(),
+                ]);
+
+            if ($closed === 1 && $outcome === ProfileCorrectionStatus::Resolved && $this->type === ProfileCorrectionType::Objection) {
+                $this->removeObjectedDoctor($staff);
+            }
+
+            return $closed;
+        });
 
         if ($closed === 0) {
             $this->refresh();
@@ -195,6 +208,29 @@ class ProfileCorrection extends Model
             ->log('profile_correction_closed');
 
         return true;
+    }
+
+    private function removeObjectedDoctor(User $staff): void
+    {
+        if ($this->subject_type !== Doctor::class) {
+            return;
+        }
+
+        $doctor = Doctor::withTrashed()->find($this->subject_id);
+
+        if ($doctor === null) {
+            // Already deleted for good: its deletion left a suppression.
+            ImportSuppression::query()->active()->where('doctor_id', $this->subject_id)
+                ->update(['reason' => ImportSuppression::REASON_OBJECTION, 'profile_correction_id' => $this->getKey(), 'updated_at' => now()]);
+
+            return;
+        }
+
+        if ($doctor->is_published) {
+            $doctor->forceFill(['is_published' => false])->save();
+        }
+
+        ImportSuppression::forDoctor($doctor, ImportSuppression::REASON_OBJECTION, $staff, (int) $this->getKey());
     }
 
     /**

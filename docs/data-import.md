@@ -395,8 +395,11 @@ turn the navigation badge red.
    1. Verify the person by the contact they left (call the workplace, check
       the Комора list). An unverified objection is not decided on.
    2. Always remove when the person no longer practises or the profile is
-      wrongly linked to them (unpublish or delete on the edit page), then
-      **Uphold (profile removed)**.
+      wrongly linked to them: **Uphold (profile removed)**. That unpublishes
+      the doctor profile in the same step and records a **suppression**
+      (below), so no import adds or publishes the person again. Delete the
+      profile on its edit page as well if it should go entirely (the
+      suppression outlives the delete).
    3. Otherwise do the balancing test (memo §2.1.1): the public interest in
       a complete, neutral directory against the person's reasons. If the
       profile stays, **Refuse (profile kept)** with the reasons as the note,
@@ -404,6 +407,27 @@ turn the navigation badge red.
       to АЗЛП or go to court.
 4. Every close is written to the audit log (who, when, the decision; never
    the message, contact or note).
+
+### Suppressed profiles (**Data import → Suppressed profiles**)
+
+A doctor removed after an upheld objection, or deleted by staff (soft or
+hard delete), is **suppressed**: `import_suppressions` keeps the keys the
+sources could bring the person back by — the ФЗО facsimile, the licence
+number, the source records that fed the profile, and the normalised name and
+town — plus a label, the reason and the objection it came from.
+
+- ФЗОМ skips a suppressed facsimile (and, for a profile staff made without
+  one, the same name in the same town) — nothing is created, updated or
+  stored, and the person never counts as missing (`doctors_suppressed`).
+- The website import skips a suppressed source key, and a new profile with a
+  suppressed name and town.
+- The Комора import never attaches a licence to a suppressed doctor or a
+  suppressed licence number, and queues no review item for it.
+- **Publish** in the review queue refuses a suppressed doctor.
+- Restoring a deleted doctor lifts its *deleted* suppression. An *objection*
+  suppression stays until someone with `imports.manage` uses **Lift** —
+  only when the person withdrew the objection in writing. The next import
+  may then create the profile again, as a hidden draft.
 5. **A logo or cover photo** an institution asks us to take down: **Website
    images → Remove image** on the facility edit page (§6).
 

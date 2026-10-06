@@ -6,6 +6,7 @@ use App\Enums\ImportReviewKind;
 use App\Models\Doctor;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
+use App\Models\ImportSuppression;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Import\Contracts\LicenceAttachResult;
 use App\Support\Import\Contracts\LicenceRecord;
@@ -40,7 +41,9 @@ final class EloquentDoctorLicenceSink implements DoctorLicenceSink
                 ->where('field', self::FIELD)
                 ->first();
 
-            if ($provenance?->locked) {
+            // A suppressed profile (upheld objection) is as good as locked.
+            if ($provenance?->locked || ImportSuppressions::isSuppressed($doctor)
+                || ImportSuppression::query()->active()->where('licence_number', $licence->licenceNumber)->exists()) {
                 return LicenceAttachResult::Locked;
             }
 
@@ -94,6 +97,10 @@ final class EloquentDoctorLicenceSink implements DoctorLicenceSink
 
     public function queueForReview(LicenceRecord $licence, LicenceReviewReason $reason, array $candidateDoctorIds = []): void
     {
+        if (ImportSuppression::query()->active()->where('licence_number', $licence->licenceNumber)->exists()) {
+            return;
+        }
+
         $this->raise($licence, $reason->value, sprintf('Licence %s (%s): %s', $licence->licenceNumber, $licence->fullName, str_replace('_', ' ', $reason->value)), [
             'reason' => $reason->value,
             'candidate_doctor_ids' => array_map('intval', $candidateDoctorIds),

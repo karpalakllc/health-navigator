@@ -247,4 +247,19 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertNull($facility->refresh()->cover_path, 'A taken-down cover is not replaced by the next candidate.');
         $this->assertSame(FacilityMedia::STATUS_REMOVED, $second->refresh()->status, 'A removed image is never re-added.');
     }
+
+    public function test_a_doctor_staff_deleted_is_not_created_again_by_the_next_run(): void
+    {
+        $this->runImport($this->dataset());
+        Doctor::query()->where('name_key', 'ИЗМИСЛЕНА КАРДИОЛОВСКА')->firstOrFail()->forceDelete();
+        $this->travel(1)->minutes();
+
+        // Changed page (new date), same person.
+        $run = $this->runImport($this->dataset(['workers' => [
+            ['full_name' => 'Измислена Кардиоловска', 'title' => 'проф. д-р', 'role' => 'physician', 'specialty' => 'Кардиологија', 'source_url' => 'https://www.bolnica.invalid/tim', 'seen_at' => '2026-11-01'],
+        ]]));
+
+        $this->assertSame(0, Doctor::withTrashed()->where('name_key', 'ИЗМИСЛЕНА КАРДИОЛОВСКА')->count());
+        $this->assertSame(1, $run->count('doctors_suppressed'));
+    }
 }

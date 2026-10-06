@@ -184,7 +184,7 @@ class ProfileCorrectionResource extends Resource
             ->icon('heroicon-o-check')
             ->visible(fn (ProfileCorrection $record): bool => self::canClose($record))
             ->modalDescription(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Objection
-                ? 'Unpublish or delete the profile on its edit page first. The note is staff-only; tell the person by the contact they left.'
+                ? 'Upholding unpublishes the doctor profile now and stops every import from adding or publishing the person again (Data import → Suppressed profiles). Delete the profile on its edit page as well if it should go entirely. The note is staff-only; tell the person by the contact they left.'
                 : 'Correct the profile on its edit page first. The note is staff-only.')
             ->schema([self::noteField('What was changed')])
             ->action(fn (ProfileCorrection $record, array $data) => self::close($record, ProfileCorrectionStatus::Resolved, $data));

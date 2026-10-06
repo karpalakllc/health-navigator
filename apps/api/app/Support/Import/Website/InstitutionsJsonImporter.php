@@ -12,6 +12,7 @@ use App\Models\SourceRecord;
 use App\Support\Import\DirectoryWriter;
 use App\Support\Import\Fzom\FzomSpecialtyCatalog;
 use App\Support\Import\ImportContext;
+use App\Support\Import\ImportSuppressions;
 use App\Support\Import\NameKey;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
@@ -63,6 +64,8 @@ final class InstitutionsJsonImporter
     /** @var array<string, array<int, list<string>>> town key => facility id => name words */
     private array $byTown = [];
 
+    private ?ImportSuppressions $suppressions = null;
+
     public function __construct(private readonly ImageOptimizer $images) {}
 
     public function import(ImportContext $context, string $jsonPath): void
@@ -78,6 +81,7 @@ final class InstitutionsJsonImporter
         $provenance = new ProvenanceWriter($context);
         $writer = new DirectoryWriter($context, $provenance);
         $specialties = new SpecialtyResolver($context, self::SOURCE, SpecialtyText::EXTRA_ALIASES);
+        $this->suppressions = new ImportSuppressions;
         $this->indexFacilities();
 
         foreach (array_chunk($data['institutions'], max(1, (int) config('import.batch_size') / 10)) as $batch) {
@@ -345,10 +349,20 @@ final class InstitutionsJsonImporter
             $specialtyIds = [$specialties->specialtyId(FzomSpecialtyCatalog::DENTAL_SLUG_PREFIX)];
         }
 
-        $key = 'worker:'.$facility->getKey().':'.$nameKey;
+        $key = mb_substr('worker:'.$facility->getKey().':'.$nameKey, 0, 191);
         $payload = array_intersect_key($worker, array_flip(['full_name', 'title', 'role', 'specialty', 'department', 'source_url', 'seen_at', 'confidence']));
-        $sourceRecord = SourceRecord::query()->where('source', self::SOURCE)->where('external_key', mb_substr($key, 0, 191))->first();
-        $stored = $writer->sourceRecord(mb_substr($key, 0, 191), FieldProvenance::SUBJECT_DOCTOR, $payload + ['specialty_ids' => $specialtyIds], $sourceRecord);
+        $sourceRecord = SourceRecord::query()->where('source', self::SOURCE)->where('external_key', $key)->first();
+        $suppressions = $this->suppressions ??= new ImportSuppressions;
+
+        // Removed on objection or deleted by staff: not created, updated or
+        // stored again. Websites carry no stronger key than the name.
+        if ($suppressions->sourceKey(self::SOURCE, $key) || $suppressions->doctorId($sourceRecord?->subject_id)) {
+            $context->increment('doctors_suppressed');
+
+            return;
+        }
+
+        $stored = $writer->sourceRecord($key, FieldProvenance::SUBJECT_DOCTOR, $payload + ['specialty_ids' => $specialtyIds], $sourceRecord);
         $doctor = $sourceRecord?->subject_id !== null ? Doctor::withTrashed()->find($sourceRecord->subject_id) : null;
 
         if ($doctor !== null && $stored['unchanged']) {
@@ -365,6 +379,17 @@ final class InstitutionsJsonImporter
                 $context->review(ImportReviewKind::Unmatched, 'website-doctor:'.$stored['record']->getKey(), 'Several existing profiles match '.$fullName, [
                     'reason' => 'ambiguous_name', 'candidate_doctor_ids' => $candidates, 'facility_id' => $facility->getKey(), 'source_url' => $sourceUrl,
                 ]);
+
+                return;
+            }
+
+            if (($candidates !== [] && $suppressions->doctorId($candidates[0]))
+                || ($candidates === [] && $suppressions->name($fullName, $facility->city, onlyWithoutFacsimile: false))) {
+                $context->increment('doctors_suppressed');
+
+                if ($sourceRecord === null) {
+                    $stored['record']->delete();
+                }
 
                 return;
             }
