@@ -47,9 +47,11 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
    transport, queue and cache drivers, secure and encrypted session, CORS origins,
    token expiry, the admin address and any `PLATFORM_ADMIN_PASSWORD` left set (it
    must pass the password rule), demo seeding, Meilisearch credentials,
-   object-storage media credentials — and exits non-zero on any error. Do not
-   migrate or send traffic until it passes. Warnings (Sentry DSN, the local
-   `public` media disk, `LOG_LEVEL=debug`) do not fail it but should be read.
+   object-storage media credentials, `WEB_TIER_SECRET` (≥32 chars), the staff
+   two-factor wiring and session limits — and exits non-zero on any error. Do
+   not migrate or send traffic until it passes. Warnings (Sentry DSN,
+   `PLATFORM_ALERT_EMAIL`, pg_trgm, the local `public` media disk,
+   `LOG_LEVEL=debug`) do not fail it but should be read.
    Add `--json` for machine-readable output in a deploy script.
 7. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
    **Guidance flow (once, fresh environment only):** the Macedonian symptom
@@ -144,6 +146,25 @@ stdout_logfile=/path/to/logs/worker.log
 
 Restart workers after each deploy.
 
+### Failed jobs
+
+A job that exhausts its tries lands in `failed_jobs`. Verification and
+password-reset mail, moderation notices and search indexing are all queued, so
+a failure there means a user is waiting for something that will not arrive.
+
+- **Alert:** set `PLATFORM_ALERT_EMAIL`. `NotifyOnFailedJob` mails it
+  synchronously (not through the queue that is failing) with the job class,
+  queue, exception and the request ID it was dispatched under — at most once per
+  job class per `PLATFORM_ALERT_THROTTLE_MINUTES` (15), so a dead mail server
+  sends one alert, not hundreds. If the mailer is what broke, the alert fails
+  too and is logged; Sentry still has the exception.
+- **Inspect and retry:** `php artisan queue:failed`, then
+  `php artisan queue:retry <uuid>` (or `all`) once the cause is fixed;
+  `php artisan queue:forget <uuid>` to drop one.
+- **Retention:** `queue:prune-failed --hours=720` runs daily (see Scheduler), so
+  a failure is retryable for 30 days and then deleted — payloads can hold an
+  address or a notice's text.
+
 ### Scheduler
 
 Cron (once per minute):
@@ -152,7 +173,20 @@ Cron (once per minute):
 * * * * * cd /path/to/apps/api && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Scheduled tasks include **triage session purge** (`triage:purge-old-sessions`, daily 03:15, 90-day retention). Requires Redis or another cache store that supports atomic locks when using `onOneServer()`.
+Every scheduled command (`apps/api/routes/console.php`; times are the app
+timezone). All run `onOneServer()` and `withoutOverlapping()`, which need a
+cache store with atomic locks shared by every instance (Redis or database):
+
+| Command | When | What |
+|---|---|---|
+| `triage:purge-old-sessions` | daily 03:15 | Deletes guidance sessions and answers older than 90 days. |
+| `analytics:purge-old-events` | daily 03:45 | Deletes analytics events older than 180 days and daily search-term aggregates older than 365. |
+| `sanctum:prune-expired --hours=24` | daily 04:15 | Deletes API tokens expired for more than a day (expired tokens are already refused). |
+| `queue:prune-failed --hours=720` | daily 04:30 | Deletes failed jobs older than 30 days (see Failed jobs). |
+| `moderation:send-digest` | daily 07:00 | Mails staff and community moderators a summary of their pending queues (skips anyone with nothing pending). |
+
+Check with `php artisan schedule:list` after deploying; a command added to
+`console.php` belongs in this table too.
 
 ### Local Redis
 
@@ -299,7 +333,7 @@ are built from `APP_URL` alone — it must be the exact public API origin
 
 ## Pre-deploy data checks
 
-Two one-off checks before the first deploy of the Part I remediation:
+One-off checks before the first deploy of the Part I remediation:
 
 - **Featured demo rows.** `2026_05_23_100000_mark_homepage_featured_demo` is now
   guarded to non-production, but the guard cannot undo a database where it already
@@ -325,6 +359,45 @@ Two one-off checks before the first deploy of the Part I remediation:
   accounts that could not sign in; the seeder now sets it. A fresh seed leaves
   zero, and all four demo logins return a token.*
 
+- **Email collisions (before `2026_10_06_100000_normalise_user_emails`).** The
+  migration stores every address trimmed and lowercased, and **refuses to run**
+  (failing the whole `migrate --force`) when two accounts differ only by case or
+  surrounding whitespace — merging them is a decision about whose reviews, posts
+  and roles survive. Run this against the target database first; it must return
+  no rows:
+
+  ```sql
+  select lower(btrim(email, E' \t\n\r\v')) as normalised,
+         array_agg(id order by id)            as user_ids,
+         count(*)                             as accounts
+  from users
+  group by 1
+  having count(*) > 1;
+  ```
+
+  For each row, decide which account survives, move or delete the other's
+  content, and rename or delete the loser before deploying. (`lower()` folds by
+  the database collation and the migration by `mb_strtolower`; they agree for
+  every address a registration form accepts. The migration's own check is
+  authoritative and names the ids if anything slips through.)
+
+- **Pending registrations become contested
+  (`2026_10_07_100002_contest_pending_client_registrations`).** Every unverified
+  client account (holding no role beyond Member) is marked contested, because
+  which of them a second sign-up overwrote cannot be known after the fact.
+  Verifying such an account confirms the address and mails a password reset
+  instead of activating the stored password. Expect support questions from that
+  many people:
+
+  ```sql
+  select count(*) from users
+  where user_kind = 'client' and email_verified_at is null;
+  ```
+
+- **`users.role` is dropped (`2026_10_13_100000`).** Nothing reads it; the
+  migration's `down()` restores it from Spatie roles. No check needed beyond
+  the backup every deploy takes.
+
 ## TLS and secrets
 
 - TLS terminated at the PaaS edge (required for production). `SESSION_SECURE_COOKIE=true`.
@@ -344,8 +417,30 @@ Two one-off checks before the first deploy of the Part I remediation:
 
 ## Backups
 
-- Enable automated daily backups on managed PostgreSQL.
-- Document restore drill before launch traffic.
+- Enable automated daily backups (with point-in-time recovery) on managed
+  PostgreSQL once a host is chosen.
+- Before every `migrate --force`, take a logical dump with
+  [`scripts/db-backup.sh`](../scripts/db-backup.sh) and keep it until the
+  release is known good.
+- Restore runbook, timings from a local round trip and the rollback decision
+  (code-only vs. migration rollback vs. restore):
+  [docs/backup-restore.md](../docs/backup-restore.md). Migration rules that keep
+  a rollback possible: [docs/migration-policy.md](../docs/migration-policy.md).
+
+## Logs and request IDs
+
+- Every API response carries `X-Request-Id`. The web tier assigns one per page
+  render (`proxy.ts`) and forwards it on its server-side API calls, so the API's
+  log lines for one page share it; the API keeps a well-formed incoming ID
+  (`[A-Za-z0-9-]{8,64}`) and otherwise mints a UUID. It is in every log record's
+  `extra.request_id`, on the Sentry scope as tag `request_id`, and in queued
+  jobs dispatched by the request. Ask a user reporting a problem for it (browser
+  dev tools, response headers).
+- `LOG_FORMAT=json` (set in the env templates) writes one JSON object per line
+  to the file and stderr channels for a log shipper.
+- Slow queries: one query over `DB_SLOW_QUERY_MS` (500) or one request/job whose
+  queries add up past `DB_SLOW_REQUEST_QUERIES_MS` (2000) logs a warning, SQL
+  without bindings. 0 disables either.
 
 ## Health checks
 

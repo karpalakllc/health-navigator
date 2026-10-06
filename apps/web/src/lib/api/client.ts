@@ -57,8 +57,10 @@ function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
 /**
  * Every call carries the web tier's credentials and the visitor's address
  * (lib/api/client-ip.ts) so the API meters each visitor separately rather than
- * the whole site as one client. Cached fetches send the credentials without
- * the visitor: their response is shared by everyone.
+ * the whole site as one client. Per-request fetches also forward the render's
+ * X-Request-Id (lib/request-id.ts), so the API logs under the same ID. Cached
+ * fetches send the credentials without the visitor or the ID: their response
+ * is shared by everyone.
  *
  * This module is server-only (client-ip.ts is): browser-side calls, such as the
  * guidance wizard's in lib/api/guidance.ts, must not import it.

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { doctor } from "./support/fixtures";
+import { doctor, facilitySlug, forum, pharmacySlug } from "./support/fixtures";
 
 /*
  * axe on the main public pages. Fails on any serious or critical violation.
@@ -17,6 +17,14 @@ const PAGES: Record<string, string> = {
   login: "/login",
   register: "/register",
   forum: "/forum",
+  "forum topic": `/forum/${forum.categorySlug}/${forum.topicSlug}`,
+  facilities: "/facilities",
+  "facility profile": `/facilities/${facilitySlug}`,
+  // The pharmacies module is off in the E2E seed: this is the coming-soon page.
+  pharmacies: "/pharmacies",
+  "pharmacy profile (module off)": `/pharmacies/${pharmacySlug}`,
+  search: `/search?q=${encodeURIComponent("Тестовска")}`,
+  guidance: "/guidance",
 };
 
 const BLOCKING = new Set(["serious", "critical"]);

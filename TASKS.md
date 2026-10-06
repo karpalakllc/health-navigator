@@ -209,7 +209,7 @@ See [Admin — Track A](#admin--track-a-parallel-after-w1) below (A1–A4).
 
 - [x] **B5.1** Feature tests: search, departments, specialty show, facility filters
 - [x] **B5.2** Policy test: pharmacy `Facility` rows use `FacilityPolicy`
-- [ ] **B5.3** Triage session purge — **R2** (D7), not B unless reprioritized
+- [x] **B5.3** Triage session purge — `triage:purge-old-sessions`, scheduled daily (`routes/console.php`)
 - [ ] **B5.4** Redis rate limits — **R2** (D2)
 
 **Recently shipped (do not re-open):** Doctor profile taxonomies + office-hours repeater; clinical facility departments / emergency / coordinates; Latin/Cyrillic list `q` search.
@@ -337,7 +337,7 @@ Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage 
 - [ ] Staging environment parity with production topology
 - [ ] Production: managed PostgreSQL, TLS, secrets via env (not committed)
 - [ ] Separate deployables for `apps/api` and `apps/web`
-- [ ] Database backup / restore documented
+- [x] Database backup / restore documented — [docs/backup-restore.md](./docs/backup-restore.md), `scripts/db-backup.sh`
 - [ ] `infra/` assets or runbook (compose, IaC, or host-specific — team choice)
 
 ### H1 — Macedonian-first public UI
@@ -360,10 +360,10 @@ Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage 
 
 **Path A — Public registration (preferred before broad beta)**
 
-- [ ] `POST /auth/register` (or equivalent) + validation
+- [x] `POST /auth/register` (or equivalent) + validation
 - [ ] Terms acceptance at sign-up
-- [ ] Web sign-up flow; member role assignment
-- [ ] Rate limits / abuse controls
+- [x] Web sign-up flow; member role assignment
+- [x] Rate limits / abuse controls
 
 **Path B — Invite-only beta (*valid without A1*)**
 
@@ -375,14 +375,14 @@ Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage 
 ### A2 — Password reset
 
 - [ ] Required when **Path A** is chosen
-- [ ] Forgot-password API + web flow (email driver configured for staging/prod)
+- [x] Forgot-password API + web flow (email driver configured for staging/prod)
 - [ ] For **Path B**, mark N/A in beta checklist
 
 ### D4 — Light observability
 
-- [ ] Error tracking hooked to API and web (e.g. Sentry)
+- [x] Error tracking hooked to API and web (e.g. Sentry)
 - [ ] Alerting or dashboard for `GET /api/v1/health` (and web availability)
-- [ ] Structured logging baseline documented
+- [x] Structured logging baseline documented — request IDs, `LOG_FORMAT=json`, slow queries ([infra/deploy.md](./infra/deploy.md) "Logs and request IDs")
 
 **R1 acceptance:** Beta checklist (required items) can be signed off for the chosen onboarding path.
 
@@ -394,10 +394,10 @@ Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage 
 
 - [ ] **D2** — Redis wired (cache, rate limits, sessions/queues per architecture)
 - [ ] **D3** — Queue workers documented and running in staging/prod
-- [ ] **D7** — Triage session purge job (90-day default per [triage-safety.md](./docs/triage-safety.md))
+- [x] **D7** — Triage session purge job (90-day default per [triage-safety.md](./docs/triage-safety.md))
 - [ ] **D8** — Moderation and incident runbooks
 - [ ] Redis-backed rate limiting (replace file/database where needed)
-- [ ] Security headers / CSP on Next.js (architecture security baseline)
+- [x] Security headers / CSP on Next.js (architecture security baseline) — per-request nonce CSP in `apps/web/src/proxy.ts`
 
 ---
 
@@ -405,10 +405,10 @@ Do **not** block beta on: Meilisearch (R3), sponsorships (R4), **3f-b AI triage 
 
 **Goal:** Meilisearch-backed discovery; not required for beta.
 
-- [ ] **C1** — Meilisearch Laravel integration + env config
+- [x] **C1** — Meilisearch Laravel integration + env config
 - [ ] **C2** — Index jobs: `doctors`, `facilities`, `pharmacy_products`, `forum_topics`
-- [ ] **C3** — Unified search API + web hub (replace or augment thin `/search`)
-- [ ] **C4** — SQL fallbacks retained; optional DB indexes if profiling warrants
+- [x] **C3** — Unified search API + web hub (replace or augment thin `/search`)
+- [x] **C4** — SQL fallbacks retained; optional DB indexes if profiling warrants
 - [ ] Local Redis + Meilisearch documented in README
 
 **Depends on:** R2 (D2/D3) recommended first.

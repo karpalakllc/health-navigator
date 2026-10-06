@@ -2,6 +2,7 @@ import "server-only";
 import { isIP } from "node:net";
 import { headers } from "next/headers";
 import { unstable_rethrow } from "next/navigation";
+import { REQUEST_ID_HEADER, validRequestId } from "@/lib/request-id";
 
 /**
  * Tells the API who the visitor is, and proves the claim comes from us.
@@ -80,24 +81,42 @@ export function clientIpFrom(incoming: Headers): string | undefined {
  * The headers every server-side API call carries. With the secret configured:
  * the secret, plus the visitor when known. Without it: the legacy
  * X-Forwarded-For, never the auth header.
+ *
+ * A per-request correlation ID (lib/request-id.ts) rides along when the
+ * incoming request has a well-formed one, so the API logs under the same ID
+ * as this render. Like the visitor's address, it is per-request: cached
+ * fetches never carry it.
  */
 export function webTierHeaders(
   clientIp: string | undefined,
+  requestId?: string,
 ): Record<string, string> {
   const secret = webTierSecret();
+  const correlation: Record<string, string> = requestId
+    ? { "X-Request-Id": requestId }
+    : {};
 
   if (secret === undefined) {
-    return clientIp ? { "X-Forwarded-For": clientIp } : {};
+    return clientIp
+      ? { "X-Forwarded-For": clientIp, ...correlation }
+      : correlation;
   }
 
   return clientIp
-    ? { "X-Web-Tier-Auth": secret, "X-Client-IP": clientIp }
-    : { "X-Web-Tier-Auth": secret };
+    ? { "X-Web-Tier-Auth": secret, "X-Client-IP": clientIp, ...correlation }
+    : { "X-Web-Tier-Auth": secret, ...correlation };
 }
 
-/** For route handlers, which have the incoming request in hand. */
+/**
+ * For route handlers, which have the incoming request in hand. proxy.ts does
+ * not run on /api/*, so the ID is forwarded only when an edge supplied one;
+ * otherwise the API mints its own.
+ */
 export function forwardedForHeaders(request: Request): Record<string, string> {
-  return webTierHeaders(clientIpFrom(request.headers));
+  return webTierHeaders(
+    clientIpFrom(request.headers),
+    validRequestId(request.headers.get(REQUEST_ID_HEADER)),
+  );
 }
 
 /**
@@ -126,7 +145,12 @@ export async function webTierRequestHeaders({
     unstable_rethrow(error);
   }
 
-  return webTierHeaders(incoming ? clientIpFrom(incoming) : undefined);
+  return incoming
+    ? webTierHeaders(
+        clientIpFrom(incoming),
+        validRequestId(incoming.get(REQUEST_ID_HEADER)),
+      )
+    : webTierHeaders(undefined);
 }
 
 function webTierSecret(): string | undefined {

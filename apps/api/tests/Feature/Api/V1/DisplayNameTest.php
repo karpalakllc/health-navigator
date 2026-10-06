@@ -359,7 +359,6 @@ class DisplayNameTest extends TestCase
                 'name' => $name,
                 'email' => "legacy{$i}@example.com",
                 'password' => 'x',
-                'role' => 'member',
                 'user_kind' => 'client',
                 'created_at' => now(),
                 'updated_at' => now(),
