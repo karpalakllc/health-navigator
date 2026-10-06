@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatRating,
   isValidReviewRating,
   ratingLabel,
   starRatingLabel,
@@ -11,14 +12,22 @@ describe("ratingLabel", () => {
     expect(ratingLabel(4.46)).toBe("4,5 / 5");
   });
 
-  it("drops a trailing ,0", () => {
-    expect(ratingLabel(4)).toBe("4 / 5");
-    expect(ratingLabel(3.96)).toBe("4 / 5");
+  it("always shows one decimal, like every other rating on the site", () => {
+    expect(ratingLabel(4)).toBe("4,0 / 5");
+    expect(ratingLabel(3.96)).toBe("4,0 / 5");
   });
 
   it("clamps to the scale", () => {
-    expect(ratingLabel(7)).toBe("5 / 5");
-    expect(ratingLabel(-1)).toBe("0 / 5");
+    expect(ratingLabel(7)).toBe("5,0 / 5");
+    expect(ratingLabel(-1)).toBe("0,0 / 5");
+  });
+});
+
+describe("formatRating", () => {
+  it("writes one decimal with a comma, including whole numbers", () => {
+    expect(formatRating(5)).toBe("5,0");
+    expect(formatRating(4.66)).toBe("4,7");
+    expect(formatRating(4.04)).toBe("4,0");
   });
 });
 
