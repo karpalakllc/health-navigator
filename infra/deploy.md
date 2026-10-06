@@ -181,7 +181,7 @@ S3-compatible store — AWS S3, Cloudflare R2, Backblaze B2, MinIO. Variables (s
 | `AWS_ENDPOINT` | Non-AWS only: the provider's S3 API endpoint. |
 | `AWS_USE_PATH_STYLE_ENDPOINT` | `true` for MinIO. |
 | `AWS_URL` | Public https base that media URLs are built from: a CDN, or the bucket's public domain. Required with `AWS_ENDPOINT` — an R2/B2 API endpoint is not publicly readable. |
-| `MEDIA_VISIBILITY` | `public` (default) sends the `public-read` ACL. Use `private` for buckets that refuse ACLs and grant read with a bucket policy instead. |
+| `MEDIA_VISIBILITY` | The env examples set `private`: no ACL is sent, and read is granted with a bucket policy (below) — what new AWS buckets and R2 require. The config default is `public`, which suits the local disk; on S3 it sends the `public-read` ACL, so use it only for a bucket with ACLs enabled. |
 
 `platform:preflight` fails when the bucket, region or keys are missing or `AWS_URL`
 is not https, and warns when `AWS_ENDPOINT` is set without `AWS_URL`.
