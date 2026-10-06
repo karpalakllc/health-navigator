@@ -55,6 +55,9 @@ class PublicNameTest extends TestCase
                 'user_id' => $member->id,
                 'reviewable_type' => $reviewable::class,
                 'reviewable_id' => $reviewable->id,
+                // Home highlights only show reviews with text; the factory
+                // leaves a fifth of bodies empty.
+                'body' => 'Внимателна и љубезна, сè објасни.',
                 'published_at' => now(),
             ]);
         }
