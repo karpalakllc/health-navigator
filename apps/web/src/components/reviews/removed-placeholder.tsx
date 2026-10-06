@@ -34,7 +34,7 @@ export function RemovedPlaceholder({
       );
 
   return (
-    <article className="flex h-full items-start gap-3 rounded-[20px] border border-dashed border-line-strong bg-sand px-4 py-3 text-ink-2">
+    <article className="flex items-start gap-3 rounded-[20px] border border-dashed border-line-strong bg-sand px-4 py-3 text-ink-2">
       <Icon name="shield-check" size={20} className="mt-0.5 shrink-0" />
       <p className="type-meta">
         {text}{" "}

@@ -1013,7 +1013,6 @@ export const mk = {
       "Бројките моментално не се достапни. Обидете се повторно подоцна.",
     statReviewsReceived: "Примени рецензии",
     statReviewsPublished: "Објавени рецензии",
-    statReviewsRejected: "Одбиени пред објава",
     statReviewsRemoved: "Отстранети по објава",
     statForumReceived: "Примени објави на форумот",
     statForumRemoved: "Отстранети објави на форумот",

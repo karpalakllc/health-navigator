@@ -94,11 +94,9 @@ test.describe("reports", () => {
       visitor.getByRole("heading", { name: mk.reviews.title }),
     ).toBeVisible();
     await expect(visitor.getByText(body)).toHaveCount(0);
-    const placeholder = visitor
-      .getByRole("article")
-      .filter({
-        hasText: /Рецензијата е отстранета на .+ — причина: навреда\./,
-      });
+    const placeholder = visitor.getByRole("article").filter({
+      hasText: /Рецензијата е отстранета на .+ — причина: навреда\./,
+    });
     await expect(placeholder.first()).toBeVisible();
     await expect(
       placeholder.first().getByRole("link", { name: mk.integrity.removedHow }),

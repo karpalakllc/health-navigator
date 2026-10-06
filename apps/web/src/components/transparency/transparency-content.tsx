@@ -187,7 +187,6 @@ function StatsBody({ months }: { months: TransparencyMonth[] }) {
   const tiles: Array<{ key: MessageKey; value: string }> = [
     { key: "integrity.statReviewsReceived", value: String(reviews.received) },
     { key: "integrity.statReviewsPublished", value: String(reviews.published) },
-    { key: "integrity.statReviewsRejected", value: String(reviews.rejected) },
     { key: "integrity.statReviewsRemoved", value: String(reviews.removed) },
     {
       key: "integrity.statModerationTime",
@@ -202,14 +201,14 @@ function StatsBody({ months }: { months: TransparencyMonth[] }) {
 
   return (
     <>
-      <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+      <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 lg:grid-cols-4 lg:gap-4">
         {tiles.map((tile) => (
           <li key={tile.key}>
-            <Card padding="md" className="flex h-full flex-col-reverse gap-1">
-              <span className="type-meta text-ink-2">{t(tile.key)}</span>
+            <Card padding="md" className="flex h-full flex-col gap-2">
               <span className="text-[1.75rem] font-bold leading-none tabular-nums text-ink">
                 {tile.value}
               </span>
+              <span className="type-meta text-ink-2">{t(tile.key)}</span>
             </Card>
           </li>
         ))}
