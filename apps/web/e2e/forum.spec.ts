@@ -21,9 +21,7 @@ test.describe("forum", () => {
     await page
       .getByLabel(mk.common.message)
       .fill("Колку часа сон е препорачано за возрасен човек? (информативно)");
-    await page.getByLabel(mk.forum.consentRules).check();
-    await page.getByLabel(mk.forum.consentNoDiagnosis).check();
-    await page.getByLabel(mk.forum.consentEmergency).check();
+    await page.getByLabel(mk.forum.consent).check();
     await page
       .getByRole("button", { name: mk.forum.topicSubmitModeration })
       .click();
