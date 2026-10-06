@@ -215,6 +215,8 @@ class E2ESeeder extends Seeder
                 'bio' => 'Кардиолог со долгогодишно искуство. Профил за E2E тестови.',
                 'city' => 'Скопје',
                 'phone' => '+389 70 000 001',
+                // List payloads carry these too: the card's „Јави се“ and open-now line.
+                'office_hours' => ['Пон–Пет' => '08:00–16:00'],
                 'email' => 'ana@e2e.test',
                 'accepts_new_patients' => true,
                 'is_published' => true,
