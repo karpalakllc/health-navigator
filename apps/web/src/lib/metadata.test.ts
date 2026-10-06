@@ -27,6 +27,21 @@ describe("listCanonicalPath", () => {
     expect(listCanonicalPath("/doctors", { page: "1" })).toBe("/doctors");
   });
 
+  it("ignores campaign and click-tracking parameters, which are not filters", () => {
+    expect(
+      listCanonicalPath("/doctors", {
+        page: "3",
+        utm_source: "viber",
+        utm_campaign: "launch",
+        fbclid: "abc",
+        gclid: "xyz",
+      }),
+    ).toBe("/doctors?page=3");
+    expect(listCanonicalPath("/doctors", { utm_medium: "email" })).toBe(
+      "/doctors",
+    );
+  });
+
   it("keeps an unfiltered deeper page", () => {
     expect(listCanonicalPath("/doctors", { page: "4" })).toBe(
       "/doctors?page=4",

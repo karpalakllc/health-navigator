@@ -13,10 +13,12 @@ import { directorySearchHref, normalizeSearchQuery } from "@/lib/search";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
+// Result pages are views of the directory, not documents: kept out of the
+// index (and out of the sitemap) like any other search results page.
 export const metadata: Metadata = pageMetadata(
   t("search.title"),
   t("search.description"),
-  { path: "/search" },
+  { path: "/search", noIndex: true },
 );
 
 type SearchPageProps = {

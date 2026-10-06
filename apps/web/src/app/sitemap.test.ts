@@ -50,6 +50,13 @@ async function urls(): Promise<string[]> {
 }
 
 describe("sitemap", () => {
+  it("does not advertise the noindex search page", async () => {
+    const list = await urls();
+
+    expect(list).toContain("https://zdravje.test/doctors");
+    expect(list.some((url) => url.includes("/search"))).toBe(false);
+  });
+
   it("lists pharmacy and product profiles while their modules are on", async () => {
     const list = await urls();
 

@@ -63,12 +63,34 @@ export function pageMetadata(
 
 export type ListSearchParams = Record<string, string | string[] | undefined>;
 
+const TRACKING_PARAMS = new Set([
+  "fbclid",
+  "gclid",
+  "dclid",
+  "gbraid",
+  "wbraid",
+  "msclkid",
+  "yclid",
+  "igshid",
+  "mc_cid",
+  "mc_eid",
+  "ref",
+]);
+
+function isTrackingParam(key: string): boolean {
+  const name = key.toLowerCase();
+
+  return name.startsWith("utm_") || TRACKING_PARAMS.has(name);
+}
+
 /**
  * Canonical path for a paginated, filterable list page.
  *
  * Any filter (text, slug, sort) points at the bare list: filter combinations
  * are views of it, not documents to index one by one. An unfiltered deeper
  * page keeps its `?page=N`, since page 2 is not a duplicate of page 1.
+ * Campaign and click-tracking parameters (utm_*, fbclid…) are not filters:
+ * a shared link to page 3 is still page 3.
  */
 export function listCanonicalPath(
   path: string,
@@ -77,6 +99,7 @@ export function listCanonicalPath(
   const filtered = Object.entries(params).some(
     ([key, value]) =>
       key !== "page" &&
+      !isTrackingParam(key) &&
       (Array.isArray(value) ? value.length > 0 : (value ?? "").trim() !== ""),
   );
 
