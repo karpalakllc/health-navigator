@@ -27,6 +27,8 @@ class TokenController extends Controller
         $currentId = $this->currentTokenId($request);
 
         $tokens = $this->activeTokens($user)
+            // Never-used last on every driver (PostgreSQL puts NULLs first on DESC).
+            ->orderByRaw('CASE WHEN last_used_at IS NULL THEN 1 ELSE 0 END')
             ->orderByDesc('last_used_at')
             ->orderByDesc('id')
             ->get(['id', 'name', 'created_at', 'last_used_at', 'expires_at'])

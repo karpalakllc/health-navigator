@@ -169,6 +169,20 @@ class ReviewHelpfulTest extends TestCase
             ->assertJsonPath('data.1.id', $quiet->id);
     }
 
+    /** Equal counts and dates: pages must not swap rows between requests (as fe1e985). */
+    public function test_helpful_ties_are_broken_by_newest_id(): void
+    {
+        $at = now()->subDay();
+        $ids = collect(range(1, 3))->map(fn () => $this->review(['published_at' => $at])->id);
+
+        $this->getJson('/api/v1/doctors/ana-petrovska/reviews?sort=helpful')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', $ids->sortDesc()->values()->all());
+        $this->getJson('/api/v1/doctors/ana-petrovska/reviews?sort=oldest')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', $ids->values()->all());
+    }
+
     public function test_a_hidden_review_drops_out_with_its_votes(): void
     {
         $review = $this->review();

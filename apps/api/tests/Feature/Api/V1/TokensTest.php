@@ -76,6 +76,20 @@ class TokensTest extends TestCase
         $this->assertNotNull($response->json('data.tokens.0.expires_at'));
     }
 
+    /** NULLs sort first on PostgreSQL and last on SQLite: never-used devices go last on both. */
+    public function test_never_used_devices_are_listed_after_used_ones(): void
+    {
+        $member = User::factory()->create();
+        $current = $member->createToken('Firefox · Linux')->plainTextToken;
+        $used = $member->createToken('Safari · iOS');
+        $used->accessToken->forceFill(['last_used_at' => now()->subDay()])->save();
+        $member->createToken('Chrome · Android');
+
+        $response = $this->as($current, 'GET', '/api/v1/me/tokens')->assertOk();
+
+        $this->assertSame(['Firefox · Linux', 'Safari · iOS', 'Chrome · Android'], array_column($response->json('data.tokens'), 'name'));
+    }
+
     public function test_revoking_one_device_signs_it_out(): void
     {
         $member = User::factory()->create();

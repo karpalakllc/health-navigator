@@ -114,12 +114,13 @@ class ReviewController extends Controller
             $query->where('rating', (int) $validated['rating']);
         }
 
+        // Every order ends on id, so equal values cannot swap rows between pages.
         match ($validated['sort'] ?? 'newest') {
-            'oldest' => $query->oldest('published_at'),
-            'rating_high' => $query->orderByDesc('rating')->latest('published_at'),
-            'rating_low' => $query->orderBy('rating')->latest('published_at'),
-            'helpful' => $query->orderByDesc('helpful_count')->latest('published_at'),
-            default => $query->latest('published_at'),
+            'oldest' => $query->oldest('published_at')->orderBy('id'),
+            'rating_high' => $query->orderByDesc('rating')->latest('published_at')->orderByDesc('id'),
+            'rating_low' => $query->orderBy('rating')->latest('published_at')->orderByDesc('id'),
+            'helpful' => $query->orderByDesc('helpful_count')->latest('published_at')->orderByDesc('id'),
+            default => $query->latest('published_at')->orderByDesc('id'),
         };
 
         $paginator = $query->paginate($perPage)->withQueryString();
