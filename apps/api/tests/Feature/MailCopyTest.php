@@ -102,6 +102,11 @@ class MailCopyTest extends TestCase
 
         $reply = self::text((new UgcRejectedMail('Ана', 'одговор во темата', 'Сон', 'https://x.test', 'Мој форум', null, true))->render());
         $this->assertStringContainsString('вашиот одговор во темата „Сон“ не беше објавен ', $reply);
+
+        $removed = self::text((new UgcRejectedMail('Ана', 'одговор во темата', 'Сон', 'https://x.test', 'Мој форум', 'Навреда.', true, removed: true))->render());
+        $this->assertStringContainsString('Вашиот одговор во темата „Сон“ е отстранет од Zdravje360 по пријава', $removed);
+        $this->assertStringContainsString('Причина: Навреда.', $removed);
+        $this->assertStringNotContainsString('не беше објавен', $removed);
     }
 
     public function test_the_digest_counts_one_item_in_the_singular(): void

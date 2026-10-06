@@ -132,9 +132,10 @@ class ContentReport extends Model
     /**
      * Unpublish the reported item and close every open report on it.
      *
-     * The author is told through the usual rejection email, with the note (a
-     * neutral default when the moderator leaves it empty), which doubles as the
-     * statement of reasons in docs/notice-and-action.md.
+     * The author is told through the „removed“ variant of the rejection
+     * email, with the note (a neutral default when the moderator leaves it
+     * empty), which doubles as the statement of reasons in
+     * docs/notice-and-action.md.
      */
     public function hideContent(User $moderator, ?string $note = null): void
     {
@@ -145,12 +146,12 @@ class ContentReport extends Model
 
             if ($this->contentIsPublished()) {
                 if ($content instanceof Review) {
-                    $content->reject($moderator, $note);
+                    $content->reject($moderator, $note, afterReport: true);
                 } elseif ($content instanceof ForumPost) {
-                    $content->reject($moderator, $note);
+                    $content->reject($moderator, $note, afterReport: true);
                     $content->topic?->recordRemovedReply();
                 } elseif ($content instanceof ForumTopic) {
-                    $content->reject($moderator, $note);
+                    $content->reject($moderator, $note, afterReport: true);
                 }
             }
 

@@ -49,9 +49,12 @@ final class UgcMailer
         });
     }
 
-    public static function notifyRejected(Model $model): void
+    /**
+     * @param  bool  $removed  taken down after a report (it had been public)
+     */
+    public static function notifyRejected(Model $model, bool $removed = false): void
     {
-        self::sendToAuthor($model, function (User $user, array $payload): void {
+        self::sendToAuthor($model, function (User $user, array $payload) use ($removed): void {
             Mail::to($user)->queue(new UgcRejectedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
@@ -60,6 +63,7 @@ final class UgcMailer
                 actionLabel: $payload['account_action_label'],
                 masculine: $payload['masculine'],
                 rejectionNote: $payload['rejection_note'] ?? null,
+                removed: $removed,
             ));
         });
     }

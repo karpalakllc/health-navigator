@@ -186,7 +186,14 @@ class ContentReportTest extends TestCase
             ->assertJsonPath('data.review_summary.count', 1)
             ->assertJsonPath('data.review_summary.average_rating', 5);
 
-        Mail::assertQueued(UgcRejectedMail::class);
+        Mail::assertQueued(UgcRejectedMail::class, function (UgcRejectedMail $mail): bool {
+            $text = self::text($mail->render());
+
+            return $mail->removed
+                && $mail->envelope()->subject === 'Содржината е отстранета — Zdravje360'
+                && str_contains($text, 'е отстранета од Zdravje360 по пријава')
+                && ! str_contains($text, 'не беше објавена');
+        });
     }
 
     public function test_hiding_a_reported_topic_removes_it_from_lists_and_search(): void

@@ -156,7 +156,10 @@ class Review extends Model
         UgcMailer::notifyApproved($this->fresh());
     }
 
-    public function reject(User $moderator, ?string $note = null): void
+    /**
+     * @param  bool  $afterReport  taken down through the report queue: the author is told it was removed
+     */
+    public function reject(User $moderator, ?string $note = null, bool $afterReport = false): void
     {
         $this->update([
             'status' => ReviewStatus::Rejected,
@@ -166,7 +169,7 @@ class Review extends Model
             'rejection_note' => $note,
         ]);
 
-        UgcMailer::notifyRejected($this->fresh());
+        UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
     }
 
     /**

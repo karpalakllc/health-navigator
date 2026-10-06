@@ -22,12 +22,17 @@ class UgcRejectedMail extends Mailable implements ShouldQueue
         public readonly ?string $rejectionNote = null,
         // $contentLabel is a masculine noun (одговор): the template agrees with it.
         public readonly bool $masculine = false,
+        // Taken down after a report, i.e. it had been public: „отстранет(а)“,
+        // not „не беше објавен(а)“.
+        public readonly bool $removed = false,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Содржината не е објавена — Zdravje360',
+            subject: $this->removed
+                ? 'Содржината е отстранета — Zdravje360'
+                : 'Содржината не е објавена — Zdravje360',
         );
     }
 
