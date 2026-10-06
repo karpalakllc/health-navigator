@@ -418,4 +418,37 @@ class ForumTest extends TestCase
             ->assertStatus(429)
             ->assertJsonPath('message', 'Too many requests.');
     }
+
+    public function test_topics_in_unpublished_categories_are_hidden_from_cross_category_listings(): void
+    {
+        $hidden = ForumCategory::factory()->unpublished()->create(['slug' => 'hidden']);
+        $visible = ForumCategory::factory()->create(['slug' => 'visible']);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $hidden->id,
+            'slug' => 'secret',
+            'title' => 'Hydration secret topic',
+        ]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $visible->id,
+            'slug' => 'public',
+            'title' => 'Hydration public topic',
+        ]);
+
+        $this->getJson('/api/v1/forum/topics/recent')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.slug', 'public');
+
+        $this->getJson('/api/v1/forum/topics?q=hydration')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.slug', 'public');
+
+        $this->getJson('/api/v1/search?q=hydration')
+            ->assertOk()
+            ->assertJsonPath('data.forum_topics.meta.total', 1)
+            ->assertJsonPath('data.forum_topics.data.0.slug', 'public');
+
+        $this->getJson('/api/v1/forum/categories/hidden/topics/secret')->assertNotFound();
+    }
 }

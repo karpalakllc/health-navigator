@@ -4,6 +4,7 @@ import type {
   PharmacyListItem,
   PharmacyShelfProduct,
 } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type PharmacyListParams = {
   city?: string;
@@ -31,7 +32,7 @@ export async function fetchPharmacies(params: PharmacyListParams = {}) {
 }
 
 export async function fetchPharmacy(slug: string): Promise<PharmacyDetail> {
-  return apiGet<PharmacyDetail>(`/pharmacies/${slug}`);
+  return apiGet<PharmacyDetail>(`/pharmacies/${pathSegment(slug)}`);
 }
 
 export async function fetchPharmacyProducts(
@@ -39,6 +40,6 @@ export async function fetchPharmacyProducts(
   params: { q?: string; category?: string; page?: number } = {},
 ) {
   return apiGetPaginated<PharmacyShelfProduct>(
-    `/pharmacies/${slug}/products${toQuery(params)}`,
+    `/pharmacies/${pathSegment(slug)}/products${toQuery(params)}`,
   );
 }

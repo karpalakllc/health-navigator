@@ -4,9 +4,9 @@ namespace App\Filament\Resources\Reviews\Pages;
 
 use App\Enums\ReviewStatus;
 use App\Filament\Resources\Reviews\ReviewResource;
+use App\Filament\Support\ModerationBulkActions;
 use App\Models\Review;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewReview extends ViewRecord
@@ -17,15 +17,15 @@ class ViewReview extends ViewRecord
     {
         return [
             Action::make('approve')
-                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                    && auth()->user()?->can('update', $record))
                 ->requiresConfirmation()
                 ->action(fn (Review $record) => $record->approve(auth()->user())),
             Action::make('reject')
-                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                    && auth()->user()?->can('update', $record))
                 ->form([
-                    Textarea::make('rejection_note')
-                        ->label('Rejection note (internal)')
-                        ->rows(3),
+                    ModerationBulkActions::rejectionNoteField(),
                 ])
                 ->requiresConfirmation()
                 ->action(fn (Review $record, array $data) => $record->reject(

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
+import { readUpstream } from "@/lib/api/upstream";
 
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -13,24 +15,36 @@ type LoginPayload = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as LoginPayload;
+  const guarded = await guardJson<LoginPayload>(request);
 
-  const response = await fetch(apiUrl("/auth/login"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
-      ...forwardedForHeaders(request),
-    },
-    body: JSON.stringify({
-      email: body.email,
-      password: body.password,
-      device_name: body.device_name ?? "web",
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  const upstream = await readUpstream(
+    fetch(apiUrl("/auth/login"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
+      },
+      body: JSON.stringify({
+        email: body.email,
+        password: body.password,
+        device_name: body.device_name ?? "web",
+      }),
     }),
-  });
+  );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   if (!response.ok) {
     return NextResponse.json(payload, { status: response.status });

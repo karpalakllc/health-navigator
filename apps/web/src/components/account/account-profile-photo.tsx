@@ -6,6 +6,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/lib/api/me";
 import { t, tFormat } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 export function AccountProfilePhoto({ user }: { user: AuthUser }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ export function AccountProfilePhoto({ user }: { user: AuthUser }) {
             })}
           </p>
         )}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
       </div>
     </div>
   );

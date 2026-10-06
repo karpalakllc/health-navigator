@@ -6,7 +6,7 @@ import { SiteMaintenanceGate } from "@/components/layout/site-maintenance-gate";
 import { SitePlaceholdersProvider } from "@/components/layout/site-placeholders-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { mk } from "@/i18n/mk";
 import { cn } from "@/lib/cn";
 import "./globals.css";
@@ -29,7 +29,7 @@ const inter = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await fetchPublicSettingsServer();
+  const settings = await fetchPublicSettings();
   const faviconCacheKey = settings.favicon_url?.split("/").pop() ?? "default";
 
   return {
@@ -41,6 +41,11 @@ export async function generateMetadata(): Promise<Metadata> {
           shortcut: `${settings.favicon_url}?v=${faviconCacheKey}`,
         }
       : undefined,
+    // The maintenance page answers 200 in place of every route; it must not be
+    // indexed as their content. Pages only override `robots` to tighten it.
+    ...(settings.maintenance_mode
+      ? { robots: { index: false, follow: false } }
+      : {}),
   };
 }
 
@@ -49,7 +54,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await fetchPublicSettingsServer();
+  const settings = await fetchPublicSettings();
   const fontClass =
     settings.site_font_family === "inter"
       ? `${inter.variable} font-[family-name:var(--font-inter)]`

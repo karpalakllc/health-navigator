@@ -12,16 +12,19 @@ import { Button } from "@/components/ui/button";
 import { pageContainerClass } from "@/components/ui/layout";
 import { loginHref } from "@/lib/auth/login-href";
 import { cn } from "@/lib/cn";
+import type { ModuleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
 
 export function SiteHeaderBar({
   isLoggedIn,
   logoUrl = null,
   user = null,
+  modules,
 }: {
   isLoggedIn: boolean;
   logoUrl?: string | null;
   user?: AuthUser | null;
+  modules: ModuleFlags;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -44,7 +47,7 @@ export function SiteHeaderBar({
         </Link>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
-          <SiteNav className="justify-center gap-0.5" />
+          <SiteNav className="justify-center gap-0.5" modules={modules} />
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
@@ -104,6 +107,7 @@ export function SiteHeaderBar({
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         isLoggedIn={isLoggedIn}
+        modules={modules}
       />
     </>
   );

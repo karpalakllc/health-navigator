@@ -4,6 +4,7 @@ import { useState } from "react";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { PrivacyNote } from "@/components/auth/privacy-note";
+import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { t } from "@/i18n/t";
 
 /**
@@ -20,55 +21,74 @@ export function ResendVerificationForm({
   const [email, setEmail] = useState(defaultEmail);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    setError(null);
     setPending(true);
 
+    // "Sent" only when the API accepted the request. Its accepted reply is the
+    // same for every address, so this reveals nothing — but a 429 or a network
+    // failure must not be reported as a sent link.
     try {
-      await fetch("/api/session/resend-verification", {
+      const response = await fetch("/api/session/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-    } finally {
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setError(payload?.message ?? t("auth.verifyResendFailed"));
+        return;
+      }
+
       setSent(true);
+    } catch {
+      setError(t("auth.verifyResendFailed"));
+    } finally {
       setPending(false);
     }
   }
 
-  if (sent) {
-    return (
-      <div className="grid gap-2">
-        <p className="text-sm text-muted-foreground">
-          {t("auth.verifyResendSent")}
-        </p>
-        <PrivacyNote />
-      </div>
-    );
-  }
-
+  // The status region stays mounted across the swap from form to confirmation,
+  // so the confirmation is announced (see FormSuccess).
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3">
-      <label className="grid gap-1.5 text-sm">
-        <span className="font-semibold text-foreground">{t("auth.email")}</span>
-        <input
-          type="email"
-          name="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className={filterInputClassName}
-        />
-      </label>
-      <Button
-        type="submit"
-        disabled={pending}
-        className="min-h-[44px] w-full sm:w-auto"
-      >
-        {t("auth.verifyResend")}
-      </Button>
-    </form>
+    <div className={sent ? "grid gap-2" : undefined}>
+      <FormSuccess tone="muted">
+        {sent ? t("auth.verifyResendSent") : null}
+      </FormSuccess>
+      {sent ? (
+        <PrivacyNote />
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-3">
+          <label className="grid gap-1.5 text-sm">
+            <span className="font-semibold text-foreground">
+              {t("auth.email")}
+            </span>
+            <input
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={filterInputClassName}
+            />
+          </label>
+          {error ? <FormError>{error}</FormError> : null}
+          <Button
+            type="submit"
+            disabled={pending}
+            className="min-h-[44px] w-full sm:w-auto"
+          >
+            {t("auth.verifyResend")}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 }

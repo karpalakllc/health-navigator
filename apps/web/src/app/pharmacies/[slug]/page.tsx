@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
-import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
@@ -10,10 +9,14 @@ import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
 import { PharmacySidebarContact } from "@/components/directory/pharmacy-sidebar-contact";
 import { ProfileContentCard } from "@/components/design/profile-content-card";
 import { ReviewSection } from "@/components/reviews/review-section";
+import { JsonLd } from "@/components/seo/json-ld";
 import { PageShell } from "@/components/ui/page-shell";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/site-url";
+import { placeJsonLd } from "@/lib/structured-data";
 import { t } from "@/i18n/t";
 
 type PharmacyDetailPageProps = {
@@ -31,7 +34,7 @@ export async function generateMetadata({
   const settings = await fetchPublicSettings();
 
   if (!settings.public_pharmacies) {
-    return pageMetadata(t("pharmacies.title"));
+    return pageMetadata(t("pharmacies.title"), undefined, { noIndex: true });
   }
 
   const { slug } = await params;
@@ -42,6 +45,7 @@ export async function generateMetadata({
     return pageMetadata(
       pharmacy.name,
       pharmacy.city ?? t("pharmacies.description"),
+      { path: `/pharmacies/${slug}` },
     );
   } catch {
     return pageMetadata(t("pharmacies.title"));
@@ -54,14 +58,10 @@ export default async function PharmacyDetailPage({
 }: PharmacyDetailPageProps) {
   const settings = await fetchPublicSettings();
 
-  if (!settings.public_pharmacies) {
-    return (
-      <ComingSoonShell
-        module="pharmacies"
-        title={t("pharmacies.title")}
-        description={t("pharmacies.description")}
-      />
-    );
+  // A switched-off module has no detail pages: the list page carries the
+  // "coming soon" stand-in, a detail URL is simply not there.
+  if (!isModuleOn(settings, "public_pharmacies")) {
+    notFound();
   }
 
   const { slug } = await params;
@@ -89,6 +89,13 @@ export default async function PharmacyDetailPage({
 
   return (
     <PageShell gap="loose" className="pb-16 pt-[18px]">
+      <JsonLd
+        data={placeJsonLd(
+          "Pharmacy",
+          pharmacy,
+          absoluteUrl(`/pharmacies/${pharmacy.slug}`),
+        )}
+      />
       <Breadcrumbs
         items={[
           { label: t("common.home"), href: "/" },

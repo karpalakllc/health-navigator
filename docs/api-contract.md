@@ -3,7 +3,9 @@
 Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 
 > **Maintenance:** the endpoint table below is generated — run
-> `./scripts/api-routes.sh` and paste the result. Do not hand-edit it. This
+> `php artisan docs:route-table --write` (from `apps/api`), or
+> `./scripts/api-routes.sh` and paste the result; both print the same table, and
+> `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
 > document previously drifted far enough to state, as a premise, that public
 > registration did not exist, months after it shipped.
 
@@ -14,11 +16,13 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 | Success (single) | `{ "data": { ... } }` or `{ "data": [ ... ] }` (non-paginated lists) |
 | Success (paginated list) | `{ "data": [ ... ], "meta": { "current_page", "per_page", "total", "last_page" } }` |
 | Error | `{ "message": "<localised>", "code": "<stable key>", "errors"?: { field: string[] } }` |
-| Validation error | `422` with `errors` populated (Laravel validation) |
+| Validation error | `422`, code `validation.failed`, `errors` populated per field; `message` is the first field error plus a localised "(and N more errors)" |
 | Unauthorized | `401`, code `errors.unauthenticated` |
-| Forbidden | `403`, code `errors.forbidden` |
-| Not found | `404`, code `errors.not_found` |
-| Too many requests | `429`, code `errors.too_many_requests` |
+| Forbidden | `403`, code `errors.forbidden` (`message` is the policy's own denial text when it gives one) |
+| Not found | `404`, code `errors.not_found` — including paths under `/api` that match no route |
+| Method not allowed | `405`, code `errors.method_not_allowed`, with an `Allow` header |
+| Too many requests | `429`, code `errors.too_many_requests`, with a `Retry-After` header |
+| Server error | `500`, code `errors.server_error`; the exception message is never exposed (outside local debug mode) |
 | Module disabled | `503`, code `module.unavailable` |
 | Maintenance mode | `503`, code `maintenance.active` |
 
@@ -34,7 +38,8 @@ change.
 
 Responses are localised. The API negotiates `Accept-Language` across `mk` and
 `en`, defaulting to **Macedonian**, and sets `Content-Language` plus
-`Vary: Accept-Language` on every response. The web client requests `mk`
+`Vary: Accept-Language` on every response — error responses included, even for
+a path that matches no route. The web client requests `mk`
 explicitly because its UI is Macedonian-only.
 
 ## Authentication
@@ -56,8 +61,14 @@ mechanism for the Next.js web client and future mobile clients.
   link vs. "you already have an account"). This is what stops signup being
   usable to discover who has an account.
 - `GET /auth/email/verify/{id}/{hash}` is a **signed** link from that email. It
-  redirects to `{FRONTEND_URL}/verify-email?status=verified|already|invalid`;
-  an unsigned or expired link is `403`.
+  redirects to `{FRONTEND_URL}/verify-email?status=verified|verified_set_password|already|invalid`;
+  `verified_set_password` means the address was confirmed but the registration
+  had been contested (signed up for more than once), so the stored password was
+  discarded and a password-reset link was mailed instead. An unsigned or
+  expired link is `403`.
+- Completing `POST /auth/reset-password` also confirms the address (the reset
+  link proves control of the mailbox), so it finishes a pending or contested
+  registration.
 - `POST /auth/email/resend` re-sends the link and is equally non-committal (202).
 - **Login requires a verified address**: correct credentials on an unverified
   account return `403` with code `auth.email_unverified`. This is not an oracle —
@@ -77,18 +88,24 @@ the bearer token directly.
 
 ## Rate limits
 
-A baseline `throttle:api` of **120 requests/minute** applies to every v1 route,
-keyed on the authenticated user when present and the client IP otherwise. The
-tighter named limiters are layered on top:
+A baseline `throttle:api` applies to every v1 route: **300 requests/minute** per
+authenticated user, **1200/minute** per client IP otherwise (high on purpose — the
+web tier's server-side rendering arrives from one address). The tighter named
+limiters are layered on top:
 
 | Limiter | Applies to | Limit |
 |---------|-----------|-------|
-| `api-login` | login, register, forgot/reset password | 5/min per IP **and** per email |
+| `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
+| `api-verification-resend` | verification email resend | 10/min per IP |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
 | `api-forum-posts` | reply creation | 30/day |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
+
+Login additionally locks an account out after **5 failed attempts per minute**,
+counted per email + IP (`AuthController`). It counts failures, not requests, so
+nobody can hold an account locked by merely sending traffic.
 
 > IP-keyed limits require `TRUSTED_PROXIES` to be set behind a load balancer,
 > or every client shares one bucket. See `infra/deploy.md`.
@@ -141,7 +158,7 @@ tighter named limiters are layered on top:
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `role:member`, `verified`, `throttle:api-reviews` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |

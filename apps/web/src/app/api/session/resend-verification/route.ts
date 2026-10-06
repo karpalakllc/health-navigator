@@ -1,26 +1,40 @@
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
+import { readUpstream } from "@/lib/api/upstream";
 
 /**
  * Re-sends the verification link. Like registration, the API's reply is
  * deliberately the same whatever the address turns out to be.
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as { email?: string };
+  const guarded = await guardJson<{ email?: string }>(request);
 
-  const response = await fetch(apiUrl("/auth/email/resend"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
-      ...forwardedForHeaders(request),
-    },
-    body: JSON.stringify({ email: body.email }),
-  });
+  if (!guarded.ok) {
+    return guarded.response;
+  }
 
-  const payload = await response.json();
+  const body = guarded.value;
+
+  const upstream = await readUpstream(
+    fetch(apiUrl("/auth/email/resend"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
+      },
+      body: JSON.stringify({ email: body.email }),
+    }),
+  );
+
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   return NextResponse.json(payload, { status: response.status });
 }

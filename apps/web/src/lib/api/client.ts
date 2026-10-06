@@ -1,3 +1,5 @@
+import "server-only";
+import { webTierRequestHeaders } from "@/lib/api/client-ip";
 import { apiUrl } from "@/lib/config";
 import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
 
@@ -21,13 +23,30 @@ function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
     : { next: { revalidate } };
 }
 
+/**
+ * Every call carries the web tier's credentials and the visitor's address
+ * (lib/api/client-ip.ts) so the API meters each visitor separately rather than
+ * the whole site as one client. Cached fetches send the credentials without
+ * the visitor: their response is shared by everyone.
+ *
+ * This module is server-only (client-ip.ts is): browser-side calls, such as the
+ * guidance wizard's in lib/api/guidance.ts, must not import it.
+ */
+function serverSideHeaders(
+  options: ApiCacheOptions = {},
+): Promise<Record<string, string>> {
+  return webTierRequestHeaders({
+    forwardVisitor: options.revalidate === undefined,
+  });
+}
+
 export async function apiGet<T>(
   path: string,
   options?: ApiCacheOptions,
 ): Promise<T> {
   const response = await fetch(apiUrl(path), {
     ...cacheInit(options),
-    headers: { ...API_LANGUAGE_HEADER },
+    headers: { ...API_LANGUAGE_HEADER, ...(await serverSideHeaders(options)) },
   });
 
   if (!response.ok) {
@@ -45,7 +64,7 @@ export async function apiGetPaginated<T>(
 ): Promise<PaginatedEnvelope<T>> {
   const response = await fetch(apiUrl(path), {
     ...cacheInit(options),
-    headers: { ...API_LANGUAGE_HEADER },
+    headers: { ...API_LANGUAGE_HEADER, ...(await serverSideHeaders(options)) },
   });
 
   if (!response.ok) {

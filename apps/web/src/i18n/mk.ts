@@ -12,10 +12,15 @@ export const mk = {
     badge: "Наскоро",
     title: "Работиме на ова",
     body: "Овој дел од платформата ќе биде достапен наскоро. Дотогаш истражувајте лекари, установи и форум.",
-    productsTitle: "Каталог на производи",
+    bodyWithoutForum:
+      "Овој дел од платформата ќе биде достапен наскоро. Дотогаш истражувајте лекари и установи.",
+    // A module the admin switched off: no "coming soon" promise.
+    unavailableBadge: "Недостапно",
+    unavailableTitle: "Овој дел моментално не е достапен",
+    unavailableBody: "Во меѓувреме, истражувајте лекари и установи.",
+    forumBody: "Форумот на заедницата моментално не е достапен.",
     productsBody:
       "Споредба на референтни цени по аптеки — информативно, не за купување на страницата.",
-    pharmaciesTitle: "Директориум на аптеки",
     pharmaciesBody:
       "Локации, контакт и производи по аптека — наскоро целосно достапно.",
     exploreDoctors: "Пребарај лекари",
@@ -218,6 +223,14 @@ export const mk = {
     topicRequired: "Темата е задолжителна.",
     categoryRequired: "Категоријата е задолжителна.",
     missingToken: "Серверот не врати сесија. Обидете се повторно.",
+    forbiddenOrigin:
+      "Барањето е одбиено бидејќи не потекнува од оваа страница.",
+    unsupportedMediaType: "Неподдржан формат на барањето.",
+    payloadTooLarge: "Барањето е преголемо.",
+    invalidJson: "Барањето не е во валиден формат.",
+    invalidAvatar: "Изберете слика до 5 MB.",
+    upstreamUnavailable:
+      "Услугата моментално не е достапна. Обидете се повторно за неколку минути.",
   },
   notFound: {
     title: "Страницата не е пронајдена",
@@ -257,16 +270,30 @@ export const mk = {
     // session, so the UI has to explain the inbox step.
     loggedOut: "Одјавени сте.",
     verifyCheckInbox: "Проверете го вашето сандаче",
-    verifyCheckInboxBody: "Испративме порака со линк за потврда.",
+    // The three "check your inbox" messages promise only what is true for every
+    // address (the API answers the same either way) and say what to do if
+    // nothing arrives.
+    verifyCheckInboxBody:
+      "Ако адресата е исправна, ќе добиете порака со понатамошни упатства. Ако не стигне за неколку минути, проверете ја папката за непосакувана пошта (spam) или обидете се повторно подоцна.",
     // Shown as a small muted note under the message, not as body copy — the
     // point is to say the hiding is deliberate, briefly.
     privacyNote:
       "Од безбедносни причини не откриваме дали адресата е веќе регистрирана.",
     verifyResend: "Испрати го линкот повторно",
-    verifyResendSent: "Испративме нов линк.",
+    verifyResendSent:
+      "Ако адресата е поврзана со сметка што чека потврда, ќе добиете нов линк. Ако не стигне за неколку минути, проверете ја папката за непосакувана пошта (spam) или обидете се повторно подоцна.",
+    verifyResendFailed:
+      "Барањето не успеа. Обидете се повторно за неколку минути.",
     verifyUnverified: "Вашата е-адреса сè уште не е потврдена.",
     verifiedTitle: "Е-адресата е потврдена",
     verifiedBody: "Сметката е активна. Сега можете да се најавите.",
+    // A second sign-up named the same address before it was confirmed, so the
+    // password stored with it may not be the owner's. The API confirms the
+    // address and mails a link to choose a password instead of activating it.
+    verifiedSetPasswordTitle: "Е-адресата е потврдена",
+    verifiedSetPasswordBody:
+      "Бидејќи оваа е-адреса беше користена за повеќе од една регистрација, од безбедносни причини ја поништивме внесената лозинка. На е-адресата ви испративме линк за поставување нова лозинка. Ако пораката не стигне за неколку минути, побарајте нов линк подолу.",
+    verifiedSetPasswordLink: "Побарај нов линк за лозинка",
     verifiedAlreadyTitle: "Веќе е потврдена",
     verifiedAlreadyBody:
       "Оваа е-адреса е веќе потврдена. Најавете се за да продолжите.",
@@ -292,7 +319,8 @@ export const mk = {
       "Внесете ја е-поштата за сметката. Ќе ви испратиме линк за ресетирање на лозинката.",
     forgotPasswordSubmit: "Испрати линк",
     forgotPasswordSending: "Се испраќа…",
-    forgotPasswordSuccess: "Испративме линк за промена на лозинката.",
+    forgotPasswordSuccess:
+      "Ако адресата е поврзана со сметка, ќе добиете линк за промена на лозинката. Ако не стигне за неколку минути, проверете ја папката за непосакувана пошта (spam) или обидете се повторно подоцна.",
     forgotPasswordFailed: "Барањето не успеа. Обидете се повторно.",
     resetPasswordTitle: "Нова лозинка",
     resetPasswordDescription: "Поставете нова лозинка за вашата сметка.",
@@ -577,6 +605,10 @@ export const mk = {
     summaryLine: "{average} / 5 · {count} {countLabel}",
     submitTitle: "Оставете рецензија",
     rating: "Оценка",
+    ratingStarLabelOne: "{stars} ѕвезда од 5",
+    ratingStarLabelOther: "{stars} ѕвезди од 5",
+    ratingNone: "Не е избрана оценка",
+    ratingRequired: "Изберете оценка од 1 до 5 ѕвезди.",
     body: "Коментар (опционално, мин. 10 знаци ако е пополнет)",
     pending: "Вашата рецензија ќе биде прегледана пред објава.",
     submit: "Испрати рецензија",

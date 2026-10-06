@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { isSlug, pathSegment } from "@/lib/api/path";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
+import { readUpstream } from "@/lib/api/upstream";
 
 type PostPayload = {
   categorySlug?: string;
@@ -20,33 +23,45 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as PostPayload;
+  const guarded = await guardJson<PostPayload>(request);
 
-  if (!body.categorySlug || !body.topicSlug) {
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  if (!isSlug(body.categorySlug) || !isSlug(body.topicSlug)) {
     return NextResponse.json(
       { message: t("errors.topicRequired") },
       { status: 422 },
     );
   }
 
-  const response = await fetch(
-    apiUrl(
-      `/forum/categories/${body.categorySlug}/topics/${body.topicSlug}/posts`,
-    ),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Accept-Language": "mk",
-        ...forwardedForHeaders(request),
+  const upstream = await readUpstream(
+    fetch(
+      apiUrl(
+        `/forum/categories/${pathSegment(body.categorySlug)}/topics/${pathSegment(body.topicSlug)}/posts`,
+      ),
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Accept-Language": "mk",
+          ...forwardedForHeaders(request),
+        },
+        body: JSON.stringify({ body: body.body }),
       },
-      body: JSON.stringify({ body: body.body }),
-    },
+    ),
   );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   return NextResponse.json(payload, { status: response.status });
 }

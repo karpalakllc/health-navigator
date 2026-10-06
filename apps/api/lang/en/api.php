@@ -17,6 +17,15 @@ return [
         'forbidden' => 'Forbidden.',
         'not_found' => 'Not found.',
         'too_many_requests' => 'Too many requests.',
+        'method_not_allowed' => 'This method is not allowed for this address.',
+        'server_error' => 'Something went wrong on our side. Please try again later.',
+    ],
+
+    // `message` on a 422 is the first field error plus a count (lang/en.json);
+    // this entry exists so the `validation.failed` code has a translation key.
+    'validation' => [
+        'failed' => 'The given data was invalid.',
+        'invalid_encoding' => 'The value is not valid UTF-8 text.',
     ],
 
     'auth' => [
@@ -50,6 +59,7 @@ return [
 
     'avatar' => [
         'locked' => 'Profile photo upload is locked until you reach the required forum message count.',
+        'invalid' => 'The image could not be read, or its dimensions are too large.',
     ],
 
     'guidance' => [
@@ -62,6 +72,7 @@ return [
         'invalid_option' => 'Invalid option selected.',
         'invalid_red_flag' => 'Invalid red-flag code.',
         'answer_required' => 'Please answer: :step',
+        'red_flags_required' => 'Please answer the warning-signs question first.',
         'fallback' => [
             'title' => 'General information',
             'body' => 'We could not load detailed guidance. If you are worried about your health, contact a healthcare professional or emergency services (194 / 112).',

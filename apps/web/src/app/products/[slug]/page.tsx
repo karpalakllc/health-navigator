@@ -6,9 +6,9 @@ import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
 import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
-import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchProduct } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tFormat } from "@/i18n/t";
 
@@ -22,7 +22,7 @@ export async function generateMetadata({
   const settings = await fetchPublicSettings();
 
   if (!settings.public_products) {
-    return pageMetadata(t("products.title"));
+    return pageMetadata(t("products.title"), undefined, { noIndex: true });
   }
 
   const { slug } = await params;
@@ -33,6 +33,7 @@ export async function generateMetadata({
     return pageMetadata(
       product.name,
       product.category ?? t("products.description"),
+      { path: `/products/${slug}` },
     );
   } catch {
     return pageMetadata(t("products.title"));
@@ -44,13 +45,10 @@ export default async function ProductDetailPage({
 }: ProductDetailPageProps) {
   const settings = await fetchPublicSettings();
 
-  if (!settings.public_products) {
-    return (
-      <ComingSoonShell
-        title={t("products.title")}
-        description={t("products.description")}
-      />
-    );
+  // A switched-off module has no detail pages: the list page carries the
+  // "coming soon" stand-in, a detail URL is simply not there.
+  if (!isModuleOn(settings, "public_products")) {
+    notFound();
   }
 
   const { slug } = await params;

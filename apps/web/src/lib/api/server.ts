@@ -1,22 +1,10 @@
+import { webTierRequestHeaders } from "@/lib/api/client-ip";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
+import { ApiRequestError, type ApiErrorBody } from "@/lib/api/errors";
 
-export type ApiErrorBody = {
-  message: string;
-  errors?: Record<string, string[]>;
-};
-
-export class ApiRequestError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-    public readonly body?: ApiErrorBody,
-  ) {
-    super(message);
-    this.name = "ApiRequestError";
-  }
-}
+export { ApiRequestError, type ApiErrorBody };
 
 async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -36,6 +24,11 @@ export async function apiFetch(
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  // Identifies the visitor to the API's per-client limits; see client-ip.ts.
+  for (const [name, value] of Object.entries(await webTierRequestHeaders())) {
+    headers.set(name, value);
   }
 
   if (init.body && !headers.has("Content-Type")) {

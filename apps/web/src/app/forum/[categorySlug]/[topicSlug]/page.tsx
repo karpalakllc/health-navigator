@@ -12,7 +12,8 @@ import { PageSection } from "@/components/ui/page-section";
 import { PageShell } from "@/components/ui/page-shell";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
-import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
@@ -28,6 +29,11 @@ export async function generateMetadata({
   params,
 }: TopicDetailPageProps): Promise<Metadata> {
   const { categorySlug, topicSlug } = await params;
+  const settings = await fetchPublicSettings();
+
+  if (!settings.public_forum) {
+    return pageMetadata(t("forum.title"), undefined, { noIndex: true });
+  }
 
   try {
     const { topic } = await fetchForumTopicPage(categorySlug, topicSlug);
@@ -52,18 +58,21 @@ export default async function TopicDetailPage({
   const token = await getSessionToken();
   const redirectPath = `/forum/${categorySlug}/${topicSlug}`;
 
+  const settings = await fetchPublicSettings();
+
+  // Detail pages of a switched-off module do not exist; /forum explains why.
+  if (!isModuleOn(settings, "public_forum")) {
+    notFound();
+  }
+
   let data;
-  let settings;
 
   try {
-    [data, settings] = await Promise.all([
-      fetchForumTopicPage(
-        categorySlug,
-        topicSlug,
-        Number.isFinite(page) ? page : 1,
-      ),
-      fetchPublicSettingsServer(),
-    ]);
+    data = await fetchForumTopicPage(
+      categorySlug,
+      topicSlug,
+      Number.isFinite(page) ? page : 1,
+    );
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       notFound();

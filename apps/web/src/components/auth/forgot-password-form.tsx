@@ -7,6 +7,7 @@ import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -50,7 +51,7 @@ export function ForgotPasswordForm() {
     <AuthFormCard>
       {success ? (
         <div className="grid gap-2">
-          <p className="text-sm text-muted-foreground">
+          <p role="status" className="text-sm text-muted-foreground">
             {t("auth.forgotPasswordSuccess")}
           </p>
           <PrivacyNote />
@@ -71,7 +72,7 @@ export function ForgotPasswordForm() {
               className={filterInputClassName}
             />
           </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <FormError>{error}</FormError> : null}
           <Button
             type="submit"
             disabled={pending}

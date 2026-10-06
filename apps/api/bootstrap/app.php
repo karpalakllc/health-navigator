@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
+use App\Http\Middleware\TrustWebTierClientIp;
 use App\Http\Responses\ApiResponse;
 use App\Support\FrontendUrl;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -14,11 +15,14 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Support\Facades\App;
+use Illuminate\Validation\ValidationException;
+use Sentry\Laravel\Integration;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -46,11 +50,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // header reaches the app change the host that URL::temporarySignedRoute()
         // builds from — which would have the platform mail a real user a genuine,
         // correctly-signed verification link pointing at a host they control.
-        // Nothing here needs it; the canonical host comes from config (see
-        // AppServiceProvider::boot, URL::forceRootUrl).
+        // Nothing here needs it. Incoming Host headers are constrained to APP_URL's
+        // domain by trustHosts() below, and queued mail — where verification links
+        // are built — has no request at all, so those links come from APP_URL.
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
+
+        // The web tier proves itself with a shared secret rather than an address
+        // (its egress IPs are not stable enough for TRUSTED_PROXIES) and hands us
+        // the visitor's address. Appended globally so it runs after TrustProxies,
+        // whose scheme decision it preserves, and before any route throttle.
+        $middleware->append(TrustWebTierClientIp::class);
 
         // Constrain the Host header to APP_URL's domain outside local/testing.
         // This is what stops a request claiming an arbitrary host and having
@@ -82,29 +93,35 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*')) {
+        // sentry-laravel unregisters the PHP SDK's own error listeners and relies
+        // on this hook; without it nothing reaches Sentry. A no-op without a DSN.
+        Integration::handles($exceptions);
+
+        // Route middleware does not run for a request that matches no route (404,
+        // 405), so SetApiLocale has not negotiated a language yet; do it here as
+        // well. For a matched route this repeats the middleware's own answer.
+        $isApi = static function (Request $request): bool {
+            if (! $request->is('api/*')) {
+                return false;
+            }
+
+            App::setLocale($request->getPreferredLanguage(SetApiLocale::SUPPORTED) ?? SetApiLocale::DEFAULT_LOCALE);
+
+            return true;
+        };
+
+        $exceptions->render(function (AuthenticationException $e, Request $request) use ($isApi) {
+            if ($isApi($request)) {
                 return ApiResponse::errorCode('errors.unauthenticated', 401);
             }
         });
 
-        $exceptions->render(function (AuthorizationException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return $e->getMessage() !== ''
-                    ? ApiResponse::error($e->getMessage(), 403, code: 'errors.forbidden')
-                    : ApiResponse::errorCode('errors.forbidden', 403);
-            }
-        });
-
-        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return ApiResponse::errorCode('errors.not_found', 404);
-            }
-        });
-
-        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return ApiResponse::errorCode('errors.too_many_requests', 429);
+        // `message` stays the framework's summary ("first error (and N more
+        // errors)", localised via lang/{locale}.json) and `errors` keeps its
+        // per-field shape: apps/web reads payload.errors.<field>[0], then payload.message.
+        $exceptions->render(function (ValidationException $e, Request $request) use ($isApi) {
+            if ($e->response === null && $isApi($request)) {
+                return ApiResponse::error($e->getMessage(), $e->status, $e->errors(), 'validation.failed');
             }
         });
 
@@ -112,19 +129,71 @@ return Application::configure(basePath: dirname(__DIR__))
         // the ordinary case is an expired signature. ValidateSignature aborts before
         // the controller runs, which would otherwise hand the user Laravel's raw 403
         // page instead of the /verify-email screen that offers them a fresh link.
-        $exceptions->render(function (InvalidSignatureException $e, Request $request) {
+        $exceptions->render(function (InvalidSignatureException $e, Request $request) use ($isApi) {
             if ($request->routeIs('verification.verify')) {
                 return redirect()->away(FrontendUrl::to('/verify-email?status=invalid'));
             }
 
-            if ($request->is('api/*')) {
+            if ($isApi($request)) {
                 return ApiResponse::errorCode('errors.forbidden', 403);
             }
         });
 
-        $exceptions->render(function (HttpException $e, Request $request) {
-            if ($request->is('api/*') && $e->getStatusCode() === 401) {
-                return ApiResponse::errorCode('errors.unauthenticated', 401);
+        // By the time render callbacks run, the framework has already turned an
+        // AuthorizationException into an AccessDeniedHttpException and a missing
+        // model into a NotFoundHttpException, so the status is what to branch on.
+        $httpCodes = [
+            401 => 'errors.unauthenticated',
+            403 => 'errors.forbidden',
+            404 => 'errors.not_found',
+            405 => 'errors.method_not_allowed',
+            429 => 'errors.too_many_requests',
+        ];
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) use ($isApi, $httpCodes) {
+            $status = $e->getStatusCode();
+
+            if (! isset($httpCodes[$status]) || ! $isApi($request)) {
+                return null;
             }
+
+            // A policy's own denial message (Response::deny('...')) is written for
+            // the user; the framework's default English one is not.
+            $previous = $e->getPrevious();
+            $denial = $previous instanceof AuthorizationException ? $previous->getMessage() : '';
+
+            $response = $denial !== '' && $denial !== (new AuthorizationException)->getMessage()
+                ? ApiResponse::error($denial, $status, code: $httpCodes[$status])
+                : ApiResponse::errorCode($httpCodes[$status], $status);
+
+            // Retry-After (429) and Allow (405) are part of the answer.
+            return $response->withHeaders($e->getHeaders());
+        });
+
+        // Anything else is a 500. Outside debug, never echo the exception message
+        // (it can carry SQL or file paths); in debug, keep the framework's trace.
+        $exceptions->render(function (Throwable $e, Request $request) use ($isApi) {
+            if ($e instanceof HttpExceptionInterface
+                || $e instanceof HttpResponseException
+                || $e instanceof ValidationException
+                || $e instanceof AuthenticationException
+                || config('app.debug')
+                || ! $isApi($request)) {
+                return null;
+            }
+
+            return ApiResponse::errorCode('errors.server_error', 500);
+        });
+
+        // SetApiLocale sets these on matched routes; a request that matched no
+        // route never reached it, yet its error still varies by Accept-Language.
+        $exceptions->respond(function (Response $response, Throwable $e, Request $request) use ($isApi) {
+            if ($request->route() === null && $isApi($request)) {
+                $response->headers->set('Content-Language', App::getLocale());
+                $vary = $response->headers->get('Vary');
+                $response->headers->set('Vary', $vary ? $vary.', Accept-Language' : 'Accept-Language');
+            }
+
+            return $response;
         });
     })->create();

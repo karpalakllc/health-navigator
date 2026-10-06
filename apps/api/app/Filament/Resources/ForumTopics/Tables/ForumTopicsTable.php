@@ -9,7 +9,6 @@ use App\Models\ForumTopic;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -61,7 +60,7 @@ class ForumTopicsTable
                     ->visible(fn (ForumTopic $record): bool => $record->status === ForumContentStatus::Pending
                         && auth()->user()?->can('update', $record))
                     ->form([
-                        Textarea::make('rejection_note')->label('Rejection note (internal)')->rows(3),
+                        ModerationBulkActions::rejectionNoteField(),
                     ])
                     ->requiresConfirmation()
                     ->action(fn (ForumTopic $record, array $data) => $record->reject(

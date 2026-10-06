@@ -4,9 +4,10 @@ import { DirectoryHero } from "@/components/design/directory-hero";
 import { TrustRibbon } from "@/components/design/trust-ribbon";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeroBleed } from "@/components/design/page-hero-bleed";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { t } from "@/i18n/t";
 
-type ComingSoonModule = "products" | "pharmacies";
+type ComingSoonModule = "products" | "pharmacies" | "forum";
 
 type ComingSoonShellProps = {
   title: string;
@@ -14,26 +15,36 @@ type ComingSoonShellProps = {
   module?: ComingSoonModule;
 };
 
-export function ComingSoonShell({
+/**
+ * Stands in for a module the admin has switched off. It answers 200, so every
+ * page that renders it must also mark itself noindex in its metadata — a
+ * placeholder must not be indexed in place of the real page.
+ */
+export async function ComingSoonShell({
   title,
   description,
   module = "products",
 }: ComingSoonShellProps) {
+  const settings = await fetchPublicSettings();
   const body =
     module === "pharmacies"
       ? t("comingSoon.pharmaciesBody")
-      : t("comingSoon.productsBody");
-  const moduleTitle =
-    module === "pharmacies"
-      ? t("comingSoon.pharmaciesTitle")
-      : t("comingSoon.productsTitle");
+      : module === "forum"
+        ? t("comingSoon.forumBody")
+        : t("comingSoon.productsBody");
+  // The forum is not a feature in the works: when it is off, the admin turned
+  // it off, so it gets neutral "not available" copy instead of "coming soon".
+  const unavailable = module === "forum";
+  const badge = unavailable
+    ? t("comingSoon.unavailableBadge")
+    : t("comingSoon.badge");
 
   return (
     <>
       <PageHeroBleed>
         <DirectoryHero
-          badge={t("comingSoon.badge")}
-          title={title || moduleTitle}
+          badge={badge}
+          title={title}
           description={description || body}
         />
         <TrustRibbon
@@ -62,13 +73,19 @@ export function ComingSoonShell({
       <PageShell className="pb-16">
         <div className="content-card rounded-[1.625rem] p-8 text-center">
           <p className="text-xs font-extrabold uppercase tracking-wide text-primary">
-            {t("comingSoon.badge")}
+            {badge}
           </p>
           <h2 className="mt-2 text-2xl font-black tracking-tight">
-            {t("comingSoon.title")}
+            {unavailable
+              ? t("comingSoon.unavailableTitle")
+              : t("comingSoon.title")}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            {t("comingSoon.body")}
+            {unavailable
+              ? t("comingSoon.unavailableBody")
+              : settings.public_forum
+                ? t("comingSoon.body")
+                : t("comingSoon.bodyWithoutForum")}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <QuickLink href="/doctors">
@@ -77,7 +94,11 @@ export function ComingSoonShell({
             <QuickLink href="/facilities">
               {t("comingSoon.exploreFacilities")}
             </QuickLink>
-            <QuickLink href="/forum">{t("comingSoon.exploreForum")}</QuickLink>
+            {settings.public_forum ? (
+              <QuickLink href="/forum">
+                {t("comingSoon.exploreForum")}
+              </QuickLink>
+            ) : null}
           </div>
         </div>
       </PageShell>

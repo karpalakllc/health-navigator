@@ -1,79 +1,92 @@
+import * as Sentry from "@sentry/nextjs";
 import { cache } from "react";
-import { apiGet, type ApiCacheOptions } from "@/lib/api/client";
-import { apiGetServer } from "@/lib/api/server";
+import { API_LANGUAGE_HEADER } from "@/lib/api/client";
+import {
+  createReportThrottle,
+  resolvePublicSettings,
+  type PublicSettings,
+  type PublicSettingsOutcome,
+} from "@/lib/api/public-settings";
+import type { ApiEnvelope } from "@/lib/api/types";
+import { apiUrl } from "@/lib/config";
 
-export type PublicSettings = {
-  public_guidance: boolean;
-  public_products: boolean;
-  public_pharmacies: boolean;
-  public_forum: boolean;
-  registrations_enabled: boolean;
-  maintenance_mode: boolean;
-  maintenance_message: string | null;
-  logo_url: string | null;
-  favicon_url: string | null;
-  placeholder_doctor_url: string | null;
-  placeholder_facility_url: string | null;
-  placeholder_pharmacy_url: string | null;
-  footer_emergency_text: string;
-  footer_disclaimer_text: string;
-  copyright_name: string;
-  profile_avatar_min_messages: number;
-  site_font_family: "geist" | "inter" | "system";
-  forum_rules_enabled: boolean;
-  forum_rules_title: string | null;
-  forum_rules_body: string | null;
-};
+export {
+  publicSettingsDefaults,
+  type PublicSettings,
+} from "@/lib/api/public-settings";
 
-export const publicSettingsDefaults: PublicSettings = {
-  public_guidance: false,
-  public_products: false,
-  public_pharmacies: false,
-  public_forum: true,
-  registrations_enabled: true,
-  maintenance_mode: false,
-  maintenance_message: null,
-  logo_url: null,
-  favicon_url: null,
-  placeholder_doctor_url: null,
-  placeholder_facility_url: null,
-  placeholder_pharmacy_url: null,
-  site_font_family: "geist",
-  forum_rules_enabled: true,
-  forum_rules_title: null,
-  forum_rules_body: null,
-  footer_emergency_text: "При медицинска итност повикајте 194 или 112 веднаш.",
-  footer_disclaimer_text:
-    "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоки за симптоми се само информативни.",
-  copyright_name: "Zdravje360",
-  profile_avatar_min_messages: 10,
-};
+/**
+ * How stale the public settings may be, in seconds. This is also how long an
+ * admin toggle (maintenance, a module switch) takes to reach visitors.
+ */
+export const SETTINGS_REVALIDATE_SECONDS = 30;
+
+/**
+ * Reads /settings/public through Next's data cache.
+ *
+ * The endpoint is the same for everyone, so no bearer token is sent: a request
+ * carrying `Authorization` is never cached by Next, and the token is not the
+ * settings endpoint's business anyway.
+ *
+ * Why a fetch-level `revalidate` still works under the root layout's
+ * `dynamic = "force-dynamic"` (which the per-request CSP nonce relies on): the
+ * Next 16 docs describe force-dynamic as making every fetch `no-store`, but
+ * patch-fetch (next/dist/server/lib/patch-fetch.js) only applies that to fetches
+ * with *no* cache config of their own. An explicit `next.revalidate` is kept, so
+ * the page still renders per request (fresh nonce) while this one fetch is served
+ * from the data cache. Only 200 responses are written to that cache, so a failure
+ * is never pinned for the window.
+ *
+ * This mirrors apiGet(path, { revalidate }) from lib/api/client.ts, which sets
+ * the same `next: { revalidate }` init — it is not reused because it throws away
+ * the status code, and the 503-means-maintenance decision needs it.
+ *
+ * Known gap: once an entry exists, Next serves it stale while revalidating in the
+ * background. If the whole API goes down (503) after a good read, the last good
+ * settings keep being served until a revalidation succeeds; the other, uncached
+ * page fetches fail on their own in that window. A cold cache sees the 503 and
+ * shows the maintenance page.
+ */
+const shouldReportOutage = createReportThrottle();
+
+export async function loadPublicSettings(
+  revalidate: number = SETTINGS_REVALIDATE_SECONDS,
+): Promise<PublicSettings> {
+  let outcome: PublicSettingsOutcome;
+
+  try {
+    const response = await fetch(apiUrl("/settings/public"), {
+      next: { revalidate },
+      headers: { ...API_LANGUAGE_HEADER },
+    });
+
+    outcome = response.ok
+      ? {
+          kind: "ok",
+          data: ((await response.json()) as ApiEnvelope<PublicSettings>).data,
+        }
+      : { kind: "http-error", status: response.status };
+  } catch {
+    outcome = { kind: "network-error" };
+  }
+
+  if (outcome.kind !== "ok" && shouldReportOutage()) {
+    // A silent fallback hides an outage behind a site that merely looks
+    // smaller (modules off) — make sure somebody hears about it, once a
+    // minute per instance rather than once per page view.
+    Sentry.captureMessage(
+      outcome.kind === "http-error"
+        ? `Public settings unavailable (${outcome.status})`
+        : "Public settings unavailable (network error)",
+      "warning",
+    );
+  }
+
+  return resolvePublicSettings(outcome);
+}
 
 /*
- * Both fetchers are wrapped in React's cache() so the five-plus call sites in a
- * single render (generateMetadata, the layout, the maintenance gate, the header
- * and the footer, plus any page-level call) collapse to one fetch per request.
- *
- * They stay as two separate memo cells on purpose: the *Server variant carries
- * the session bearer token and the plain one does not, so sharing a cell would
- * mix an authenticated and an anonymous response.
+ * One memo cell per request: generateMetadata, the layout, the maintenance gate,
+ * the header, the footer and any page-level call all share a single read.
  */
-export const fetchPublicSettings = cache(async function fetchPublicSettings(
-  options?: ApiCacheOptions,
-): Promise<PublicSettings> {
-  try {
-    return await apiGet<PublicSettings>("/settings/public", options);
-  } catch {
-    return publicSettingsDefaults;
-  }
-});
-
-export const fetchPublicSettingsServer = cache(
-  async function fetchPublicSettingsServer(): Promise<PublicSettings> {
-    try {
-      return await apiGetServer<PublicSettings>("/settings/public");
-    } catch {
-      return publicSettingsDefaults;
-    }
-  },
-);
+export const fetchPublicSettings = cache(() => loadPublicSettings());

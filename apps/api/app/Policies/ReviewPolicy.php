@@ -5,9 +5,12 @@ namespace App\Policies;
 use App\Enums\UserRole;
 use App\Models\Review;
 use App\Models\User;
+use App\Policies\Concerns\DeniesUndefinedFilamentAbilities;
 
 class ReviewPolicy
 {
+    use DeniesUndefinedFilamentAbilities;
+
     public function viewAny(User $user): bool
     {
         return $user->can('reviews.view');

@@ -8,6 +8,10 @@ on:
   # major versions sat with no checks at all because its base was a feature branch.
   pull_request:
 
+# Least privilege: nothing here writes to the repository.
+permissions:
+  contents: read
+
 # A newer push supersedes an in-flight run for the same ref.
 concurrency:
   group: ci-${{ github.ref }}
@@ -33,7 +37,20 @@ jobs:
         with:
           php-version: "${{ matrix.php }}"
           coverage: none
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
       - run: composer install --no-interaction --prefer-dist
+      - name: Dependency audit
+        # Fails on any known advisory in the locked dependency set. One matrix
+        # leg is enough — the lock file is the same for both.
+        if: matrix.php == '8.5'
+        run: composer audit --locked
       - name: Prepare environment
         # The suite boots the full framework, so it needs an APP_KEY and a .env.
         # Without them every framework-dependent test fails on
@@ -82,13 +99,23 @@ jobs:
           # Not in the default extension set — the job fails confusingly without it.
           extensions: pdo_pgsql, pgsql
           coverage: none
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php8.5-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.5-
       - run: composer install --no-interaction --prefer-dist
       - name: Prepare environment
         # The suite boots the full framework, so it needs an APP_KEY and a .env.
         # Without them every framework-dependent test fails on
         # MissingAppKeyException (and password reset on a null hash key).
-        # phpunit.xml's <env> block still wins over these values — Laravel loads
-        # .env immutably, so APP_ENV stays "testing" and the DB stays SQLite.
+        # APP_ENV still comes from phpunit.xml ("testing"), but the DB_* values
+        # on the Tests step are exported in the shell, which outranks both .env
+        # and phpunit.xml's non-forced <env> entries — so this job runs on
+        # PostgreSQL, not SQLite.
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -118,6 +145,9 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      - name: Dependency audit
+        # Runtime dependencies only; dev tooling never ships to users.
+        run: npm audit --omit=dev --audit-level=high
       - name: Format
         run: npm run format:check
       - name: Lint

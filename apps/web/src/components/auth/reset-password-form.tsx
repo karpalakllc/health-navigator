@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
+import { FormError } from "@/components/ui/form-message";
 
 type ResetPasswordFormProps = {
   email: string;
@@ -98,7 +99,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
             onChange={setPasswordConfirmation}
           />
         </label>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
           disabled={pending}

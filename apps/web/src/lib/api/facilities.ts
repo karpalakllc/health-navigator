@@ -1,6 +1,7 @@
 import { apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 import type { FacilityDetail, FacilityListItem } from "@/lib/api/types";
+import { pathSegment } from "@/lib/api/path";
 
 export type FacilityListParams = {
   type?: string;
@@ -46,5 +47,5 @@ export async function fetchFacilities(
 }
 
 export async function fetchFacility(slug: string): Promise<FacilityDetail> {
-  return apiGetServer<FacilityDetail>(`/facilities/${slug}`);
+  return apiGetServer<FacilityDetail>(`/facilities/${pathSegment(slug)}`);
 }

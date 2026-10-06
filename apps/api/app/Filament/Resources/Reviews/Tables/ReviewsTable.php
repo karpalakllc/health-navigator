@@ -10,7 +10,6 @@ use App\Models\Review;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -49,15 +48,15 @@ class ReviewsTable
             ->recordActions([
                 ViewAction::make(),
                 Action::make('approve')
-                    ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                    ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->requiresConfirmation()
                     ->action(fn (Review $record) => $record->approve(auth()->user())),
                 Action::make('reject')
-                    ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending)
+                    ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
+                        && auth()->user()?->can('update', $record))
                     ->form([
-                        Textarea::make('rejection_note')
-                            ->label('Rejection note (internal)')
-                            ->rows(3),
+                        ModerationBulkActions::rejectionNoteField(),
                     ])
                     ->requiresConfirmation()
                     ->action(fn (Review $record, array $data) => $record->reject(

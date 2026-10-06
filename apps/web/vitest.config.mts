@@ -6,6 +6,9 @@ export default defineConfig({
     alias: {
       // Mirrors the "@/*" path mapping in tsconfig.json.
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": fileURLToPath(
+        new URL("./test/server-only-stub.ts", import.meta.url),
+      ),
     },
   },
   test: {

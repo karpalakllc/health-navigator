@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { MessageKey } from "@/i18n/t";
 import { t } from "@/i18n/t";
 import { cn } from "@/lib/cn";
+import { isPathEnabled, type ModuleFlags } from "@/lib/site-modules";
 import { homeHeroSearchClass } from "@/components/ui/layout";
 
 type SearchScope = "all" | "symptoms" | "doctors" | "products" | "pharmacies";
@@ -61,10 +62,15 @@ function placeholderKey(scope: SearchScope): MessageKey {
   }
 }
 
-export function HomeHeroSearchClient() {
+export function HomeHeroSearchClient({ modules }: { modules: ModuleFlags }) {
   const [scope, setScope] = useState<SearchScope>("all");
 
-  const active = useMemo(() => SCOPES.find((s) => s.id === scope)!, [scope]);
+  // Scopes that would submit into a switched-off module are not offered.
+  const scopes = useMemo(
+    () => SCOPES.filter((s) => isPathEnabled(s.action, modules)),
+    [modules],
+  );
+  const active = scopes.find((s) => s.id === scope) ?? scopes[0];
 
   return (
     <div className={homeHeroSearchClass}>
@@ -74,7 +80,7 @@ export function HomeHeroSearchClient() {
         aria-label={t("home.searchScopesAria")}
       >
         <div className="mb-3.5 flex flex-wrap justify-center gap-2.5">
-          {SCOPES.map((s) => {
+          {scopes.map((s) => {
             const selected = s.id === scope;
             return (
               <button

@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Doctor;
+use App\Models\Facility;
+use App\Models\ForumTopic;
+
 return [
 
     /*
@@ -140,14 +144,22 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            'doctors' => [
+            // Filters must be applied by Meilisearch itself (Scout ->where()); a
+            // ->query() callback runs after pagination and under-fills pages, so
+            // it only re-checks visibility. Push changes with `php artisan
+            // search:reindex`. Keyed by model so the index name (SCOUT_PREFIX
+            // included) comes from the model's searchableAs(), as for its data.
+            Doctor::class => [
                 'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names'],
+                'filterableAttributes' => ['city'],
             ],
-            'facilities' => [
+            Facility::class => [
                 'searchableAttributes' => ['name', 'city', 'description', 'type'],
+                'filterableAttributes' => ['city', 'type'],
             ],
-            'forum_topics' => [
+            ForumTopic::class => [
                 'searchableAttributes' => ['title', 'body', 'category_name'],
+                'filterableAttributes' => ['forum_category_id', 'category_is_published'],
             ],
         ],
     ],

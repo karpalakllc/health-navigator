@@ -1,17 +1,21 @@
 <?php
 
+use App\Support\DeploymentEnvironment;
+
 return [
 
     'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 
-    // Local dev origins are convenience only — never allow them in production,
-    // where CORS_ALLOWED_ORIGINS must list the real web origins. Note: config files
-    // are loaded before the environment is detected, so this reads env() directly
-    // rather than app()->environment().
+    // Local dev origins are convenience only — allowed in local, development and
+    // testing, never in staging or production, where CORS_ALLOWED_ORIGINS must
+    // list the real web origins (platform:preflight fails a deploy that allows a
+    // localhost origin). Config files load before the environment is detected,
+    // so this reads env() directly rather than app()->environment(); the list
+    // is the shared DeploymentEnvironment::NON_DEPLOYED.
     'allowed_origins' => array_values(array_filter(array_merge(
-        env('APP_ENV') === 'production' ? [] : [
+        ! in_array(env('APP_ENV'), DeploymentEnvironment::NON_DEPLOYED, true) ? [] : [
             'http://localhost:3000',
             'http://127.0.0.1:3000',
         ],

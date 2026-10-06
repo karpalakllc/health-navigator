@@ -4,20 +4,24 @@ import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-noti
 import { PageHeader } from "@/components/directory/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
-import { fetchGuidanceFlow } from "@/lib/api/guidance";
+import { fetchGuidanceFlow } from "@/lib/api/guidance-flow";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
-export const metadata: Metadata = pageMetadata(
-  t("guidance.title"),
-  t("guidance.description"),
-);
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("guidance.title"), t("guidance.description"), {
+    noIndex: !settings.public_guidance,
+  });
+}
 
 export default async function GuidancePage() {
   const settings = await fetchPublicSettings();
 
-  if (!settings.public_guidance) {
+  if (!isModuleOn(settings, "public_guidance")) {
     return (
       <ComingSoonShell
         title={t("guidance.title")}

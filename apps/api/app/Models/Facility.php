@@ -152,11 +152,15 @@ class Facility extends Model
         return ScriptInsensitiveSearch::whereColumnMatches($query, 'name', $term);
     }
 
+    /**
+     * Pharmacies are indexed too: unified search filters the clinical and
+     * pharmacy verticals on the filterable `type` attribute.
+     */
     public function shouldBeSearchable(): bool
     {
         return $this->is_published
             && ! $this->trashed()
-            && in_array($this->type?->value, FacilityType::clinicalValues(), true);
+            && $this->type !== null;
     }
 
     /**
@@ -174,8 +178,12 @@ class Facility extends Model
         ];
     }
 
+    /**
+     * Prefixed like Scout's default, so SCOUT_PREFIX moves the data and the
+     * index settings (config/scout.php) to the same index.
+     */
     public function searchableAs(): string
     {
-        return 'facilities';
+        return config('scout.prefix').'facilities';
     }
 }

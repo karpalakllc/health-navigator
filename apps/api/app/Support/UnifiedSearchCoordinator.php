@@ -33,6 +33,9 @@ final class UnifiedSearchCoordinator
                 Log::warning('Meilisearch unified search failed; falling back to SQL.', [
                     'message' => $exception->getMessage(),
                 ]);
+                // Reported too: a log line alone hides a broken production index
+                // behind a silently slower, less relevant SQL search.
+                report($exception);
             }
         }
 

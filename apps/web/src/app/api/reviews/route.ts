@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { isSlug, pathSegment } from "@/lib/api/path";
+import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
+import { readUpstream } from "@/lib/api/upstream";
 
 type ReviewPayload = {
-  kind?: "doctor" | "facility";
+  kind?: "doctor" | "facility" | "pharmacy";
   slug?: string;
   rating?: number;
   body?: string | null;
@@ -21,16 +24,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as ReviewPayload;
+  const guarded = await guardJson<ReviewPayload>(request);
 
-  if (body.kind !== "doctor" && body.kind !== "facility") {
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  if (
+    body.kind !== "doctor" &&
+    body.kind !== "facility" &&
+    body.kind !== "pharmacy"
+  ) {
     return NextResponse.json(
       { message: t("errors.invalidReviewTarget") },
       { status: 422 },
     );
   }
 
-  if (!body.slug) {
+  if (!isSlug(body.slug)) {
     return NextResponse.json(
       { message: t("errors.invalidReviewTarget") },
       { status: 422 },
@@ -39,25 +52,33 @@ export async function POST(request: Request) {
 
   const path =
     body.kind === "doctor"
-      ? `/doctors/${body.slug}/reviews`
-      : `/facilities/${body.slug}/reviews`;
+      ? `/doctors/${pathSegment(body.slug)}/reviews`
+      : body.kind === "pharmacy"
+        ? `/pharmacies/${pathSegment(body.slug)}/reviews`
+        : `/facilities/${pathSegment(body.slug)}/reviews`;
 
-  const response = await fetch(apiUrl(path), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
-      ...forwardedForHeaders(request),
-    },
-    body: JSON.stringify({
-      rating: body.rating,
-      body: body.body,
+  const upstream = await readUpstream(
+    fetch(apiUrl(path), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
+      },
+      body: JSON.stringify({
+        rating: body.rating,
+        body: body.body,
+      }),
     }),
-  });
+  );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
+
+  const { response, payload } = upstream;
 
   return NextResponse.json(payload, { status: response.status });
 }

@@ -7,6 +7,7 @@ use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\EmailAddress;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
 use Database\Factories\UserFactory;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,10 +39,25 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'registration_contested_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
             'user_kind' => UserKind::class,
         ];
+    }
+
+    /**
+     * Stored normalised wherever it is set — API, admin panel, seeders — so that
+     * Foo@x and foo@x can never become two accounts. The auth requests normalise
+     * too, because their lookups happen before any model is involved.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null ? null : EmailAddress::normalize($value),
+        );
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -91,24 +108,13 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * Drives the `viewer.can_moderate` flag on the topic payload. Must stay in
-     * lockstep with ForumTopicPolicy::update, or the UI offers a moderation
-     * toolbar that the endpoint then rejects.
+     * Drives the `viewer.can_moderate` flag on the topic payload. Delegates to
+     * ForumTopicPolicy::update, the single implementation, so the UI never offers
+     * a moderation toolbar that the endpoint then rejects.
      */
     public function canModerateForumTopic(ForumTopic $topic): bool
     {
-        $category = $topic->category;
-
-        if ($category === null) {
-            return false;
-        }
-
-        if ($this->hasScopedForumModeration()) {
-            return $this->canModerateForumCategory($category);
-        }
-
-        return ($this->can('forum.moderate') && $this->canModerateForumCategory($category))
-            || $this->can('forum_topics.update');
+        return $this->can('update', $topic);
     }
 
     public function canModerateForumCategory(ForumCategory $category): bool
@@ -195,6 +201,16 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->belongsToMany(ForumCategory::class, 'forum_category_moderator');
     }
 
+    /**
+     * End every API session the account has. The one place this happens, for
+     * every way a password can change (reset, an administrator setting it, a
+     * contested registration being verified), so none of them can forget it.
+     */
+    public function revokeApiTokens(): void
+    {
+        $this->tokens()->delete();
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
@@ -228,7 +244,17 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             return true;
         }
 
-        return $this->approvedForumPostCount() >= SiteSetting::current()->profile_avatar_min_messages;
+        return $this->approvedForumPostCount() >= self::avatarMinMessages();
+    }
+
+    /**
+     * One source for the threshold so the gate and the meta the UI shows agree.
+     * 0 is a valid setting (Filament allows it) meaning "no requirement" — the
+     * old `?: 10` in the meta reported 10 while the gate let everyone through.
+     */
+    private static function avatarMinMessages(): int
+    {
+        return (int) (SiteSetting::current()->profile_avatar_min_messages ?? 10);
     }
 
     /**
@@ -236,7 +262,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function profileAvatarMeta(): array
     {
-        $required = SiteSetting::current()->profile_avatar_min_messages ?: 10;
+        $required = self::avatarMinMessages();
 
         return [
             'min_messages' => $required,

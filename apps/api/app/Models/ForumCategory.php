@@ -22,6 +22,24 @@ class ForumCategory extends Model
         'published_at',
     ];
 
+    protected static function booted(): void
+    {
+        // Topic visibility in search depends on the category's publication, but
+        // toggling it only saves this row — re-sync the topics' index entries.
+        static::updated(function (ForumCategory $category): void {
+            if (! $category->wasChanged('is_published')) {
+                return;
+            }
+
+            if ($category->is_published) {
+                // Eager-load: shouldBeSearchable()/toSearchableArray() read it.
+                $category->topics()->with('category')->searchable();
+            } else {
+                $category->topics()->unsearchable();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

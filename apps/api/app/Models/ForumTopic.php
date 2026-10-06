@@ -90,6 +90,21 @@ class ForumTopic extends Model
     }
 
     /**
+     * Publicly visible: approved AND filed under a published category. Approval
+     * alone is not enough — unpublishing a category hides its topic pages, so
+     * every cross-category listing and search must hide them too.
+     *
+     * @param  Builder<ForumTopic>  $query
+     * @return Builder<ForumTopic>
+     */
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query
+            ->approved()
+            ->whereHas('category', fn (Builder $category) => $category->published());
+    }
+
+    /**
      * @param  Builder<ForumTopic>  $query
      * @return Builder<ForumTopic>
      */
@@ -122,7 +137,11 @@ class ForumTopic extends Model
 
     public function shouldBeSearchable(): bool
     {
-        return $this->status === ForumContentStatus::Approved;
+        if ($this->status !== ForumContentStatus::Approved) {
+            return false;
+        }
+
+        return (bool) $this->currentCategory()?->is_published;
     }
 
     /**
@@ -130,21 +149,45 @@ class ForumTopic extends Model
      */
     public function toSearchableArray(): array
     {
-        $this->loadMissing('category');
+        $category = $this->currentCategory();
 
         return [
             'id' => $this->id,
             'slug' => $this->slug,
             'title' => $this->title,
             'body' => $this->body,
-            'category_slug' => $this->category->slug,
-            'category_name' => $this->category->name,
+            'forum_category_id' => $this->forum_category_id,
+            'category_slug' => $category?->slug,
+            'category_name' => $category?->name,
+            // Filterable (config/scout.php) so search can exclude unpublished
+            // categories even if the index lags behind a publication change.
+            'category_is_published' => (bool) $category?->is_published,
         ];
     }
 
+    /**
+     * The category relation as of the current forum_category_id. loadMissing()
+     * would keep a relation loaded before the topic was moved, and index the
+     * old category's visibility.
+     */
+    private function currentCategory(): ?ForumCategory
+    {
+        if ($this->relationLoaded('category') && (int) $this->category?->getKey() !== (int) $this->forum_category_id) {
+            $this->unsetRelation('category');
+        }
+
+        $this->loadMissing('category');
+
+        return $this->category;
+    }
+
+    /**
+     * Prefixed like Scout's default, so SCOUT_PREFIX moves the data and the
+     * index settings (config/scout.php) to the same index.
+     */
     public function searchableAs(): string
     {
-        return 'forum_topics';
+        return config('scout.prefix').'forum_topics';
     }
 
     public function excerpt(int $length = 160): string

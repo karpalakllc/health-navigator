@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n/t";
 import { cn } from "@/lib/cn";
+import { FormError } from "@/components/ui/form-message";
 
 type ForumTopicModerationToolbarProps = {
   categorySlug: string;
@@ -181,7 +182,7 @@ export function ForumTopicModerationToolbar({
           ) : null}
         </div>
       )}
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <FormError>{error}</FormError> : null}
     </div>
   );
 }

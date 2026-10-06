@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { t } from "@/i18n/t";
+import { FormError, FormSuccess } from "@/components/ui/form-message";
 
 export function ReplyForm({
   categorySlug,
@@ -73,12 +74,8 @@ export function ReplyForm({
           className={filterInputClassName}
         />
       </label>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {success ? (
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-          {t("forum.replySuccess")}
-        </p>
-      ) : null}
+      {error ? <FormError>{error}</FormError> : null}
+      <FormSuccess>{success ? t("forum.replySuccess") : null}</FormSuccess>
       <button
         type="submit"
         disabled={pending}

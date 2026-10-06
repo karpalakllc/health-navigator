@@ -45,23 +45,7 @@ class RoleResource extends Resource
         ];
     }
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->can('roles.view') ?? false;
-    }
-
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->can('roles.create') ?? false;
-    }
-
-    public static function canEdit($record): bool
-    {
-        return auth()->user()?->can('roles.update') ?? false;
-    }
-
-    public static function canDelete($record): bool
-    {
-        return auth()->user()?->can('roles.delete') ?? false;
-    }
+    // No can*() overrides: RolePolicy is the single gate. The old canEdit() and
+    // canDelete() overrides checked the bare permission and so bypassed the
+    // policy's Administrator and own-role protections.
 }

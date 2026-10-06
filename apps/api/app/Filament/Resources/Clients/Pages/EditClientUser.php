@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Clients\Pages;
 
 use App\Filament\Resources\Clients\ClientUserResource;
 use App\Filament\Support\SetPasswordAction;
-use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -16,15 +15,19 @@ class EditClientUser extends EditRecord
     {
         return [
             SetPasswordAction::make(),
-            // Restored from the retired generic Users resource. Without it an
-            // administrator has no way to remove an account at all, which a
-            // platform handling erasure requests cannot do without.
-            DeleteAction::make(),
+            // No DeleteAction: UserPolicy::delete refuses clients because their
+            // reviews and forum content reference them with restrictOnDelete.
+            // Erasure needs anonymisation, which is tracked separately.
         ];
     }
 
     protected function afterSave(): void
     {
+        // Same as SetPasswordAction: an admin-set password ends existing API sessions.
+        if ($this->record->wasChanged('password')) {
+            $this->record->revokeApiTokens();
+        }
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Scoped-category assignment may have just changed; drop the memo so any

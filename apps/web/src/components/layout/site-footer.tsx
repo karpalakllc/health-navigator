@@ -2,14 +2,15 @@ import Link from "next/link";
 import { FooterSearchButton } from "@/components/layout/footer-search-button";
 import { pageContainerClass } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
+import { isPathEnabled } from "@/lib/site-modules";
 import type { PublicSettings } from "@/lib/api/settings";
-import { fetchPublicSettingsServer } from "@/lib/api/settings";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { t, tFormat } from "@/i18n/t";
 
 const linkClass = "text-sm text-muted-foreground transition hover:text-primary";
 
 export async function SiteFooter() {
-  const settings = await fetchPublicSettingsServer();
+  const settings = await fetchPublicSettings();
 
   return <SiteFooterContent settings={settings} />;
 }
@@ -45,16 +46,20 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   {t("nav.facilities")}
                 </Link>
               </li>
-              <li>
-                <Link href="/pharmacies" className={linkClass}>
-                  {t("nav.pharmacies")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/products" className={linkClass}>
-                  {t("nav.products")}
-                </Link>
-              </li>
+              {isPathEnabled("/pharmacies", settings) ? (
+                <li>
+                  <Link href="/pharmacies" className={linkClass}>
+                    {t("nav.pharmacies")}
+                  </Link>
+                </li>
+              ) : null}
+              {isPathEnabled("/products", settings) ? (
+                <li>
+                  <Link href="/products" className={linkClass}>
+                    {t("nav.products")}
+                  </Link>
+                </li>
+              ) : null}
             </ul>
           </div>
 
@@ -68,16 +73,20 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   {t("footer.about")}
                 </Link>
               </li>
-              <li>
-                <Link href="/guidance" className={linkClass}>
-                  {t("nav.guidance")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/forum" className={linkClass}>
-                  {t("nav.forum")}
-                </Link>
-              </li>
+              {isPathEnabled("/guidance", settings) ? (
+                <li>
+                  <Link href="/guidance" className={linkClass}>
+                    {t("nav.guidance")}
+                  </Link>
+                </li>
+              ) : null}
+              {isPathEnabled("/forum", settings) ? (
+                <li>
+                  <Link href="/forum" className={linkClass}>
+                    {t("nav.forum")}
+                  </Link>
+                </li>
+              ) : null}
               <li>
                 <FooterSearchButton
                   className={cn(

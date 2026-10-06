@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
+import { RESET_COOKIE, resetCookieOptions } from "@/lib/auth/reset-token";
+import { readUpstream } from "@/lib/api/upstream";
 
 type ResetPayload = {
   email?: string;
@@ -10,25 +13,43 @@ type ResetPayload = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as ResetPayload;
+  const guarded = await guardJson<ResetPayload>(request);
 
-  const response = await fetch(apiUrl("/auth/reset-password"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "mk",
-      ...forwardedForHeaders(request),
-    },
-    body: JSON.stringify({
-      email: body.email,
-      token: body.token,
-      password: body.password,
-      password_confirmation: body.password_confirmation,
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const body = guarded.value;
+
+  const upstream = await readUpstream(
+    fetch(apiUrl("/auth/reset-password"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Language": "mk",
+        ...forwardedForHeaders(request),
+      },
+      body: JSON.stringify({
+        email: body.email,
+        token: body.token,
+        password: body.password,
+        password_confirmation: body.password_confirmation,
+      }),
     }),
-  });
+  );
 
-  const payload = await response.json();
+  if (!upstream.ok) {
+    return upstream.error;
+  }
 
-  return NextResponse.json(payload, { status: response.status });
+  const { response, payload } = upstream;
+  const res = NextResponse.json(payload, { status: response.status });
+
+  // The token is spent; drop the copy the reset link left behind.
+  if (response.ok) {
+    res.cookies.set(RESET_COOKIE, "", resetCookieOptions(0));
+  }
+
+  return res;
 }
