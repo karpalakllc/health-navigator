@@ -12,6 +12,10 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-sections";
+import {
+  HERO_SEARCH_ATTR,
+  HERO_SEARCH_INPUT_ID,
+} from "@/components/home/hero-search-ids";
 import { HEADER_SEARCH_INPUT_ID } from "@/components/layout/header-search";
 import { Button, IconButton, buttonClassName } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
@@ -261,8 +265,17 @@ export function SearchDialogProvider({
           return;
         }
         e.preventDefault();
-        // Desktop: jump into the header search pill. Mobile (pill hidden):
-        // the search page.
+        // Home with the hero search on screen: jump into it (the header
+        // pill steps aside meanwhile). Desktop: the header search pill.
+        // Mobile (pill hidden): the search page.
+        const heroInput = document.getElementById(HERO_SEARCH_INPUT_ID);
+        if (
+          heroInput instanceof HTMLElement &&
+          document.documentElement.getAttribute(HERO_SEARCH_ATTR) === "visible"
+        ) {
+          heroInput.focus();
+          return;
+        }
         const headerInput = document.getElementById(HEADER_SEARCH_INPUT_ID);
         if (headerInput instanceof HTMLElement && headerInput.offsetParent) {
           headerInput.focus();

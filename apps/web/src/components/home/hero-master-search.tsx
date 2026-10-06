@@ -1,11 +1,13 @@
 import { CityPicker } from "@/components/home/city-picker";
+import {
+  HERO_SEARCH_FORM_ID,
+  HERO_SEARCH_INPUT_ID,
+} from "@/components/home/hero-search-ids";
+import { HeroSearchWatcher } from "@/components/home/hero-search-watcher";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import type { LocationCity } from "@/lib/api/locations";
 import { t, type MessageKey } from "@/i18n/t";
-
-/** Id of the hero's query field (one per page). */
-export const HERO_SEARCH_INPUT_ID = "home-hero-q";
 
 export type HeroSearchModules = {
   pharmacies: boolean;
@@ -36,6 +38,8 @@ export function heroSearchScope(modules: HeroSearchModules): string {
  * city then covers the whole country). The city is a suffix inside the
  * same pill on every width; „Барај“ sits inside the pill from lg and under
  * it, full width, on phones, where the pill needs its room for the query.
+ * While it is on screen the desktop header pill steps aside (one search
+ * bar at a time; HeroSearchWatcher).
  */
 export function HeroMasterSearch({
   modules,
@@ -46,6 +50,7 @@ export function HeroMasterSearch({
 }) {
   return (
     <form
+      id={HERO_SEARCH_FORM_ID}
       role="search"
       aria-label={t("nav.searchLandmark")}
       action="/search"
@@ -89,6 +94,7 @@ export function HeroMasterSearch({
       >
         {t("homeSearch.submit")}
       </Button>
+      <HeroSearchWatcher targetId={HERO_SEARCH_FORM_ID} />
       <p className="type-meta mt-3 text-ink lg:mt-4">
         {heroSearchScope(modules)}
       </p>

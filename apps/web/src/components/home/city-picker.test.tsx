@@ -108,7 +108,7 @@ describe("CityPicker", () => {
 
     // ← back to the town, ← again closes it.
     await user.keyboard("{ArrowLeft}");
-    expect(activeLabel()).toBe("Скопје, Скопски регион, 10 профили");
+    expect(activeLabel()).toMatch(/^Скопје, Скопски регион, 10 профили/);
     await user.keyboard("{ArrowLeft}");
     expect(skopje).toHaveAttribute("aria-expanded", "false");
 
@@ -124,6 +124,34 @@ describe("CityPicker", () => {
     expect(screen.queryByRole("tree")).toBeNull();
   });
 
+  it("says the town fallback once per open group, not on every row", async () => {
+    const user = userEvent.setup();
+    renderInForm();
+    await user.click(trigger());
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+
+    const skopje = screen.getByRole("treeitem", { name: /^Скопје,/ });
+    const notes = skopje.querySelectorAll("[data-group-note]");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toHaveTextContent(
+      "Општините без свои профили пребаруваат низ Скопје",
+    );
+    const rows = within(within(skopje).getByRole("group")).getAllByRole(
+      "treeitem",
+    );
+    for (const row of rows) {
+      expect(row).not.toHaveTextContent(/резултати за|пребаруваат низ/);
+    }
+
+    // In Pelagonia, Прилеп holds listings: its row shows its count instead.
+    await user.type(filter(), "прилеп");
+    expect(screen.getByRole("treeitem", { name: /Прилеп/ })).toHaveTextContent(
+      "Прилеп3 профили",
+    );
+    // …and the group has no fallback to explain.
+    expect(document.querySelector("[data-group-note]")).toBeNull();
+  });
+
   it("filters in Cyrillic and in Latin, showing matches under their town", async () => {
     const user = userEvent.setup();
     renderInForm();
@@ -134,8 +162,8 @@ describe("CityPicker", () => {
     expect(
       items.map((i) => i.getAttribute("aria-label") ?? i.textContent),
     ).toEqual([
-      "Скопје, Скопски регион, 10 профили",
-      "Карпош" + t("homeSearch.cityFallback").replace("{city}", "Скопје"),
+      "Скопје, Скопски регион, 10 профили, Општините без свои профили пребаруваат низ Скопје",
+      "Карпош",
     ]);
     expect(items[0]).toHaveAttribute("aria-expanded", "true");
 
@@ -164,8 +192,10 @@ describe("CityPicker", () => {
 
     await user.click(trigger());
     await user.type(filter(), "Ресен");
-    expect(screen.getByRole("treeitem", { name: /Ресен/ })).toHaveTextContent(
-      "резултати за Битола",
+    expect(
+      screen.getByRole("treeitem", { name: /^Битола,/ }),
+    ).toHaveAccessibleName(
+      "Битола, Пелагониски регион, 5 профили, Општините без свои профили пребаруваат низ Битола",
     );
     await user.keyboard("{Enter}");
     expect(city()).toBe("Битола");

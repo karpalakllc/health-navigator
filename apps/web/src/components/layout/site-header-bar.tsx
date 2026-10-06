@@ -11,6 +11,7 @@ import { SiteNav } from "@/components/layout/site-nav";
 import type { AuthUser } from "@/lib/api/me";
 import { Button, IconButton } from "@/components/ui/button";
 import { loginHref } from "@/lib/auth/login-href";
+import { cn } from "@/lib/cn";
 import type { ModuleFlags } from "@/lib/site-modules";
 import { t } from "@/i18n/t";
 
@@ -71,7 +72,19 @@ export function SiteHeaderBar({
           <span className="sr-only">, {t("nav.homeLink")}</span>
         </Link>
 
-        <div className="hidden lg:block">
+        <div
+          data-header-search=""
+          className={cn(
+            "hidden lg:block",
+            // Home: the hero has the same search, so the pill steps aside
+            // until the hero search scrolls away (HeroSearchWatcher sets
+            // <html data-hero-search>). Opacity and visibility only: the
+            // header keeps its size, and while hidden it is out of the tab
+            // order — the hero search is right there on screen.
+            pathname === "/" &&
+              "invisible opacity-0 motion-safe:transition-[opacity,visibility] motion-safe:duration-[var(--duration-base)] [html[data-hero-search=hidden]_&]:visible [html[data-hero-search=hidden]_&]:opacity-100",
+          )}
+        >
           <HeaderSearch />
         </div>
 

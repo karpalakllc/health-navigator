@@ -1013,6 +1013,7 @@ export const mk = {
     cityProfiles: "{count} профили",
     cityProfilesOne: "{count} профил",
     cityFallback: "резултати за {city}",
+    cityGroupFallback: "Општините без свои профили пребаруваат низ {city}",
     cityNoMatch: "Нема град или општина за „{q}“.",
     cityMunicipalities: "{count} општини",
     cityMunicipalitiesOne: "{count} општина",

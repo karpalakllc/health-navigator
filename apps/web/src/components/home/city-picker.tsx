@@ -408,14 +408,30 @@ function CityPickerPanel({
     return counts.get(foldScript(placeName));
   }
 
+  /** Does this municipality search its group's main town instead of itself? */
+  function searchesGroupTown(group: PlaceGroup, place: Place) {
+    const filter = cityFilterFor(place, group, known);
+    return (
+      foldScript(filter) !== foldScript(place.seat ?? place.name) &&
+      foldScript(filter) === foldScript(group.city.name)
+    );
+  }
+
+  /**
+   * A row's second line: its profile count when it holds listings. Rows
+   * that search the group's town say nothing — the group says it once — and
+   * only a fallback to some other town is spelled out on the row.
+   */
   function renderMeta(group: PlaceGroup, place: Place) {
     const filter = cityFilterFor(place, group, known);
     const own = foldScript(filter) === foldScript(place.seat ?? place.name);
-    if (!own) {
-      return tFormat("homeSearch.cityFallback", { city: filter });
+    if (own) {
+      const count = countFor(filter);
+      return count ? tCount("homeSearch.cityProfiles", count) : null;
     }
-    const count = countFor(filter);
-    return count ? tCount("homeSearch.cityProfiles", count) : null;
+    return searchesGroupTown(group, place)
+      ? null
+      : tFormat("homeSearch.cityFallback", { city: filter });
   }
 
   const anySelected = selected === null;
@@ -497,10 +513,19 @@ function CityPickerPanel({
               selected.label === group.city.name &&
               foldScript(selected.city) === foldScript(group.city.name);
             const count = countFor(group.city.name);
+            // Said once on the open group, not on every row under it.
+            const groupNote =
+              entry.expanded &&
+              entry.places.some((place) => searchesGroupTown(group, place))
+                ? tFormat("homeSearch.cityGroupFallback", {
+                    city: group.city.name,
+                  })
+                : null;
             const groupLabel = [
               group.city.name,
               group.region,
               count ? tCount("homeSearch.cityProfiles", count) : null,
+              groupNote,
             ]
               .filter(Boolean)
               .join(", ");
@@ -558,6 +583,14 @@ function CityPickerPanel({
                         </>
                       ) : null}
                     </span>
+                    {groupNote ? (
+                      <span
+                        data-group-note=""
+                        className="mt-0.5 block text-sm leading-5 text-ink-2"
+                      >
+                        {groupNote}
+                      </span>
+                    ) : null}
                   </span>
                   {isSelected ? <Icon name="check" size={20} /> : null}
                 </div>
