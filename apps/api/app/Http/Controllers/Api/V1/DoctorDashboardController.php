@@ -11,6 +11,7 @@ use App\Http\Requests\Api\V1\UpdateDoctorProfileRequest;
 use App\Http\Resources\Api\V1\DoctorChangeRequestResource;
 use App\Http\Resources\Api\V1\DoctorDashboardReviewResource;
 use App\Http\Resources\Api\V1\ManagedDoctorResource;
+use App\Http\Resources\Api\V1\RemovedContentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\ClinicalInterest;
 use App\Models\Doctor;
@@ -196,15 +197,28 @@ class DoctorDashboardController extends Controller
             'filter' => ['nullable', 'string', 'in:all,unanswered'],
         ]);
 
-        $query = $doctor->reviews()->approved()->with('user');
+        // As the public list shows it: a review removed after publication
+        // stays as a placeholder (W5-I), without its text, author or reply,
+        // and cannot be answered. „Unanswered“ lists only published ones.
+        $query = ($validated['filter'] ?? 'all') === 'unanswered'
+            ? $doctor->reviews()->approved()->whereNull('response_body')
+            : $doctor->reviews()->inPublicList();
 
-        if (($validated['filter'] ?? 'all') === 'unanswered') {
-            $query->whereNull('response_body');
-        }
+        $paginator = $query->with('user')->latest('published_at')->orderByDesc('id')->paginate(10)->withQueryString();
 
-        $paginator = $query->latest('published_at')->orderByDesc('id')->paginate(10)->withQueryString();
-
-        return ApiResponse::paginated($paginator, DoctorDashboardReviewResource::collection($paginator));
+        return response()->json([
+            'data' => $paginator->getCollection()
+                ->map(fn (Review $review): array => $review->isRemoved()
+                    ? RemovedContentResource::make($review)->resolve($request)
+                    : DoctorDashboardReviewResource::make($review)->resolve($request))
+                ->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
     }
 
     public function upsertReply(Request $request, int $review): JsonResponse

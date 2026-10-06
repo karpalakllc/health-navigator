@@ -400,7 +400,10 @@ nobody can hold an account locked by merely sending traffic.
   /me/doctor/change-requests/{id}` withdraws a pending one.
   `GET /me/doctor/reviews?filter=all|unanswered` lists the profile's approved
   reviews (public author name only) with `reply {body, source, status,
-  responded_at, rejection_note}` and `can_reply`. `PUT
+  responded_at, rejection_note}` and `can_reply`; with `filter=all` a review
+  removed after publication is the same `{id, removed: true, removed_at,
+  removal_category}` placeholder as in the public list (no text, author or
+  reply; replying to it is 404). `PUT
   /me/doctor/reviews/{id}/reply` (`body`, 2–2000, plain text) writes or
   replaces the doctor's one reply — `pending` until staff approve while
   `doctor_replies_require_moderation` is on (default), and an edit waits

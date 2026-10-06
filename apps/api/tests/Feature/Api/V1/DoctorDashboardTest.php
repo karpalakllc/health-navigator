@@ -7,6 +7,7 @@ use App\Actions\DoctorAccount\AssignDoctorOwner;
 use App\Actions\DoctorAccount\DecideDoctorChangeRequest;
 use App\Enums\DoctorChangeRequestStatus;
 use App\Enums\FacilityType;
+use App\Enums\RemovalCategory;
 use App\Enums\ReviewResponseStatus;
 use App\Enums\UserKind;
 use App\Mail\DoctorChangeRequestDecidedMail;
@@ -389,14 +390,53 @@ class DoctorDashboardTest extends TestCase
     public function test_the_review_list_shows_the_public_name_only(): void
     {
         [$doctor, , $token] = $this->linkedDoctor();
-        $author = User::factory()->create(['name' => 'Марија Тајна', 'display_name' => 'Марија Т.', 'email' => 'marija@example.com']);
+        $author = User::factory()->create(['name' => 'Марија Тајна', 'username' => 'marija_k', 'email' => 'marija@example.com']);
         $this->review($doctor, ['user_id' => $author->id]);
 
         $this->as($token)->getJson('/api/v1/me/doctor/reviews')
             ->assertOk()
-            ->assertJsonPath('data.0.author_name', 'Марија Т.')
+            ->assertJsonPath('data.0.author_name', 'marija_k')
             ->assertDontSee('Марија Тајна')
             ->assertDontSee('marija@example.com');
+    }
+
+    public function test_a_review_removed_after_publication_is_a_placeholder_without_a_reply(): void
+    {
+        [$doctor, , $token] = $this->linkedDoctor();
+        $staff = User::factory()->create(['user_kind' => UserKind::Staff]);
+        $kept = $this->review($doctor, ['published_at' => now()->subDay()]);
+        $removed = $this->review($doctor, [
+            'body' => 'Текст што беше симнат.',
+            'published_at' => now()->subDays(2),
+            'response_body' => 'Мој одговор.',
+            'response_source' => 'doctor',
+            'response_status' => ReviewResponseStatus::Approved,
+            'response_at' => now(),
+        ]);
+        $removed->reject($staff, 'Лични податоци.', category: RemovalCategory::PersonalData);
+
+        $this->as($token)->getJson('/api/v1/me/doctor/reviews')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $kept->id)
+            ->assertJsonPath('data.1.id', $removed->id)
+            ->assertJsonPath('data.1.removed', true)
+            ->assertJsonPath('data.1.removal_category', 'personal_data')
+            ->assertJsonMissingPath('data.1.body')
+            ->assertJsonMissingPath('data.1.author_name')
+            ->assertJsonMissingPath('data.1.reply')
+            ->assertDontSee('Текст што беше симнат.')
+            ->assertDontSee('Мој одговор.');
+
+        // „Unanswered“ lists only reviews the doctor can still answer.
+        $this->as($token)->getJson('/api/v1/me/doctor/reviews?filter=unanswered')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $kept->id);
+
+        $this->as($token)->putJson("/api/v1/me/doctor/reviews/{$removed->id}/reply", ['body' => 'Нов одговор.'])->assertNotFound();
+        $this->as($token)->deleteJson("/api/v1/me/doctor/reviews/{$removed->id}/reply")->assertNotFound();
+        $this->assertSame('Мој одговор.', $removed->fresh()->response_body);
     }
 
     public function test_a_suspended_doctor_account_is_refused(): void

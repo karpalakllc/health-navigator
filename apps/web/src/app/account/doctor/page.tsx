@@ -11,6 +11,7 @@ import { DoctorPendingChange } from "@/components/doctor-dashboard/doctor-pendin
 import { DoctorPhotoUpload } from "@/components/doctor-dashboard/doctor-photo-upload";
 import { DoctorPracticeForm } from "@/components/doctor-dashboard/doctor-practice-form";
 import { DoctorReviewCard } from "@/components/doctor-dashboard/doctor-review-card";
+import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { Pagination } from "@/components/directory/pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import {
   type ReviewFilter,
 } from "@/lib/api/doctor-dashboard";
 import { ApiRequestError } from "@/lib/api/server";
+import { isRemovedItem } from "@/lib/api/types";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 import { formatMkDate } from "@/lib/mk-date";
 import { pageMetadata } from "@/lib/metadata";
@@ -238,7 +240,11 @@ export default async function DoctorDashboardPage({
             <ul className="flex flex-col gap-4">
               {reviews.data.map((review) => (
                 <li key={review.id}>
-                  <DoctorReviewCard review={review} />
+                  {isRemovedItem(review) ? (
+                    <RemovedPlaceholder item={review} kind="review" />
+                  ) : (
+                    <DoctorReviewCard review={review} />
+                  )}
                 </li>
               ))}
             </ul>
