@@ -20,10 +20,14 @@ use Illuminate\Support\Facades\DB;
  *
  * - received: submitted that month (any outcome);
  * - published: made public that month (later removals included);
- * - rejected: refused before ever being published, by decision date;
+ * - rejected: refused by a moderator before ever being published, by
+ *   decision date — a review its author edited and resent counts its first
+ *   refusal too (first_refused_at); content withdrawn because its author
+ *   deleted the account was no moderator's decision and is left out;
  * - removed: taken down after publication, by removal date and public category;
- * - average_moderation_hours: submission to a moderator's first decision
- *   (approval, or refusal before publication), by decision date; content
+ * - average_moderation_hours: submission to each moderator decision
+ *   (approval, or refusal before publication), by decision date; a resent
+ *   review's later decision counts from when it was resent. Content
  *   published without a moderator (forum pre-moderation off) is left out.
  *
  * Computed with grouped queries and cached for CACHE_SECONDS; the page says
@@ -31,7 +35,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class TransparencyStats
 {
-    public const CACHE_KEY = 'transparency:stats:v1';
+    public const CACHE_KEY = 'transparency:stats:v2';
 
     public const CACHE_SECONDS = 3600;
 
@@ -55,6 +59,7 @@ final class TransparencyStats
         $to = $now->startOfMonth()->addMonth();
 
         $reviews = self::contentStats(['reviews'], ReviewStatus::Pending->value, ReviewStatus::Rejected->value, $from, $to);
+        self::addFirstRefusals($reviews, $from, $to);
         $forum = self::contentStats(['forum_topics', 'forum_posts'], ForumContentStatus::Pending->value, ForumContentStatus::Rejected->value, $from, $to);
 
         $reportsReceived = self::countByMonth('content_reports', 'created_at', $from, $to);
@@ -100,6 +105,7 @@ final class TransparencyStats
             self::addInto($stats['published'], self::countByMonth($table, 'published_at', $from, $to));
             self::addInto($stats['rejected'], self::countByMonth($table, 'moderated_at', $from, $to, fn (Builder $q) => $q
                 ->where('status', $rejected)
+                ->whereNotNull('moderated_by_id')
                 ->whereNull('removed_at')));
 
             $month = self::monthExpression('removed_at');
@@ -119,7 +125,7 @@ final class TransparencyStats
             // content is later removed) or refusal before publication.
             $decided = 'coalesce(published_at, moderated_at)';
             $month = self::monthExpression($decided);
-            $seconds = self::secondsBetween($decided, 'created_at');
+            $seconds = self::secondsBetween($decided, $table === 'reviews' ? 'coalesce(resubmitted_at, created_at)' : 'created_at');
             $timing = DB::table($table)
                 ->where('status', '!=', $pending)
                 ->whereNotNull('moderated_by_id')
@@ -136,6 +142,32 @@ final class TransparencyStats
         }
 
         return $stats;
+    }
+
+    /**
+     * A resent review is pending again and then decided anew; its first
+     * refusal is kept only as first_refused_at. Count it as the refusal and
+     * the decision it was.
+     *
+     * @param  array<string, mixed>  $stats
+     */
+    private static function addFirstRefusals(array &$stats, CarbonImmutable $from, CarbonImmutable $to): void
+    {
+        $month = self::monthExpression('first_refused_at');
+        $seconds = self::secondsBetween('first_refused_at', 'created_at');
+
+        $rows = DB::table('reviews')
+            ->where('first_refused_at', '>=', $from)
+            ->where('first_refused_at', '<', $to)
+            ->selectRaw("{$month} as month, count(*) as aggregate, sum({$seconds}) as seconds")
+            ->groupByRaw($month)
+            ->get();
+
+        foreach ($rows as $row) {
+            $stats['rejected'][$row->month] = ($stats['rejected'][$row->month] ?? 0) + (int) $row->aggregate;
+            $stats['moderated'][$row->month] = ($stats['moderated'][$row->month] ?? 0) + (int) $row->aggregate;
+            $stats['moderation_seconds'][$row->month] = ($stats['moderation_seconds'][$row->month] ?? 0) + max(0, (float) $row->seconds);
+        }
     }
 
     /**

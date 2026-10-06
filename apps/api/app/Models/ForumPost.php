@@ -39,12 +39,6 @@ class ForumPost extends Model
         ];
     }
 
-    /** A removed reply keeps a placeholder where it was in the thread. */
-    protected function keepsPlaceWhenRemoved(): bool
-    {
-        return true;
-    }
-
     /** Published once, then taken down: shown in its thread as a placeholder only. */
     public function isRemoved(): bool
     {

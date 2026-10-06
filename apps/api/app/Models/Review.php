@@ -145,6 +145,7 @@ class Review extends Model
             'burst_flagged_at' => 'datetime',
             'resubmission_count' => 'integer',
             'resubmitted_at' => 'datetime',
+            'first_refused_at' => 'datetime',
             'response_source' => ReviewResponseSource::class,
             'response_status' => ReviewResponseStatus::class,
             'response_moderated_at' => 'datetime',
@@ -239,7 +240,8 @@ class Review extends Model
     /**
      * Send a refused review to moderation again with the member's edits. The
      * previous decision's note and moderator are cleared (the audit log keeps
-     * them); the aspect ratings are replaced by the new ones.
+     * who and when); its date stays as first_refused_at for the transparency
+     * figures. The aspect ratings are replaced by the new ones.
      *
      * @param  array<string, int>  $aspects
      */
@@ -250,6 +252,8 @@ class Review extends Model
             'body' => $body,
             'status' => ReviewStatus::Pending,
             'rejection_note' => null,
+            'first_refused_at' => $this->first_refused_at
+                ?? ($this->moderated_by_id !== null ? $this->moderated_at : null),
             'moderated_by_id' => null,
             'moderated_at' => null,
             'resubmission_count' => (int) $this->resubmission_count + 1,

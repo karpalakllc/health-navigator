@@ -61,7 +61,7 @@ trait ModeratesForumContent
      *
      * Taking down published content records removed_at and a public category
      * (the transparency figures count them; a reply also keeps a placeholder
-     * in its thread, see keepsPlaceWhenRemoved()). Content refused before it
+     * in its thread). Content refused before it
      * was ever published leaves no trace.
      *
      * @param  bool  $afterReport  taken down through the report queue: the author is told it was removed
@@ -73,7 +73,11 @@ trait ModeratesForumContent
 
         $this->forceFill([
             'status' => ForumContentStatus::Rejected,
-            'published_at' => $wasPublished && $this->keepsPlaceWhenRemoved() ? $this->published_at : null,
+            // Published content keeps its publication date: a reply's
+            // placeholder stays in place, and the transparency figures still
+            // count the month it was published in. Public listings go by
+            // status, so a removed topic is not listed for having one.
+            'published_at' => $wasPublished ? $this->published_at : null,
             'moderated_by_id' => $moderator->id,
             'moderated_at' => now(),
             'rejection_note' => $note,
@@ -91,16 +95,6 @@ trait ModeratesForumContent
     protected function markPublicationTimestamps(): void
     {
         $this->published_at ??= now();
-    }
-
-    /**
-     * Whether removed content keeps its publication date, so its public
-     * placeholder stays in place (forum replies). Topics are not shown once
-     * removed, and listings key on their published_at.
-     */
-    protected function keepsPlaceWhenRemoved(): bool
-    {
-        return false;
     }
 
     /**

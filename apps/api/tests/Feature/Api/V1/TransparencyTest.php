@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Actions\AnonymiseUser;
 use App\Enums\RemovalCategory;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
@@ -121,6 +122,79 @@ class TransparencyTest extends TestCase
         $json = json_encode($payload);
         $this->assertStringNotContainsString($moderator->email, (string) $json);
         $this->assertStringNotContainsString('note', (string) $json);
+    }
+
+    public function test_a_later_removal_does_not_rewrite_the_month_a_topic_was_published(): void
+    {
+        $moderator = User::factory()->create();
+
+        $this->at('2026-09-10 08:00:00');
+        $topic = ForumTopic::factory()->pending()->create();
+        $this->at('2026-09-10 12:00:00');
+        $topic->approve($moderator);
+
+        $this->at('2026-10-02 09:00:00');
+        $topic->reject($moderator, 'note', afterReport: true, category: RemovalCategory::Abuse);
+
+        $this->at('2026-10-06 12:00:00');
+        $payload = $this->getJson('/api/v1/transparency')->assertOk()->json();
+
+        $september = $this->month($payload, '2026-09');
+        $this->assertSame(1, $september['forum']['published']);
+        $this->assertSame(1, $september['forum']['moderated']);
+        $this->assertEqualsWithDelta(4.0, $september['forum']['average_moderation_hours'], 0.01);
+        $this->assertSame(1, $this->month($payload, '2026-10')['forum']['removed_by_category']['abuse']);
+
+        // Still not listed anywhere public.
+        $this->getJson('/api/v1/forum/topics/recent')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_a_resent_review_keeps_its_first_refusal_and_times_the_second_decision_from_the_resend(): void
+    {
+        $moderator = User::factory()->create();
+        $doctor = Doctor::factory()->create();
+
+        $this->at('2026-09-10 08:00:00');
+        $review = Review::factory()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => $doctor->id]);
+        $this->at('2026-09-10 10:00:00');
+        $review->reject($moderator, 'Лични податоци.');
+
+        $this->at('2026-10-01 08:00:00');
+        $review->resubmit(4, 'Изменето.', []);
+        $this->at('2026-10-01 09:00:00');
+        $review->approve($moderator);
+
+        $this->at('2026-10-06 12:00:00');
+        $payload = $this->getJson('/api/v1/transparency')->assertOk()->json();
+
+        $september = $this->month($payload, '2026-09');
+        $this->assertSame(1, $september['reviews']['rejected']);
+        $this->assertSame(1, $september['reviews']['moderated']);
+        $this->assertEqualsWithDelta(2.0, $september['reviews']['average_moderation_hours'], 0.01);
+
+        $october = $this->month($payload, '2026-10');
+        $this->assertSame(1, $october['reviews']['published']);
+        // One hour after it was resent, not three weeks after it was written.
+        $this->assertEqualsWithDelta(1.0, $october['reviews']['average_moderation_hours'], 0.01);
+    }
+
+    public function test_content_withdrawn_by_account_deletion_is_not_a_moderators_refusal(): void
+    {
+        $this->at('2026-10-01 08:00:00');
+        $author = User::factory()->create(['password' => 'sufficiently1long']);
+        Review::factory()->create(['user_id' => $author->id]);
+        ForumTopic::factory()->pending()->create(['user_id' => $author->id]);
+
+        $this->at('2026-10-02 08:00:00');
+        app(AnonymiseUser::class)->handle($author);
+
+        $this->at('2026-10-06 12:00:00');
+        $october = $this->month($this->getJson('/api/v1/transparency')->assertOk()->json(), '2026-10');
+
+        $this->assertSame(1, $october['reviews']['received']);
+        $this->assertSame(0, $october['reviews']['rejected']);
+        $this->assertSame(0, $october['forum']['rejected']);
+        $this->assertNull($october['reviews']['average_moderation_hours']);
     }
 
     public function test_figures_are_cached_for_an_hour(): void
