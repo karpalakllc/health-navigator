@@ -17,6 +17,38 @@ export const API_LANGUAGE_HEADER = { "Accept-Language": "mk" } as const;
  */
 export type ApiCacheOptions = { revalidate?: number };
 
+/**
+ * Taxonomies (specialties, departments, forum categories) are identical for
+ * every visitor and change rarely; the API marks them `public, max-age=300` and
+ * busts its own copy on edit.
+ */
+export const TAXONOMY_CACHE: ApiCacheOptions = { revalidate: 300 };
+
+/** Directory listings: shared by everyone, tolerant of a minute's staleness. */
+export const DIRECTORY_REVALIDATE_SECONDS = 60;
+
+/**
+ * Data-cache policy for an anonymous directory list. Only listings without
+ * free text are cached: each distinct URL is its own cache entry, and a cache
+ * miss reaches the API without the visitor's address (serverSideHeaders), in
+ * the site-wide rate-limit bucket. Bounded inputs (a specialty slug, a page,
+ * a sort) keep that set small; arbitrary search text would not, so those
+ * listings stay per-request and per-visitor.
+ *
+ * Token-bearing reads go through lib/api/server.ts, which is always no-store.
+ */
+export function directoryCache(
+  params: Record<string, unknown>,
+  freeTextKeys: readonly string[] = ["q", "city"],
+): ApiCacheOptions {
+  const hasFreeText = freeTextKeys.some((key) => {
+    const value = params[key];
+    return typeof value === "string" ? value.trim() !== "" : value != null;
+  });
+
+  return hasFreeText ? {} : { revalidate: DIRECTORY_REVALIDATE_SECONDS };
+}
+
 function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {
   return revalidate === undefined
     ? { cache: "no-store" }

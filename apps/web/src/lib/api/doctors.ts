@@ -1,4 +1,8 @@
-import { apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
+import {
+  apiGetPaginated,
+  directoryCache,
+  type ApiCacheOptions,
+} from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 import type { DoctorDetail, DoctorListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
@@ -37,7 +41,10 @@ export async function fetchDoctors(
   params: DoctorListParams = {},
   options?: ApiCacheOptions,
 ) {
-  return apiGetPaginated<DoctorListItem>(`/doctors${toQuery(params)}`, options);
+  return apiGetPaginated<DoctorListItem>(
+    `/doctors${toQuery(params)}`,
+    options ?? directoryCache(params),
+  );
 }
 
 export async function fetchDoctor(slug: string): Promise<DoctorDetail> {
