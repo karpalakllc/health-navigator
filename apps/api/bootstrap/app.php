@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
@@ -44,6 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // Overrides the framework alias so refusals use this API's envelope.
             'verified' => EnsureEmailIsVerified::class,
         ]);
+
+        // First in the global stack, so every response — maintenance, 404 and
+        // rendered exceptions included — carries X-Request-Id, and every log
+        // line written while handling it carries the same ID.
+        $middleware->prepend(AssignRequestId::class);
 
         // The API runs behind a PaaS edge (see infra/deploy.md), so the socket IP is
         // the load balancer's. Without this every $request->ip() rate limiter keys on
