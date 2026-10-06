@@ -9,10 +9,13 @@ import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { Monogram } from "@/components/ui/user-avatar";
 import { formatCharCounter } from "@/components/forum/char-counter";
+import { focusField, lengthError } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
 
-/** API limit (StoreForumPostRequest: max 10000). */
+/** API limits (StoreForumPostRequest: min 10, max 10000). */
 export const REPLY_MAX_LENGTH = 10000;
+const REPLY_MIN_LENGTH = 10;
+const REPLY_BODY_ID = "forum-reply-body";
 
 /** Anchor the thread's „Одговори“ actions jump to. */
 export const REPLY_FORM_ID = "forum-reply";
@@ -36,11 +39,22 @@ export function ReplyForm({
   // when post moderation is off, and holds the reply for review otherwise.
   const [success, setSuccess] = useState<"pending" | "approved" | null>(null);
   const [pending, setPending] = useState(false);
+  const [bodyError, setBodyError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+
+    // Our own check (the form is noValidate): the API's min:10, in Macedonian.
+    const problem = lengthError(body, REPLY_MIN_LENGTH);
+    setBodyError(problem);
+
+    if (problem) {
+      focusField(REPLY_BODY_ID);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -92,14 +106,21 @@ export function ReplyForm({
       <h2 id="forum-reply-heading" className="type-h3 text-ink">
         {t("forum.yourReply")}
       </h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Textarea
+          id={REPLY_BODY_ID}
           label={t("common.message")}
           hint={t("forum.replyHint")}
+          error={bodyError ?? undefined}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => {
+            setBody(e.target.value);
+            if (bodyError && !lengthError(e.target.value, REPLY_MIN_LENGTH)) {
+              setBodyError(null);
+            }
+          }}
           required
-          minLength={10}
+          minLength={REPLY_MIN_LENGTH}
           maxLength={REPLY_MAX_LENGTH}
           counter={formatCharCounter(body.length, REPLY_MAX_LENGTH)}
         />
@@ -112,12 +133,31 @@ export function ReplyForm({
           </div>
         ) : null}
         {error ? <FormError>{error}</FormError> : null}
-        <FormSuccess>
-          {success === "approved"
-            ? t("forum.replyPublished")
-            : success === "pending"
-              ? t("forum.replySuccess")
-              : null}
+        {/* A sand card like the review's pending card; the status region
+            itself stays mounted so the confirmation is announced. */}
+        <FormSuccess
+          tone="muted"
+          className="flex items-start gap-3 rounded-card bg-sand p-4 lg:p-5"
+        >
+          {success ? (
+            <>
+              <Icon
+                name={success === "approved" ? "check" : "clock"}
+                size={22}
+                className="mt-0.5 shrink-0 text-ink"
+              />
+              <span className="flex flex-col gap-1">
+                <span className="font-semibold text-ink">
+                  {success === "approved"
+                    ? t("forum.replyPublished")
+                    : t("forum.replySuccess")}
+                </span>
+                {success === "pending" ? (
+                  <span className="type-meta">{t("forum.replyPendingHint")}</span>
+                ) : null}
+              </span>
+            </>
+          ) : null}
         </FormSuccess>
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button

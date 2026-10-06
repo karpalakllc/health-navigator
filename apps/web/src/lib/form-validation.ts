@@ -1,4 +1,4 @@
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 
 /**
  * Our own field validation, in Macedonian.
@@ -14,6 +14,17 @@ const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function requiredError(value: string): string | null {
   return value.trim() === "" ? t("ui.fieldRequired") : null;
+}
+
+/** Required, and at least `min` characters once trimmed (the API's min:N). */
+export function lengthError(value: string, min: number): string | null {
+  const length = value.trim().length;
+
+  if (length === 0) {
+    return t("ui.fieldRequired");
+  }
+
+  return length < min ? tFormat("ui.tooShort", { min }) : null;
 }
 
 export function emailError(value: string): string | null {

@@ -74,7 +74,11 @@ export function AccountDisplayNameForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-4">
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      className="flex max-w-xl flex-col gap-4"
+    >
       {/* The alert below is the field's error: it is announced once, and
           linked as the field's description so it is read again on focus. */}
       <TextField
