@@ -456,6 +456,7 @@ export const mk = {
       lastUsed: "Последна активност на {date}",
       revoke: "Одјави",
       revokeAria: "Одјави: {name}",
+      revokeAriaDated: "Одјави: {name}, најавен на {date}",
       revoked: "Уредот „{name}“ е одјавен.",
       revokeOthers: "Одјави ги сите други уреди",
       revokedOthers: "Другите уреди се одјавени.",

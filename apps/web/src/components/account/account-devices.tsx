@@ -110,6 +110,16 @@ export function AccountDevices({ devices }: { devices: AccountDevice[] }) {
           const name = deviceName(device);
           const signedIn = formatMkDate(device.created_at);
           const lastUsed = formatMkDate(device.last_used_at);
+          // Two „Safari · iOS“ rows need two different button names.
+          const sameName =
+            list.filter((other) => deviceName(other) === name).length > 1;
+          const revokeLabel =
+            sameName && signedIn
+              ? tFormat("account.devices.revokeAriaDated", {
+                  name,
+                  date: signedIn,
+                })
+              : tFormat("account.devices.revokeAria", { name });
 
           return (
             <li
@@ -152,7 +162,7 @@ export function AccountDevices({ devices }: { devices: AccountDevice[] }) {
                   leadingIcon="log-out"
                   loading={pending === device.id}
                   disabled={pending !== null}
-                  aria-label={tFormat("account.devices.revokeAria", { name })}
+                  aria-label={revokeLabel}
                   onClick={() => revoke(device)}
                   className="w-full sm:w-auto"
                 >

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { AccountDevices } from "@/components/account/account-devices";
 import type { AccountDevice } from "@/lib/api/account";
+import { formatMkDate } from "@/lib/mk-date";
 import { t, tFormat } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 import { mockFetch } from "../../../test/fetch";
@@ -131,6 +132,40 @@ describe("AccountDevices", () => {
       "Услугата не е достапна.",
     );
     expect(screen.getByText("Safari · iOS")).toBeInTheDocument();
+  });
+
+  it("tells same-named devices apart in the sign-out button's name", () => {
+    render(
+      <AccountDevices
+        devices={[
+          devices[0],
+          { ...devices[1], id: 5, created_at: "2026-09-01T09:00:00+02:00" },
+          devices[1],
+          devices[2],
+        ]}
+      />,
+    );
+
+    const names = screen
+      .getAllByRole("button", { name: /Safari · iOS/ })
+      .map((button) => button.getAttribute("aria-label"));
+
+    expect(names).toHaveLength(2);
+    expect(new Set(names).size).toBe(2);
+    expect(names[0]).toBe(
+      tFormat("account.devices.revokeAriaDated", {
+        name: "Safari · iOS",
+        date: formatMkDate("2026-09-01T09:00:00+02:00")!,
+      }),
+    );
+    // A unique name keeps the short label.
+    expect(
+      screen.getByRole("button", {
+        name: tFormat("account.devices.revokeAria", {
+          name: t("account.devices.unknownDevice"),
+        }),
+      }),
+    ).toBeInTheDocument();
   });
 
   it("sends an expired session to sign-in", async () => {
