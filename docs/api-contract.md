@@ -200,6 +200,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
+| `GET` | `/locations/cities` | `cache.public:60` |
 | `GET` | `/me` | `auth:sanctum` |
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
