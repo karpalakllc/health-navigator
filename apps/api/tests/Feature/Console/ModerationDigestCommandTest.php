@@ -3,8 +3,10 @@
 namespace Tests\Feature\Console;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\ReportStatus;
 use App\Enums\ReviewStatus;
 use App\Mail\ModerationDigestMail;
+use App\Models\ContentReport;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\User;
@@ -68,5 +70,31 @@ class ModerationDigestCommandTest extends TestCase
         Mail::assertQueued(ModerationDigestMail::class, function (ModerationDigestMail $mail) use ($moderator): bool {
             return $mail->hasTo($moderator->email);
         });
+    }
+
+    public function test_digest_counts_open_reports(): void
+    {
+        Mail::fake();
+
+        $moderator = User::factory()->moderator()->create();
+        $moderator->assignRole('Moderator');
+        $forumModerator = User::factory()->create();
+        $forumModerator->assignRole('Forum Moderator');
+
+        ContentReport::factory()->count(2)->create();
+        ContentReport::factory()->create(['status' => ReportStatus::Kept]);
+
+        $this->artisan('moderation:send-digest')->assertSuccessful();
+
+        Mail::assertQueued(ModerationDigestMail::class, function (ModerationDigestMail $mail) use ($moderator): bool {
+            $reports = collect($mail->queues)->firstWhere('label', 'Отворени пријави');
+
+            return $mail->hasTo($moderator->email)
+                && $mail->totalPending === 2
+                && $reports !== null
+                && $reports['count'] === 2
+                && str_contains($reports['url'], '/admin/content-reports');
+        });
+        Mail::assertNotQueued(ModerationDigestMail::class, fn (ModerationDigestMail $mail): bool => $mail->hasTo($forumModerator->email));
     }
 }

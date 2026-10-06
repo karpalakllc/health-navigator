@@ -12,6 +12,13 @@ Schedule::command('analytics:purge-old-events')
     ->onOneServer()
     ->withoutOverlapping();
 
+// One summary of newly arrived reports at most every 10 minutes, so the
+// 24-hour review goal in the terms does not depend on someone opening the panel.
+Schedule::command('reports:alert-staff')
+    ->everyTenMinutes()
+    ->onOneServer()
+    ->withoutOverlapping();
+
 Schedule::command('moderation:send-digest')
     ->dailyAt('07:00')
     ->onOneServer()

@@ -33,4 +33,16 @@ enum ReportReason: string
             self::Other => 'Other',
         };
     }
+
+    /** As the web's report dialog words it, for staff email. */
+    public function macedonianLabel(): string
+    {
+        return match ($this) {
+            self::Spam => 'Спам или рекламирање',
+            self::Abuse => 'Навреда или вознемирување',
+            self::FalseInformation => 'Невистинити информации',
+            self::PersonalData => 'Лични или здравствени податоци',
+            self::Other => 'Друго',
+        };
+    }
 }

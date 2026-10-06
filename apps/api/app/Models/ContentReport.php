@@ -50,6 +50,7 @@ class ContentReport extends Model
         'status',
         'resolved_by_id',
         'resolved_at',
+        'staff_alerted_at',
     ];
 
     protected $attributes = [
@@ -62,6 +63,7 @@ class ContentReport extends Model
             'reason' => ReportReason::class,
             'status' => ReportStatus::class,
             'resolved_at' => 'datetime',
+            'staff_alerted_at' => 'datetime',
         ];
     }
 

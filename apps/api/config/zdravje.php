@@ -94,6 +94,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Content report alerts
+    |--------------------------------------------------------------------------
+    |
+    | `reports:alert-staff` (every 10 minutes) emails everyone who can see the
+    | report queue (content_reports.view) about reports that arrived since the
+    | last run: one summary per run, never one mail per report. `email` adds
+    | a shared inbox to those recipients; unset, only staff are mailed.
+    |
+    */
+
+    'reports' => [
+        'alert_email' => env('REPORT_ALERT_EMAIL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Slow-query logging
     |--------------------------------------------------------------------------
     |
