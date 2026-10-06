@@ -30,9 +30,10 @@ use RuntimeException;
  *    are people whose every specialty is a non-physician profession.
  * 2. Facilities first, then doctors, each in batches of one transaction.
  *    Matching: facility by ФЗО code, then by tax number; doctor by
- *    facsimile, then by normalised name + shared facility or same
- *    specialty and town. Several name matches are never guessed: they go to
- *    the review queue.
+ *    facsimile, then by normalised name + shared facility. Several name
+ *    matches are never guessed, and a name + specialty + town match
+ *    without a shared workplace is never merged: both go to the review
+ *    queue.
  * 3. Values are written through ProvenanceWriter (locks, conflicts,
  *    changes on published profiles); new records are hidden drafts.
  * 4. Records a complete snapshot no longer lists count a missed run; after
@@ -490,11 +491,14 @@ final class FzomImporter
                         continue;
                     }
 
-                    if ($doctor === null) {
-                        $candidates = $this->nameCandidates($fullName, array_keys($links), $specialtyIds, $city);
+                    $possibleDuplicates = [];
 
-                        if (array_filter($candidates, fn (int $id): bool => $suppressions->doctorId($id)) !== []
-                            || ($candidates === [] && $suppressions->name($fullName, $city, onlyWithoutFacsimile: true))) {
+                    if ($doctor === null) {
+                        $byName = $this->nameCandidates($fullName, array_keys($links), $specialtyIds, $city);
+                        $candidates = $byName['workplace'];
+
+                        if (array_filter([...$candidates, ...$byName['town']], fn (int $id): bool => $suppressions->doctorId($id)) !== []
+                            || ($candidates === [] && $byName['town'] === [] && $suppressions->name($fullName, $city, onlyWithoutFacsimile: true))) {
                             $context->increment('doctors_suppressed');
 
                             if ($sourceRecord === null) {
@@ -517,6 +521,7 @@ final class FzomImporter
                         }
 
                         $doctor = $candidates !== [] ? Doctor::query()->find($candidates[0]) : null;
+                        $possibleDuplicates = $doctor === null ? $byName['town'] : [];
                     }
 
                     $isNew = $doctor === null;
@@ -539,6 +544,19 @@ final class FzomImporter
                         $context->increment('doctors_with_unmapped_specialty');
                     }
 
+                    if ($possibleDuplicates !== []) {
+                        // Same name, specialty and town as a profile staff made,
+                        // but no shared workplace: kept apart, staff compare.
+                        $context->increment('doctors_possible_duplicate');
+                        $context->review(
+                            ImportReviewKind::Unmatched,
+                            'fzom-duplicate:'.$doctor->getKey(),
+                            'Possibly the same person as an existing profile: '.$fullName,
+                            ['reason' => 'possible_duplicate', 'candidate_doctor_ids' => $possibleDuplicates, 'city' => $city],
+                            $doctor,
+                        );
+                    }
+
                     if ($isNew) {
                         $dental = $specialtyIds !== [] && collect($specialtyIds)->every(fn (int $id): bool => in_array($id, $this->dentalSpecialtyIds(), true));
                         $context->increment($dental ? 'dentists_created' : 'doctors_created');
@@ -559,13 +577,16 @@ final class FzomImporter
     }
 
     /**
-     * Existing profiles without a facsimile that are this person: same
-     * normalised name (either word order) and a shared facility, or a shared
-     * specialty in the same town.
+     * Existing profiles without a facsimile that may be this person, by
+     * normalised name (either word order):
+     * - `workplace`: they share a facility — strong enough to merge (one) or
+     *   to call ambiguous (several);
+     * - `town`: same specialty in the same town but no shared workplace — a
+     *   common name is not proof, so never merged: staff check it.
      *
      * @param  list<int>  $facilityIds
      * @param  list<int>  $specialtyIds
-     * @return list<int>
+     * @return array{workplace: list<int>, town: list<int>}
      */
     private function nameCandidates(string $fullName, array $facilityIds, array $specialtyIds, ?string $city): array
     {
@@ -575,21 +596,21 @@ final class FzomImporter
             ->get(['id', 'city']);
 
         if ($byName->isEmpty()) {
-            return [];
+            return ['workplace' => [], 'town' => []];
         }
 
         $ids = $byName->pluck('id')->map(fn ($id): int => (int) $id)->all();
-        $atFacility = DB::table('doctor_facility')->whereIn('doctor_id', $ids)->whereIn('facility_id', $facilityIds ?: [0])->pluck('doctor_id');
-        $sameSpecialty = DB::table('doctor_specialty')->whereIn('doctor_id', $ids)->whereIn('specialty_id', $specialtyIds ?: [0])->pluck('doctor_id');
+        $atFacility = DB::table('doctor_facility')->whereIn('doctor_id', $ids)->whereIn('facility_id', $facilityIds ?: [0])->pluck('doctor_id')->map(fn ($id): int => (int) $id);
+        $sameSpecialty = DB::table('doctor_specialty')->whereIn('doctor_id', $ids)->whereIn('specialty_id', $specialtyIds ?: [0])->pluck('doctor_id')->map(fn ($id): int => (int) $id);
         $cityKey = $city !== null ? NameKey::for($city) : null;
 
-        return $byName
-            ->filter(fn (Doctor $doctor): bool => $atFacility->contains($doctor->id)
-                || ($sameSpecialty->contains($doctor->id) && $cityKey !== null && NameKey::for((string) $doctor->city) === $cityKey))
-            ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->values()
-            ->all();
+        return [
+            'workplace' => $byName->filter(fn (Doctor $doctor): bool => $atFacility->contains((int) $doctor->id))
+                ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all(),
+            'town' => $byName->filter(fn (Doctor $doctor): bool => ! $atFacility->contains((int) $doctor->id)
+                && $sameSpecialty->contains((int) $doctor->id) && $cityKey !== null && NameKey::for((string) $doctor->city) === $cityKey)
+                ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all(),
+        ];
     }
 
     /** @var list<int>|null */

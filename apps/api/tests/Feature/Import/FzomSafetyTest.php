@@ -188,12 +188,11 @@ class FzomSafetyTest extends TestCase
 
     public function test_a_dismissed_ambiguous_row_stays_dismissed_until_it_changes(): void
     {
-        foreach ([1, 2] as $_) {
-            Doctor::factory()->create(['full_name' => 'Име '.self::surname(3), 'city' => 'Пробно']);
-        }
+        $hospital = Facility::factory()->create(['fzo_code' => '9000777', 'type' => 'hospital']);
 
-        $specialty = Specialty::query()->firstOrCreate(['slug' => 'interna-medicina'], ['name' => 'Интерна медицина']);
-        Doctor::query()->each(fn (Doctor $doctor) => $doctor->specialties()->syncWithoutDetaching([$specialty->getKey()]));
+        foreach ([1, 2] as $_) {
+            Doctor::factory()->create(['full_name' => 'Име '.self::surname(3), 'city' => 'Пробно'])->facilities()->attach($hospital->getKey());
+        }
 
         $run = $this->runSnapshot(range(0, 5));
         $this->assertSame(1, $run->count('doctors_ambiguous'));
@@ -202,5 +201,23 @@ class FzomSafetyTest extends TestCase
         $run = $this->runSnapshot(range(0, 5));
         $this->assertSame(0, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Unmatched)->count());
         $this->assertSame(0, $run->count('review_unmatched'));
+    }
+
+    public function test_same_name_specialty_and_town_without_a_shared_workplace_is_not_merged_but_queued(): void
+    {
+        $specialty = Specialty::query()->firstOrCreate(['slug' => 'interna-medicina'], ['name' => 'Интерна медицина']);
+        $staffProfile = Doctor::factory()->create(['full_name' => 'Име '.self::surname(3), 'city' => 'Пробно', 'is_published' => true]);
+        $staffProfile->specialties()->sync([$specialty->getKey()]);
+
+        $run = $this->runSnapshot(range(0, 5));
+
+        $this->assertNull($staffProfile->refresh()->fzo_facsimile, 'A common name is not proof: no automatic merge.');
+        $draft = Doctor::query()->where('fzo_facsimile', '800003')->firstOrFail();
+        $this->assertFalse($draft->is_published);
+        $this->assertSame(0, $run->count('doctors_matched'));
+
+        $item = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Unmatched)->where('subject_id', $draft->getKey())->firstOrFail();
+        $this->assertSame('possible_duplicate', $item->details['reason']);
+        $this->assertSame([$staffProfile->getKey()], $item->details['candidate_doctor_ids']);
     }
 }

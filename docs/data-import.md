@@ -157,9 +157,12 @@ summary or the activity log.
 
 Matching existing records: facility by ФЗО code, then by tax number (staff
 -entered facilities only); doctor by facsimile, then by normalised name
-(either word order) **and** a shared facility or the same specialty in the
-same town. Several possible matches are never guessed: the row goes to the
-review queue as *unmatched*.
+(either word order) **and** a shared facility. Several possible matches are
+never guessed: the row goes to the review queue as *unmatched*. The same
+name, specialty and town **without** a shared workplace is not proof (common
+names): the row becomes its own hidden draft and an *unmatched* item
+„Possibly the same person…“ (`possible_duplicate`) lists the existing
+profile for staff to compare.
 
 ### First dry run (2026-10-06 files, scratch copy of the UI database)
 
