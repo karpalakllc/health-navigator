@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Actions\AnonymiseUser;
+use App\Actions\ChangeUsername;
 use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
 use App\Models\Doctor;
@@ -209,6 +210,22 @@ class HomeHighlightsTest extends TestCase
 
         $this->getJson(self::URI)->assertOk()
             ->assertJsonPath('data.recent_reviews.0.author_name', __('api.account.deleted_user_name'));
+    }
+
+    public function test_a_renamed_author_appears_under_the_new_name_at_once(): void
+    {
+        $doctor = Doctor::factory()->create(['is_published' => true]);
+        $author = User::factory()->create(['username' => 'ana_ohrid']);
+        $this->approvedReview($doctor, ['user_id' => $author->id]);
+
+        $this->getJson(self::URI)->assertOk()
+            ->assertJsonPath('data.recent_reviews.0.author_name', 'ana_ohrid');
+
+        // A staff rename (impersonation, abuse) must not linger on the home page.
+        app(ChangeUsername::class)->handle($author, 'ana_struga', User::factory()->admin()->create());
+
+        $this->getJson(self::URI)->assertOk()
+            ->assertJsonPath('data.recent_reviews.0.author_name', 'ana_struga');
     }
 
     public function test_is_publicly_cacheable_and_busted_when_a_review_is_moderated(): void

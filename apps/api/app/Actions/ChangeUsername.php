@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\User;
 use App\Models\UsernameHistory;
+use App\Support\TaxonomyCache;
 use App\Support\Usernames\TemporaryUsername;
 use App\Support\Usernames\UsernameNormalizer;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -29,7 +30,7 @@ final class ChangeUsername
     public function handle(User $user, ?string $username, ?User $by = null, ?string $note = null): User
     {
         try {
-            return DB::transaction(function () use ($user, $username, $by, $note): User {
+            $changed = DB::transaction(function () use ($user, $username, $by, $note): User {
                 /** @var User $locked */
                 $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
@@ -76,5 +77,10 @@ final class ChangeUsername
                 'username' => [__('validation.custom.username.taken')],
             ]);
         }
+
+        // The home page caches recent reviews with their authors' names.
+        TaxonomyCache::flush(TaxonomyCache::HOME_HIGHLIGHTS);
+
+        return $changed;
     }
 }
