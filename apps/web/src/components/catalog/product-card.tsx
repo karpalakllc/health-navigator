@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ProductListItem } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tFormat, tCount } from "@/i18n/t";
 
 export function ProductCard({ product }: { product: ProductListItem }) {
   return (
@@ -31,9 +31,7 @@ export function ProductCard({ product }: { product: ProductListItem }) {
           )}
           {product.offer_count > 0 ? (
             <span className="text-xs text-muted-foreground">
-              {tFormat("products.offerCount", {
-                count: String(product.offer_count),
-              })}
+              {tCount("products.offerCount", product.offer_count)}
             </span>
           ) : null}
         </div>

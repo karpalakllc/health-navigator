@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ForumCategory } from "@/lib/api/forum";
 import { authorInitials } from "@/lib/format";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function ForumCategoryCard({ category }: { category: ForumCategory }) {
   const initials = authorInitials(category.name);
@@ -29,9 +29,7 @@ export function ForumCategoryCard({ category }: { category: ForumCategory }) {
         </div>
         <p className="mt-auto text-xs font-medium text-muted-foreground">
           {category.topics_count != null
-            ? tFormat("forum.topicsCount", {
-                count: String(category.topics_count),
-              })
+            ? tCount("forum.topicsCount", category.topics_count)
             : t("forum.topics")}
         </p>
       </article>

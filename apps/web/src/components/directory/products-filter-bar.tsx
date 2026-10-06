@@ -5,7 +5,7 @@ import {
   filterInputClassName,
 } from "@/components/directory/filter-form";
 import { FilterStatsRow } from "@/components/directory/filter-stats-row";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function ProductsFilterBar({
   values,
@@ -19,9 +19,7 @@ export function ProductsFilterBar({
   return (
     <FilterForm searchHint={SEARCH_QUERY_HINT} fieldsClassName="xl:grid-cols-3">
       <FilterStatsRow
-        label={tFormat("products.resultsCount", {
-          count: String(resultsTotal),
-        })}
+        label={tCount("products.resultsCount", resultsTotal)}
         clearHref={hasFilters ? "/products" : undefined}
       />
       <FilterField label={t("search.nameLabel")}>

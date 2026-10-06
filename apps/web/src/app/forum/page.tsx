@@ -21,7 +21,7 @@ import {
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -89,7 +89,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
           description={t("forum.description")}
           stat={
             <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-              {tFormat("forum.topicsCount", { count: String(totalTopics) })}
+              {tCount("forum.topicsCount", totalTopics)}
             </span>
           }
           filters={
@@ -130,9 +130,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         {showSearch && topics ? (
           <section className="space-y-6">
             <FilterStatsRow
-              label={tFormat("forum.topicsCount", {
-                count: String(topics.meta.total),
-              })}
+              label={tCount("forum.topicsCount", topics.meta.total)}
               clearHref={searchQuery ? "/forum" : undefined}
             />
             {topics.data.length === 0 ? (

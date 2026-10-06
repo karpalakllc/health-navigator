@@ -2,6 +2,7 @@
 
 import { useSitePlaceholders } from "@/components/layout/site-placeholders-provider";
 import { cn } from "@/lib/cn";
+import { doctorInitials } from "@/lib/user-initials";
 
 type DirectoryAvatarProps = {
   kind: "doctor" | "facility" | "pharmacy";
@@ -64,7 +65,7 @@ export function DirectoryAvatar({
       )}
       aria-hidden
     >
-      {name.charAt(0)}
+      {kind === "doctor" ? doctorInitials(name) : name.charAt(0)}
     </div>
   );
 }

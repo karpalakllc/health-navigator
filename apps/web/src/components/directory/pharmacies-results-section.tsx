@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import { cn } from "@/lib/cn";
 import type { PharmacyListItem } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function PharmaciesResultsSection({
   pharmacies,
@@ -23,7 +23,7 @@ export function PharmaciesResultsSection({
             {t("pharmacies.resultsTitle")}
           </h2>
           <p className="mt-1 text-muted-foreground">
-            {tFormat("pharmacies.resultsCount", { count: String(total) })}
+            {tCount("pharmacies.resultsCount", total)}
           </p>
         </div>
         <div

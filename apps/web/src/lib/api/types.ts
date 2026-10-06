@@ -75,6 +75,8 @@ export type DoctorListItem = {
     slug: string;
     name: string;
   } | null;
+  /** All published specialties, primary first. */
+  specialties?: Array<{ slug: string; name: string }>;
   primary_facility: {
     name: string;
     city: string | null;

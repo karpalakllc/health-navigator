@@ -6,6 +6,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { cn } from "@/lib/cn";
 import type { DoctorListItem } from "@/lib/api/types";
 import { t, tFormat } from "@/i18n/t";
+import { doctorInitials } from "@/lib/user-initials";
 
 export function DoctorCard({
   doctor,
@@ -81,6 +82,11 @@ function DoctorCardBody({
   specialtyLine: string;
   className?: string;
 }) {
+  const otherSpecialties = (doctor.specialties ?? [])
+    .filter((specialty) => specialty.slug !== doctor.primary_specialty?.slug)
+    .map((specialty) => specialty.name)
+    .join(", ");
+
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
       <div className="flex items-start justify-between gap-3">
@@ -96,7 +102,7 @@ function DoctorCardBody({
             />
           ) : (
             <div className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[1.25rem] border border-[#e7edf0] bg-gradient-to-b from-[#f2f5f7] to-[#eef2f4] text-lg font-bold text-[#7a8691]">
-              {doctor.full_name.charAt(0)}
+              {doctorInitials(doctor.full_name)}
             </div>
           )}
           <div className="min-w-0">
@@ -106,6 +112,13 @@ function DoctorCardBody({
             {specialtyLine ? (
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {specialtyLine}
+              </p>
+            ) : null}
+            {otherSpecialties ? (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {tFormat("doctors.alsoSpecialties", {
+                  names: otherSpecialties,
+                })}
               </p>
             ) : null}
             {doctor.city ? (

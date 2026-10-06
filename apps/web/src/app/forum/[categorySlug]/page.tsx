@@ -16,7 +16,7 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 type CategoryTopicsPageProps = {
   params: Promise<{ categorySlug: string }>;
@@ -103,9 +103,7 @@ export default async function CategoryTopicsPage({
           description={category.description ?? t("forum.description")}
           stat={
             <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-              {tFormat("forum.topicsCount", {
-                count: String(topics.meta.total),
-              })}
+              {tCount("forum.topicsCount", topics.meta.total)}
             </span>
           }
           filters={
@@ -151,9 +149,7 @@ export default async function CategoryTopicsPage({
         />
 
         <FilterStatsRow
-          label={tFormat("forum.topicsCount", {
-            count: String(topics.meta.total),
-          })}
+          label={tCount("forum.topicsCount", topics.meta.total)}
           clearHref={query.q ? `/forum/${categorySlug}` : undefined}
         />
 

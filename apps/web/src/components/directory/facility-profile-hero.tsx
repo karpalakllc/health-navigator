@@ -3,7 +3,7 @@ import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { StarRating } from "@/components/ui/star-rating";
 import type { FacilityDetail, PharmacyDetail } from "@/lib/api/types";
 import { facilityTypeLabel } from "@/lib/facility-labels";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount, isMacedonianOne } from "@/i18n/t";
 
 type FacilityLike = FacilityDetail | PharmacyDetail;
 
@@ -73,7 +73,7 @@ export function FacilityProfileHero({
               </span>
               <span className="text-sm text-muted-foreground">
                 ({facility.review_summary.count}{" "}
-                {facility.review_summary.count === 1
+                {isMacedonianOne(facility.review_summary.count)
                   ? t("reviews.countOne")
                   : t("reviews.count")}
                 )
@@ -94,9 +94,7 @@ export function FacilityProfileHero({
               )}
               {departments.length > 0 ? (
                 <span className="directory-tag directory-tag-teal">
-                  {tFormat("facilities.departmentCount", {
-                    count: String(departments.length),
-                  })}
+                  {tCount("facilities.departmentCount", departments.length)}
                 </span>
               ) : null}
             </div>
