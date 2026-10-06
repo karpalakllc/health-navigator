@@ -10,7 +10,8 @@
  *     always with a 2px ink frame. Never errors, never decoration.
  *   - ink #2a2220: text and EVERY action (pill buttons).
  *   - star #a14806: rating stars only.
- * Contrast (WCAG 2.x) for every text pairing is in d2-palettes.md; all ≥4.5:1.
+ * Every text pairing was checked to WCAG 2.x contrast ≥4.5:1 in the redesign
+ * handoff (the palette worksheet is not in the repo); the E2E axe scans recheck it.
  */
 @theme {
   /* ---- palette -------------------------------------------------------- */

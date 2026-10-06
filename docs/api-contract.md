@@ -4,8 +4,8 @@ Base URL: `{API_URL}/api/v1` (e.g. `http://127.0.0.1:8000/api/v1`).
 
 > **Maintenance:** the endpoint table below is generated — run
 > `php artisan docs:route-table --write` (from `apps/api`), or
-> `./scripts/api-routes.sh` and paste the result; both print the same table, and
-> `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
+> `./scripts/api-routes.sh` (a wrapper that prints the same table) and paste
+> the result. `RouteTableIsCurrentTest` fails when it is stale. Do not hand-edit it. This
 > document previously drifted far enough to state, as a premise, that public
 > registration did not exist, months after it shipped.
 

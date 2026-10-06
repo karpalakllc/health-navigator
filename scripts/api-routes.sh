@@ -4,12 +4,13 @@
 #
 #   ./scripts/api-routes.sh
 #
-# Regenerate and paste into the contract whenever routes change, rather than
-# editing that table by hand — it is how the document drifted in the first place.
+# A thin wrapper over `php artisan docs:route-table` (add --write there to
+# rewrite the contract in place). It used to re-render `route:list --json` in
+# Python, which drifted from the command RouteTableIsCurrentTest checks:
+# route:list resolves `can:` to `Authorize` and reorders middleware.
 #
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
-(cd "${root}/apps/api" && php artisan route:list --path=api/v1 --json) \
-  | python3 "${root}/scripts/api-routes.py"
+cd "${root}/apps/api" && php artisan docs:route-table
