@@ -14,17 +14,27 @@ import { Tag } from "@/components/ui/tag";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
 import { focusField, lengthError } from "@/lib/form-validation";
+import { parseTagInput, type TagInputResult } from "@/lib/forum-tags";
 import { t } from "@/i18n/t";
 
 const CONSENT_ID = "forum-topic-consent";
 const PREVIEW_ID = "forum-topic-preview";
 const TITLE_ID = "forum-topic-title";
 const BODY_ID = "forum-topic-body";
+const TAGS_ID = "forum-topic-tags";
 /** API limits (StoreForumTopicRequest). */
 const TITLE_MIN_LENGTH = 5;
 const TITLE_MAX_LENGTH = 255;
 const BODY_MIN_LENGTH = 20;
 const BODY_MAX_LENGTH = 10000;
+
+function tagsErrorMessage(
+  reason: Extract<TagInputResult, { ok: false }>["reason"],
+): string {
+  return reason === "too-many"
+    ? t("seo.composerTagsTooMany")
+    : t("seo.composerTagsInvalid");
+}
 
 type ForumNewTopicComposerProps = {
   categories: ForumCategory[];
@@ -63,6 +73,8 @@ export function ForumNewTopicComposer({
   const [pending, setPending] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [bodyError, setBodyError] = useState<string | null>(null);
+  const [tagsInput, setTagsInput] = useState("");
+  const [tagsError, setTagsError] = useState<string | null>(null);
 
   const canSubmit = accepted;
 
@@ -71,17 +83,20 @@ export function ForumNewTopicComposer({
 
     // Our own checks (the form is noValidate): the API's min lengths, in
     // Macedonian, under each field.
+    const parsedTags = parseTagInput(tagsInput);
     const problems = {
       title: lengthError(title, TITLE_MIN_LENGTH),
       body: lengthError(body, BODY_MIN_LENGTH),
+      tags: parsedTags.ok ? null : tagsErrorMessage(parsedTags.reason),
     };
     setTitleError(problems.title);
     setBodyError(problems.body);
+    setTagsError(problems.tags);
 
-    if (problems.title || problems.body) {
+    if (problems.title || problems.body || problems.tags) {
       setConsentMissing(!canSubmit);
       setError(null);
-      focusField(problems.title ? TITLE_ID : BODY_ID);
+      focusField(problems.title ? TITLE_ID : problems.body ? BODY_ID : TAGS_ID);
       return;
     }
 
@@ -104,6 +119,9 @@ export function ForumNewTopicComposer({
           title,
           body,
           accepted_community_rules: true,
+          ...(parsedTags.ok && parsedTags.tags.length > 0
+            ? { tags: parsedTags.tags }
+            : {}),
         }),
       });
 
@@ -183,6 +201,23 @@ export function ForumNewTopicComposer({
             maxLength={BODY_MAX_LENGTH}
             rows={8}
             counter={formatCharCounter(body.length, BODY_MAX_LENGTH)}
+          />
+          <Input
+            id={TAGS_ID}
+            label={t("seo.composerTagsLabel")}
+            hint={t("seo.composerTagsHint")}
+            error={tagsError ?? undefined}
+            value={tagsInput}
+            onChange={(event) => {
+              setTagsInput(event.target.value);
+              if (tagsError) {
+                const parsed = parseTagInput(event.target.value);
+                setTagsError(
+                  parsed.ok ? null : tagsErrorMessage(parsed.reason),
+                );
+              }
+            }}
+            autoComplete="off"
           />
 
           <div className="rounded-card bg-sand px-4 py-1">

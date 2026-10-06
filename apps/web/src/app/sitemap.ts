@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
-import { fetchForumCategories, fetchForumTopicSearch } from "@/lib/api/forum";
+import {
+  fetchForumCategories,
+  fetchForumTags,
+  fetchForumTopics,
+} from "@/lib/api/forum";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchProducts } from "@/lib/api/products";
 import {
@@ -10,6 +14,7 @@ import {
 } from "@/lib/api/public-settings";
 import { loadPublicSettings } from "@/lib/api/settings";
 import { collectPages } from "@/lib/collect-pages";
+import { isIndexableTag, TAG_INDEXABLE_MIN_TOPICS } from "@/lib/metadata";
 import { absoluteUrl } from "@/lib/site-url";
 
 /**
@@ -113,44 +118,86 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   if (settings.public_forum) {
-    let categories: Awaited<ReturnType<typeof fetchForumCategories>> = [];
+    entries.push(...(await forumEntries()));
+  }
 
-    try {
-      categories = await fetchForumCategories(CACHE);
-    } catch {
-      // Forum entries are optional; never fail the whole sitemap for them.
-    }
+  return entries;
+}
 
-    entries.push(
-      ...categories.map((category) => ({
-        url: absoluteUrl(`/forum/${category.slug}`),
-        changeFrequency: "daily" as const,
-        priority: 0.6,
-      })),
+/** Latest of ISO timestamps (lexical order works for one offset), if any. */
+function latest(dates: (string | null | undefined)[]): string | undefined {
+  return dates
+    .filter((date): date is string => Boolean(date))
+    .sort()
+    .pop();
+}
+
+/**
+ * Categories, their topics and the indexable tag pages, each with lastmod
+ * from real activity (Google uses lastmod when it is consistently accurate,
+ * docs/seo.md). Forum entries are optional: a failure drops them, never the
+ * whole sitemap.
+ */
+async function forumEntries(): Promise<MetadataRoute.Sitemap> {
+  let categories: Awaited<ReturnType<typeof fetchForumCategories>> = [];
+
+  try {
+    categories = await fetchForumCategories(CACHE);
+  } catch {
+    return [];
+  }
+
+  const entries: MetadataRoute.Sitemap = [];
+
+  for (const category of categories) {
+    // Paginated per category: a failing page ends only this category's
+    // topics. (This used to call the search endpoint, which returns nothing
+    // without a query, so no topic was ever listed.)
+    const topics = await collectPages(
+      (page) =>
+        fetchForumTopics(category.slug, { page, per_page: PER_PAGE }, CACHE),
+      MAX_PAGES,
+    );
+    const activity = topics.map(
+      (topic) => topic.last_post_at ?? topic.published_at,
     );
 
-    for (const category of categories) {
-      // Paginated like doctors and facilities, and per category: a failing
-      // page ends only this category's topics, not every category after it.
-      const topics = await collectPages(
-        (page) =>
-          fetchForumTopicSearch(
-            { category: category.slug, page, per_page: PER_PAGE },
-            CACHE,
-          ),
-        MAX_PAGES,
-      );
-
-      entries.push(
-        ...topics.map((topic) => ({
-          url: absoluteUrl(`/forum/${category.slug}/${topic.slug}`),
-          lastModified: topic.last_post_at ?? topic.published_at ?? undefined,
-          changeFrequency: "weekly" as const,
-          priority: 0.5,
-        })),
-      );
-    }
+    entries.push(
+      {
+        url: absoluteUrl(`/forum/${category.slug}`),
+        lastModified: latest(activity),
+        changeFrequency: "daily" as const,
+        priority: 0.6,
+      },
+      ...topics.map((topic) => ({
+        url: absoluteUrl(`/forum/${category.slug}/${topic.slug}`),
+        lastModified: topic.last_post_at ?? topic.published_at ?? undefined,
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+      })),
+    );
   }
+
+  // Only tag pages that are indexable (noindex below the threshold).
+  const tags = await collectPages(
+    (page) =>
+      fetchForumTags(
+        { min_topics: TAG_INDEXABLE_MIN_TOPICS, page, per_page: PER_PAGE },
+        CACHE,
+      ),
+    MAX_PAGES,
+  );
+
+  entries.push(
+    ...tags
+      .filter((tag) => isIndexableTag(tag.topics_count))
+      .map((tag) => ({
+        url: absoluteUrl(`/forum/tags/${tag.slug}`),
+        lastModified: tag.last_activity_at ?? undefined,
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+      })),
+  );
 
   return entries;
 }

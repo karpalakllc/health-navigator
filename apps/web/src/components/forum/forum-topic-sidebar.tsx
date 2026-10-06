@@ -1,13 +1,14 @@
 import { ForumCategorySummary } from "@/components/forum/forum-category-card";
 import { ForumRelatedTopics } from "@/components/forum/forum-related-topics";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
-import type { ForumCategory, ForumTopicListItem } from "@/lib/api/forum";
+import type { RelatedTopicLink } from "@/components/forum/forum-related-topics";
+import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
 
 type ForumTopicSidebarProps = {
   category: Pick<ForumCategory, "name" | "topics_count">;
   categorySlug: string;
-  relatedTopics: ForumTopicListItem[];
+  relatedTopics: RelatedTopicLink[];
   settings: Pick<
     PublicSettings,
     "forum_rules_enabled" | "forum_rules_title" | "forum_rules_body"

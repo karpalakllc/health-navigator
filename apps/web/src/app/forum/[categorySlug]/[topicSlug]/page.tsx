@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { Tag } from "@/components/ui/tag";
+import { ForumTagRow } from "@/components/forum/forum-tag-row";
+import { JsonLd } from "@/components/seo/json-ld";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
+import { breadcrumbJsonLd, forumTopicJsonLd } from "@/lib/structured-data";
+import { absoluteUrl } from "@/lib/site-url";
 import { getShellSession } from "@/lib/auth/header-session";
 import { getSessionToken } from "@/lib/auth/session";
 import {
@@ -23,7 +28,7 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
-import { pageMetadata } from "@/lib/metadata";
+import { forumTopicMeta, pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
 import { t, tFormat } from "@/i18n/t";
 
@@ -34,24 +39,33 @@ type TopicDetailPageProps = {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: TopicDetailPageProps): Promise<Metadata> {
   const { categorySlug, topicSlug } = await params;
+  const page = parseListPage((await searchParams).page);
   const settings = await fetchPublicSettings();
+  const basePath = `/forum/${categorySlug}/${topicSlug}`;
 
   if (!settings.public_forum) {
     return pageMetadata(t("forum.title"), undefined, { noIndex: true });
   }
 
   try {
-    const { topic } = await fetchForumTopicPage(categorySlug, topicSlug);
+    const { topic } = await fetchForumTopicPage(categorySlug, topicSlug, page);
+    const { title, description } = forumTopicMeta(topic);
 
-    return pageMetadata(topic.title, topic.body.slice(0, 160), {
-      path: `/forum/${categorySlug}/${topicSlug}`,
+    // Later pages carry other replies, so each is its own canonical URL.
+    return pageMetadata(title, description, {
+      path: page > 1 ? `${basePath}?page=${page}` : basePath,
+      ogType: "article",
     });
-  } catch {
-    return pageMetadata(t("forum.title"), undefined, {
-      path: `/forum/${categorySlug}/${topicSlug}`,
-    });
+  } catch (error) {
+    // The not-found metadata (noindex), not a generic indexable title.
+    if (error instanceof ApiRequestError && error.status === 404) {
+      notFound();
+    }
+
+    return pageMetadata(t("forum.title"), undefined, { path: basePath });
   }
 }
 
@@ -61,7 +75,7 @@ export default async function TopicDetailPage({
 }: TopicDetailPageProps) {
   const { categorySlug, topicSlug } = await params;
   const query = await searchParams;
-  const page = query.page ? Number(query.page) : 1;
+  const page = parseListPage(query.page);
   const token = await getSessionToken();
   const redirectPath = `/forum/${categorySlug}/${topicSlug}`;
 
@@ -75,11 +89,7 @@ export default async function TopicDetailPage({
   let data;
 
   try {
-    data = await fetchForumTopicPage(
-      categorySlug,
-      topicSlug,
-      Number.isFinite(page) ? page : 1,
-    );
+    data = await fetchForumTopicPage(categorySlug, topicSlug, page);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       notFound();
@@ -137,8 +147,25 @@ export default async function TopicDetailPage({
     </div>
   );
 
+  const topicUrl = absoluteUrl(redirectPath);
+  const categoryUrl = absoluteUrl(`/forum/${categorySlug}`);
+  const forumJsonLd = forumTopicJsonLd({
+    topic,
+    posts,
+    url: topicUrl,
+    category: { name: topic.category.name, url: categoryUrl },
+  });
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: t("common.home"), url: absoluteUrl("/") },
+    { name: t("forum.title"), url: absoluteUrl("/forum") },
+    { name: topic.category.name, url: categoryUrl },
+    { name: topic.title },
+  ]);
+
   return (
     <div className={`${forumPageClass} gap-6`}>
+      {forumJsonLd ? <JsonLd data={forumJsonLd} /> : null}
+      {breadcrumbs ? <JsonLd data={breadcrumbs} /> : null}
       <ForumColumns
         main={
           <>
@@ -172,11 +199,14 @@ export default async function TopicDetailPage({
                 </div>
               ) : null}
               <h1 className="type-h1 break-words text-ink">{topic.title}</h1>
+              <ForumTagRow tags={topic.tags ?? []} />
               <p className="type-meta text-ink-2">
                 {formatForumReplyCount(topic.replies_count)}
                 <span aria-hidden="true"> · </span>
                 {t("forum.lastActivity")}:{" "}
-                {formatForumLastActivity(topic.published_at)}
+                {formatForumLastActivity(
+                  topic.last_post_at ?? topic.published_at,
+                )}
               </p>
             </header>
 
@@ -210,7 +240,7 @@ export default async function TopicDetailPage({
               ) : (
                 <ul className="flex flex-col gap-3">
                   {posts.map((post) => (
-                    <li key={post.id}>
+                    <li key={post.id} id={`post-${post.id}`}>
                       <ForumPostCard
                         post={post}
                         isTopicAuthor={post.is_topic_author === true}

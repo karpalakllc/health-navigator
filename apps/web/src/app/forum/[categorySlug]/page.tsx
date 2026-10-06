@@ -21,7 +21,7 @@ import { getSessionToken } from "@/lib/auth/session";
 import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
 import { t, tCount } from "@/i18n/t";
 
@@ -32,8 +32,14 @@ type CategoryTopicsPageProps = {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: CategoryTopicsPageProps): Promise<Metadata> {
   const { categorySlug } = await params;
+  // Page 2+ is its own document; search and sort are views of the list.
+  const canonical = listCanonicalPath(
+    `/forum/${categorySlug}`,
+    await searchParams,
+  );
   const settings = await fetchPublicSettings();
 
   if (!settings.public_forum) {
@@ -46,16 +52,14 @@ export async function generateMetadata({
 
     if (category) {
       return pageMetadata(category.name, category.description ?? undefined, {
-        path: `/forum/${categorySlug}`,
+        path: canonical,
       });
     }
   } catch {
     // Fall through to the generic forum title.
   }
 
-  return pageMetadata(t("forum.title"), undefined, {
-    path: `/forum/${categorySlug}`,
-  });
+  return pageMetadata(t("forum.title"), undefined, { path: canonical });
 }
 
 export default async function CategoryTopicsPage({
