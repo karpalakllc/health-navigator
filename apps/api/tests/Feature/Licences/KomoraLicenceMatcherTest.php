@@ -76,6 +76,13 @@ class KomoraLicenceMatcherTest extends TestCase
         ]));
     }
 
+    public function test_an_internist_contracted_under_an_internal_subspecialty_fits(): void
+    {
+        $source = (new FakeLicenceCandidateSource)->add(1, 'Вида Крвовска', ['ХЕМАТОЛОГИЈА']);
+
+        $this->assertSame([[1, null, [1]]], $this->decide($source, [$this->row('ВИДА КРВОВСКА', 'интерна медицина')]));
+    }
+
     public function test_several_fitting_namesakes_are_ambiguous_and_nobody_gets_the_licence(): void
     {
         $source = (new FakeLicenceCandidateSource)

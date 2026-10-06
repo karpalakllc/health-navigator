@@ -97,7 +97,11 @@ return [
     ],
     [
         'group' => 'interna-medicina',
-        'compatible' => [],
+        // An internist may be contracted under their internal subspecialty.
+        'compatible' => [
+            'kardiologija', 'gastroenterohepatologija', 'nefrologija', 'endokrinologija', 'pulmologija',
+            'revmatologija', 'hematologija', 'imunologija',
+        ],
         'komora' => ['интерна медицина'],
         'fzom' => ['ИНТЕРНА МЕДИЦИНА', 'ИНТЕРНИСТ ОД ЦЕНТАР ЗА АСТМА И HOBB'],
     ],
@@ -395,7 +399,7 @@ return [
         'komora' => [],
         'fzom' => [
             // Pharmacists and dentists (other chambers; no licence on this list).
-            'ФАРМАЦЕВТ', 'ФАРМАЦЕВТСКА ТЕХНОЛОГИЈА', 'ИСПИТУВАНЈЕ И КОНТРОЛА НА ЛЕКОВИ', 'ОПШТА СТОМАТОЛОГИЈА', 'СТОМАТОЛОГ',
+            'ФАРМАЦЕВТ', 'ФАРМАЦЕВТСКА ТЕХНОЛОГИЈА', 'ИСПИТУВАНЈЕ И КОНТРОЛА НА ЛЕКОВИ' /* sic, as ФЗОМ spells it */, 'ОПШТА СТОМАТОЛОГИЈА', 'СТОМАТОЛОГ',
             'ОРТОДОНЦИЈА', 'СТОМАТОЛОШКА ПРОТЕТИКА', 'ОРАЛНА ХИУРГИЈА', 'ОРАЛНА МЕДИЦИНА',
             'ДЕТСКА И ПРЕВЕНТИВНА СТОМАТОЛОГИЈА', 'БОЛЕСТИ НА УСТА И ПАРАДОНТОТ', 'БОЛЕСТИ НА ЗАБИТЕ И ЕНДОДОНТОТ',
             'ЕНДОДОНЦИЈА И РЕСТАВРАТИВНА СТОМАТОЛОГИЈА',
