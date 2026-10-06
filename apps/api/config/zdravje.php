@@ -92,4 +92,21 @@ return [
         'failed_job_throttle_minutes' => (int) env('PLATFORM_ALERT_THROTTLE_MINUTES', 15),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Slow-query logging
+    |--------------------------------------------------------------------------
+    |
+    | ObservabilityServiceProvider logs a warning for any single query slower
+    | than `slow_query_ms`, and once per request/job whose queries add up to
+    | more than `slow_request_queries_ms`. 0 turns either off. SQL is logged
+    | without bindings, so no user input reaches the log.
+    |
+    */
+
+    'observability' => [
+        'slow_query_ms' => (int) env('DB_SLOW_QUERY_MS', 500),
+        'slow_request_queries_ms' => (int) env('DB_SLOW_REQUEST_QUERIES_MS', 2000),
+    ],
+
 ];
