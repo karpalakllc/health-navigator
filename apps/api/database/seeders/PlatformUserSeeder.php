@@ -15,6 +15,16 @@ class PlatformUserSeeder extends Seeder
     use SeedsLocalDemoData, SeedsUsernames;
 
     /**
+     * Base32 authenticator secrets for the local demo staff. Public on
+     * purpose: they only ever reach accounts this seeder creates, and the
+     * seeder refuses to run outside local demo environments. Different from
+     * the E2E secrets so a code for one stack never opens the other.
+     */
+    public const DEMO_ADMIN_TOTP_SECRET = 'GEZDGNBVGY3TQOJQ';
+
+    public const DEMO_MODERATOR_TOTP_SECRET = 'MFRGGZDFMZTWQ2LK';
+
+    /**
      * Each lookup normalises the configured address the way the User model
      * stores it. updateOrCreate() matching the raw value missed the lowercased
      * row on the second run and then hit the unique index inserting it again.
@@ -65,6 +75,24 @@ class PlatformUserSeeder extends Seeder
         $this->ensureRole($admin, RoleCatalog::ADMINISTRATOR);
         $this->ensureRole($moderator, RoleCatalog::MODERATOR);
         $this->ensureRole($member, RoleCatalog::MEMBER);
+
+        // Demo staff arrive with two-factor already on, so the panel opens
+        // straight to the code prompt instead of the set-up page.
+        $this->ensureDemoAuthenticator($admin, self::DEMO_ADMIN_TOTP_SECRET);
+        $this->ensureDemoAuthenticator($moderator, self::DEMO_MODERATOR_TOTP_SECRET);
+    }
+
+    /**
+     * Only when the account has no authenticator yet: a reseed never replaces
+     * one the owner set up themselves.
+     */
+    private function ensureDemoAuthenticator(User $user, string $secret): void
+    {
+        if (filled($user->app_authentication_secret)) {
+            return;
+        }
+
+        $user->forceFill(['app_authentication_secret' => $secret])->save();
     }
 
     private function ensureRole(User $user, string $role): void
