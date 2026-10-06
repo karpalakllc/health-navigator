@@ -213,6 +213,20 @@ const PATHS = {
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     </>
   ),
+  banknote: (
+    <>
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </>
+  ),
+  award: (
+    <>
+      <path d="m15.48 12.89 1.52 8.55a.5.5 0 0 1-.81.47l-3.59-2.69a1 1 0 0 0-1.2 0l-3.6 2.7a.5.5 0 0 1-.8-.48l1.51-8.55" />
+      <circle cx="12" cy="8" r="6" />
+    </>
+  ),
+  "list-filter": <path d="M3 6h18M7 12h10M10 18h4" />,
 } as const;
 
 export type IconName = keyof typeof PATHS;
