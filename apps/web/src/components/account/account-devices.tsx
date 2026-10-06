@@ -116,33 +116,35 @@ export function AccountDevices({ devices }: { devices: AccountDevice[] }) {
               key={device.id}
               className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center"
             >
-              <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">
-                <Icon name="lock" size={24} />
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="type-h3 break-words text-ink">{name}</span>
-                  {device.is_current ? (
-                    <Tag tone="care" icon="check">
-                      {t("account.devices.current")}
-                    </Tag>
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">
+                  <Icon name="lock" size={24} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="type-h3 break-words text-ink">{name}</span>
+                    {device.is_current ? (
+                      <Tag tone="care" icon="check">
+                        {t("account.devices.current")}
+                      </Tag>
+                    ) : null}
+                  </p>
+                  {signedIn ? (
+                    <p className="type-meta text-ink-2">
+                      {tFormat("account.devices.signedIn", { date: signedIn })}
+                    </p>
                   ) : null}
-                </p>
-                {signedIn ? (
-                  <p className="type-meta text-ink-2">
-                    {tFormat("account.devices.signedIn", { date: signedIn })}
-                  </p>
-                ) : null}
-                {lastUsed ? (
-                  <p className="type-meta text-ink-2">
-                    {tFormat("account.devices.lastUsed", { date: lastUsed })}
-                  </p>
-                ) : null}
-                {device.is_current ? (
-                  <p className="type-meta text-ink-2">
-                    {t("account.devices.thisDeviceHint")}
-                  </p>
-                ) : null}
+                  {lastUsed ? (
+                    <p className="type-meta text-ink-2">
+                      {tFormat("account.devices.lastUsed", { date: lastUsed })}
+                    </p>
+                  ) : null}
+                  {device.is_current ? (
+                    <p className="type-meta text-ink-2">
+                      {t("account.devices.thisDeviceHint")}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               {device.is_current ? null : (
                 <Button
