@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Filament;
 
-use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\Clients\Pages\EditClientUser;
 use App\Filament\Resources\Staff\Pages\EditStaffUser;
 use App\Models\SiteSetting;
@@ -31,19 +29,17 @@ class AdminSetPasswordTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         SiteSetting::current();
 
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
-        $admin->syncRoles(['Administrator']);
-        $this->actingAs($admin);
+        $this->actingAs(User::factory()->admin()->create());
     }
 
     private function staffMember(): User
     {
-        return User::factory()->create(['role' => UserRole::Moderator, 'user_kind' => UserKind::Staff]);
+        return User::factory()->moderator()->create();
     }
 
     private function client(): User
     {
-        return User::factory()->create(['role' => UserRole::Member, 'user_kind' => UserKind::Client]);
+        return User::factory()->create();
     }
 
     public function test_staff_form_rejects_a_weak_password(): void

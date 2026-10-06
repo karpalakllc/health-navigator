@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Staff\Pages;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\Staff\StaffUserResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -31,22 +30,5 @@ class CreateStaffUser extends CreateRecord
         $record->save();
 
         return $record;
-    }
-
-    protected function afterCreate(): void
-    {
-        if ($this->record->roles()->exists()) {
-            return;
-        }
-
-        $roleName = match ($this->record->role) {
-            UserRole::Admin => 'Administrator',
-            UserRole::Moderator => 'Moderator',
-            default => null,
-        };
-
-        if ($roleName !== null) {
-            $this->record->assignRole($roleName);
-        }
     }
 }

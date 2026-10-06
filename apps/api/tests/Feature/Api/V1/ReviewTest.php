@@ -4,7 +4,6 @@ namespace Tests\Feature\Api\V1;
 
 use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
-use App\Enums\UserRole;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
@@ -20,7 +19,7 @@ class ReviewTest extends TestCase
     public function test_lists_approved_reviews_for_published_doctor(): void
     {
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Review::factory()->approved()->create([
             'user_id' => $member->id,
@@ -69,7 +68,7 @@ class ReviewTest extends TestCase
     public function test_member_can_submit_review_for_doctor(): void
     {
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -92,7 +91,7 @@ class ReviewTest extends TestCase
     public function test_duplicate_review_returns_422(): void
     {
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Review::factory()->create([
             'user_id' => $member->id,
@@ -113,7 +112,7 @@ class ReviewTest extends TestCase
     {
         Doctor::factory()->create(['slug' => 'ana-petrovska']);
 
-        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Moderator]));
+        Sanctum::actingAs(User::factory()->moderator()->create());
 
         $this->postJson('/api/v1/doctors/ana-petrovska/reviews', ['rating' => 5])
             ->assertForbidden();
@@ -122,7 +121,7 @@ class ReviewTest extends TestCase
     public function test_submit_to_unpublished_doctor_returns_404(): void
     {
         Doctor::factory()->unpublished()->create(['slug' => 'hidden-doc']);
-        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Member]));
+        Sanctum::actingAs(User::factory()->create());
 
         $this->postJson('/api/v1/doctors/hidden-doc/reviews', ['rating' => 5])
             ->assertNotFound();
@@ -130,7 +129,7 @@ class ReviewTest extends TestCase
 
     public function test_member_can_list_own_reviews(): void
     {
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
         $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
 
         Review::factory()->approved()->create([
@@ -177,7 +176,7 @@ class ReviewTest extends TestCase
             'slug' => 'eurofarm',
             'type' => FacilityType::Pharmacy,
         ]);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -220,7 +219,7 @@ class ReviewTest extends TestCase
     public function test_validates_review_payload(): void
     {
         Doctor::factory()->create(['slug' => 'ana-petrovska']);
-        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Member]));
+        Sanctum::actingAs(User::factory()->create());
 
         $this->postJson('/api/v1/doctors/ana-petrovska/reviews', ['rating' => 6])
             ->assertUnprocessable();

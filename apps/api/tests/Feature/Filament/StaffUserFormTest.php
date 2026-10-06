@@ -3,7 +3,6 @@
 namespace Tests\Feature\Filament;
 
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Resources\Staff\Pages\CreateStaffUser;
 use App\Filament\Resources\Staff\Pages\EditStaffUser;
@@ -13,6 +12,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -34,10 +34,7 @@ class StaffUserFormTest extends TestCase
 
     private function administrator(): User
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
-        $admin->syncRoles(['Administrator']);
-
-        return $admin;
+        return User::factory()->admin()->create();
     }
 
     public function test_a_staff_account_created_in_the_panel_is_verified(): void
@@ -48,13 +45,40 @@ class StaffUserFormTest extends TestCase
             ->fillForm([
                 'name' => 'New Editor',
                 'email' => 'editor@example.com',
-                'role' => UserRole::Moderator->value,
+                'roles' => [$this->moderatorRoleId()],
                 'password' => 'long1enough1password',
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $this->assertNotNull(User::query()->where('email', 'editor@example.com')->sole()->email_verified_at);
+        $created = User::query()->where('email', 'editor@example.com')->sole();
+        $this->assertNotNull($created->email_verified_at);
+        // The chosen Spatie role is the account's authorization; nothing is
+        // derived from (or written to) the legacy `role` column.
+        $this->assertSame(['Moderator'], $created->getRoleNames()->all());
+        $this->assertNull($created->getRawOriginal('role'));
+    }
+
+    public function test_a_staff_account_needs_at_least_one_role(): void
+    {
+        $this->actingAs($this->administrator());
+
+        Livewire::test(CreateStaffUser::class)
+            ->fillForm([
+                'name' => 'Roleless',
+                'email' => 'roleless@example.com',
+                'roles' => [],
+                'password' => 'long1enough1password',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['roles' => 'required']);
+
+        $this->assertFalse(User::query()->where('email', 'roleless@example.com')->exists());
+    }
+
+    private function moderatorRoleId(): int
+    {
+        return (int) Role::findByName('Moderator', 'web')->getKey();
     }
 
     public function test_creating_an_address_that_differs_only_in_case_is_a_form_error(): void
@@ -66,7 +90,7 @@ class StaffUserFormTest extends TestCase
             ->fillForm([
                 'name' => 'Duplicate',
                 'email' => 'DUP@example.com',
-                'role' => UserRole::Moderator->value,
+                'roles' => [$this->moderatorRoleId()],
                 'password' => 'long1enough1password',
             ])
             ->call('create')
@@ -78,7 +102,7 @@ class StaffUserFormTest extends TestCase
     public function test_editing_to_an_address_that_differs_only_in_case_is_a_form_error(): void
     {
         User::factory()->create(['email' => 'dup@example.com']);
-        $target = User::factory()->create(['email' => 'target@example.com', 'role' => UserRole::Moderator, 'user_kind' => UserKind::Staff]);
+        $target = User::factory()->moderator()->create(['email' => 'target@example.com']);
         $this->actingAs($this->administrator());
 
         Livewire::test(EditStaffUser::class, ['record' => $target->getKey()])
@@ -94,7 +118,6 @@ class StaffUserFormTest extends TestCase
         $admin = User::factory()->create([
             'email' => 'ops@example.com',
             'password' => 'long1enough1password',
-            'role' => UserRole::Admin,
             'user_kind' => UserKind::Staff,
         ]);
         $admin->syncRoles(['Administrator']);

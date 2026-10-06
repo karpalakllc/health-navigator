@@ -151,8 +151,6 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
 | `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
-| `GET` | `/platform/admin` | `auth:sanctum`, `role:admin` |
-| `GET` | `/platform/staff` | `auth:sanctum`, `role:admin,moderator` |
 | `GET` | `/products` | `module:products` |
 | `GET` | `/products/{slug}` | `module:products` |
 | `GET` | `/search` | — |
@@ -167,12 +165,12 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/auth/logout` | `auth:sanctum` |
 | `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
-| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
-| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `role:member`, `verified`, `throttle:api-reviews` |
-| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-topics` |
-| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `role:member`, `verified`, `throttle:api-forum-posts` |
+| `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
-| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `role:member`, `verified`, `throttle:api-reviews` |
+| `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
@@ -199,9 +197,22 @@ nobody can hold an account locked by merely sending traffic.
 
 ## Roles and permissions
 
-Authorization uses **Spatie permissions**; the `users.role` column is a coarse
-account type (`member`, `moderator`, `admin`), not the authorization source.
+Authorization uses **Spatie roles and permissions** only. Built-in roles:
+`Administrator`, `Moderator` (staff), `Forum Moderator` (community) and
+`Member`.
 
+- **Member** carries `reviews.create` and `forum.post`; registration assigns
+  it. The contribution endpoints check those permissions (`can:create` on the
+  Review / ForumTopic / ForumPost policies), so removing the role stops an
+  account posting, and granting it lets a staff account post. Staff do not
+  hold it by default.
+- The `role` field on `GET /me` (`member`, `moderator`, `admin`) is derived for
+  display: `admin` for the Administrator role, `moderator` for other staff,
+  `member` otherwise. `community_roles` lists every Spatie role name held
+  (including `Member`). Neither is an authorization input.
+- `users.user_kind` (`staff` / `client`) only decides whether an account is
+  managed under Staff or Clients in the admin panel. The legacy `users.role`
+  column is deprecated: nullable, no longer read or written, to be dropped.
 - Staff moderators and admins moderate through the Filament panel and the
   public moderation endpoint.
 - **Community moderators** are client accounts holding the `Forum Moderator`

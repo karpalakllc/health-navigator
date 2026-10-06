@@ -4,7 +4,6 @@ use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
-use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\IgnoreRememberMeCookie;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
@@ -36,7 +35,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => EnsureUserRole::class,
             'module' => EnsureModuleEnabled::class,
             'registrations' => EnsureRegistrationsEnabled::class,
             'maintenance' => EnsureNotInMaintenance::class,

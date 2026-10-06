@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\UserRole;
 use App\Models\AnalyticsEvent;
 use App\Models\Doctor;
 use App\Models\User;
@@ -25,7 +24,7 @@ class AnalyticsEventTest extends TestCase
     public function test_review_submission_records_analytics_event(): void
     {
         $doctor = Doctor::factory()->create(['slug' => 'dr-test']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 

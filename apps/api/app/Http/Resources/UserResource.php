@@ -18,7 +18,7 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'role' => $this->role->value,
+            'role' => $this->accountRole()->value,
             'community_roles' => $this->getRoleNames()->values()->all(),
             'can_moderate_forum' => $this->can('forum.moderate'),
             'avatar_url' => $this->avatarUrl(),

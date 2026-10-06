@@ -4,7 +4,6 @@ namespace Tests\Feature\Filament;
 
 use App\Enums\FacilityType;
 use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\ClinicalInterests\Pages\ListClinicalInterests;
 use App\Filament\Resources\Departments\Pages\ListDepartments;
 use App\Filament\Resources\Doctors\Pages\ListDoctors;
@@ -71,7 +70,6 @@ class ResourceAuthorizationCoverageTest extends TestCase
     private function viewOnlyModerator(): User
     {
         $moderator = User::factory()->create([
-            'role' => UserRole::Moderator,
             'user_kind' => UserKind::Staff,
         ]);
         $moderator->syncRoles(['Moderator']);

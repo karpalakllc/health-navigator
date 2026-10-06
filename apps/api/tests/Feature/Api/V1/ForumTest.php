@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\ForumContentStatus;
-use App\Enums\UserRole;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -121,7 +120,7 @@ class ForumTest extends TestCase
     public function test_member_can_create_topic_pending_moderation(): void
     {
         $category = ForumCategory::factory()->create(['slug' => 'general']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -145,7 +144,7 @@ class ForumTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         ForumCategory::factory()->create(['slug' => 'general']);
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
 
         Sanctum::actingAs($moderator);
@@ -164,7 +163,7 @@ class ForumTest extends TestCase
         ForumCategory::factory()->create(['slug' => 'general']);
         SiteSetting::current()->update(['forum_topics_require_moderation' => false]);
 
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
         Sanctum::actingAs($member);
 
         $this->postJson('/api/v1/forum/categories/general/topics', [
@@ -186,7 +185,7 @@ class ForumTest extends TestCase
             'forum_category_id' => $category->id,
             'slug' => 'mod-target',
         ]);
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
 
         Sanctum::actingAs($moderator);
@@ -220,7 +219,7 @@ class ForumTest extends TestCase
             'forum_category_id' => ForumCategory::query()->value('id'),
             'slug' => 'protected-topic',
         ]);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -239,7 +238,7 @@ class ForumTest extends TestCase
             'forum_category_id' => $category->id,
             'slug' => 'visible-topic',
         ]);
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
         $token = $moderator->createToken('test')->plainTextToken;
 
@@ -255,7 +254,7 @@ class ForumTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $category = ForumCategory::factory()->create(['slug' => 'general']);
-        $moderator = User::factory()->create(['role' => UserRole::Member]);
+        $moderator = User::factory()->create();
         $moderator->assignRole('Forum Moderator');
         ForumTopic::factory()->create([
             'forum_category_id' => $category->id,
@@ -275,7 +274,7 @@ class ForumTest extends TestCase
             'forum_category_id' => $category->id,
             'slug' => 'locked-topic',
         ]);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -377,7 +376,7 @@ class ForumTest extends TestCase
     public function test_topic_creation_requires_accepted_community_rules(): void
     {
         ForumCategory::factory()->create(['slug' => 'general']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -398,7 +397,7 @@ class ForumTest extends TestCase
         $this->forgetRateLimits();
 
         $category = ForumCategory::factory()->create(['slug' => 'general']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 

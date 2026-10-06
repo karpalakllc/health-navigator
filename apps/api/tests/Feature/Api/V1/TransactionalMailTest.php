@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\ReviewStatus;
-use App\Enums\UserRole;
 use App\Mail\UgcApprovedMail;
 use App\Mail\UgcRejectedMail;
 use App\Mail\UgcSubmittedMail;
@@ -94,8 +93,8 @@ class TransactionalMailTest extends TestCase
         Mail::fake();
 
         $doctor = Doctor::factory()->create(['slug' => 'dr-ana']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
         $review = Review::factory()->create([
             'user_id' => $member->id,
             'reviewable_type' => Doctor::class,
@@ -115,8 +114,8 @@ class TransactionalMailTest extends TestCase
         Mail::fake();
 
         $category = ForumCategory::factory()->create(['slug' => 'general']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
         $topic = ForumTopic::factory()->pending()->create([
             'forum_category_id' => $category->id,
             'user_id' => $member->id,
@@ -136,7 +135,7 @@ class TransactionalMailTest extends TestCase
         Mail::fake();
 
         $doctor = Doctor::factory()->create(['slug' => 'dr-ana']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
+        $member = User::factory()->create();
 
         Sanctum::actingAs($member);
 
@@ -155,8 +154,8 @@ class TransactionalMailTest extends TestCase
         Mail::fake();
 
         $doctor = Doctor::factory()->create(['slug' => 'dr-ana']);
-        $member = User::factory()->create(['role' => UserRole::Member]);
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $member = User::factory()->create();
+        $moderator = User::factory()->moderator()->create();
         $review = Review::factory()->create([
             'user_id' => $member->id,
             'reviewable_type' => Doctor::class,

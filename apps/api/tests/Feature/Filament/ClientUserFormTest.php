@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Filament;
 
-use App\Enums\UserKind;
-use App\Enums\UserRole;
 use App\Filament\Resources\Clients\Pages\EditClientUser;
 use App\Models\ForumCategory;
 use App\Models\SiteSetting;
@@ -33,7 +31,7 @@ class ClientUserFormTest extends TestCase
             ->syncPermissions(['admin.access', 'clients.view', 'clients.update']);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $editor = User::factory()->create(['role' => UserRole::Moderator, 'user_kind' => UserKind::Staff]);
+        $editor = User::factory()->staff()->create();
         $editor->syncRoles(['Client Editor']);
 
         return $editor;
@@ -41,7 +39,7 @@ class ClientUserFormTest extends TestCase
 
     private function client(): User
     {
-        return User::factory()->create(['role' => UserRole::Member, 'user_kind' => UserKind::Client]);
+        return User::factory()->create();
     }
 
     public function test_moderation_scope_requires_the_assign_roles_permission(): void
@@ -74,7 +72,7 @@ class ClientUserFormTest extends TestCase
 
     public function test_the_client_page_offers_no_delete_action(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
+        $admin = User::factory()->staff()->create();
         $admin->syncRoles(['Administrator']);
         $this->actingAs($admin);
 
@@ -103,7 +101,7 @@ class ClientUserFormTest extends TestCase
 
     public function test_an_administrator_can_still_grant_the_community_role(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'user_kind' => UserKind::Staff]);
+        $admin = User::factory()->staff()->create();
         $admin->syncRoles(['Administrator']);
         $this->actingAs($admin);
 
