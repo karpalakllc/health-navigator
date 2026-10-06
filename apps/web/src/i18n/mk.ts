@@ -622,6 +622,40 @@ export const mk = {
     // printed English months after hydration.
     monthNames:
       "јануари,февруари,март,април,мај,јуни,јули,август,септември,октомври,ноември,декември",
+    sortHelpful: "Најкорисни",
+    helpful: "Корисно",
+    helpfulCount: "Корисно ({count})",
+    helpfulError: "Гласот не е зачуван. Обидете се повторно.",
+    actions: "Дејства за рецензијата од {name}",
+  },
+  reviewResponse: {
+    title: "Одговор од {name}",
+    titleGeneric: "Одговор од профилот",
+  },
+  reports: {
+    action: "Пријави",
+    actionReview: "Пријави ја рецензијата од {name}",
+    actionPost: "Пријави го одговорот од {name}",
+    actionTopic: "Пријави ја темата",
+    dialogTitle: "Пријави содржина",
+    intro:
+      "Пријавата ја гледа само модератор. Авторот не дознава кој ја пријавил содржината.",
+    reasonLegend: "Зошто ја пријавувате?",
+    reasonSpam: "Спам или рекламирање",
+    reasonAbuse: "Навреда или вознемирување",
+    reasonFalseInformation: "Невистинити информации",
+    reasonPersonalData: "Лични или здравствени податоци",
+    reasonOther: "Друго",
+    reasonRequired: "Изберете причина.",
+    noteLabel: "Белешка за модераторот (опционално)",
+    submit: "Испрати пријава",
+    successTitle: "Ви благодариме",
+    successBody: "Пријавата е примена. Модератор ќе ја прегледа.",
+    close: "Затвори",
+    error: "Пријавата не може да се испрати. Обидете се повторно.",
+    throttled:
+      "Испративте повеќе пријави за кратко време. Обидете се повторно подоцна.",
+    invalidTarget: "Содржината не може да се пријави.",
   },
   maintenance: {
     badge: "Одржување",
