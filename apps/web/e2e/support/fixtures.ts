@@ -12,11 +12,17 @@ export const users = {
 } as const;
 
 /**
- * Staff TOTP secret (E2ESeeder::STAFF_TOTP_SECRET), used when the admin panel
- * challenges for app authentication. Staff accounts sign in to /admin only;
- * the specs never use them on the public site.
+ * Staff TOTP secrets (E2ESeeder::ADMIN_TOTP_SECRET and
+ * ::STAFF_MODERATOR_TOTP_SECRET), used when the admin panel challenges for app
+ * authentication. One per account: Filament's replay guard remembers the last
+ * accepted step per secret, so a shared secret would reject the second
+ * account's code inside the same 30 seconds. Staff accounts sign in to /admin
+ * only; the specs never use them on the public site.
  */
-export const STAFF_TOTP_SECRET = "JBSWY3DPEHPK3PXP";
+export const staffTotpSecrets = {
+  [users.admin]: "JBSWY3DPEHPK3PXP",
+  [users.staffModerator]: "KRUGKIDROVUWG2ZA",
+} as const;
 
 /**
  * Accounts a spec changes come in numbered copies, one per attempt
