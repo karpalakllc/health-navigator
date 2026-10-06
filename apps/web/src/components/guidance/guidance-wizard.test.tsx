@@ -8,13 +8,17 @@ import { t } from "@/i18n/t";
 // The wizard's network calls are replaced so these tests cover only what it
 // renders and where it moves focus between steps.
 const api = vi.hoisted(() => ({
-  startGuidanceSession: vi.fn<() => Promise<string>>(),
+  startGuidanceSession: vi.fn<() => Promise<{ id: string; token: string }>>(),
   saveGuidanceAnswers: vi.fn<() => Promise<void>>(),
   completeGuidanceSession: vi.fn<() => Promise<unknown>>(),
   completeGuidanceEmergency: vi.fn<() => Promise<unknown>>(),
 }));
 
-vi.mock("@/lib/api/guidance", () => api);
+// Only the network calls: the session-handle parsing stays real.
+vi.mock("@/lib/api/guidance", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api/guidance")>()),
+  ...api,
+}));
 
 const flow: GuidanceFlow = {
   title: "Општи насоки за симптоми",
@@ -52,7 +56,10 @@ const emergency: GuidanceOutcome = {
 
 beforeEach(() => {
   window.sessionStorage.clear();
-  api.startGuidanceSession.mockResolvedValue("session-1");
+  api.startGuidanceSession.mockResolvedValue({
+    id: "session-1",
+    token: "token-1",
+  });
   api.saveGuidanceAnswers.mockResolvedValue(undefined);
   api.completeGuidanceEmergency.mockResolvedValue(emergency);
   api.completeGuidanceSession.mockResolvedValue(emergency);

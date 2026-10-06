@@ -36,9 +36,6 @@ const KNOWN: Record<string, Record<string, string>> = {
   },
   doctors: {
     "color-contrast": CONTRAST,
-    "select-name":
-      "The specialty and sort <select>s in doctors-filter-bar.tsx have a " +
-      "visible FilterField caption that is not associated with them.",
   },
   "doctor profile": { "color-contrast": CONTRAST },
   login: { "color-contrast": CONTRAST },

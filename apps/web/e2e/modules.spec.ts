@@ -34,8 +34,10 @@ test.describe("module gating", () => {
       page.getByRole("heading", { level: 1, name: mk.pharmacies.title }),
     ).toBeVisible();
     const main = page.getByRole("main");
+    // The badge shows in the page hero and on the placeholder card; both are
+    // inside <main> since the hero joined the main landmark.
     await expect(
-      main.getByText(mk.comingSoon.badge, { exact: true }),
+      main.getByText(mk.comingSoon.badge, { exact: true }).first(),
     ).toBeVisible();
     await expect(main.getByText(mk.comingSoon.title)).toBeVisible();
     // No listing behind the placeholder.
