@@ -7,11 +7,12 @@ use App\Models\User;
 use App\Support\EmailAddress;
 use App\Support\RoleCatalog;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
+use Database\Seeders\Concerns\SeedsUsernames;
 use Illuminate\Database\Seeder;
 
 class PlatformUserSeeder extends Seeder
 {
-    use SeedsLocalDemoData;
+    use SeedsLocalDemoData, SeedsUsernames;
 
     /**
      * Each lookup normalises the configured address the way the User model
@@ -30,6 +31,7 @@ class PlatformUserSeeder extends Seeder
             ['email' => EmailAddress::normalize((string) config('zdravje.admin.email'))],
             [
                 'name' => 'Platform Admin',
+                'username' => 'zdravje_admin',
                 'password' => config('zdravje.admin.password') ?? 'password',
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
@@ -40,6 +42,7 @@ class PlatformUserSeeder extends Seeder
             ['email' => EmailAddress::normalize((string) config('zdravje.seed.moderator.email'))],
             [
                 'name' => 'Platform Moderator',
+                'username' => 'zdravje_moderator',
                 'password' => config('zdravje.seed.moderator.password'),
                 'user_kind' => UserKind::Staff,
                 'email_verified_at' => now(),
@@ -50,6 +53,7 @@ class PlatformUserSeeder extends Seeder
             ['email' => EmailAddress::normalize((string) config('zdravje.seed.member.email'))],
             [
                 'name' => 'Test Member',
+                'username' => self::seededUsername((string) config('zdravje.seed.member.email')),
                 'password' => config('zdravje.seed.member.password'),
                 'user_kind' => UserKind::Client,
                 'email_verified_at' => now(),

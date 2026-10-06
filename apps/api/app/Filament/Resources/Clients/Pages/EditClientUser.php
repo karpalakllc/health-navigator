@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clients\Pages;
 
 use App\Filament\Resources\Clients\ClientUserResource;
+use App\Filament\Support\RenameUsernameAction;
 use App\Filament\Support\SetPasswordAction;
 use App\Filament\Support\SuspendAccountActions;
 use Filament\Resources\Pages\EditRecord;
@@ -16,6 +17,7 @@ class EditClientUser extends EditRecord
     {
         return [
             SetPasswordAction::make(),
+            RenameUsernameAction::make(),
             SuspendAccountActions::suspend(),
             SuspendAccountActions::unsuspend(),
             // No DeleteAction: UserPolicy::delete refuses clients because their

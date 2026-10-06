@@ -80,7 +80,13 @@ export function LoginForm() {
       }
 
       const redirect = safeRedirectTarget(searchParams.get("redirect"), "/");
-      router.push(redirect);
+      // An account that still has a temporary username is offered the
+      // one-step chooser first (skippable; only posting waits for it).
+      router.push(
+        payload.data?.user?.must_choose_username === true
+          ? `/account/username?redirect=${encodeURIComponent(redirect)}`
+          : redirect,
+      );
       router.refresh();
     } catch {
       setError(t("auth.loginFailed"));

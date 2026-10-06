@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -169,4 +170,9 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
         Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
     });
+
+    // Usernames (W5-U): is a name free, while someone types it at sign-up or
+    // on the account page. Optional auth so a member's own name reads as free.
+    Route::get('/usernames/availability', UsernameAvailabilityController::class)
+        ->middleware(['auth.sanctum.optional', 'throttle:api-username-check']);
 });

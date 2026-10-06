@@ -17,6 +17,7 @@ use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Support\RoleCatalog;
+use Database\Seeders\Concerns\SeedsUsernames;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -40,6 +41,8 @@ use RuntimeException;
  */
 class E2ESeeder extends Seeder
 {
+    use SeedsUsernames;
+
     /** Satisfies Password::defaults(): 10+ characters, letters and numbers. */
     public const PASSWORD = 'E2eLozinka2026';
 
@@ -171,6 +174,8 @@ class E2ESeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
+                // W5-U: a fixed username, so seeded members can post at once.
+                'username' => self::seededUsername($email),
                 'password' => self::PASSWORD,
                 'user_kind' => $kind,
                 'email_verified_at' => now(),

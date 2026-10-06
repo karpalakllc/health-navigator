@@ -46,6 +46,22 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Legal texts
+    |--------------------------------------------------------------------------
+    |
+    | The version of the Terms of Use a member accepts at sign-up, stored with
+    | the acceptance (users.terms_version). The last-updated date of the terms
+    | page on the web (apps/web/src/content/legal/terms.tsx): change both
+    | together when the terms change.
+    |
+    */
+
+    'legal' => [
+        'terms_version' => '2026-10-06',
+    ],
+
     'seed' => [
         'local_demo' => filter_var(env('SEED_LOCAL_DEMO', false), FILTER_VALIDATE_BOOLEAN),
         'moderator' => [

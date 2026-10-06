@@ -93,19 +93,42 @@ mechanism for the Next.js web client and future mobile clients.
   (30 days). Expired tokens are rejected — including on optional-auth routes.
 - `POST /auth/forgot-password` always returns the same success payload,
   whether or not the address is registered.
-- `GET /me` returns `id, name, display_name, email, role, community_roles,
-  can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+- `GET /me` returns `id, name, username, must_choose_username,
+  username_changed_at, username_change_available_at, display_name, email, role,
+  community_roles, can_moderate_forum, avatar_url, avatar_initials, profile_avatar`.
+  `display_name` is a deprecated alias of `username` (the stored display name is
+  no longer shown anywhere; the column is dropped in a later release).
 - **Two names.** `name` is the person's real name and is **private** (only
-  `/me`, the admin panel and mail). `display_name` is what everything public
+  `/me`, the admin panel and mail). The **username** is what everything public
   shows: `author_name` on reviews and forum topics/posts, and `author.name` on
-  forum authors. `POST /auth/register` requires `display_name`;
-  `PATCH /me/profile` (`{ "display_name": "…" }`, verified accounts) changes it
-  and returns `{ user }` as `/me` does. Rules: trimmed with runs of whitespace
-  collapsed, at most 40 characters, Unicode letters, spaces and `. - '` only,
-  starting with a letter, at least two letters, no word mixing Cyrillic and
-  Latin, and no title, role or platform name in either script (д-р/dr, проф,
-  доктор, админ…, модератор, тим/team, поддршка/support, здравје, официјал —
-  `DisplayName::rejection()`). **Not unique.**
+  forum authors; a deleted account shows „Избришан корисник“. Usernames are
+  **unique** and replaced the „Име П.“ display name (owner decision
+  2026-10-14: initials can be enough to recognise a reviewer).
+  - Rules (`App\Support\Usernames\UsernameValidator`): 3–30 characters;
+    Latin letters (with ç ë č ć đ š ž) or Macedonian Cyrillic letters, not both;
+    digits and `. _ -`; starts with a letter; no two separators in a row; not on
+    the blocked or reserved lists (staff-curated, `username_terms`); not held by
+    anyone else after folding (case, Cyrillic→Latin, look-alikes, leetspeak,
+    separators — `UsernameNormalizer`), nor released by someone else in the last
+    six months (`username_history`). Errors are `422` on `username`, worded
+    without saying which list matched („Ова корисничко име не е дозволено.“ /
+    „Ова корисничко име веќе се користи.“).
+  - `POST /auth/register` requires `username` and `accept_terms` (accepted: „I am
+    at least 14 and accept the Terms of Use and the Privacy Policy“, stored as
+    `terms_accepted_at` + `terms_version`). A taken username is refused whether or
+    not the address is registered, so it reveals nothing about addresses.
+  - `GET /usernames/availability?username=…` (optional auth; `api-username-check`)
+    returns `{ available, message }` — the same message registration would give,
+    nothing about the holder. A signed-in member's own name is available to them.
+  - `PATCH /me/profile` (`{ "username": "…" }`, verified accounts) changes it and
+    returns `{ user }` as `/me` does. Once every 90 days (`422` on `username` with
+    the next date); choosing the first username, replacing a temporary
+    `clen-…` one, is not limited.
+  - Accounts from before usernames, and those staff create without one, have a
+    temporary `clen-…` name and `must_choose_username: true`. Until they choose,
+    review, forum topic/reply and „Корисно“ requests are `403` with the message
+    „Пред да објавувате, изберете корисничко име во вашата сметка.“; reading is
+    unaffected.
 
 **Account data rights and devices (D5, D6, D7):**
 
@@ -126,7 +149,8 @@ mechanism for the Next.js web client and future mobile clients.
   only while it is approved. `Cache-Control: no-store`. 5 per hour
   (`429`, code `account.export_throttled`).
 - `DELETE /me` with `{ "password": "…" }` deletes the account by
-  anonymisation: name, display name, email (replaced with a non-deliverable
+  anonymisation: name, display name, username (held back from others for six
+  months), email (replaced with a non-deliverable
   placeholder, so the address can register again), password, avatar (file
   removed), roles, community-moderation scopes, tokens, panel sessions and
   reset links are cleared; published reviews and forum content stay public
@@ -157,7 +181,8 @@ limiters are layered on top:
 |---------|-----------|-------|
 | `api-login` | login, register, forgot/reset password, email verify | 40/min per IP |
 | `api-verification-resend` | verification email resend | 10/min per IP |
-| `api-profile` | `PATCH /me/profile` (display name) | 10/hour per user |
+| `api-profile` | `PATCH /me/profile` (username) | 10/hour per user |
+| `api-username-check` | `GET /usernames/availability` | 30/min and 500/day per IP |
 | `api-account-export` | `GET /me/export` | 5/hour per user |
 | `api-account-delete` | `DELETE /me` (password re-entry) | 5/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
@@ -217,6 +242,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/specialties` | `cache.public` |
 | `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
+| `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
 | `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
 | `POST` | `/auth/email/resend` | `throttle:api-verification-resend` |

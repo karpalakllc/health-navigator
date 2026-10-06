@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -36,14 +37,16 @@ class RegisterTest extends TestCase
     }
 
     /**
-     * @param  array<string, string>  $overrides
-     * @return array<string, string>
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
      */
     private function payload(array $overrides = []): array
     {
         return array_merge([
             'name' => 'New Member',
-            'display_name' => 'Нов Ч.',
+            // A new name per request: the same one twice is (correctly) taken.
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'new@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',

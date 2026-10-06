@@ -179,6 +179,22 @@ describe("LoginForm", () => {
     expect(router.refresh).toHaveBeenCalled();
   });
 
+  it("offers the username chooser first to an account with a temporary name", async () => {
+    setSearchParams({ redirect: "/forum/zdravje?page=2" });
+    mockFetch({
+      status: 200,
+      body: { data: { user: { must_choose_username: true } } },
+    });
+    render(<LoginForm />);
+
+    await fillAndSubmit();
+
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(router.push).toHaveBeenCalledWith(
+      `/account/username?redirect=${encodeURIComponent("/forum/zdravje?page=2")}`,
+    );
+  });
+
   it.each([
     "https://evil.example/phish",
     "//evil.example/phish",

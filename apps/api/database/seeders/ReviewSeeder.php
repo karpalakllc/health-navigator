@@ -85,6 +85,7 @@ class ReviewSeeder extends Seeder
 
         $otherMember = User::factory()->create([
             'name' => 'Another Member',
+            'username' => 'member2',
             'email' => 'member2@zdravje360.test',
             'password' => 'password',
         ]);

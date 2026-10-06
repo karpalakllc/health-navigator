@@ -7,11 +7,12 @@ use App\Enums\UserKind;
 use App\Enums\UserRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
-use App\Support\DisplayName;
 use App\Support\EmailAddress;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
 use App\Support\RoleCatalog;
+use App\Support\Usernames\TemporaryUsername;
+use App\Support\Usernames\UsernameNormalizer;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
@@ -30,11 +31,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Carbon\CarbonInterface;
 use Laravel\Sanctum\HasApiTokens;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'display_name', 'email', 'password', 'user_kind', 'avatar_path'])]
+#[Fillable(['name', 'display_name', 'username', 'email', 'password', 'user_kind', 'avatar_path'])]
 // The second-factor columns are hidden here as well as by Filament's traits, so
 // that dropping a trait can never start serialising them.
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
@@ -42,6 +44,9 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, Notifiable;
+
+    /** A member may change their username once in this many days. */
+    public const USERNAME_CHANGE_COOLDOWN_DAYS = 90;
 
     private ?bool $hasScopedForumModeration = null;
 
@@ -52,6 +57,9 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'registration_contested_at' => 'datetime',
             'suspended_at' => 'datetime',
             'anonymised_at' => 'datetime',
+            'username_changed_at' => 'datetime',
+            'must_choose_username' => 'boolean',
+            'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
             'user_kind' => UserKind::class,
             // Ciphertext under APP_KEY; the recovery codes inside are also hashed.
@@ -61,32 +69,42 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     /**
-     * Every account has a public name. Registration and the account page set it
-     * explicitly; anything else that creates or renames a user (admin panel,
-     * seeders, factories) gets the "First L." default rather than none — the
-     * fallback must never be the full private name.
+     * Every account has a public username. Registration and the account page
+     * set one the member chose; anything else that creates an account (admin
+     * panel, seeders) without one gets a temporary „clen-…“ name and is asked
+     * to choose at the next sign-in. The folded forms that carry uniqueness
+     * are derived here, wherever the username is set.
      */
     protected static function booted(): void
     {
         static::saving(function (User $user): void {
-            // A partially selected model does not know its display name; leave
-            // the stored one alone rather than overwrite it with a default.
-            if ($user->exists && ! array_key_exists('display_name', $user->getAttributes())) {
+            // A partially selected model does not know its username; leave the
+            // stored one alone rather than invent a new one.
+            if ($user->exists && ! array_key_exists('username', $user->getAttributes())) {
                 return;
             }
 
-            if (is_string($user->display_name)) {
-                $user->display_name = DisplayName::normalize($user->display_name);
+            if (blank($user->username) && ! $user->isAnonymised()) {
+                $user->username = TemporaryUsername::generate();
+                $user->must_choose_username = true;
             }
 
-            if (blank($user->display_name) && filled($user->name)) {
-                $user->display_name = DisplayName::suggest((string) $user->name) ?: null;
+            if ($user->isDirty('username') || ! $user->exists) {
+                $username = is_string($user->username) && $user->username !== ''
+                    ? UsernameNormalizer::prepare($user->username)
+                    : null;
+
+                $user->username = $username;
+                $user->username_normalized = $username === null ? null : UsernameNormalizer::key($username);
+                $user->username_skeleton = $username === null ? null : UsernameNormalizer::skeleton($username);
             }
         });
     }
 
     /**
-     * The name to show anywhere other people can see. `name` stays private.
+     * The name to show anywhere other people can see: the username. `name`
+     * (the real name) stays private, and so does `display_name`, which is no
+     * longer shown (to be dropped).
      */
     public function publicName(): string
     {
@@ -95,11 +113,23 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             return __('api.account.deleted_user_name');
         }
 
-        if (filled($this->display_name)) {
-            return (string) $this->display_name;
+        return filled($this->username) ? (string) $this->username : __('api.account.unnamed_member');
+    }
+
+    /**
+     * When the member may next change their username themselves, or null when
+     * they may now. Choosing a first username (replacing a temporary one) is
+     * not limited.
+     */
+    public function usernameChangeAvailableAt(): ?CarbonInterface
+    {
+        if ($this->must_choose_username || $this->username_changed_at === null) {
+            return null;
         }
 
-        return DisplayName::suggest((string) $this->name);
+        $next = $this->username_changed_at->copy()->addDays(self::USERNAME_CHANGE_COOLDOWN_DAYS);
+
+        return $next->isFuture() ? $next : null;
     }
 
     /**

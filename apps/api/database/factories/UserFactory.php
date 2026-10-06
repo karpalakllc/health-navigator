@@ -22,6 +22,9 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            // Letters only: digits fold under leetspeak (UsernameNormalizer), so
+            // two random names could otherwise collide in the unique form.
+            'username' => 'm_'.fake()->unique()->lexify('??????????'),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => 'password',

@@ -6,10 +6,11 @@ import { readUpstream } from "@/lib/api/upstream";
 
 type RegisterPayload = {
   name?: string;
-  display_name?: string;
+  username?: string;
   email?: string;
   password?: string;
   password_confirmation?: string;
+  accept_terms?: boolean;
 };
 
 /**
@@ -40,10 +41,11 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         name: body.name,
-        display_name: body.display_name,
+        username: body.username,
         email: body.email,
         password: body.password,
         password_confirmation: body.password_confirmation,
+        accept_terms: body.accept_terms,
       }),
     }),
   );

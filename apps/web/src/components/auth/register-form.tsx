@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthStateHeader } from "@/components/auth/auth-page";
 import { PasswordField } from "@/components/auth/password-input";
 import { PrivacyNote } from "@/components/auth/privacy-note";
@@ -9,10 +9,12 @@ import { Button, TextLink } from "@/components/ui/button";
 import { ErrorSummary } from "@/components/ui/error-summary";
 import { FormError } from "@/components/ui/form-message";
 import { Notice } from "@/components/ui/notice";
+import { TermsConsent } from "@/components/usernames/terms-consent";
 import {
-  DISPLAY_NAME_MAX_LENGTH,
-  suggestDisplayName,
-} from "@/lib/display-name";
+  UsernameField,
+  type UsernameAvailability,
+} from "@/components/usernames/username-field";
+import { normalizeUsername, usernameFormatError } from "@/lib/username";
 import {
   compactErrors,
   emailError,
@@ -27,15 +29,21 @@ type RegisterFormProps = {
 };
 
 type Field =
-  "name" | "display_name" | "email" | "password" | "password_confirmation";
+  | "name"
+  | "username"
+  | "email"
+  | "password"
+  | "password_confirmation"
+  | "accept_terms";
 
 /** Form order, with each field's visible label (used by the error summary). */
 const FIELDS: Array<{ field: Field; label: MessageKey }> = [
   { field: "name", label: "auth.registerName" },
-  { field: "display_name", label: "auth.registerDisplayName" },
+  { field: "username", label: "usernames.label" },
   { field: "email", label: "auth.email" },
   { field: "password", label: "auth.password" },
   { field: "password_confirmation", label: "auth.registerPasswordConfirm" },
+  { field: "accept_terms", label: "usernames.termsSummaryLabel" },
 ];
 
 const FIELD_NAMES = FIELDS.map(({ field }) => field);
@@ -46,10 +54,17 @@ const FIELD_NAMES = FIELDS.map(({ field }) => field);
  * the person has to fix the confirmation field.
  */
 function fieldErrorsFrom(errors: unknown): Partial<Record<Field, string>> {
-  return mapApiFieldErrors(errors, FIELD_NAMES, {
+  const mapped = mapApiFieldErrors(errors, FIELD_NAMES, {
     passwordField: "password",
     confirmationField: "password_confirmation",
   });
+
+  // The checkbox says what to do in its own words, whatever the API wrote.
+  if (mapped.accept_terms) {
+    mapped.accept_terms = t("usernames.termsRequired");
+  }
+
+  return mapped;
 }
 
 /** Stable ids: the summary links to them; errors are `<id>-error`. */
@@ -59,11 +74,11 @@ function fieldId(field: Field): string {
 
 export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   const [name, setName] = useState("");
-  // Follows the name ("Марија К.") until the person types their own.
-  const [customDisplayName, setCustomDisplayName] = useState<string | null>(
-    null,
-  );
-  const displayName = customDisplayName ?? suggestDisplayName(name);
+  const [username, setUsername] = useState("");
+  const [availability, setAvailability] = useState<UsernameAvailability>({
+    state: "idle",
+  });
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -96,6 +111,11 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     heading?.focus({ preventScroll: true });
   }, [submitted]);
 
+  const onAvailability = useCallback(
+    (next: UsernameAvailability) => setAvailability(next),
+    [],
+  );
+
   if (!registrationsEnabled) {
     return <Notice tone="info">{t("auth.registerDisabled")}</Notice>;
   }
@@ -104,15 +124,23 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     event.preventDefault();
     setError(null);
 
+    const usernameProblem = usernameFormatError(username);
     const local = compactErrors<Field>({
       name: requiredError(name),
-      display_name: requiredError(displayName),
+      username:
+        requiredError(username) ??
+        (usernameProblem ? t(usernameProblem) : null) ??
+        (availability.state === "unavailable" &&
+        availability.username === normalizeUsername(username)
+          ? availability.message
+          : null),
       email: emailError(email),
       password: requiredError(password),
       password_confirmation: passwordConfirmationError(
         password,
         passwordConfirmation,
       ),
+      accept_terms: acceptTerms ? null : t("usernames.termsRequired"),
     });
 
     setFieldErrors(local);
@@ -130,10 +158,11 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          display_name: displayName,
+          username: normalizeUsername(username),
           email,
           password,
           password_confirmation: passwordConfirmation,
+          accept_terms: acceptTerms,
         }),
       });
 
@@ -200,18 +229,13 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <TextField
-          id={fieldId("display_name")}
-          label={t("auth.registerDisplayName")}
-          hint={t("auth.registerDisplayNameHelp")}
-          error={fieldErrors.display_name}
-          type="text"
-          name="display_name"
-          required
-          maxLength={DISPLAY_NAME_MAX_LENGTH}
-          autoComplete="nickname"
-          value={displayName}
-          onChange={(e) => setCustomDisplayName(e.target.value)}
+        <UsernameField
+          id={fieldId("username")}
+          hint={t("usernames.registerHelp")}
+          error={fieldErrors.username}
+          value={username}
+          onChange={setUsername}
+          onAvailability={onAvailability}
         />
         <TextField
           id={fieldId("email")}
@@ -244,6 +268,12 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           required
           value={passwordConfirmation}
           onChange={setPasswordConfirmation}
+        />
+        <TermsConsent
+          id={fieldId("accept_terms")}
+          checked={acceptTerms}
+          onChange={setAcceptTerms}
+          error={fieldErrors.accept_terms}
         />
         {/* Every rejected field, named and linked, with its message. */}
         {rejected.length > 0 ? (

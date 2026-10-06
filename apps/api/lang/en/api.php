@@ -41,6 +41,7 @@ return [
 
     'account' => [
         'deleted_user_name' => 'Deleted user',
+        'unnamed_member' => 'Member',
         'password_incorrect' => 'The password is incorrect.',
         'staff_cannot_delete' => 'Team accounts cannot be deleted here. Please contact an administrator.',
         'deleted' => 'The account has been deleted.',
@@ -51,6 +52,12 @@ return [
 
     'registration' => [
         'disabled' => 'Registration is currently disabled.',
+    ],
+
+    'username' => [
+        'required' => 'Choose a username in your account before you post.',
+        'cooldown' => 'The username can be changed once every 90 days. The next change is possible from :date.',
+        'renamed' => 'The username has been changed.',
     ],
 
     'module' => [

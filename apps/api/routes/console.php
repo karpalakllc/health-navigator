@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\UsernameHistory;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('triage:purge-old-sessions')
@@ -36,5 +37,12 @@ Schedule::command('sanctum:prune-expired --hours=24')
 // NotifyOnFailedJob has alerted on each long before then.
 Schedule::command('queue:prune-failed --hours=720')
     ->dailyAt('04:30')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Released usernames are held back from others for six months, then the
+// private record of them goes too.
+Schedule::command('model:prune', ['--model' => [UsernameHistory::class]])
+    ->dailyAt('04:45')
     ->onOneServer()
     ->withoutOverlapping();

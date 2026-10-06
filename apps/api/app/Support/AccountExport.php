@@ -11,6 +11,7 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\User;
+use App\Models\UsernameHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -101,7 +102,28 @@ final class AccountExport
         return [
             'id' => $user->getKey(),
             'name' => $user->name,
+            'username' => $user->username,
+            'username_changed_at' => $user->username_changed_at?->toIso8601String(),
+            // Names the member gave up (or staff replaced), while they are
+            // still held back from others — never who at staff changed them.
+            'previous_usernames' => UsernameHistory::query()
+                ->where('user_id', $user->getKey())
+                ->orderBy('id')
+                ->get()
+                ->map(fn (UsernameHistory $entry): array => [
+                    'username' => $entry->username,
+                    'reason' => $entry->reason,
+                    'note' => $entry->note,
+                    'changed_at' => $entry->created_at?->toIso8601String(),
+                    'reserved_until' => $entry->reserved_until->toIso8601String(),
+                ])
+                ->all(),
+            // The public name before usernames (no longer shown; kept until dropped).
             'display_name' => $user->display_name,
+            // The sign-up consent: „14+ and I accept the Terms of Use and the
+            // Privacy Policy“. Null for accounts created before it was asked.
+            'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
+            'terms_version' => $user->terms_version,
             'email' => $user->email,
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
             'created_at' => $user->created_at?->toIso8601String(),

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -57,7 +58,7 @@ class AccountDeletionTest extends TestCase
 
         $this->member = User::factory()->create([
             'name' => 'Марија Костовска',
-            'display_name' => 'Марија К.',
+            'username' => 'marija_k',
             'email' => 'marija@example.com',
             'password' => self::PASSWORD,
         ]);
@@ -114,6 +115,8 @@ class AccountDeletionTest extends TestCase
         $this->assertTrue($user->isAnonymised());
         $this->assertSame('', $user->name);
         $this->assertNull($user->display_name);
+        $this->assertNull($user->username);
+        $this->assertNull($user->username_normalized);
         $this->assertNull($user->avatar_path);
         $this->assertNull($user->email_verified_at);
         $this->assertStringEndsWith('@deleted.invalid', $user->email);
@@ -191,7 +194,8 @@ class AccountDeletionTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Марија Нова',
-            'display_name' => 'Марија Н.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'Marija@Example.com',
             'password' => 'another1longpassword',
             'password_confirmation' => 'another1longpassword',

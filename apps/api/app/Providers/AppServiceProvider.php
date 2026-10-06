@@ -112,10 +112,19 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by('resend-ip:'.$request->ip());
         });
 
-        // The display name is what every review and forum post shows; renaming
-        // is occasional, so a burst of renames is someone cycling identities.
+        // The username is what every review and forum post shows; renaming is
+        // limited to once in 90 days anyway, so a burst of attempts is probing.
         RateLimiter::for('api-profile', function (Request $request) {
             return Limit::perHour(10)->by('profile:'.($request->user()->id ?? $request->ip()));
+        });
+
+        // Availability checks while typing a username: generous enough for a
+        // debounced field, too tight to walk the namespace.
+        RateLimiter::for('api-username-check', function (Request $request) {
+            return [
+                Limit::perMinute(30)->by('username-check:'.$request->ip()),
+                Limit::perDay(500)->by('username-check-day:'.$request->ip()),
+            ];
         });
 
         RateLimiter::for('api-reviews', function (Request $request) {

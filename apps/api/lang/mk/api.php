@@ -52,6 +52,7 @@ return [
 
     'account' => [
         'deleted_user_name' => 'Избришан корисник',
+        'unnamed_member' => 'Член',
         'password_incorrect' => 'Лозинката не е точна.',
         'staff_cannot_delete' => 'Сметките на тимот не можат да се избришат од тука. Обратете се до администратор.',
         'deleted' => 'Сметката е избришана.',
@@ -62,6 +63,14 @@ return [
 
     'registration' => [
         'disabled' => 'Регистрацијата е привремено оневозможена.',
+    ],
+
+    'username' => [
+        // Community actions (reviews, forum, reports, „Корисно“) wait until a
+        // member who still has a temporary clen-… name chooses one.
+        'required' => 'Пред да објавувате, изберете корисничко име во вашата сметка.',
+        'cooldown' => 'Корисничкото име може да се менува еднаш на 90 дена. Следна промена е можна од :date.',
+        'renamed' => 'Корисничкото име е сменето.',
     ],
 
     'module' => [
