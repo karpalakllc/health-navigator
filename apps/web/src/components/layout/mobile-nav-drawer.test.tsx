@@ -55,6 +55,24 @@ describe("Mobile nav drawer", () => {
     ).toMatch(/^\/login\?redirect=/);
   });
 
+  it("shows section rows as icon + label, with no drill-in chevron", async () => {
+    await openDrawer();
+    const panel = within(drawer()!);
+    const rows = [t("nav.doctors"), t("nav.forum"), t("nav.search")].map(
+      (name) => panel.getByRole("link", { name }),
+    );
+
+    for (const row of rows) {
+      // Each row opens a page; a trailing „>“ promised a sub-list that
+      // never existed. One leading icon, and the label is the last thing.
+      expect(row.querySelectorAll("svg")).toHaveLength(1);
+      expect(row.lastElementChild?.tagName).toBe("SPAN");
+      expect(row.lastElementChild?.querySelector("svg")).toBeNull();
+    }
+    // The current section keeps its active state.
+    expect(rows[0]).toHaveAttribute("aria-current", "page");
+  });
+
   it("keeps Tab and Shift+Tab inside the drawer", async () => {
     const user = await openDrawer();
     const panel = drawer()!;
