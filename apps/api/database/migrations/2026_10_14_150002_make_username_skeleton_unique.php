@@ -113,9 +113,10 @@ return new class extends Migration
                 ->orderBy('created_at')
                 ->orderBy('id')
                 ->pluck('id')
-                ->slice(1);
+                ->all();
 
-            foreach ($losers as $id) {
+            // The first keeps its name.
+            foreach (array_slice($losers, 1) as $id) {
                 $temporary = TemporaryUsername::generate();
 
                 DB::table('users')->where('id', $id)->update([

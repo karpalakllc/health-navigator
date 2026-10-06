@@ -259,7 +259,7 @@ class DoctorDashboardController extends Controller
                 ->limit(self::FACILITY_RESULTS)
                 ->get(['id', 'name', 'city'])
                 ->map(fn (Facility $facility): array => self::facilityOption($facility))
-                ->all(),
+                ->values(),
         );
     }
 
