@@ -45,11 +45,11 @@ final class UsernameTermSeedList
     {
         $rows = [];
 
-        /** @var list<array{kind: string, category: string, language: string, contains?: list<string>, exact?: list<string>, allowed?: list<string>}> $groups */
+        /** @var list<array{kind: string, category: string, language: string, contains?: list<string>, prefix?: list<string>, exact?: list<string>, allowed?: list<string>}> $groups */
         $groups = require database_path('seeders/data/username_terms.php');
 
         foreach ($groups as $group) {
-            foreach (['contains', 'exact', 'allowed'] as $type) {
+            foreach (['contains', 'prefix', 'exact', 'allowed'] as $type) {
                 foreach ($group[$type] ?? [] as $term) {
                     $rows[] = self::row($term, $group['kind'], $group['language'], self::safeType($term, $type), $group['category'], null);
                 }

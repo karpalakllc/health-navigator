@@ -22,6 +22,14 @@ enum UsernameMatchType: string
     case Contains = 'contains';
 
     /**
+     * As `exact`, and also at the start of the username or of a word when a
+     * consonant follows („drmarko“, „profivanov“ → refused), for titles
+     * people glue to a name. A vowel after the term reads as a name of its
+     * own (Dragan, Drita, Mjeku), so it is let through.
+     */
+    case Prefix = 'prefix';
+
+    /**
      * An exception: a word that contains a listed term but is fine
      * („Scunthorpe“). Its occurrences are masked before `contains` terms are
      * checked, so it excuses only itself — „scunthorpe_fuck“ is still refused.
@@ -44,6 +52,7 @@ enum UsernameMatchType: string
         return match ($this) {
             self::Exact => 'Exact word',
             self::Contains => 'Contains',
+            self::Prefix => 'Word start (before a consonant)',
             self::Allowed => 'Allowed (exception)',
         };
     }

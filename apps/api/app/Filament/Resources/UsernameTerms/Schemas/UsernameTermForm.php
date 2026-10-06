@@ -53,7 +53,7 @@ class UsernameTermForm
                 ->required()
                 ->default(UsernameMatchType::Exact->value)
                 ->live()
-                ->helperText('Exact: the whole username or one of its words („dr.marko“). Contains: anywhere — only for words that never occur inside real names. Allowed: an exception for a name or word that contains a listed term (e.g. „therapist“).'),
+                ->helperText('Exact: the whole username or one of its words („dr.marko“). Contains: anywhere — only for words that never occur inside real names. Word start: as Exact, and also glued to the front of a name when a consonant follows („drmarko“) — for titles. Allowed: an exception for a name or word that contains a listed term (e.g. „therapist“).'),
             // Short `contains` terms refuse ordinary names (the Scunthorpe
             // problem): staff have to say they mean it.
             Checkbox::make('confirm_short_contains')

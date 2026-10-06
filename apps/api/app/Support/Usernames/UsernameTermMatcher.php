@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Cache;
  *
  * - `exact` terms must equal the whole username or one of its words, so „dr“
  *   refuses „dr.marko“ and „Dr_1“ but not „Dragan“;
+ * - `prefix` terms also refuse the start of the username or of a word when
+ *   a consonant follows them („drmarko“), but not a vowel („Dragan“);
  * - `contains` terms may appear anywhere, after the `allowed` exceptions have
  *   been masked out of the username („Scunthorpe“).
  *
@@ -23,7 +25,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class UsernameTermMatcher
 {
-    private const CACHE_KEY = 'username_terms:v1';
+    private const CACHE_KEY = 'username_terms:v2';
 
     /** Marks a number-only word or term, which is compared as written. */
     private const DIGITS = 'digits:';
@@ -91,6 +93,14 @@ final class UsernameTermMatcher
             }
         }
 
+        foreach ([...$forms, ...array_keys($words)] as $form) {
+            foreach ($lists['prefix'] as $prefix) {
+                if (str_starts_with($form, $prefix) && preg_match('/^[aeiouy]/', substr($form, strlen($prefix))) !== 1) {
+                    return $prefix;
+                }
+            }
+        }
+
         foreach ($forms as $form) {
             $masked = self::mask($form, $lists['allowed']);
 
@@ -146,22 +156,23 @@ final class UsernameTermMatcher
     /**
      * The active lists, folded, cached until a term changes.
      *
-     * @return array{exact: array<string, true>, contains: list<string>, allowed: list<string>}
+     * @return array{exact: array<string, true>, prefix: list<string>, contains: list<string>, allowed: list<string>}
      */
     private static function lists(): array
     {
-        /** @var array{exact: array<string, true>, contains: list<string>, allowed: list<string>} */
+        /** @var array{exact: array<string, true>, prefix: list<string>, contains: list<string>, allowed: list<string>} */
         return Cache::rememberForever(self::CACHE_KEY, function (): array {
             $exact = [];
+            $prefix = [];
             $contains = [];
             $allowed = [];
 
             UsernameTerm::query()
                 ->active()
                 ->get(['term', 'term_normalized', 'term_skeleton', 'match_type'])
-                ->each(function (UsernameTerm $term) use (&$exact, &$contains, &$allowed): void {
+                ->each(function (UsernameTerm $term) use (&$exact, &$prefix, &$contains, &$allowed): void {
                     if (ctype_digit($term->term)) {
-                        if ($term->match_type === UsernameMatchType::Exact) {
+                        if (in_array($term->match_type, [UsernameMatchType::Exact, UsernameMatchType::Prefix], true)) {
                             $exact[self::DIGITS.$term->term] = true;
                         }
 
@@ -176,6 +187,7 @@ final class UsernameTermMatcher
                     foreach ($forms as $form) {
                         match ($term->match_type) {
                             UsernameMatchType::Exact => $exact[$form] = true,
+                            UsernameMatchType::Prefix => array_push($prefix, $form),
                             UsernameMatchType::Contains => $contains[] = $form,
                             // Collapsed too, to excuse the collapsed username forms.
                             UsernameMatchType::Allowed => array_push($allowed, $form, UsernameNormalizer::collapse($form)),
@@ -188,6 +200,7 @@ final class UsernameTermMatcher
 
             return [
                 'exact' => $exact,
+                'prefix' => array_values(array_unique($prefix)),
                 'contains' => array_values(array_unique($contains)),
                 'allowed' => $allowed,
             ];

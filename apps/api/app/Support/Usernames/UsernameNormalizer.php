@@ -136,17 +136,23 @@ final class UsernameNormalizer
      * separators (so the hyphen of „д-р.петар“ keeps „д-р“ whole), and also
      * at letter/digit boundaries („dr1“ → dr, 1), so a digit cannot glue a
      * title to a name while leetspeak inside a word („sh1t“) still reads as
-     * one word.
+     * one word. Each split also runs at a lower-to-upper case change, before
+     * lower-casing, so case cannot glue one either („DrMarko“, „ДрМарко“,
+     * „д-рМарко“ → dr/др/д-р, marko).
      *
      * @return list<string>
      */
     public static function tokens(string $value): array
     {
-        $s = mb_strtolower(self::prepare($value));
+        $s = self::prepare($value);
         $tokens = [];
 
         foreach (['/[\s._\-]+/u', '/[\s._]+/u', '/[\s_\-]+/u', '/[\s.\-]+/u', '/[\s._\-]+|(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})/u'] as $pattern) {
-            array_push($tokens, ...(preg_split($pattern, $s, -1, PREG_SPLIT_NO_EMPTY) ?: []));
+            foreach ([$pattern, substr($pattern, 0, -2).'|(?<=\p{Ll})(?=\p{Lu})/u'] as $split) {
+                foreach (preg_split($split, $s, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+                    $tokens[] = mb_strtolower($token);
+                }
+            }
         }
 
         return array_values(array_unique($tokens));

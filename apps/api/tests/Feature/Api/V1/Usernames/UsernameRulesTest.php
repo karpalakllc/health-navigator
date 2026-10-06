@@ -6,6 +6,7 @@ use App\Enums\UsernameMatchType;
 use App\Enums\UsernameTermKind;
 use App\Models\User;
 use App\Models\UsernameTerm;
+use App\Support\Usernames\UsernameTermMatcher;
 use App\Support\Usernames\UsernameValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -163,6 +164,20 @@ class UsernameRulesTest extends TestCase
             'route doctors' => ['doctors'],
             'placeholder look-alike' => ['clen-abc123'],
             'deleted user' => ['izbrishan_korisnik'],
+            // Titles glued to a name by case or by nothing at all.
+            'camelCase DrMarko' => ['DrMarko'],
+            'camelCase drPetrov' => ['drPetrov'],
+            'camelCase ДрМарко' => ['ДрМарко'],
+            'camelCase ProfIvanov' => ['ProfIvanov'],
+            'underscore Dr_Marko' => ['Dr_Marko'],
+            'hyphenated д-рМарко' => ['д-рМарко'],
+            'glued drmarko' => ['drmarko'],
+            'glued дрмарко' => ['дрмарко'],
+            'glued profpetrov' => ['profpetrov'],
+            'glued профстојанов' => ['профстојанов'],
+            'glued docpetrov' => ['docpetrov'],
+            'glued mjekfatmir' => ['mjekfatmir'],
+            'glued in a second word' => ['ana.DrMarko'],
         ];
     }
 
@@ -185,6 +200,11 @@ class UsernameRulesTest extends TestCase
             'Penistone (allowed exception)' => ['Penistone'],
             'Albanian shitore — shop (allowed exception)' => ['shitore_ana'],
             'Dragan — dr is a word only' => ['Dragan'],
+            'Drita — a vowel after dr' => ['Drita'],
+            'Драган — a vowel after др' => ['Драган'],
+            'Drenusha' => ['Drenusha'],
+            'Profi — a vowel after prof' => ['profi_ana'],
+            'Docevski' => ['Docevski'],
             'Kurtishi' => ['Kurtishi'],
             'Cocev' => ['Cocev'],
             'Analena — anal is a word only' => ['Analena'],
@@ -223,6 +243,20 @@ class UsernameRulesTest extends TestCase
         $this->assertNull(UsernameValidator::problem('scunthorpe'));
         $this->assertSame('not_allowed', UsernameValidator::problem('scunthorpe_cunt'));
         $this->assertSame('not_allowed', UsernameValidator::problem('therapist_rapist'));
+    }
+
+    public function test_existing_title_rows_become_word_start_terms(): void
+    {
+        // A database seeded before titles were `prefix` terms.
+        UsernameTerm::query()->where('match_type', UsernameMatchType::Prefix->value)->update(['match_type' => UsernameMatchType::Exact->value]);
+        UsernameTermMatcher::forget();
+        $this->assertNull(UsernameValidator::problem('drmarko'));
+
+        (require database_path('migrations/2026_10_14_150001_match_doctor_titles_at_word_start.php'))->up();
+
+        $this->assertSame(UsernameMatchType::Prefix, UsernameTerm::query()->where('term', 'dr')->sole()->match_type);
+        $this->assertSame('not_allowed', UsernameValidator::problem('drmarko'));
+        $this->assertNull(UsernameValidator::problem('Dragan'));
     }
 
     public function test_staff_exceptions_take_effect(): void

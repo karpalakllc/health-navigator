@@ -16,6 +16,9 @@
 | - exact: refused as the whole username or as one of its words
 |   („dr.marko“, „marko_dr“). Short terms, and words that also occur inside
 |   names („nazi“ in Nazif, „slag“ in Slagjana, „heroin“ in heroine).
+| - prefix: as exact, and also at the start of a word before a consonant
+|   („drmarko“, „profivanov“), never before a vowel (Dragan, Mjeku). For
+|   titles glued to a name.
 | - allowed: exceptions, masked out before `contains` terms are looked for
 |   („therapist“ contains „rapist“).
 |
@@ -492,9 +495,14 @@ return [
             'клиника', 'klinika', 'bolnica', 'болница', 'spital', 'hospital', 'zdravstvendom', 'здравствендом',
             'ambulanta', 'амбуланта', 'аптека', 'apteka', 'pharmacy', 'farmaci', 'barnatore',
         ],
+        // Titles people glue to a name („drmarko“): also refused at the start
+        // of a word before a consonant, never before a vowel (Dragan, Mjeku).
+        'prefix' => [
+            'dr', 'д-р', 'др', 'doc', 'prof', 'проф', 'mjek',
+        ],
         'exact' => [
-            'dr', 'д-р', 'др', 'drs', 'doc', 'док', 'prof', 'проф', 'md', 'mr', 'м-р', 'phd', 'dds', 'rn', 'np',
-            'prim', 'прим', 'mjek', 'mjeke', 'mjekë', 'mjekja', 'mjekët', 'sestra', 'сестра', 'сестри',
+            'drs', 'док', 'md', 'mr', 'м-р', 'phd', 'dds', 'rn', 'np',
+            'prim', 'прим', 'mjeke', 'mjekë', 'mjekja', 'mjekët', 'sestra', 'сестра', 'сестри',
             'nurse', 'nurses', 'infermierja', 'medic', 'медик', 'med', 'babica', 'бабица', 'mamia',
         ],
     ],
