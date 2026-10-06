@@ -12,6 +12,7 @@ use App\Models\Facility;
 use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\Specialty;
+use App\Support\MacedonianSearchVariants;
 use App\Support\TaxonomyCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -81,8 +82,9 @@ class HomeHighlightsController extends Controller
     /**
      * Published doctors per city. Doctors only: each chip links to the doctor
      * directory's `city` filter, so its count describes what the visitor lands
-     * on. Spellings that differ only in case or surrounding spaces are merged
-     * under the commonest one.
+     * on. Spellings that differ only in script, case or surrounding spaces
+     * („Skopje“, „Скопје“, „ скопје “) are merged under the commonest one —
+     * the filter matches either script, so they are one city to the visitor.
      *
      * @return list<array{name: string, doctors_count: int}>
      */
@@ -108,7 +110,7 @@ class HomeHighlightsController extends Controller
                 continue;
             }
 
-            $key = mb_strtolower($name);
+            $key = mb_strtolower(MacedonianSearchVariants::latinToCyrillic($name));
             // Rows arrive biggest first, so the first spelling seen is the commonest.
             $merged[$key] ??= ['name' => $name, 'doctors_count' => 0];
             $merged[$key]['doctors_count'] += (int) $row->aggregate;
@@ -145,7 +147,8 @@ class HomeHighlightsController extends Controller
                 'reviewable',
                 [Doctor::class, Facility::class],
                 function (Builder $query, string $type) use ($facilityTypes): void {
-                    $query->where('is_published', true);
+                    /** @var Builder<Doctor>|Builder<Facility> $query */
+                    $query->published();
 
                     if ($type === Facility::class) {
                         $query->whereIn('type', $facilityTypes);

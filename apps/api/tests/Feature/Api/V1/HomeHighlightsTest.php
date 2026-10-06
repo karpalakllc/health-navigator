@@ -12,6 +12,7 @@ use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class HomeHighlightsTest extends TestCase
@@ -238,6 +239,48 @@ class HomeHighlightsTest extends TestCase
         $count = 0;
         $this->getJson(self::URI)->assertOk();
         $this->assertSame(0, $count);
+    }
+
+    public function test_cities_merge_latin_and_cyrillic_spellings(): void
+    {
+        Doctor::factory()->count(2)->create(['is_published' => true, 'city' => 'Скопје']);
+        Doctor::factory()->create(['is_published' => true, 'city' => 'Skopje']);
+        Doctor::factory()->create(['is_published' => true, 'city' => 'BITOLA']);
+
+        $this->getJson(self::URI)
+            ->assertOk()
+            ->assertJsonPath('data.cities', [
+                ['name' => 'Скопје', 'doctors_count' => 3],
+                ['name' => 'BITOLA', 'doctors_count' => 1],
+            ]);
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function targetVisibilityChanges(): array
+    {
+        return [
+            'doctor unpublished' => ['doctor', 'unpublish'],
+            'doctor soft-deleted' => ['doctor', 'delete'],
+            'clinic unpublished' => ['clinic', 'unpublish'],
+            'clinic soft-deleted' => ['clinic', 'delete'],
+        ];
+    }
+
+    #[DataProvider('targetVisibilityChanges')]
+    public function test_hiding_a_reviewed_profile_busts_the_cache(string $kind, string $change): void
+    {
+        $target = $kind === 'doctor'
+            ? Doctor::factory()->create(['is_published' => true])
+            : Facility::factory()->create(['is_published' => true, 'type' => FacilityType::Clinic]);
+        $this->approvedReview($target, ['body' => 'Видлива рецензија']);
+
+        $this->getJson(self::URI)->assertOk()->assertJsonCount(1, 'data.recent_reviews');
+
+        $change === 'unpublish'
+            ? $target->update(['is_published' => false])
+            : $target->delete();
+
+        $this->getJson(self::URI)->assertOk()->assertJsonCount(0, 'data.recent_reviews');
     }
 
     public function test_returns_empty_lists_on_an_empty_directory(): void

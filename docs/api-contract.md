@@ -213,13 +213,20 @@ nobody can hold an account locked by merely sending traffic.
 - `GET /home/highlights` feeds the home page in one call: `specialties`
   (up to 8 published specialties with at least one published doctor, by
   `doctors_count`), `cities` (up to 12 `{name, doctors_count}`, published
-  doctors only, because each links to `/doctors?city=`), and `recent_reviews`
-  (up to 4 approved reviews with a body, newest `published_at` first, of
-  published doctors, clinical facilities and — while that module is on —
-  pharmacies: `id`, `rating`, `excerpt` ≤160 characters, `author_name` (the
-  public display name), `published_at`, `target {kind, slug, name}`). Cached
-  server side for at most 5 minutes and busted by doctor, specialty, facility
-  and review saves.
+  doctors only, because each links to `/doctors?city=`; Latin and Cyrillic
+  spellings of one city are merged), and `recent_reviews` (up to 4 approved
+  reviews with a body, newest `published_at` first, of published doctors,
+  clinical facilities and — while that module is on — pharmacies: `id`,
+  `rating`, `excerpt` ≤160 characters, `author_name` (the public display
+  name), `published_at`, `target {kind, slug, name}`).
+  Staleness, end to end: the API's own copy is dropped on any doctor,
+  specialty, facility or review save (approving, rejecting, unpublishing,
+  deleting) and otherwise expires after 5 minutes; the pharmacies switch is
+  part of its key. The web tier re-reads it at most every 60 seconds (Next
+  data cache), so a moderation or profile change reaches the home page within
+  about a minute. A member's display-name change saves none of those models,
+  so it can take up to the API's 5 minutes plus that minute. Other HTTP
+  clients may also keep the `public, max-age=300` response for 5 minutes.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
