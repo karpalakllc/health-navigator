@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ForumNewTopicComposer } from "@/components/forum/forum-new-topic-composer";
@@ -48,14 +48,12 @@ async function fill(user: ReturnType<typeof userEvent.setup>) {
   );
 }
 
+function consentBox() {
+  return screen.getByRole("checkbox", { name: t("forum.consent") });
+}
+
 async function consentAll(user: ReturnType<typeof userEvent.setup>) {
-  for (const label of [
-    t("forum.consentRules"),
-    t("forum.consentNoDiagnosis"),
-    t("forum.consentEmergency"),
-  ]) {
-    await user.click(screen.getByRole("checkbox", { name: label }));
-  }
+  await user.click(consentBox());
 }
 
 describe("ForumNewTopicComposer", () => {
@@ -68,9 +66,8 @@ describe("ForumNewTopicComposer", () => {
     expect(title).toHaveAttribute("minlength", "5");
     expect(body).toBeRequired();
     expect(body).toHaveAttribute("minlength", "20");
-    expect(
-      screen.getByRole("group", { name: t("forum.consentLegend") }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+    expect(consentBox()).toBeRequired();
   });
 
   it("preselects a known default category and ignores an unknown one", () => {
@@ -82,22 +79,44 @@ describe("ForumNewTopicComposer", () => {
     expect(screen.getByLabelText(t("forum.categories"))).toHaveValue("srce");
   });
 
-  it("keeps submit disabled until all three consents are given", async () => {
+  it("asks for one consent covering rules, diagnosis and emergencies", () => {
+    renderComposer();
+
+    const label = consentBox().closest("label");
+    expect(label).toHaveTextContent("правилата на заедницата");
+    expect(label).toHaveTextContent("не дава дијагноза или третман");
+    expect(label).toHaveTextContent("194 или 112");
+  });
+
+  it("keeps submit disabled until the consent is ticked", async () => {
     const user = userEvent.setup();
     renderComposer();
 
     expect(submitButton()).toBeDisabled();
-    await user.click(
-      screen.getByRole("checkbox", { name: t("forum.consentRules") }),
-    );
-    await user.click(
-      screen.getByRole("checkbox", { name: t("forum.consentNoDiagnosis") }),
-    );
-    expect(submitButton()).toBeDisabled();
-    await user.click(
-      screen.getByRole("checkbox", { name: t("forum.consentEmergency") }),
-    );
+    await user.click(consentBox());
     expect(submitButton()).toBeEnabled();
+    await user.click(consentBox());
+    expect(submitButton()).toBeDisabled();
+  });
+
+  it("links the missing-consent error to the checkbox", async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    expect(consentBox()).not.toHaveAttribute("aria-describedby");
+    // The button is disabled, so submit the form directly (e.g. Enter key
+    // in a browser that ignores the disabled default button).
+    fireEvent.submit(submitButton().closest("form")!);
+
+    const error = await screen.findByRole("alert");
+    expect(error).toHaveTextContent(t("forum.consentRequired"));
+    expect(consentBox()).toHaveAttribute("aria-invalid", "true");
+    expect(consentBox()).toHaveAccessibleDescription(
+      t("forum.consentRequired"),
+    );
+
+    await user.click(consentBox());
+    expect(consentBox()).not.toHaveAttribute("aria-describedby");
   });
 
   it("keeps the disabled submit legible instead of fading white on coral", () => {

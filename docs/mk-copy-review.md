@@ -336,6 +336,8 @@ field and no language column, so there is no English copy kept beside it.
 | 12 | Јавното име мора да содржи барем две букви. | The display name must contain at least two letters | Register / account form (API, `lang/mk/validation.php`) |
 | 13 | Не мешајте кирилица и латиница во ист збор од јавното име. | Do not mix Cyrillic and Latin in one word of the display name | Same |
 | 14 | Јавното име не може да содржи титула или улога (на пр. „д-р“, „администратор“, „модератор“, „тим“) ниту името на платформата. | The display name cannot contain a title or role (e.g. "Dr", "administrator", "moderator", "team") or the platform's name | Same |
+| 15 | Се согласувам со правилата на заедницата и разбирам дека форумот не дава дијагноза или третман. При итност ќе повикам 194 или 112 наместо да чекам одговор. | I agree to the community rules and understand that the forum does not give a diagnosis or treatment. In an emergency I will call 194 or 112 instead of waiting for a reply. | **Safety-relevant.** The single consent checkbox on the new-topic form (/forum/new), replacing three separate boxes; submit stays disabled until it is ticked |
+| 16 | Потврдете ја согласноста пред испраќање. | Confirm your consent before sending | Error under that checkbox (was „Потврдете ги сите полиња пред испраќање.“) |
 
 ---
 

@@ -12,6 +12,8 @@ import type { PublicSettings } from "@/lib/api/settings";
 import { t } from "@/i18n/t";
 import { FormError } from "@/components/ui/form-message";
 
+const CONSENT_ERROR_ID = "forum-topic-consent-error";
+
 type ForumNewTopicComposerProps = {
   categories: ForumCategory[];
   defaultCategorySlug?: string;
@@ -35,14 +37,15 @@ export function ForumNewTopicComposer({
   );
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [acceptedRules, setAcceptedRules] = useState(false);
-  const [acceptedNoDiagnosis, setAcceptedNoDiagnosis] = useState(false);
-  const [acceptedEmergency, setAcceptedEmergency] = useState(false);
+  // One consent covering the rules, "no diagnosis" and "call 194/112";
+  // the API records when it was given (forum_topics.community_rules_accepted_at).
+  const [accepted, setAccepted] = useState(false);
+  const [consentMissing, setConsentMissing] = useState(false);
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const canSubmit = acceptedRules && acceptedNoDiagnosis && acceptedEmergency;
+  const canSubmit = accepted;
 
   const previewBody = useMemo(
     () => (
@@ -61,10 +64,12 @@ export function ForumNewTopicComposer({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!canSubmit || !categorySlug) {
+      setConsentMissing(!canSubmit);
       setError(t("forum.consentRequired"));
       return;
     }
 
+    setConsentMissing(false);
     setError(null);
     setPending(true);
 
@@ -143,30 +148,33 @@ export function ForumNewTopicComposer({
             />
           </label>
 
-          <fieldset className="grid gap-2 rounded-xl border border-border bg-muted/20 p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">
-              {t("forum.consentLegend")}
-            </legend>
-            <ConsentCheckbox
-              checked={acceptedRules}
-              onChange={setAcceptedRules}
-              label={t("forum.consentRules")}
-            />
-            <ConsentCheckbox
-              checked={acceptedNoDiagnosis}
-              onChange={setAcceptedNoDiagnosis}
-              label={t("forum.consentNoDiagnosis")}
-            />
-            <ConsentCheckbox
-              checked={acceptedEmergency}
-              onChange={setAcceptedEmergency}
-              label={t("forum.consentEmergency")}
-            />
-          </fieldset>
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(event) => {
+                  setAccepted(event.target.checked);
+                  if (event.target.checked) {
+                    setConsentMissing(false);
+                  }
+                }}
+                required
+                aria-invalid={consentMissing || undefined}
+                aria-describedby={consentMissing ? CONSENT_ERROR_ID : undefined}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-border text-primary"
+              />
+              <span>{t("forum.consent")}</span>
+            </label>
+          </div>
 
           {preview ? previewBody : null}
 
-          {error ? <FormError>{error}</FormError> : null}
+          {error ? (
+            <FormError id={consentMissing ? CONSENT_ERROR_ID : undefined}>
+              {error}
+            </FormError>
+          ) : null}
 
           <div className="flex flex-wrap gap-3">
             <button
@@ -206,27 +214,5 @@ export function ForumNewTopicComposer({
         <ForumRulesBand settings={settings} />
       </aside>
     </div>
-  );
-}
-
-function ConsentCheckbox({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 rounded border-border text-primary"
-      />
-      <span>{label}</span>
-    </label>
   );
 }
