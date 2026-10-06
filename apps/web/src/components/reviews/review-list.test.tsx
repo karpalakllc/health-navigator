@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReviewList } from "@/components/reviews/review-list";
 import type { PublicReview } from "@/lib/api/types";
 import { t, tFormat } from "@/i18n/t";
+import { router } from "../../../test/next-navigation";
 
 function review(overrides: Partial<PublicReview> = {}): PublicReview {
   return {
@@ -104,7 +105,16 @@ describe("ReviewList „Корисно“", () => {
   });
 
   it("rolls back when the vote fails", async () => {
-    mockFetch(500, { message: "x" });
+    let fail: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            fail = resolve;
+          }),
+      ),
+    );
     const user = userEvent.setup();
     render(
       <ReviewList
@@ -120,11 +130,51 @@ describe("ReviewList „Корисно“", () => {
 
     await user.click(button);
 
+    // Optimistic: un-voted at once, before the server answers.
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(button).toHaveTextContent(
+      tFormat("reviews.helpfulCount", { count: 1 }),
+    );
+
+    fail(
+      new Response(JSON.stringify({ message: "x" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("x"),
+    );
     expect(button).toHaveAttribute("aria-pressed", "true");
     expect(button).toHaveTextContent(
       tFormat("reviews.helpfulCount", { count: 2 }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent("x");
+  });
+
+  it("sends an expired session to sign-in and back", async () => {
+    mockFetch(401, { message: "Unauthenticated." });
+    const user = userEvent.setup();
+    render(
+      <ReviewList
+        reviews={[review()]}
+        isLoggedIn
+        returnTo="/doctors/ana#reviews"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: tFormat("reviews.helpfulCount", { count: 2 }),
+      }),
+    );
+
+    await vi.waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        `/login?redirect=${encodeURIComponent("/doctors/ana#reviews")}`,
+      ),
+    );
+    expect(screen.queryByRole("status")).toBeEmptyDOMElement();
   });
 
   it("offers neither a vote nor a report on the viewer's own review", () => {

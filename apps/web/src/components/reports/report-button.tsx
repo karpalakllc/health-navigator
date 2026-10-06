@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,11 @@ export function ReportButton({
       >
         {/* Remounted per opening, so a closed dialog starts fresh. */}
         {open ? (
-          <ReportForm target={target} onDone={() => setOpen(false)} />
+          <ReportForm
+            target={target}
+            returnTo={returnTo}
+            onDone={() => setOpen(false)}
+          />
         ) : null}
       </BottomSheet>
     </>
@@ -93,11 +98,14 @@ export function ReportButton({
 
 function ReportForm({
   target,
+  returnTo,
   onDone,
 }: {
   target: ReportTarget;
+  returnTo: string;
   onDone: () => void;
 }) {
+  const router = useRouter();
   const formId = useId();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
@@ -131,6 +139,12 @@ function ReportForm({
           note: note.trim() === "" ? null : note.trim(),
         }),
       });
+
+      // The session ran out since the page rendered: sign in and come back.
+      if (response.status === 401) {
+        router.push(loginHref(returnTo));
+        return;
+      }
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));

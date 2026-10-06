@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { loginHref } from "@/lib/auth/login-href";
@@ -23,7 +24,8 @@ function helpfulText(count: number): string {
 /**
  * „Корисно (3)“: a toggle (aria-pressed). The count moves at once and is
  * rolled back if the API refuses; the server's count then wins. Signed out,
- * it is a link to sign-in that returns here.
+ * it is a link to sign-in that returns here; a session that expired since the
+ * page rendered goes to the same sign-in.
  */
 export function ReviewHelpfulButton({
   reviewId,
@@ -36,6 +38,7 @@ export function ReviewHelpfulButton({
   const [voted, setVoted] = useState(initialVoted);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   if (!isLoggedIn) {
     return (
@@ -70,6 +73,14 @@ export function ReviewHelpfulButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: reviewId }),
       });
+      // The session ran out since the page rendered: sign in and come back.
+      if (response.status === 401) {
+        setVoted(previous.voted);
+        setCount(previous.count);
+        router.push(loginHref(returnTo));
+        return;
+      }
+
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {

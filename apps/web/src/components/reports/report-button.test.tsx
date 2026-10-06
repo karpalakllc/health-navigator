@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReportButton } from "@/components/reports/report-button";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
+import { router } from "../../../test/next-navigation";
 
 const LABEL = "Пријави ја рецензијата од Ана П.";
 
@@ -123,6 +124,24 @@ describe("ReportButton", () => {
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
       t("reports.throttled"),
+    );
+  });
+
+  it("sends an expired session to sign-in and back", async () => {
+    mockFetch(401, { message: "Unauthenticated." });
+    const { user, dialog } = await openDialog();
+
+    await user.click(
+      within(dialog).getByRole("radio", { name: t("reports.reasonOther") }),
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: t("reports.submit") }),
+    );
+
+    await vi.waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        `/login?redirect=${encodeURIComponent("/doctors/ana#reviews")}`,
+      ),
     );
   });
 
