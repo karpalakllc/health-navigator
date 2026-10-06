@@ -10,20 +10,22 @@ use App\Support\UnifiedSearch;
 use App\Support\UnifiedSearchCoordinator;
 use Illuminate\Http\JsonResponse;
 
+use function Illuminate\Support\defer;
+
 class SearchController extends Controller
 {
-    public function __construct(
-        private readonly AnalyticsService $analytics,
-    ) {}
-
-    public function __invoke(SearchRequest $request, UnifiedSearchCoordinator $search): JsonResponse
+    public function __invoke(SearchRequest $request, UnifiedSearchCoordinator $search, AnalyticsService $analytics): JsonResponse
     {
         $validated = $request->validated();
 
         if (! empty($validated['q'])) {
-            $this->analytics->record('search.query', $request->user(), [
-                'q' => $validated['q'],
-            ]);
+            // Anonymous by construction: only the normalised term is counted,
+            // never the caller. Deferred until after the response is sent so it
+            // never slows search — and unlike a queued job, it leaves no payload
+            // holding the raw query behind (failed_jobs, queue backends).
+            $term = (string) $validated['q'];
+
+            defer(static fn () => $analytics->recordSearchTerm($term));
         }
 
         return ApiResponse::success(
