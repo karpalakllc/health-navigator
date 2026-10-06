@@ -18,7 +18,7 @@ import type {
   PublicReview,
   ViewerReview,
 } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount, tFormat } from "@/i18n/t";
 
 type ReviewsPanelProps = {
   kind: "doctor" | "facility" | "pharmacy";
@@ -128,7 +128,7 @@ export function ReviewsPanel({
                 { value: "", label: t("reviews.filterAllRatings") },
                 ...[5, 4, 3, 2, 1].map((stars) => ({
                   value: String(stars),
-                  label: tFormat("reviews.filterStars", {
+                  label: tCount("reviews.filterStars", stars, {
                     stars: String(stars),
                   }),
                 })),
