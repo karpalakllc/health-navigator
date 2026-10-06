@@ -4,7 +4,11 @@ import { Tag, VerifiedTag } from "@/components/ui/tag";
 import { Monogram } from "@/components/ui/user-avatar";
 import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
 import { cn } from "@/lib/cn";
-import { formatForumDateTime, formatForumLastActivity } from "@/lib/format";
+import {
+  formatForumAuthorStats,
+  formatForumDateTime,
+  formatForumLastActivity,
+} from "@/lib/format";
 import { t } from "@/i18n/t";
 
 type ForumPostCardProps = {
@@ -68,6 +72,7 @@ export function ForumPostCard({
 }: ForumPostCardProps) {
   const author = resolveAuthor(post);
   const staff = staffLabel(author);
+  const stats = formatForumAuthorStats(author);
 
   return (
     <Card
@@ -93,6 +98,7 @@ export function ForumPostCard({
             {isTopicAuthor ? <Tag>{t("forum.authorBadge")}</Tag> : null}
             {staff ? <VerifiedTag>{staff}</VerifiedTag> : null}
           </div>
+          {stats ? <p className="type-meta text-ink-2">{stats}</p> : null}
           {post.published_at ? (
             <p className="type-meta text-ink-2">
               <time

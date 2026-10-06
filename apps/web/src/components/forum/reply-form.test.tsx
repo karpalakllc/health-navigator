@@ -43,6 +43,25 @@ describe("ReplyForm", () => {
       .setup()
       .click(screen.getByRole("button", { name: t("forum.replySubmit") }));
     expect(fetch).not.toHaveBeenCalled();
+    // In Macedonian under the field (the form is noValidate).
+    expect(field.closest("form")).toHaveAttribute("novalidate");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription(
+      new RegExp(t("ui.fieldRequired")),
+    );
+    expect(field).toHaveFocus();
+  });
+
+  it("says how long a too-short reply must be", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    renderForm();
+
+    await reply("Кратко");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText(requiredLabel("common.message")),
+    ).toHaveAccessibleDescription(new RegExp("Напишете најмалку 10 знаци"));
   });
 
   it("says a held reply is waiting for moderation", async () => {
@@ -55,7 +74,11 @@ describe("ReplyForm", () => {
 
     await reply();
 
-    expect(await screen.findByText(t("forum.replySuccess"))).toBe(region);
+    // Inside the always-mounted status region (a sand card now).
+    expect(region).toContainElement(
+      await screen.findByText(t("forum.replySuccess")),
+    );
+    expect(region).toHaveTextContent(t("forum.replyPendingHint"));
     expect(requestBody(fetch)).toEqual({
       categorySlug: "srce",
       topicSlug: "pritisok",
@@ -75,7 +98,10 @@ describe("ReplyForm", () => {
 
     await reply();
 
-    expect(await screen.findByText(t("forum.replyPublished"))).toBe(region);
+    expect(region).toContainElement(
+      await screen.findByText(t("forum.replyPublished")),
+    );
+    expect(region).not.toHaveTextContent(t("forum.replyPendingHint"));
     expect(screen.queryByText(t("forum.replySuccess"))).not.toBeInTheDocument();
   });
 

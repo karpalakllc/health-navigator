@@ -31,6 +31,23 @@ describe("ForgotPasswordForm", () => {
       );
 
     expect(fetch).not.toHaveBeenCalled();
+    // In Macedonian under the field (noValidate: no browser bubble).
+    expect(screen.getByLabelText(t("auth.email"))).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailRequired")}`,
+    );
+  });
+
+  it("rejects a malformed address before sending", async () => {
+    const fetch = mockFetch({ status: 200, body: {} });
+    render(<ForgotPasswordForm />);
+
+    await submit("ana@");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(t("auth.email"))).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
   });
 
   it("keeps an empty status region mounted before anything is sent", () => {

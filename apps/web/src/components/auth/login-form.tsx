@@ -11,7 +11,16 @@ import { Button, TextLink } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { Notice } from "@/components/ui/notice";
 import { safeRedirectTarget } from "@/lib/auth/login-href";
+import {
+  compactErrors,
+  emailError,
+  focusField,
+  requiredError,
+} from "@/lib/form-validation";
 import { t } from "@/i18n/t";
+
+const LOGIN_EMAIL_ID = "login-email";
+const LOGIN_PASSWORD_ID = "login-password";
 
 export function LoginForm() {
   const router = useRouter();
@@ -21,12 +30,27 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [unverified, setUnverified] = useState(false);
   const [pending, setPending] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"email" | "password", string>>
+  >({});
   // Set by the reset-password form once the new password is saved.
   const passwordWasReset = searchParams.get("reset") === "1";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const local = compactErrors({
+      email: emailError(email),
+      password: requiredError(password),
+    });
+    setFieldErrors(local);
+
+    if (local.email || local.password) {
+      focusField(local.email ? LOGIN_EMAIL_ID : LOGIN_PASSWORD_ID);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -80,9 +104,11 @@ export function LoginForm() {
       {passwordWasReset ? (
         <Notice tone="success">{t("auth.resetPasswordDone")}</Notice>
       ) : null}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField
+          id={LOGIN_EMAIL_ID}
           label={t("auth.email")}
+          error={fieldErrors.email}
           type="email"
           name="email"
           autoComplete="email"
@@ -96,8 +122,9 @@ export function LoginForm() {
           text, and clicking it is ambiguous between focusing and navigating.
         */}
         <PasswordField
-          id="login-password"
+          id={LOGIN_PASSWORD_ID}
           label={t("auth.password")}
+          error={fieldErrors.password}
           name="password"
           autoComplete="current-password"
           required

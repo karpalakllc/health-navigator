@@ -21,6 +21,8 @@ export function ForumHubSearch({
       <form
         action="/forum"
         method="get"
+        // A one-letter query is ignored by the page (≥2); no English bubble.
+        noValidate
         role="search"
         aria-label={t("forum.searchTopics")}
         className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,15rem)_auto] lg:items-end"

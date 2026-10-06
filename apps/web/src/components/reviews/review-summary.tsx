@@ -97,7 +97,13 @@ export function ReviewSummaryBlock({
     basePath && canWrite ? (
       <div className="flex flex-col gap-3 lg:w-64 lg:shrink-0">
         <Button
-          href={isLoggedIn ? "#review-form" : loginHref(`${basePath}#reviews`)}
+          // The full path, not a bare "#review-form": on a page already
+          // opened at #reviews, next/link appended it ("#reviews#review-form").
+          href={
+            isLoggedIn
+              ? `${basePath}#review-form`
+              : loginHref(`${basePath}#reviews`)
+          }
           size="lg"
           fullWidth
           leadingIcon="message-circle"

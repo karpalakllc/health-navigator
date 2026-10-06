@@ -5,7 +5,10 @@ import { PrivacyNote } from "@/components/auth/privacy-note";
 import { TextField } from "@/components/auth/text-field";
 import { Button } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
+import { emailError, focusField } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
+
+const RESEND_EMAIL_ID = "resend-email";
 
 /**
  * Requests a fresh verification link.
@@ -22,10 +25,20 @@ export function ResendVerificationForm({
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailProblem, setEmailProblem] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const problem = emailError(email);
+    setEmailProblem(problem);
+
+    if (problem) {
+      focusField(RESEND_EMAIL_ID);
+      return;
+    }
+
     setPending(true);
 
     // "Sent" only when the API accepted the request. Its accepted reply is the
@@ -64,9 +77,15 @@ export function ResendVerificationForm({
       {sent ? (
         <PrivacyNote />
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+        >
           <TextField
+            id={RESEND_EMAIL_ID}
             label={t("auth.email")}
+            error={emailProblem}
             type="email"
             name="email"
             autoComplete="email"

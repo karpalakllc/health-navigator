@@ -13,12 +13,17 @@ import { Icon } from "@/components/ui/icons";
 import { Tag } from "@/components/ui/tag";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
+import { focusField, lengthError } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
 
 const CONSENT_ID = "forum-topic-consent";
 const PREVIEW_ID = "forum-topic-preview";
+const TITLE_ID = "forum-topic-title";
+const BODY_ID = "forum-topic-body";
 /** API limits (StoreForumTopicRequest). */
+const TITLE_MIN_LENGTH = 5;
 const TITLE_MAX_LENGTH = 255;
+const BODY_MIN_LENGTH = 20;
 const BODY_MAX_LENGTH = 10000;
 
 type ForumNewTopicComposerProps = {
@@ -56,11 +61,30 @@ export function ForumNewTopicComposer({
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [bodyError, setBodyError] = useState<string | null>(null);
 
   const canSubmit = accepted;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    // Our own checks (the form is noValidate): the API's min lengths, in
+    // Macedonian, under each field.
+    const problems = {
+      title: lengthError(title, TITLE_MIN_LENGTH),
+      body: lengthError(body, BODY_MIN_LENGTH),
+    };
+    setTitleError(problems.title);
+    setBodyError(problems.body);
+
+    if (problems.title || problems.body) {
+      setConsentMissing(!canSubmit);
+      setError(null);
+      focusField(problems.title ? TITLE_ID : BODY_ID);
+      return;
+    }
+
     if (!canSubmit || !categorySlug) {
       setConsentMissing(!canSubmit);
       setError(t("forum.consentRequired"));
@@ -105,12 +129,16 @@ export function ForumNewTopicComposer({
         padding="none"
         className="max-lg:bg-transparent max-lg:shadow-none lg:p-8"
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+        >
           {/* One of the two places the safety note shows (with the forum
               home): before someone writes about their health. */}
           <ForumSafetyNotice />
           <Select
-            label={t("forum.categories")}
+            label={t("forum.category")}
             value={categorySlug}
             onChange={(event) => setCategorySlug(event.target.value)}
             required
@@ -122,20 +150,36 @@ export function ForumNewTopicComposer({
             ))}
           </Select>
           <Input
+            id={TITLE_ID}
             label={t("common.title")}
+            error={titleError ?? undefined}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              if (titleError) {
+                setTitleError(
+                  lengthError(event.target.value, TITLE_MIN_LENGTH),
+                );
+              }
+            }}
             required
-            minLength={5}
+            minLength={TITLE_MIN_LENGTH}
             maxLength={TITLE_MAX_LENGTH}
           />
           <Textarea
+            id={BODY_ID}
             label={t("common.message")}
             hint={t("forum.replyHint")}
+            error={bodyError ?? undefined}
             value={body}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={(event) => {
+              setBody(event.target.value);
+              if (bodyError) {
+                setBodyError(lengthError(event.target.value, BODY_MIN_LENGTH));
+              }
+            }}
             required
-            minLength={20}
+            minLength={BODY_MIN_LENGTH}
             maxLength={BODY_MAX_LENGTH}
             rows={8}
             counter={formatCharCounter(body.length, BODY_MAX_LENGTH)}

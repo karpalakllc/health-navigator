@@ -90,7 +90,9 @@ export default function AboutPage() {
         <Button
           href="/disclaimer"
           trailingIcon="arrow-right"
-          className="w-full lg:w-auto lg:shrink-0"
+          // The long label wraps on a phone instead of spilling out of the
+          // pill (it overflowed 390 by 13px).
+          className="w-full min-w-0 whitespace-normal py-3 text-center lg:w-auto lg:shrink-0"
         >
           {t("legal.disclaimerTitle")}
         </Button>

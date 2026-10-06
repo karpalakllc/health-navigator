@@ -40,7 +40,9 @@ describe("ReviewForm", () => {
     );
     const group = screen.getByRole("radiogroup");
     expect(group).toHaveAttribute("aria-invalid", "true");
-    expect(group).toHaveAccessibleDescription(t("reviews.ratingRequired"));
+    expect(group).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("reviews.ratingRequired")}`,
+    );
   });
 
   it("clears the rating error once a star is chosen", async () => {

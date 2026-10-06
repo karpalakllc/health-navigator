@@ -99,10 +99,9 @@ export const mk = {
     trustAriaLabel: "Клучни пораки за доверба и безбедност",
     trustModerated: "Форумот и рецензиите се проверуваат пред објава.",
     trustInformational:
-      "Содржината е информативна и не ја заменува совет од лиценциран здравствен работник.",
+      "Содржината е информативна и не го заменува советот од лиценциран здравствен работник.",
     trustEmergency: "При медицинска итност повикајте 194 или 112 веднаш.",
     trustLocal: "Создадено за корисници и установи во Македонија.",
-    viewProfile: "Погледни профил",
     availableToday: "Достапен денес",
     topRatedViewAll: "Сите лекари",
     specialtyDoctorCount: "{count} лекари",
@@ -147,7 +146,6 @@ export const mk = {
     heroLead:
       "Пронајдете лекари, установи и модерирани искуства — на македонски.",
     heroSearchPrompt: "Пребарај лекар или установа",
-    profileShort: "Профил",
     quickLinksAria: "Брзи пребарувања",
     tilesTitle: "Што ви треба?",
     tileDoctorsCount: "{count} профили",
@@ -235,6 +233,12 @@ export const mk = {
   ui: {
     errorPrefix: "Грешка:",
     required: "задолжително",
+    fieldRequired: "Пополнете го ова поле.",
+    tooShort: "Напишете најмалку {min} знаци.",
+    emailRequired: "Внесете ја вашата е-пошта.",
+    emailInvalid: "Внесете валидна е-пошта, на пример ime@primer.mk.",
+    errorSummaryTitle:
+      "Формуларот не е испратен. Поправете ги означените полиња.",
     removeFilter: "Отстрани филтер: {label}",
     featured: "Истакнат",
     verified: "Верификуван",
@@ -329,7 +333,9 @@ export const mk = {
     hidePassword: "Сокриј лозинка",
     passwordRules: "Најмалку 10 знаци, со барем една буква и една бројка.",
     resetPasswordDone: "Лозинката е променета. Најавете се со новата лозинка.",
-    errorSummaryIntro: "Поправете ги овие полиња:",
+    passwordMismatch: "Лозинките не се совпаѓаат.",
+    passwordTooWeak:
+      "Лозинката мора да има најмалку 10 знаци, со барем една буква и една бројка.",
     reviewsTitle: "Мои рецензии",
     forumTitle: "Мој форум",
   },
@@ -765,6 +771,7 @@ export const mk = {
       "Модерирани дискусии за општи здравствени теми. Не заменува професионална нега.",
     back: "Форум",
     categories: "Категории",
+    category: "Категорија",
     topics: "Теми",
     newTopic: "Нова тема",
     startTopic: "Нова тема",
@@ -793,6 +800,8 @@ export const mk = {
     replySubmit: "Испрати одговор",
     replySuccess: "Одговорот е испратен и чека модерација.",
     replyPublished: "Одговорот е објавен.",
+    replyPendingHint:
+      "Ќе се појави во темата штом ќе биде одобрен. Статусот го гледате во „Мој форум“.",
     replyError: "Одговорот не може да се испрати.",
     replyErrorRetry: "Одговорот не може да се испрати. Обидете се повторно.",
     safetyTitle: "Упатства за заедницата",
@@ -827,9 +836,9 @@ export const mk = {
     moderationError: "Промената не може да се зачува.",
     moderationErrorRetry:
       "Промената не може да се зачува. Обидете се повторно.",
-    authorTopics: "Теми",
-    authorPosts: "Пораки",
-    authorMemberSince: "Член од",
+    authorMemberSince: "Член од {year}",
+    authorPosts: "{count} објави",
+    authorPostsOne: "{count} објава",
     rulesTitle: "Правила на заедницата",
     rulesRespect:
       "Бидете учтиви. Не објавувајте лични податоци (ваши или туѓи) во јавни теми.",

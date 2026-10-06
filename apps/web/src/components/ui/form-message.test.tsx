@@ -11,9 +11,11 @@ describe("FormError", () => {
       </>,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Задолжително поле.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Грешка: Задолжително поле.",
+    );
     expect(screen.getByLabelText("Поле")).toHaveAccessibleDescription(
-      "Задолжително поле.",
+      "Грешка: Задолжително поле.",
     );
   });
 });

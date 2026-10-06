@@ -19,7 +19,7 @@ function doctorMeta(doctor: DoctorListItem): string {
     .join(" · ");
 }
 
-/** „Профил: д-р …“ — starts with the visible label (WCAG 2.5.3). */
+/** „Види профил: д-р …“ — starts with the visible label (WCAG 2.5.3). */
 function profileLabel(visible: string, doctor: DoctorListItem): string {
   return `${visible}: ${doctor.full_name}`;
 }
@@ -96,9 +96,9 @@ export function HomeFeaturedDoctorsCard({
               variant="soft"
               size="sm"
               trailingIcon="chevron-right"
-              aria-label={profileLabel(t("home.profileShort"), doctor)}
+              aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
             >
-              {t("home.profileShort")}
+              {t("doctors.viewProfile")}
             </Button>
           </li>
         ))}
@@ -152,9 +152,9 @@ export function HomeFeaturedDoctorsRail({
                 href={`/doctors/${doctor.slug}`}
                 variant="soft"
                 fullWidth
-                aria-label={profileLabel(t("home.viewProfile"), doctor)}
+                aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
               >
-                {t("home.viewProfile")}
+                {t("doctors.viewProfile")}
               </Button>
             </div>
           </li>
