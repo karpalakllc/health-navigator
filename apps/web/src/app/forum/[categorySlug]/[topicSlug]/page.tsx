@@ -155,6 +155,11 @@ export default async function TopicDetailPage({
     topic,
     posts,
     url: topicUrl,
+    // The replies' anchors live on the page being rendered.
+    pageUrl:
+      meta.current_page > 1
+        ? absoluteUrl(`${redirectPath}?page=${meta.current_page}`)
+        : topicUrl,
     category: { name: topic.category.name, url: categoryUrl },
   });
   const breadcrumbs = breadcrumbJsonLd([

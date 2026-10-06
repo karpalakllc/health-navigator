@@ -225,27 +225,27 @@ type CommentSource = Pick<
  * Not QAPage: topics here are experiences and discussions („Искуства со…“),
  * not a single question with answers. `url` is always the first page, as
  * Google asks of multi-page threads; `comment` holds the replies rendered on
- * this page only. Required on both levels: author.name, datePublished, text.
+ * this page only, linked to this page (`pageUrl`). No dateModified: Google
+ * reads it as the posting's own edit time, and topics carry none (the latest
+ * reply is not an edit). Required on both levels: author.name, datePublished, text.
  * An item without a publication date is skipped rather than given a made-up
  * one (approved content always has one).
  */
 export function forumTopicJsonLd(input: {
   topic: Pick<
     ForumTopicDetail,
-    | "title"
-    | "body"
-    | "author_name"
-    | "published_at"
-    | "last_post_at"
-    | "replies_count"
-    | "tags"
+    "title" | "body" | "author_name" | "published_at" | "replies_count" | "tags"
   >;
   /** Replies on this page; removed-reply placeholders are skipped. */
   posts: readonly (CommentSource | RemovedItem)[];
+  /** The topic's first page. */
   url: string;
+  /** The page being rendered (`?page=2` …); the first page by default. */
+  pageUrl?: string;
   category: { name: string; url: string };
 }): Record<string, unknown> | null {
   const { topic, posts, url, category } = input;
+  const pageUrl = input.pageUrl ?? url;
 
   if (!topic.published_at) {
     return null;
@@ -256,7 +256,7 @@ export function forumTopicJsonLd(input: {
     .filter((post) => post.published_at)
     .map((post) => ({
       "@type": "Comment",
-      url: `${url}#post-${post.id}`,
+      url: `${pageUrl}#post-${post.id}`,
       author: forumAuthor(post.author_name),
       datePublished: post.published_at,
       text: post.body,
@@ -272,9 +272,6 @@ export function forumTopicJsonLd(input: {
     text: topic.body,
     author: forumAuthor(topic.author_name),
     datePublished: topic.published_at,
-    ...(topic.last_post_at && topic.last_post_at !== topic.published_at
-      ? { dateModified: topic.last_post_at }
-      : {}),
     inLanguage: "mk",
     ...(tags.length > 0
       ? { keywords: tags.map((tag) => tag.name).join(", ") }
