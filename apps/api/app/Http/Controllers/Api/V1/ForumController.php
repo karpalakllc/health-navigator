@@ -202,6 +202,9 @@ class ForumController extends Controller
             'title' => $request->string('title')->toString(),
             'body' => $request->string('body')->toString(),
             'status' => $status,
+            // StoreForumTopicRequest requires accepted_community_rules, so
+            // reaching this line means the author has just given that consent.
+            'community_rules_accepted_at' => now(),
         ]);
 
         if (ForumContentModeration::shouldNotifyAuthor($status)) {

@@ -35,6 +35,7 @@ class ForumTopic extends Model
         'moderated_by_id',
         'moderated_at',
         'rejection_note',
+        'community_rules_accepted_at',
     ];
 
     /**
@@ -57,6 +58,7 @@ class ForumTopic extends Model
             'last_post_at' => 'datetime',
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
+            'community_rules_accepted_at' => 'datetime',
         ];
     }
 

@@ -28,6 +28,11 @@ class ForumTopicInfolist
                     ->visible(fn ($record): bool => filled($record->rejection_note))
                     ->columnSpanFull(),
                 TextEntry::make('created_at')->dateTime(),
+                // Null for staff- or seeder-created topics, which skip the consent.
+                TextEntry::make('community_rules_accepted_at')
+                    ->label('Consent accepted at')
+                    ->dateTime()
+                    ->placeholder('Not recorded'),
             ]);
     }
 }
