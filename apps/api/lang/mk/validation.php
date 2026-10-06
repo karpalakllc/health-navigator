@@ -25,6 +25,7 @@ return [
     'image' => 'Полето :attribute мора да биде слика.',
     'in' => 'Избраната вредност за :attribute е невалидна.',
     'integer' => 'Полето :attribute мора да биде цел број.',
+    'present' => 'Полето :attribute мора да биде испратено.',
     'regex' => 'Форматот на полето :attribute е невалиден.',
     'required' => 'Полето :attribute е задолжително.',
     'string' => 'Полето :attribute мора да биде текст.',
@@ -64,10 +65,22 @@ return [
         'mixed' => 'Полето :attribute мора да содржи барем една голема и една мала буква.',
         'numbers' => 'Полето :attribute мора да содржи барем една бројка.',
         'symbols' => 'Полето :attribute мора да содржи барем еден специјален знак.',
-        'uncompromised' => 'Оваа :attribute се појавила во протекување на податоци. Изберете друга лозинка.',
+        // Spelled out rather than :attribute: the attribute's gender drove the
+        // agreement („Оваа :attribute“), and only the password uses this rule.
+        'uncompromised' => 'Оваа лозинка се појавила меѓу податоци протечени од други сервиси. Изберете друга лозинка.',
     ],
 
     'custom' => [
+        // Consent checkboxes: „Полето правилата на заедницата мора да биде
+        // прифатено“ does not read as a sentence, so these say what to do.
+        'accepted_community_rules' => [
+            'required' => 'Потврдете дека ги прифаќате правилата на заедницата.',
+            'accepted' => 'Потврдете дека ги прифаќате правилата на заедницата.',
+        ],
+        'accepted_terms' => [
+            'required' => 'Потврдете дека разбирате дека насоките се само општи информации.',
+            'accepted' => 'Потврдете дека разбирате дека насоките се само општи информации.',
+        ],
         'display_name' => [
             'regex' => 'Јавното име мора да почнува со буква и може да содржи само букви, празни места и знаците . - \'',
             'too_short' => 'Јавното име мора да содржи барем две букви.',
@@ -87,6 +100,10 @@ return [
         'rating' => 'оценка',
         'title' => 'наслов',
         'avatar' => 'профилна слика',
+        'accepted_terms' => 'условите',
+        'answers.*.values' => 'одговор',
+        'q' => 'пребарување',
+        'city' => 'град',
     ],
 
 ];

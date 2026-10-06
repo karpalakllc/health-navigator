@@ -65,6 +65,37 @@ class TranslationCompletenessTest extends TestCase
         }
     }
 
+    /**
+     * accepted_terms (symptom guidance) had no attribute name, so its message
+     * came out as „Полето accepted terms мора да биде прифатено.“; `present`
+     * (guidance answers) had no message at all.
+     */
+    public function test_consent_and_guidance_answer_messages_are_fully_translated(): void
+    {
+        $this->app->setLocale('mk');
+
+        $validator = Validator::make(
+            ['accepted_terms' => 'no', 'accepted_community_rules' => 'no', 'answers' => [['step_key' => 'age']]],
+            [
+                'accepted_terms' => ['required', 'accepted'],
+                'accepted_community_rules' => ['required', 'accepted'],
+                'answers.*.values' => ['present', 'array'],
+            ],
+        );
+
+        $this->assertTrue($validator->fails());
+        $this->assertCount(3, $validator->errors()->keys());
+
+        foreach ($validator->errors()->all() as $message) {
+            $this->assertUntranslatedFallbackAbsent($message);
+        }
+
+        $this->assertSame(
+            'Потврдете дека ги прифаќате правилата на заедницата.',
+            $validator->errors()->first('accepted_community_rules'),
+        );
+    }
+
     private function assertUntranslatedFallbackAbsent(string $message): void
     {
         $this->assertDoesNotMatchRegularExpression(

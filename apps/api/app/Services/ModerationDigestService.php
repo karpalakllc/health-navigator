@@ -93,7 +93,7 @@ final class ModerationDigestService
 
         if ($counts['topics'] !== null) {
             $links[] = [
-                'label' => 'Теми на форум',
+                'label' => 'Теми на форумот',
                 'count' => $counts['topics'],
                 'url' => URL::to(ModerationResourceUrls::indexPending(
                     ForumTopicResource::class,
@@ -105,7 +105,7 @@ final class ModerationDigestService
 
         if ($counts['posts'] !== null) {
             $links[] = [
-                'label' => 'Одговори на форум',
+                'label' => 'Одговори на форумот',
                 'count' => $counts['posts'],
                 'url' => URL::to(ModerationResourceUrls::indexPending(
                     ForumPostResource::class,

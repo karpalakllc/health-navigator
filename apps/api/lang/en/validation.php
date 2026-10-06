@@ -8,6 +8,14 @@
 return [
 
     'custom' => [
+        'accepted_community_rules' => [
+            'required' => 'Confirm that you accept the community rules.',
+            'accepted' => 'Confirm that you accept the community rules.',
+        ],
+        'accepted_terms' => [
+            'required' => 'Confirm that you understand the guidance is general information only.',
+            'accepted' => 'Confirm that you understand the guidance is general information only.',
+        ],
         'display_name' => [
             'regex' => 'The display name must start with a letter and may contain only letters, spaces and . - \'',
             'too_short' => 'The display name must contain at least two letters.',

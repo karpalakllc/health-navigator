@@ -1,16 +1,20 @@
+@php
+    // Macedonian singular for counts ending in 1, except 11 (as in the web app's tCount).
+    $one = $totalPending % 10 === 1 && $totalPending % 100 !== 11;
+@endphp
 <x-mail::message>
 # Модерација — преглед
 
-Здраво {{ $recipientName }},
+Здраво, {{ $recipientName }},
 
-Имате **{{ $totalPending }}** ставки што чекаат модерација.
+Имате **{{ $totalPending }}** {{ $one ? 'ставка што чека' : 'ставки што чекаат' }} модерација.
 
 @foreach ($queues as $queue)
 - **{{ $queue['label'] }}:** {{ $queue['count'] }}
 @endforeach
 
 <x-mail::button :url="$adminUrl">
-Отвори админ панел
+Отвори го административниот панел
 </x-mail::button>
 
 @foreach ($queues as $queue)

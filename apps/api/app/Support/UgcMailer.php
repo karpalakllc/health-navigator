@@ -25,6 +25,7 @@ final class UgcMailer
                 contentTitle: $payload['title'],
                 actionUrl: $payload['account_url'],
                 actionLabel: $payload['account_action_label'],
+                masculine: $payload['masculine'],
             ));
         });
     }
@@ -42,6 +43,7 @@ final class UgcMailer
                 contentTitle: $payload['title'],
                 actionUrl: $payload['public_url'],
                 actionLabel: $payload['public_action_label'],
+                masculine: $payload['masculine'],
             ));
         });
     }
@@ -55,6 +57,7 @@ final class UgcMailer
                 contentTitle: $payload['title'],
                 actionUrl: $payload['account_url'],
                 actionLabel: $payload['account_action_label'],
+                masculine: $payload['masculine'],
                 rejectionNote: $payload['rejection_note'] ?? null,
             ));
         });
@@ -86,6 +89,7 @@ final class UgcMailer
     /**
      * @return array{
      *     label: string,
+     *     masculine: bool,
      *     title: string,
      *     account_url: string,
      *     account_action_label: string,
@@ -100,7 +104,8 @@ final class UgcMailer
             $model->loadMissing('category');
 
             return [
-                'label' => 'тема на форумот',
+                'label' => 'тема',
+                'masculine' => false,
                 'title' => $model->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
@@ -114,7 +119,8 @@ final class UgcMailer
             $model->loadMissing(['topic.category']);
 
             return [
-                'label' => 'одговор на форумот',
+                'label' => 'одговор во темата',
+                'masculine' => true,
                 'title' => $model->topic->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
@@ -143,7 +149,8 @@ final class UgcMailer
             $name = $reviewable->full_name ?? $reviewable->name ?? 'профилот';
 
             return [
-                'label' => 'рецензија',
+                'label' => 'рецензија за',
+                'masculine' => false,
                 'title' => $name,
                 'account_url' => FrontendUrl::to('/account/reviews'),
                 'account_action_label' => 'Мои рецензии',
