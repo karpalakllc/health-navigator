@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\FacilityType;
 use App\Models\Concerns\DeletesReplacedMedia;
+use App\Models\Concerns\HasVerification;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\Import\ImportBookkeeping;
 use App\Support\MacedonianSearchVariants;
@@ -23,7 +24,7 @@ use Laravel\Scout\Searchable;
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
-    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, HasVerification, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
