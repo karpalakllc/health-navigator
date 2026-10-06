@@ -17,7 +17,9 @@ use Throwable;
  * headers, but the SDK still records the request body, the URL and its query
  * string verbatim — a failed login or password reset would otherwise ship the
  * password, and a verification or reset link its token and signature. Triage
- * `answers`/`values` are symptoms, so they are health data. Exception messages
+ * `answers`/`values` are symptoms, so they are health data. The admin panel's
+ * Livewire requests carry its second factor (one-time and recovery codes) in
+ * dotted update keys and in each component's JSON snapshot. Exception messages
  * carry data too: a QueryException interpolates its bindings into the SQL.
  *
  * What is covered: the request (body, query string, URL query), exception
@@ -36,6 +38,12 @@ final class SentryEventScrubber
 
     /** Matches password, current_password, reset_token, signature, new_email, triage answers, ... */
     private const SENSITIVE_KEY = '/pass(word)?|token|secret|signature|api_?key|authori[sz]ation|e-?mail|^hash$|^answers$|^values$/i';
+
+    /** Two-factor material: recovery codes and the model's app_authentication_* columns. */
+    private const TWO_FACTOR_KEY = '/^recovery_?codes?$|^app_authentication_/i';
+
+    /** A parent under which a plain `code` is a one-time password (Filament's login challenge). */
+    private const TWO_FACTOR_PARENT = '/^multi_?factor$/i';
 
     /** Patterns redacted from free text (exception messages, log messages, breadcrumbs). */
     private const SENSITIVE_TEXT = [
@@ -109,7 +117,7 @@ final class SentryEventScrubber
         foreach ($breadcrumb->getMetadata() as $name => $value) {
             $breadcrumb = $breadcrumb->withMetadata(
                 (string) $name,
-                preg_match(self::SENSITIVE_KEY, (string) $name) ? self::FILTERED : self::scrubValue($value),
+                self::isSensitiveKey((string) $name) ? self::FILTERED : self::scrubValue($value, [(string) $name]),
             );
         }
 
@@ -121,7 +129,10 @@ final class SentryEventScrubber
      * dropped, strings are pattern-scrubbed, a Throwable is reduced to its class
      * and scrubbed message.
      */
-    private static function scrubValue(mixed $value): mixed
+    /**
+     * @param  list<string>  $parents
+     */
+    private static function scrubValue(mixed $value, array $parents = []): mixed
     {
         if (is_string($value)) {
             return self::scrubText($value);
@@ -136,9 +147,9 @@ final class SentryEventScrubber
         }
 
         foreach ($value as $key => $item) {
-            $value[$key] = is_string($key) && preg_match(self::SENSITIVE_KEY, $key)
+            $value[$key] = self::isSensitiveKey((string) $key, $parents)
                 ? self::FILTERED
-                : self::scrubValue($item);
+                : self::scrubValue($item, [...$parents, (string) $key]);
         }
 
         return $value;
@@ -275,20 +286,70 @@ final class SentryEventScrubber
     }
 
     /**
+     * Livewire posts updates keyed by dotted paths ("data.multiFactor.app.code"),
+     * so every segment of the key, and of the keys above it, is considered.
+     *
+     * @param  list<string>  $parents
+     */
+    private static function isSensitiveKey(string $key, array $parents = []): bool
+    {
+        if (preg_match(self::SENSITIVE_KEY, $key)) {
+            return true;
+        }
+
+        $path = [...$parents, ...explode('.', $key)];
+        $underTwoFactor = false;
+
+        foreach ($path as $segment) {
+            if (preg_match(self::SENSITIVE_KEY, $segment)
+                || preg_match(self::TWO_FACTOR_KEY, $segment)
+                || ($underTwoFactor && strcasecmp($segment, 'code') === 0)) {
+                return true;
+            }
+
+            $underTwoFactor = $underTwoFactor || preg_match(self::TWO_FACTOR_PARENT, $segment) === 1;
+        }
+
+        return false;
+    }
+
+    /**
      * @param  array<array-key, mixed>  $data
+     * @param  list<string>  $parents
      * @return array<array-key, mixed>
      */
-    private static function scrubArray(array $data): array
+    private static function scrubArray(array $data, array $parents = []): array
     {
         foreach ($data as $key => $value) {
-            if (is_string($key) && preg_match(self::SENSITIVE_KEY, $key)) {
+            $key = (string) $key;
+
+            if (self::isSensitiveKey($key, $parents)) {
                 $data[$key] = self::FILTERED;
             } elseif (is_array($value)) {
-                $data[$key] = self::scrubArray($value);
+                $data[$key] = self::scrubArray($value, [...$parents, $key]);
+            } elseif ($key === 'snapshot' && is_string($value)) {
+                $data[$key] = self::scrubLivewireSnapshot($value);
             }
         }
 
         return $data;
+    }
+
+    /**
+     * A Livewire request carries each component's previous state as a JSON
+     * string; on the admin login that is the password and, during the
+     * challenge, the one-time code. Scrubbed like the rest of the body; a
+     * snapshot that is not JSON is dropped rather than shipped unread.
+     */
+    private static function scrubLivewireSnapshot(string $snapshot): string
+    {
+        $decoded = json_decode($snapshot, true);
+
+        if (! is_array($decoded)) {
+            return self::FILTERED;
+        }
+
+        return (string) json_encode(self::scrubArray($decoded), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     private static function scrubQuery(string $query): string
