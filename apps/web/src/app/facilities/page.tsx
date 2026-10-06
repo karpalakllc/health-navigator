@@ -6,14 +6,9 @@ import { Pagination } from "@/components/directory/pagination";
 import { ResultsGrid } from "@/components/directory/results-grid";
 import { fetchDepartments } from "@/lib/api/departments";
 import { fetchFacilities } from "@/lib/api/facilities";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
-
-export const metadata: Metadata = pageMetadata(
-  t("facilities.title"),
-  t("facilities.description"),
-);
 
 type FacilitiesPageProps = {
   searchParams: Promise<{
@@ -25,6 +20,14 @@ type FacilitiesPageProps = {
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: FacilitiesPageProps): Promise<Metadata> {
+  return pageMetadata(t("facilities.title"), t("facilities.description"), {
+    path: listCanonicalPath("/facilities", await searchParams),
+  });
+}
 
 export default async function FacilitiesPage({
   searchParams,

@@ -4,12 +4,15 @@ import {
   type ApiCacheOptions,
 } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
+import { fetchLanguages } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import type { DoctorDetail, DoctorListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
 export type DoctorListParams = {
   specialty?: string;
+  /** A slug from GET /languages; anything else is a 422. */
+  language?: string;
   city?: string;
   q?: string;
   featured?: boolean;
@@ -42,19 +45,21 @@ function toQuery(params: DoctorListParams): string {
 }
 
 /**
- * A specialty only keeps a listing cacheable when it is one the (cached)
- * taxonomy knows; city and q are free text and never do.
+ * A specialty or language only keeps a listing cacheable when it is one the
+ * (cached) taxonomy knows; city and q are free text and never do.
  */
 async function doctorsCache(
   params: DoctorListParams,
 ): Promise<ApiCacheOptions> {
-  const specialties = params.specialty
-    ? await fetchSpecialties().catch(() => [])
-    : [];
+  const [specialties, languages] = await Promise.all([
+    params.specialty ? fetchSpecialties().catch(() => []) : [],
+    params.language ? fetchLanguages().catch(() => []) : [],
+  ]);
 
   return directoryCache(params, {
     oneOf: {
       specialty: specialties.map(({ slug }) => slug),
+      language: languages.map(({ slug }) => slug),
       sort: ["name", "rating"],
     },
     booleans: ["featured"],

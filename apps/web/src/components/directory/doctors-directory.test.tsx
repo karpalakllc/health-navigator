@@ -5,6 +5,7 @@ import {
   DoctorsDirectory,
   type DoctorsFilterValues,
 } from "@/components/directory/doctors-directory";
+import type { DoctorLanguage } from "@/lib/api/languages";
 import type { Specialty } from "@/lib/api/types";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
@@ -25,9 +26,15 @@ const specialties: Specialty[] = [
   },
 ];
 
+const languages: DoctorLanguage[] = [
+  { slug: "angliski", name: "Англиски", doctors_count: 3 },
+  { slug: "albanski", name: "Албански", doctors_count: 1 },
+];
+
 const none: DoctorsFilterValues = {
   q: "",
   specialty: "",
+  language: "",
   city: "",
   min_reviews: "",
   sort: "",
@@ -37,6 +44,7 @@ function renderList(applied: Partial<DoctorsFilterValues> = {}, total = 12) {
   return render(
     <DoctorsDirectory
       specialties={specialties}
+      languages={languages}
       applied={{ ...none, ...applied }}
       total={total}
     >
@@ -326,6 +334,65 @@ describe("Doctors active filters", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: t("doctors.title") }),
     ).toHaveFocus();
+  });
+});
+
+describe("Doctors language filter", () => {
+  beforeEach(() => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) =>
+      setTimeout(() => cb(0), 0),
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("offers the languages as a named group of radios in the sheet", async () => {
+    const { sheet } = await openSheet();
+    const group = within(sheet).getByRole("group", {
+      name: t("filters.language"),
+    });
+
+    expect(
+      within(group).getByRole("radio", { name: t("doctors.allLanguages") }),
+    ).toBeChecked();
+    expect(
+      within(group).getByRole("radio", { name: "Англиски" }),
+    ).toBeInTheDocument();
+    expect(await seriousA11yViolations(sheet)).toEqual([]);
+  });
+
+  it("applies a language as ?language=<slug>", async () => {
+    const { user, sheet } = await openSheet();
+
+    await user.click(within(sheet).getByRole("radio", { name: "Албански" }));
+
+    expect(router.push).toHaveBeenCalledWith("/doctors?language=albanski", {
+      scroll: false,
+    });
+  });
+
+  it("shows the applied language as a removable chip by its name", () => {
+    renderList({ language: "angliski", specialty: "kardiologija" });
+
+    expect(filtersButton()).toHaveTextContent("Филтри (2)");
+    expect(
+      screen.getByRole("link", { name: "Отстрани филтер: Англиски" }),
+    ).toHaveAttribute("href", "/doctors?specialty=kardiologija");
+  });
+
+  it("leaves the group out when no language list is available", async () => {
+    const user = userEvent.setup();
+    render(
+      <DoctorsDirectory specialties={specialties} applied={none} total={3}>
+        <p>резултати</p>
+      </DoctorsDirectory>,
+    );
+    await user.click(filtersButton());
+
+    expect(
+      screen.queryByRole("group", { name: t("filters.language") }),
+    ).not.toBeInTheDocument();
   });
 });
 

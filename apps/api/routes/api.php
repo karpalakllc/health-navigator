@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
+use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -29,32 +30,35 @@ Route::prefix('v1')->group(function (): void {
     // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
     Route::middleware('cache.public')->group(function (): void {
         Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/languages', [LanguageController::class, 'index']);
         Route::get('/specialties', [SpecialtyController::class, 'index']);
         Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
         // Top specialties and cities plus the latest approved reviews; reviews
         // of pharmacies only while that module is on (keyed into the cache).
         Route::get('/home/highlights', HomeHighlightsController::class);
     });
-    Route::get('/doctors', [DoctorController::class, 'index']);
+    // Anonymous directory and product reads are public for 60 s with an
+    // ETag (cache.public:60); the review lists, which carry viewer_review, are not.
+    Route::get('/doctors', [DoctorController::class, 'index'])->middleware('cache.public:60');
     // Optional auth so meta.viewer_review resolves: without it a signed-in user who
     // has already reviewed a profile is shown the submission form, then told they
     // have already reviewed it.
     Route::get('/doctors/{slug}/reviews', [ReviewController::class, 'indexForDoctor'])
         ->middleware('auth.sanctum.optional');
-    Route::get('/doctors/{slug}', [DoctorController::class, 'show']);
-    Route::get('/facilities', [FacilityController::class, 'index']);
+    Route::get('/doctors/{slug}', [DoctorController::class, 'show'])->middleware('cache.public:60');
+    Route::get('/facilities', [FacilityController::class, 'index'])->middleware('cache.public:60');
     Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
         ->middleware('auth.sanctum.optional');
-    Route::get('/facilities/{slug}', [FacilityController::class, 'show']);
+    Route::get('/facilities/{slug}', [FacilityController::class, 'show'])->middleware('cache.public:60');
     Route::middleware('module:pharmacies')->group(function (): void {
-        Route::get('/pharmacies', [PharmacyController::class, 'index']);
+        Route::get('/pharmacies', [PharmacyController::class, 'index'])->middleware('cache.public:60');
         Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
             ->middleware('auth.sanctum.optional');
-        Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products']);
-        Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show']);
+        Route::get('/pharmacies/{slug}/products', [PharmacyController::class, 'products'])->middleware('cache.public:60');
+        Route::get('/pharmacies/{slug}', [PharmacyController::class, 'show'])->middleware('cache.public:60');
     });
 
-    Route::middleware('module:products')->group(function (): void {
+    Route::middleware(['module:products', 'cache.public:60'])->group(function (): void {
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{slug}', [ProductController::class, 'show']);
     });

@@ -51,7 +51,7 @@ class Doctor extends Model
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::SPECIALTIES, TaxonomyCache::HOME_HIGHLIGHTS];
+        return [TaxonomyCache::SPECIALTIES, TaxonomyCache::LANGUAGES, TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
     /**
@@ -199,6 +199,17 @@ class Doctor extends Model
     {
         return $query->whereHas('specialties', function (Builder $specialtyQuery) use ($slug): void {
             $specialtyQuery->where('slug', $slug)->published();
+        });
+    }
+
+    /**
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    public function scopeSpeaksLanguage(Builder $query, string $slug): Builder
+    {
+        return $query->whereHas('languages', function (Builder $languageQuery) use ($slug): void {
+            $languageQuery->where('slug', $slug)->published();
         });
     }
 

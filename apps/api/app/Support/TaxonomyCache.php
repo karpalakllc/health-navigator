@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Server-side cache for the small, rarely-changing public taxonomy payloads
- * (specialties, departments, forum categories).
+ * (specialties, departments, forum categories, doctor languages).
  *
  * Each group is versioned rather than keyed one-by-one, so a single bump
  * invalidates the list and every per-slug entry at once without tracking keys.
@@ -28,6 +28,8 @@ final class TaxonomyCache
 
     /** GET /home/highlights: top specialties, cities and the latest approved reviews. */
     public const HOME_HIGHLIGHTS = 'home-highlights';
+
+    public const LANGUAGES = 'languages';
 
     /**
      * @template T

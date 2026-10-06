@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = pageMetadata(
   t("about.title"),
   t("about.description"),
+  { path: "/about" },
 );
 
 const TRUST: Array<{ icon: IconName; key: MessageKey }> = [

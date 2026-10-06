@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\LanguageFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Language extends Model
 {
     /** @use HasFactory<LanguageFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, InvalidatesTaxonomyCache, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -21,6 +23,14 @@ class Language extends Model
         'sort_order',
         'is_published',
     ];
+
+    /**
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::LANGUAGES];
+    }
 
     protected function casts(): array
     {

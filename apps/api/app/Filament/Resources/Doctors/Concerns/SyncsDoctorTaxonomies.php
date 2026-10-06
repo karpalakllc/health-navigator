@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Doctors\Concerns;
 
+use App\Support\TaxonomyCache;
+
 trait SyncsDoctorTaxonomies
 {
     /**
@@ -26,6 +28,10 @@ trait SyncsDoctorTaxonomies
         $this->record->languages()->sync($state['language_ids'] ?? []);
         $this->record->clinicalInterests()->sync($state['clinical_interest_ids'] ?? []);
         $this->record->procedures()->sync($state['procedure_ids'] ?? []);
+
+        // The pivot sync fires no model event, and GET /languages lists only
+        // languages some published doctor speaks.
+        TaxonomyCache::flush(TaxonomyCache::LANGUAGES);
     }
 
     /**

@@ -1,4 +1,9 @@
-import { apiGet, apiGetPaginated, directoryCache } from "@/lib/api/client";
+import {
+  apiGet,
+  apiGetPaginated,
+  directoryCache,
+  type ApiCacheOptions,
+} from "@/lib/api/client";
 import type { ProductDetail, ProductListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
@@ -26,13 +31,16 @@ function toQuery(params: Record<string, string | number | undefined>): string {
   return query ? `?${query}` : "";
 }
 
-export async function fetchProducts(params: ProductListParams = {}) {
+export async function fetchProducts(
+  params: ProductListParams = {},
+  options?: ApiCacheOptions,
+) {
   // Only the unfiltered pages are shared: category is free text in the API
   // (an ILIKE match), and pharmacy is a slug with no cached list to check it
   // against, so either makes the listing per-visitor.
   return apiGetPaginated<ProductListItem>(
     `/products${toQuery(params)}`,
-    directoryCache(params),
+    options ?? directoryCache(params),
   );
 }
 

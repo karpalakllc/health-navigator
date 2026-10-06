@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
+import { DisclosureBadge } from "@/components/ui/disclosure-badge";
 import { Icon } from "@/components/ui/icons";
-import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
@@ -115,11 +115,19 @@ export function CoverLogo({
   );
 }
 
-/** „Истакнат“ on a featured card or cover: white pill with a sparkle. */
+/**
+ * „Истакнат“ on a featured card or cover: white pill with a sparkle, and a
+ * toggletip that says why.
+ */
 export function FeaturedMark({ className }: { className?: string }) {
   return (
-    <Tag tone="white" icon="sparkle" className={className}>
-      {t("ui.featured")}
-    </Tag>
+    <DisclosureBadge
+      tone="white"
+      icon="sparkle"
+      label={t("ui.featured")}
+      buttonLabel={t("disclosure.featuredWhy")}
+      explanation={t("disclosure.featuredInfo")}
+      className={className}
+    />
   );
 }
