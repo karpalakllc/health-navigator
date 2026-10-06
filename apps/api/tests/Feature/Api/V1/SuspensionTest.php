@@ -12,6 +12,7 @@ use App\Support\RoleCatalog;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -51,7 +52,7 @@ class SuspensionTest extends TestCase
         $user->suspend(User::factory()->admin()->create(), 'Spam in the forum');
     }
 
-    private function getMe(string $token): \Illuminate\Testing\TestResponse
+    private function getMe(string $token): TestResponse
     {
         // Each call is a fresh request: the guard must not reuse a user resolved earlier.
         $this->app['auth']->forgetGuards();
