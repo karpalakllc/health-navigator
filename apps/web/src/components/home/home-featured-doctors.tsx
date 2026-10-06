@@ -136,9 +136,12 @@ function FeaturedDoctorCard({ doctor }: { doctor: DoctorListItem }) {
  */
 export function HomeFeaturedDoctorsRail({
   doctors,
+  variant = "featured",
   className,
 }: {
   doctors: DoctorListItem[];
+  /** „featured“: only editor-featured doctors; „topRated“: the fallback when none are featured. */
+  variant?: "featured" | "topRated";
   className?: string;
 }) {
   if (doctors.length === 0) {
@@ -149,7 +152,11 @@ export function HomeFeaturedDoctorsRail({
     <section aria-labelledby="home-featured-rail-title" className={className}>
       <SectionHeader
         id="home-featured-rail-title"
-        title={t("home.featuredDoctors")}
+        title={t(
+          variant === "featured"
+            ? "home.featuredDoctors"
+            : "home.topRatedDoctors",
+        )}
         action={
           // Phones: the title alone fits the row; the link follows the rail.
           <span className="hidden lg:block">

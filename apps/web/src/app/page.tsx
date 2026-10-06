@@ -122,7 +122,10 @@ export default async function Home() {
     settle(true, fetchLocationCities, [] as LocationCity[]),
   ]);
 
-  const doctors = mergeHomeDoctors(topRated, featured, FEATURED_LIMIT);
+  // „Истакнати лекари“ lists only editor-featured doctors. With none
+  // featured, the same rail shows the best-rated instead, under its own title.
+  const railVariant = featured.length > 0 ? "featured" : "topRated";
+  const doctors = railVariant === "featured" ? featured : topRated;
   const forumTotal = forumCategories.length
     ? forumCategories.reduce((sum, c) => sum + (c.topics_count ?? 0), 0)
     : undefined;
@@ -198,6 +201,7 @@ export default async function Home() {
         <div data-reveal="">
           <HomeFeaturedDoctorsRail
             doctors={doctors}
+            variant={railVariant}
             className="pt-10 lg:pt-14"
           />
         </div>
@@ -250,24 +254,4 @@ export default async function Home() {
       />
     </div>
   );
-}
-
-function mergeHomeDoctors(
-  primary: DoctorListItem[],
-  fallback: DoctorListItem[],
-  limit: number,
-) {
-  const seen = new Set<string>();
-  const merged: DoctorListItem[] = [];
-  for (const doctor of [...primary, ...fallback]) {
-    if (seen.has(doctor.slug)) {
-      continue;
-    }
-    seen.add(doctor.slug);
-    merged.push(doctor);
-    if (merged.length >= limit) {
-      break;
-    }
-  }
-  return merged;
 }
