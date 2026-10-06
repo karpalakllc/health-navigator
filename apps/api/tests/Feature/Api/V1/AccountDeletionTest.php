@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\ForumContentStatus;
+use App\Enums\ReportReason;
+use App\Enums\ReviewStatus;
 use App\Filament\Resources\Clients\Pages\EditClientUser;
 use App\Mail\AccountExistsMail;
-use App\Mail\UgcApprovedMail;
 use App\Models\AnalyticsEvent;
+use App\Models\ContentReport;
 use App\Models\Doctor;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -14,6 +17,7 @@ use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\ReviewHelpfulVotes;
 use App\Support\RoleCatalog;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -200,16 +204,51 @@ class AccountDeletionTest extends TestCase
         Mail::assertNotQueued(AccountExistsMail::class);
     }
 
-    public function test_pending_content_of_a_deleted_account_mails_nobody_when_moderated(): void
+    /**
+     * The privacy policy says only published content stays: what was still
+     * waiting for moderation is withdrawn, so it can never be published under
+     * a deleted account.
+     */
+    public function test_pending_content_is_withdrawn_and_published_content_stays(): void
     {
         Mail::fake();
-        $review = Review::factory()->create(['user_id' => $this->member->id]);
+        $category = ForumCategory::factory()->create();
+        $pendingReview = Review::factory()->create(['user_id' => $this->member->id]);
+        $publishedReview = Review::factory()->approved()->create(['user_id' => $this->member->id]);
+        $pendingTopic = ForumTopic::factory()->pending()->create(['forum_category_id' => $category->id, 'user_id' => $this->member->id]);
+        $publishedTopic = ForumTopic::factory()->create(['forum_category_id' => $category->id, 'user_id' => $this->member->id]);
+        $pendingPost = ForumPost::factory()->pending()->create(['forum_topic_id' => $publishedTopic->id, 'user_id' => $this->member->id]);
+        $othersPending = Review::factory()->create();
 
         $this->deleteAccount()->assertOk();
 
-        $review->fresh()->approve(User::factory()->moderator()->create());
+        $this->assertSame(ReviewStatus::Rejected, $pendingReview->fresh()->status);
+        $this->assertSame(ForumContentStatus::Rejected, $pendingTopic->fresh()->status);
+        $this->assertSame(ForumContentStatus::Rejected, $pendingPost->fresh()->status);
+        $this->assertSame(ReviewStatus::Approved, $publishedReview->fresh()->status);
+        $this->assertSame(ForumContentStatus::Approved, $publishedTopic->fresh()->status);
+        $this->assertSame(ReviewStatus::Pending, $othersPending->fresh()->status);
+        Mail::assertNothingQueued();
+    }
 
-        Mail::assertNotQueued(UgcApprovedMail::class);
+    public function test_report_notes_are_cleared_and_reports_and_votes_stay_unlinked_from_any_person(): void
+    {
+        $review = Review::factory()->approved()->create();
+        $report = ContentReport::factory()->about($review)->create([
+            'user_id' => $this->member->id,
+            'reason' => ReportReason::PersonalData,
+            'note' => 'Јас сум Марија, ова е мојата дијагноза.',
+        ]);
+        $othersReport = ContentReport::factory()->about($review)->create(['note' => 'Друга белешка']);
+        ReviewHelpfulVotes::add($review, $this->member);
+
+        $this->deleteAccount()->assertOk();
+
+        $report->refresh();
+        $this->assertNull($report->note);
+        $this->assertSame(ReportReason::PersonalData, $report->reason);
+        $this->assertSame('Друга белешка', $othersReport->fresh()->note);
+        $this->assertSame(1, $review->fresh()->helpful_count);
     }
 
     public function test_staff_accounts_cannot_delete_themselves_through_the_api(): void

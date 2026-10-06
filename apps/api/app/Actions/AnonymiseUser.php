@@ -2,6 +2,12 @@
 
 namespace App\Actions;
 
+use App\Enums\ForumContentStatus;
+use App\Enums\ReviewStatus;
+use App\Models\ContentReport;
+use App\Models\ForumPost;
+use App\Models\ForumTopic;
+use App\Models\Review;
 use App\Models\User;
 use App\Support\Media\ImageOptimizer;
 use App\Support\TaxonomyCache;
@@ -13,7 +19,8 @@ use Illuminate\Support\Str;
  * Account deletion by anonymisation in place (D5).
  *
  * Reviews and forum topics/posts reference users with restrictOnDelete, and
- * they stay public after the author leaves, so the row is kept as an empty
+ * published ones stay public after the author leaves (pending ones are
+ * withdrawn), so the row is kept as an empty
  * shell: every personal field is cleared, the address is freed for a new
  * registration, every way back in (tokens, password, panel sessions, reset
  * links, roles) is removed, and public surfaces render the author as a deleted
@@ -26,6 +33,9 @@ final class AnonymiseUser
 {
     /** Reserved TLD (RFC 2606): never deliverable, never anyone's real address. */
     private const PLACEHOLDER_DOMAIN = 'deleted.invalid';
+
+    /** Staff-facing: the author is gone, so nobody is mailed this. */
+    private const WITHDRAWN_NOTE = 'Повлечено: сметката на авторот е избришана пред модерацијата.';
 
     public function __construct(
         private readonly ImageOptimizer $images,
@@ -72,6 +82,26 @@ final class AnonymiseUser
             DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))
                 ->where('email', $previousEmail)
                 ->delete();
+
+            // Only published content stays. Whatever still waits for moderation
+            // is withdrawn, so it can never go public under a deleted account.
+            // Pending items are in no list, count or search index: a plain
+            // update has nothing else to correct, and nobody is mailed.
+            $withdrawn = [
+                'moderated_at' => now(),
+                'rejection_note' => self::WITHDRAWN_NOTE,
+                'updated_at' => now(),
+            ];
+            Review::query()->where('user_id', $locked->getKey())->where('status', ReviewStatus::Pending)
+                ->update(['status' => ReviewStatus::Rejected, ...$withdrawn]);
+            ForumTopic::query()->where('user_id', $locked->getKey())->where('status', ForumContentStatus::Pending)
+                ->update(['status' => ForumContentStatus::Rejected, ...$withdrawn]);
+            ForumPost::query()->where('user_id', $locked->getKey())->where('status', ForumContentStatus::Pending)
+                ->update(['status' => ForumContentStatus::Rejected, ...$withdrawn]);
+
+            // Reports and helpful votes stay (queue history, counts) but their
+            // free text could say who the member is.
+            ContentReport::query()->where('user_id', $locked->getKey())->update(['note' => null]);
 
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);
