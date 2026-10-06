@@ -122,6 +122,52 @@ final class FzomImporter
             throw new RuntimeException('The ФЗОМ files contain no doctor rows; refusing to import an empty list.');
         }
 
+        return $this->foldUncodedFacilities($context, $facilities, $doctors);
+    }
+
+    /**
+     * A few rows carry a tax number but no ФЗО code. When exactly one coded
+     * facility in the snapshot has that tax number, they are that facility;
+     * otherwise (no code, or several units under one tax number) they stay
+     * a facility of their own rather than being guessed into one.
+     *
+     * @param  array<string, array<string, mixed>>  $facilities
+     * @param  array<string, array<string, mixed>>  $doctors
+     * @return array{0: array<string, array<string, mixed>>, 1: array<string, array<string, mixed>>}
+     */
+    private function foldUncodedFacilities(ImportContext $context, array $facilities, array $doctors): array
+    {
+        $codesByTax = [];
+
+        foreach ($facilities as $key => $facility) {
+            if ($facility['code'] !== null && $facility['tax_number'] !== null) {
+                $codesByTax[$facility['tax_number']][] = $key;
+            }
+        }
+
+        $remap = [];
+
+        foreach ($facilities as $key => $facility) {
+            if ($facility['code'] === null && count($codesByTax[$facility['tax_number']] ?? []) === 1) {
+                $remap[$key] = $codesByTax[$facility['tax_number']][0];
+                unset($facilities[$key]);
+            }
+        }
+
+        if ($remap === []) {
+            return [$facilities, $doctors];
+        }
+
+        foreach ($doctors as $facsimile => $doctor) {
+            foreach ($doctor['contracts'] as $index => $contract) {
+                if (isset($remap[$contract['facility']])) {
+                    $doctors[$facsimile]['contracts'][$index]['facility'] = $remap[$contract['facility']];
+                }
+            }
+        }
+
+        $context->increment('facilities_folded_by_tax_number', count($remap));
+
         return [$facilities, $doctors];
     }
 
@@ -306,7 +352,14 @@ final class FzomImporter
             return null;
         }
 
-        $candidates = Facility::withTrashed()->where('tax_number', $taxNumber)->whereNull('fzo_code')->limit(2)->get();
+        // Only facilities staff entered (with a tax number and no ФЗО code):
+        // the import's own uncoded facilities are found by source record.
+        $candidates = Facility::withTrashed()
+            ->where('tax_number', $taxNumber)
+            ->whereNull('fzo_code')
+            ->where(fn ($query) => $query->whereNull('import_source')->orWhere('import_source', '!=', self::SOURCE))
+            ->limit(2)
+            ->get();
 
         return $candidates->count() === 1 ? $candidates->first() : null;
     }

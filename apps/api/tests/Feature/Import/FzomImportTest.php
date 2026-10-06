@@ -187,6 +187,38 @@ class FzomImportTest extends TestCase
         $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->count());
     }
 
+    public function test_a_row_without_facility_code_joins_the_one_coded_facility_with_its_tax_number(): void
+    {
+        $extra = <<<'XML'
+          <Lekar>
+            <TipDogovor>Болничка здравствена заштита ЈЗУ (Општи болници)</TipDogovor>
+            <TipDogovorID>16</TipDogovorID>
+            <DanocenBroj>4000000000010</DanocenBroj>
+            <ZdravstvenaUstanova>ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО</ZdravstvenaUstanova>
+            <RabotnaEdinica>ХИРУРГИЈА</RabotnaEdinica>
+            <Specijalnosti>ОПШТА ХИРУРГИЈА</Specijalnosti>
+            <Mesto>ТЕСТОВО</Mesto>
+            <Faksimil>900013</Faksimil>
+            <Ime>СЕДМИ</Ime>
+            <Prezime>БЕЗШИФРОВ</Prezime>
+          </Lekar>
+        </Lekari>
+        XML;
+        $spec = str_replace('</Lekari>', $extra, (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml')));
+        $files = $this->files($this->writeSpec($spec));
+
+        $run = $this->import(files: $files);
+
+        $this->assertSame(1, $run->count('facilities_folded_by_tax_number'));
+        $this->assertSame(4, Facility::query()->count());
+        $doctor = Doctor::query()->where('fzo_facsimile', '900013')->firstOrFail();
+        $this->assertSame(['9000010'], $doctor->facilities->pluck('fzo_code')->all());
+
+        $second = $this->import(files: $files);
+        $this->assertSame(0, $second->count('fields_updated'));
+        $this->assertSame(0, $second->count('facilities_created'));
+    }
+
     public function test_a_link_staff_removed_is_not_added_back(): void
     {
         $this->import();
