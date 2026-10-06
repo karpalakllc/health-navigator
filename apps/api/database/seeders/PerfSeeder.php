@@ -173,9 +173,13 @@ class PerfSeeder extends Seeder
         // and the replies_count pass rewrote every doctor, facility and topic
         // row; VACUUM FULL drops those dead versions so a seq scan is costed
         // at the table's real size rather than double it.
+        // VACUUM cannot run inside a transaction block, which is where the seeder
+        // runs under RefreshDatabase; ANALYZE alone still refreshes statistics.
         if (DB::connection()->getDriverName() === 'pgsql') {
-            foreach (['doctors', 'facilities', 'forum_topics'] as $table) {
-                DB::statement('VACUUM (FULL, ANALYZE) '.$table);
+            if (DB::transactionLevel() === 0) {
+                foreach (['doctors', 'facilities', 'forum_topics'] as $table) {
+                    DB::statement('VACUUM (FULL, ANALYZE) '.$table);
+                }
             }
 
             foreach (['users', 'specialties', 'departments', 'forum_categories', 'doctor_specialty', 'doctor_facility', 'department_facility', 'products', 'pharmacy_product', 'reviews', 'forum_posts'] as $table) {
