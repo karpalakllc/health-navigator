@@ -14,6 +14,9 @@ use XMLReader;
 final class FzomXmlReader
 {
     /** Child elements we keep, by name. Everything else is skipped unread. */
+    /** <Lekar> rows without a facsimile, a name or an institution, since construction. */
+    public int $skipped = 0;
+
     public const KEPT = [
         'TipDogovor', 'TipDogovorID', 'DanocenBroj', 'ShifraZU', 'ZdravstvenaUstanova',
         'RabotnaEdinica', 'Dejnost', 'Specijalnosti', 'Adresa', 'Mesto', 'Faksimil',
@@ -55,6 +58,8 @@ final class FzomXmlReader
 
                     if ($row !== null) {
                         yield $row;
+                    } else {
+                        $this->skipped++;
                     }
                 }
             }

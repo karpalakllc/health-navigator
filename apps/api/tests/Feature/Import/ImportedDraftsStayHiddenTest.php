@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Import;
 
+use App\Actions\DoctorAccount\AssignDoctorOwner;
+use App\Enums\UserKind;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Specialty;
+use App\Models\User;
 use App\Support\Import\Fzom\FzomImportJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -96,8 +99,50 @@ class ImportedDraftsStayHiddenTest extends TestCase
 
         foreach (Facility::query()->where('is_published', false)->get() as $facility) {
             $this->getJson('/api/v1/facilities/'.$facility->slug)->assertNotFound();
+            $this->getJson('/api/v1/facilities/'.$facility->slug.'/reviews')->assertNotFound();
+            $this->postJson('/api/v1/facilities/'.$facility->slug.'/corrections', ['field' => 'name', 'message' => 'Името е погрешно напишано.'])->assertNotFound();
             $this->assertFalse($facility->shouldBeSearchable());
         }
+    }
+
+    public function test_website_import_drafts_stay_hidden_too(): void
+    {
+        $dir = sys_get_temp_dir().'/hidden-'.bin2hex(random_bytes(4));
+        mkdir($dir);
+        file_put_contents($dir.'/institutions.json', (string) json_encode(['slice' => 'x', 'institutions' => [[
+            'name_mk' => 'ЈЗУ Измислена Клиника Скриена', 'town' => 'Скриено', 'type' => 'clinic', 'website' => 'https://skrieno.invalid/',
+            'workers' => [['full_name' => 'Невидлив Веб-Лекар', 'role' => 'physician', 'specialty' => 'Кардиологија', 'source_url' => 'https://skrieno.invalid/tim']],
+        ]]], JSON_UNESCAPED_UNICODE));
+        $this->artisan('import:institutions-json', ['path' => $dir.'/institutions.json'])->assertSuccessful();
+        @unlink($dir.'/institutions.json');
+        @rmdir($dir);
+
+        $doctor = Doctor::query()->where('name_key', 'НЕВИДЛИВ ВЕБ ЛЕКАР')->orWhere('full_name', 'like', '%Невидлив%')->firstOrFail();
+        $facility = Facility::query()->where('website', 'https://skrieno.invalid/')->firstOrFail();
+        $this->assertFalse($doctor->is_published);
+        $this->assertFalse($facility->is_published);
+
+        $this->getJson('/api/v1/doctors/'.$doctor->slug)->assertNotFound();
+        $this->getJson('/api/v1/facilities/'.$facility->slug)->assertNotFound();
+
+        foreach (['/api/v1/doctors?q='.rawurlencode('Невидлив'), '/api/v1/facilities?q='.rawurlencode('Скриена'), '/api/v1/search?q='.rawurlencode('Невидлив'), '/api/v1/locations/cities'] as $url) {
+            $body = (string) json_encode($this->getJson($url)->assertOk()->json(), JSON_UNESCAPED_UNICODE);
+            $this->assertStringNotContainsString('Невидлив', $body, $url);
+            $this->assertStringNotContainsString('Скрие', $body, $url);
+        }
+    }
+
+    public function test_the_doctor_dashboard_offers_no_draft_facility(): void
+    {
+        $doctor = Doctor::factory()->create(['is_published' => true]);
+        $account = User::factory()->create(['user_kind' => UserKind::Client]);
+        app(AssignDoctorOwner::class)->handle($doctor, $account, User::factory()->create(['user_kind' => UserKind::Staff]));
+        $token = $account->createToken('web')->plainTextToken;
+
+        $body = (string) json_encode($this->withToken($token)->getJson('/api/v1/me/doctor/facilities?q='.rawurlencode('Тест'))->assertOk()->json(), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringNotContainsString('Тест Медика', $body);
+        $this->assertStringNotContainsString('Тестово', $body);
     }
 
     public function test_imports_never_publish_and_never_touch_publication(): void

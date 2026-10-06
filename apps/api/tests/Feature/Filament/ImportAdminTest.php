@@ -6,6 +6,7 @@ use App\Enums\ImportReviewKind;
 use App\Enums\ImportReviewStatus;
 use App\Enums\UserKind;
 use App\Filament\Resources\Doctors\Pages\EditDoctor;
+use App\Filament\Resources\ImportReviewItems\ImportReviewItemResource;
 use App\Filament\Resources\ImportReviewItems\Pages\ListImportReviewItems;
 use App\Filament\Resources\ImportReviewItems\Pages\ViewImportReviewItem;
 use App\Filament\Resources\ImportRuns\Pages\ListImportRuns;
@@ -190,5 +191,21 @@ class ImportAdminTest extends TestCase
         Livewire::test(ListImportSuppressions::class)->callTableAction('lift', $suppression);
 
         $this->assertFalse($suppression->refresh()->isActive());
+    }
+
+    public function test_the_profile_link_of_a_review_item_is_shown_only_to_staff_who_may_edit_the_profile(): void
+    {
+        $this->importFixtures();
+        $item = ImportReviewItem::query()->where('kind', ImportReviewKind::New)->where('subject_type', 'doctor')->firstOrFail();
+
+        $viewer = $this->staff(RoleCatalog::ADMINISTRATOR);
+        $viewer->syncRoles([]);
+        $viewer->givePermissionTo(['admin.access', 'imports.view']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->actingAs($viewer);
+        $this->assertNull(ImportReviewItemResource::subjectUrl($item));
+
+        $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
+        $this->assertNotNull(ImportReviewItemResource::subjectUrl($item));
     }
 }

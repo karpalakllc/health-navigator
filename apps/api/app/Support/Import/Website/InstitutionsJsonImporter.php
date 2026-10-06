@@ -264,7 +264,7 @@ final class InstitutionsJsonImporter
         $path = realpath($baseDir.'/'.$relative);
 
         // Only files inside the dataset folder.
-        if ($relative === '' || $path === false || ! str_starts_with($path, (string) realpath($baseDir)) || ! is_file($path)) {
+        if ($relative === '' || $path === false || ! str_starts_with($path, rtrim((string) realpath($baseDir), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) || ! is_file($path)) {
             $context->increment('images_missing_file');
 
             return null;

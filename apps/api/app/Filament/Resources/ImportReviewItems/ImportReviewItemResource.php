@@ -260,8 +260,18 @@ class ImportReviewItemResource extends Resource
         };
     }
 
+    /**
+     * The profile's edit page, for staff who may edit it and while it exists
+     * (imports.view alone would get a 403 there).
+     */
     public static function subjectUrl(ImportReviewItem $record): ?string
     {
+        $subject = $record->subject();
+
+        if ($subject === null || $subject->trashed() || ! (auth()->user()?->can('update', $subject) ?? false)) {
+            return null;
+        }
+
         return match ($record->subject_type) {
             'doctor' => $record->subject_id !== null ? DoctorResource::getUrl('edit', ['record' => $record->subject_id]) : null,
             'facility' => $record->subject_id !== null ? FacilityResource::getUrl('edit', ['record' => $record->subject_id]) : null,

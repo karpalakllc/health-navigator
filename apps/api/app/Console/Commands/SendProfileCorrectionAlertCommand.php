@@ -79,10 +79,11 @@ class SendProfileCorrectionAlertCommand extends Command
      */
     private function recipients(): Collection
     {
-        $staff = User::query()
+        // Only holders of the permission (directly or through a role) are
+        // loaded — not every member — then checked like any gate.
+        $staff = User::permission('profile_corrections.view')
             ->whereNull('anonymised_at')
             ->whereNull('suspended_at')
-            ->where(fn ($query) => $query->whereHas('roles')->orWhereHas('permissions'))
             ->get()
             ->filter(fn (User $user): bool => $user->can('profile_corrections.view'))
             ->map(fn (User $user): string => (string) $user->email);

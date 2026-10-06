@@ -6,6 +6,7 @@ use App\Enums\ImportRunStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\QueryException;
 use Throwable;
 
 /**
@@ -70,9 +71,24 @@ class ImportRun extends Model
     /**
      * The message only: a stack trace could quote a source row.
      */
+    private static function sqlState(QueryException $error): string
+    {
+        if (is_string($error->errorInfo[0] ?? null)) {
+            return $error->errorInfo[0];
+        }
+
+        return preg_match('/SQLSTATE\[(\w+)\]/', $error->getMessage(), $match) === 1 ? $match[1] : (string) $error->getCode();
+    }
+
     public function fail(Throwable|string $error): void
     {
-        $message = $error instanceof Throwable ? $error::class.': '.$error->getMessage() : $error;
+        // A database error's message carries the SQL and its bound values
+        // (names, licence numbers): only the class and SQLSTATE are kept.
+        $message = match (true) {
+            $error instanceof QueryException => $error::class.': SQLSTATE['.self::sqlState($error).'] (query and values not stored; see the server log)',
+            $error instanceof Throwable => $error::class.': '.$error->getMessage(),
+            default => $error,
+        };
 
         $this->forceFill([
             'status' => ImportRunStatus::Failed,

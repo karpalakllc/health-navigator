@@ -89,7 +89,8 @@ without the minimised marker (`.minimised`) is deleted on the next run.
 
 ## 3. Running an import by hand
 
-Always start with a dry run. Only one run per source runs at a time (a
+Always start with a dry run. A full ФЗОМ run needs about 100 MB; give the
+CLI `memory_limit` at least 256M. Only one run per source runs at a time (a
 cache lock, `import:<source>`, shared with the scheduler): a second one
 prints „already running“ and stops without changing anything. A run that
 was killed frees the lock after two hours.
@@ -339,7 +340,9 @@ contained:
 
 ## 10. Schedule and alerts
 
-`import:prune` runs daily at 05:15 (always on): diff summary CSVs, closed
+`import:prune` runs daily at 05:15 (always on). It closes as failed a run
+still "running" after six hours (the process was killed), and deletes diff
+summary CSVs, closed
 review items and lifted suppressions are deleted `IMPORT_RETENTION_DAYS`
 (365) days after the run / the decision. Deleting a doctor or facility for
 good (force delete) also deletes its source records, field provenance and

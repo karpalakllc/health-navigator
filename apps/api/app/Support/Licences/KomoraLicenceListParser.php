@@ -3,6 +3,7 @@
 namespace App\Support\Licences;
 
 use Carbon\CarbonImmutable;
+use Smalot\PdfParser\Config;
 use Smalot\PdfParser\Parser;
 use Throwable;
 
@@ -24,6 +25,20 @@ use Throwable;
  */
 final class KomoraLicenceListParser
 {
+    /**
+     * The list is text only: images are not kept, and a stream may not
+     * decode to more than 64 MB (a hostile or broken PDF cannot exhaust
+     * memory).
+     */
+    public static function pdfConfig(): Config
+    {
+        $config = new Config;
+        $config->setRetainImageContent(false);
+        $config->setDecodeMemoryLimit(64 * 1024 * 1024);
+
+        return $config;
+    }
+
     /** A row ends with „Датум на важност“ then „Број на лиценца“ (tab or space between). */
     private const ROW_END = '/(?:^|\s)(\d{1,2})\.(\d{1,2})\.(\d{4})\.?\s+(\d{4,8})\s*$/u';
 
@@ -42,7 +57,7 @@ final class KomoraLicenceListParser
     public function parsePdf(string $path, string $label): LicenceParseResult
     {
         try {
-            $document = (new Parser)->parseFile($path);
+            $document = (new Parser([], self::pdfConfig()))->parseFile($path);
             $pages = array_map(
                 static fn ($page): string => $page->getText(),
                 array_values($document->getPages()),

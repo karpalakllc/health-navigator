@@ -54,6 +54,8 @@ class ImportAlerter
                 reviewUrl: $reviewUrl,
             ));
         } catch (Throwable $e) {
+            // Not sent: the next alert must not be throttled away.
+            Cache::forget('alerts:import:'.$source.':'.$kind);
             Log::warning('Could not send the import alert.', [
                 'source' => $source,
                 'kind' => $kind,

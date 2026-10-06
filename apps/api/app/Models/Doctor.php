@@ -135,7 +135,9 @@ class Doctor extends Model
             // Import bookkeeping: derived name keys, seen/missing counters,
             // and the ФЗО facsimile (an internal matching key, kept out of
             // every log and export).
-            ->logExcept(['id', 'reviews_count', 'rating_avg', 'name_key', 'name_key_sorted', 'import_last_seen_at', 'import_missing_runs', 'fzo_facsimile'])
+            ->logExcept(['id', 'reviews_count', 'rating_avg', 'name_key', 'name_key_sorted', 'import_last_seen_at', 'import_missing_runs', 'fzo_facsimile',
+                // Internal licence keys (docs/data-inventory.md): never in the log.
+                'licence_number', 'licence_valid_until', 'licence_specialty_raw', 'licence_source', 'licence_checked_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

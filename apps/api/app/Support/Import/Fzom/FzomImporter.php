@@ -124,6 +124,8 @@ final class FzomImporter
         $facilities = [];
         $doctors = [];
 
+        $skippedBefore = $this->reader->skipped;
+
         foreach ($files as $label => $path) {
             foreach ($this->reader->rows($path, $label) as $row) {
                 $context->increment('rows_read');
@@ -168,6 +170,8 @@ final class FzomImporter
                 ];
             }
         }
+
+        $context->increment('rows_skipped_invalid', $this->reader->skipped - $skippedBefore);
 
         if ($doctors === []) {
             throw new RuntimeException('The ФЗОМ files contain no doctor rows; refusing to import an empty list.');

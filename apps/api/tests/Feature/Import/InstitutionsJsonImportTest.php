@@ -262,4 +262,22 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertSame(0, Doctor::withTrashed()->where('name_key', 'ИЗМИСЛЕНА КАРДИОЛОВСКА')->count());
         $this->assertSame(1, $run->count('doctors_suppressed'));
     }
+
+    public function test_an_image_in_a_sibling_folder_with_the_same_prefix_is_refused(): void
+    {
+        $sibling = $this->dir.'-evil';
+        File::ensureDirectoryExists($sibling);
+        $this->png($sibling.'/logo.png', 40, 20, [10, 10, 10]);
+
+        try {
+            $this->runImport($this->dataset([
+                'logo' => ['file' => '../'.basename($sibling).'/logo.png', 'source_url' => 'https://www.bolnica.invalid/logo.png'],
+                'covers' => [],
+            ]));
+
+            $this->assertSame(0, FacilityMedia::query()->count());
+        } finally {
+            File::deleteDirectory($sibling);
+        }
+    }
 }
