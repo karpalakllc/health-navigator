@@ -34,7 +34,9 @@ type BottomSheetProps = {
  * A full-height sheet that slides up from the bottom on mobile (radius-28 top
  * corners, the sheet shadow, a grab handle). It is a modal dialog: focus moves
  * in on open, Tab/Shift+Tab stay inside, Escape and the backdrop close it,
- * focus returns to the opener, and the page behind does not scroll.
+ * focus returns to the opener, the page behind does not scroll (iOS
+ * included) and is inert, so neither a screen reader's virtual cursor nor a
+ * stray tap can reach it.
  *
  * It renders into document.body, above the bottom tab bar.
  */
@@ -49,6 +51,7 @@ export function BottomSheet({
   className,
 }: BottomSheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const [shown, setShown] = useState(false);
   const onCloseRef = useRef(onClose);
@@ -71,8 +74,8 @@ export function BottomSheet({
         panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
       ).filter((el) => !el.closest("[inert]"));
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const restoreScroll = lockBodyScroll();
+    const restoreInert = makeRestInert(portalRef.current);
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -113,8 +116,9 @@ export function BottomSheet({
     return () => {
       cancelAnimationFrame(frame);
       setShown(false);
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      restoreInert();
+      restoreScroll();
       if (opener?.isConnected) {
         opener.focus();
       }
@@ -126,7 +130,7 @@ export function BottomSheet({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[200]">
+    <div ref={portalRef} className="fixed inset-0 z-[200]">
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-ink/50"
@@ -171,4 +175,54 @@ export function BottomSheet({
     </div>,
     document.body,
   );
+}
+
+/**
+ * Locks the page behind a modal. `overflow: hidden` alone doesn't stop iOS
+ * Safari from scrolling the body under a touch, so the body is pinned with
+ * `position: fixed` at the current offset and the scroll position is put
+ * back on release.
+ */
+function lockBodyScroll(): () => void {
+  const { body } = document;
+  const scrollY = window.scrollY;
+  const previous = {
+    overflow: body.style.overflow,
+    position: body.style.position,
+    top: body.style.top,
+    width: body.style.width,
+  };
+
+  body.style.overflow = "hidden";
+  body.style.position = "fixed";
+  body.style.top = `-${scrollY}px`;
+  body.style.width = "100%";
+
+  return () => {
+    Object.assign(body.style, previous);
+    if (scrollY > 0) {
+      window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+    }
+  };
+}
+
+/**
+ * Marks every other child of <body> inert (aria-modal alone isn't honoured
+ * by every screen reader, and it never stops pointer input). Elements that
+ * were already inert are left as they were.
+ */
+function makeRestInert(keep: HTMLElement | null): () => void {
+  const changed = Array.from(document.body.children).filter(
+    (el) => el !== keep && !el.hasAttribute("inert"),
+  );
+
+  for (const el of changed) {
+    el.setAttribute("inert", "");
+  }
+
+  return () => {
+    for (const el of changed) {
+      el.removeAttribute("inert");
+    }
+  };
 }
