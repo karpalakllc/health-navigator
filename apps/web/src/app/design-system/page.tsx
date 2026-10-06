@@ -5,7 +5,6 @@ import { EmergencyCallLinks } from "@/components/guidance/emergency-call-links";
 import { Button, IconButton, TextLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChipLink } from "@/components/ui/chip";
-import { EmergencyPill } from "@/components/ui/emergency-pill";
 import {
   Checkbox,
   Fieldset,
@@ -54,10 +53,22 @@ const COLOURS: Array<[string, string, string]> = [
   ["coral", "#ff5757", "logo, 4px edge, tab tick, underline"],
   ["care", "#2f6b4f", "„Прима нови пациенти“, verified"],
   ["care-tint", "#e4f1ea", "care chip surface"],
-  ["emergency", "#b42318", "ONLY „Итно 194“ and 194/112"],
+  ["emergency", "#b42318", "ONLY the guidance 194/112 calls"],
   ["star", "#a14806", "rating stars"],
-  ["focus", "#ffdd00", "focus halo (+ #0b0c0c ring)"],
+  ["emergency-hover", "#9a1d13", "pressed 194/112 buttons"],
 ];
+
+/** Static copies of the global focus styles (globals.css) for the gallery. */
+const FOCUS_PREVIEW = {
+  outline: "2px solid var(--color-focus-ring)",
+  outlineOffset: "2px",
+  boxShadow: "0 0 0 6px var(--color-focus-halo)",
+} as const;
+const INPUT_FOCUS_PREVIEW = {
+  borderColor: "var(--color-focus-ring)",
+  boxShadow:
+    "0 0 0 1px var(--color-focus-ring), 0 0 0 5px var(--color-focus-halo)",
+} as const;
 
 const TYPE: Array<[string, string, string]> = [
   ["type-display", "34/40 → 56/62 · 700", "Како можеме да ви помогнеме?"],
@@ -263,6 +274,35 @@ export default function DesignSystemPage() {
       </Section>
 
       <Section
+        id="ds-focus"
+        title="Focus"
+        note="Keyboard (:focus-visible): 2px ink ring, 2px offset, 6px apricot halo — the ring is ≥12:1 on every surface. Text inputs (any focus): ink border +1px and the halo. No yellow. Static previews below; tab through the page to see the real thing."
+      >
+        <Row label="Ring on ink, white and apricot · input focus">
+          <Button style={FOCUS_PREVIEW}>Види профил</Button>
+          <Button variant="secondary" style={FOCUS_PREVIEW}>
+            Прикажи уште
+          </Button>
+          <span className="rounded-card bg-apricot p-4">
+            <Button variant="white" style={FOCUS_PREVIEW}>
+              Пребарај
+            </Button>
+          </span>
+          <input
+            aria-label="Пример: фокусирано поле"
+            className="field-control max-w-[260px]"
+            defaultValue="Скопје"
+            style={INPUT_FOCUS_PREVIEW}
+          />
+        </Row>
+        <Row label="Skip link (first Tab on every page)">
+          <span className="inline-flex min-h-11 items-center rounded-pill bg-ink px-4 type-label text-white">
+            Прескокни до содржината
+          </span>
+        </Row>
+      </Section>
+
+      <Section
         id="ds-forms"
         title="Form controls"
         note="Label above · hint · error (ink + icon + „Грешка:“) · aria-describedby wired"
@@ -423,10 +463,6 @@ export default function DesignSystemPage() {
         title="Emergency"
         note="The only red: tel: links with a 2px ink frame"
       >
-        <Row label="EmergencyPill md (header) · lg">
-          <EmergencyPill />
-          <EmergencyPill size="lg" />
-        </Row>
         <Row label="EmergencyCallLinks (guidance outcome)">
           <EmergencyCallLinks />
         </Row>

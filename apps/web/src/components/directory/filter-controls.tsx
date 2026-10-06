@@ -13,8 +13,7 @@ import { t, tFormat } from "@/i18n/t";
  */
 
 /** Same ring as the global :focus-visible, for chips whose input is hidden. */
-const chipFocusRing =
-  "has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-focus-ink has-[:focus-visible]:shadow-[0_0_0_6px_var(--color-focus)]";
+const chipFocusRing = "focus-ring-within";
 
 export function FilterGroup({
   legend,

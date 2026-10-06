@@ -6,7 +6,7 @@
  * Colour roles are split and never swapped:
  *   - coral  #ff5757: logo mark, 4px card top edge, active-tab tick, link
  *     underline. Never text, never a fill behind text, never a button.
- *   - emergency #b42318: only the „Итно 194“ pill and 194/112 tel: links,
+ *   - emergency #b42318: only the guidance 194/112 tel: buttons,
  *     always with a 2px ink frame. Never errors, never decoration.
  *   - ink #2a2220: text and EVERY action (pill buttons).
  *   - star #a14806: rating stars only.
@@ -28,8 +28,12 @@
   --color-emergency: #b42318;
   --color-star: #a14806;
   --color-white: #ffffff;
-  --color-focus: #ffdd00;
-  --color-focus-ink: #0b0c0c;
+  /* Pressed state for the 194/112 call buttons (still ≥4.5:1 with white). */
+  --color-emergency-hover: #9a1d13;
+  /* Focus: a 2px ink ring (≥12:1 on cream, white, sand and apricot) on a
+     soft apricot halo. The halo is decoration; the ink ring carries 1.4.11. */
+  --color-focus-ring: var(--color-ink);
+  --color-focus-halo: var(--color-apricot);
 
   /* ---- semantic aliases (prefer these in components) ------------------ */
   --color-background: var(--color-cream);
@@ -60,7 +64,7 @@
   --color-accent-foreground: var(--color-white);
   --color-destructive: var(--color-emergency);
   --color-warning: #f59e0b;
-  --color-ring: var(--color-focus-ink);
+  --color-ring: var(--color-focus-ring);
 
   /* ---- radii (monotonic: sm < md < lg < xl < 2xl < 3xl) --------------- */
   /* The old theme had --radius-2xl (16px) smaller than --radius-xl (20px). */
@@ -277,24 +281,6 @@
     opacity: 1;
   }
 
-  /*
-   * The focus ring from the mockups (GOV.UK pattern): a 3px ink outline with
-   * a yellow halo, identical on every control and every background.
-   */
-  :where(
-    a,
-    button,
-    input,
-    select,
-    textarea,
-    summary,
-    [tabindex]
-  ):focus-visible {
-    outline: 3px solid var(--color-focus-ink);
-    outline-offset: 0;
-    box-shadow: 0 0 0 6px var(--color-focus);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -304,6 +290,66 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/*
+ * Focus. Unlayered on purpose: unlayered rules beat every @layer, so a
+ * component's own box-shadow (shadow-card on the search pill, the chip ring)
+ * can never swallow the halo. Specificity stays zero through :where().
+ *
+ * - Keyboard (:focus-visible): a 2px ink outline 2px off the element, sitting
+ *   on a 6px apricot halo, so the ring reads on ink buttons, white cards and
+ *   the apricot hero alike (ink vs apricot 12.3:1, cream 14.5:1, white 15.6:1;
+ *   the apricot gap also separates it from ink and emergency-red buttons).
+ * - Text inputs, selects and textareas (any :focus, mouse too): bordered
+ *   controls turn their border ink and thicken it by 1px, plus the halo;
+ *   borderless inputs (inside the search pills) get the keyboard ring.
+ */
+:where(
+  a,
+  button,
+  summary,
+  [tabindex]:not([tabindex="-1"]),
+  input,
+  select,
+  textarea
+):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-focus-halo);
+}
+
+:where(
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="file"],
+    [type="range"],
+    [type="hidden"]
+  ),
+  select,
+  textarea
+):focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-focus-halo);
+}
+
+.field-control:focus {
+  border-color: var(--color-focus-ring);
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--color-focus-ring),
+    0 0 0 5px var(--color-focus-halo);
+}
+
+/* Chips whose real input is visually hidden: ring the label instead. */
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--color-focus-halo);
   }
 }
 
@@ -449,9 +495,6 @@
     appearance: none;
     padding-right: 3rem;
     cursor: pointer;
-  }
-  .field-control:focus-visible {
-    border-color: var(--color-ink);
   }
   .field-control[aria-invalid="true"] {
     border: 2px solid var(--color-ink);
