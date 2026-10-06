@@ -27,10 +27,15 @@ list, so they never get a licence status. Both downloaders identify themselves
 with a User-Agent and contact address (`IMPORT_USER_AGENT`, `IMPORT_CONTACT` —
 **set a monitored address before the first real run**), honour `robots.txt`,
 pause between requests and send conditional requests (`If-Modified-Since` /
-`ETag`). Raw downloads are kept on the **private** disk, never the public media
-disk and never in git, the newest three runs per source only:
-`storage/app/private/imports/snapshots/fzom/…` (`IMPORT_SNAPSHOT_RETENTION`)
-and `storage/app/private/imports/komora/…` (`KOMORA_KEEP_SNAPSHOTS`).
+`ETag`). Downloads are kept on the **private** disk, never the public media
+disk and never in git, the newest three runs per source only (failed runs
+included; a dry run keeps none): `storage/app/private/imports/snapshots/fzom/…`
+(`IMPORT_SNAPSHOT_RETENTION`) and `storage/app/private/imports/komora/…`
+(`KOMORA_KEEP_SNAPSHOTS`). A ФЗОМ snapshot is **minimised** before it is
+written: only the elements the import reads are kept, and nurses' names,
+absence reasons and status, substitutions and pharmacy rows never reach the
+disk. The run records the original file's sha256 and size. An older folder
+without the minimised marker (`.minimised`) is deleted on the next run.
 
 ## 2. Guarantees every import keeps
 

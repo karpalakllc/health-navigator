@@ -19,6 +19,7 @@ final class FzomImportJob
         private readonly ImportRunner $runner,
         private readonly SourceFetcher $fetcher,
         private readonly FzomImporter $importer,
+        private readonly FzomSnapshotMinimiser $minimiser,
     ) {}
 
     /**
@@ -42,20 +43,36 @@ final class FzomImportJob
             $meta = ['complete' => true, 'files' => []];
             $folder = $this->fetcher->newSnapshotFolder();
 
-            foreach ((array) config('import.fzom.files') as $label => $url) {
-                $result = $this->fetcher->fetch(FzomImporter::SOURCE, (string) $label, (string) $url, $previous[$label] ?? null, $folder);
-                $files[(string) $label] = $result['local_path'];
-                $meta['files'][$label] = array_diff_key($result, ['local_path' => true]);
+            try {
+                foreach ((array) config('import.fzom.files') as $label => $url) {
+                    $result = $this->fetcher->fetch(
+                        FzomImporter::SOURCE,
+                        (string) $label,
+                        (string) $url,
+                        $previous[$label] ?? null,
+                        $folder,
+                        fn (string $from, string $to) => $this->minimiser->minimise($from, $to, (string) $label),
+                    );
+                    $files[(string) $label] = $result['local_path'];
+                    $meta['files'][$label] = array_diff_key($result, ['local_path' => true]);
+                }
+
+                $unchanged = collect($meta['files'])->every(fn (array $file): bool => $file['status'] === 304);
+
+                if ($unchanged && ! $dryRun && ! $force) {
+                    return $meta + ['not_modified' => true];
+                }
+
+                $this->importer->import($context, $files);
+            } finally {
+                // Also after a failed or stopped run; a dry run keeps no
+                // snapshot of its own.
+                if ($dryRun) {
+                    $this->fetcher->deleteSnapshotFolder(FzomImporter::SOURCE, $folder);
+                }
+
+                $this->fetcher->pruneSnapshots(FzomImporter::SOURCE);
             }
-
-            $unchanged = collect($meta['files'])->every(fn (array $file): bool => $file['status'] === 304);
-
-            if ($unchanged && ! $dryRun && ! $force) {
-                return $meta + ['not_modified' => true];
-            }
-
-            $this->importer->import($context, $files);
-            $this->fetcher->pruneSnapshots(FzomImporter::SOURCE);
 
             return $meta;
         });
@@ -64,7 +81,7 @@ final class FzomImportJob
     /**
      * Conditional-GET state of the last successful apply.
      *
-     * @return array<string, array{etag?: string|null, last_modified?: string|null, snapshot?: string|null}>
+     * @return array<string, array{etag?: string|null, last_modified?: string|null, snapshot?: string|null, sha256?: string|null, bytes?: int|null, minimised?: bool}>
      */
     private function previousMeta(): array
     {
