@@ -311,24 +311,47 @@ default 0), backfilled set-based by the migration.
 
 ### Taxonomy caching
 
-`/specialties`, `/specialties/{slug}`, `/departments` and `/forum/categories`:
+`/specialties`, `/specialties/{slug}`, `/departments`, `/languages` and
+`/forum/categories`:
 
 - **Server:** `App\Support\TaxonomyCache::remember()` keeps the resolved payload
   for 10 minutes under a per-group version. Saving, deleting or restoring a
-  `Specialty`, `Department` or `ForumCategory` — and a `Doctor` / `ForumTopic`,
-  whose counts the payloads embed — bumps the version
-  (`Models\Concerns\InvalidatesTaxonomyCache`). A pivot-only change that saves
-  no model (attaching a specialty to a doctor without saving the doctor) shows
-  up within the 10-minute TTL.
+  `Specialty`, `Department`, `Language` or `ForumCategory` — and a `Doctor` /
+  `ForumTopic`, whose counts the payloads embed — bumps the version
+  (`Models\Concerns\InvalidatesTaxonomyCache`). The Filament doctor form flushes
+  specialties and languages after its pivot syncs; any other pivot-only change
+  that saves no model shows up within the 10-minute TTL.
 - **HTTP:** the `cache.public` middleware (`SetPublicCacheHeaders`) adds
   `Cache-Control: public, max-age=300` and a content `ETag` to **200** responses
   and answers a matching `If-None-Match` with a body-less 304. Unlike Laravel's
   `cache.headers`, it never marks a 404/503 public. Never put it on a route that
   varies by viewer.
 
-The API has no public languages / procedures / clinical-interests endpoints
-(those taxonomies are only embedded in the doctor profile), so there is nothing
-to cache for them.
+Procedures and clinical interests have no public endpoint (they are only
+embedded in the doctor profile), so there is nothing to cache for them.
+
+### Directory and product HTTP caching
+
+`/doctors`, `/doctors/{slug}`, `/facilities`, `/facilities/{slug}`,
+`/pharmacies`, `/pharmacies/{slug}`, `/pharmacies/{slug}/products`, `/products`
+and `/products/{slug}` use `cache.public:60`: the same headers with
+`max-age=60` and **no server-side cache**, so the payload is always built from
+the database and an admin edit changes the ETag at once.
+
+- **Why 60 s:** the only thing that can hold a copy is an HTTP cache in front
+  of the API or a browser calling it directly; 60 s bounds how long either can
+  show a superseded profile after an admin edit. It matches the web tier's
+  own 60 s window for safe listings, so the two never stack beyond about two
+  minutes in the worst case (web entry refreshed from a just-expired HTTP copy).
+- **No double caching in the web tier:** Next's data cache ignores upstream
+  `Cache-Control`; it keys only on its own `revalidate`. Profiles are fetched
+  `no-store` through `lib/api/server.ts`, so a profile page is always fresh.
+- **Credentials:** a request with an `Authorization` header (or a user
+  resolved by an earlier middleware), or a response that sets a cookie, is left
+  `no-cache, private`. The public answer adds `Vary: Authorization` (the locale
+  middleware adds `Accept-Language`, CORS adds `Origin`).
+- **Not cached:** review lists (`meta.viewer_review` is per viewer), `/search`
+  (it counts anonymous search terms per request), any 404/422/503.
 
 ### Web data cache (`apps/web/src/lib/api`)
 

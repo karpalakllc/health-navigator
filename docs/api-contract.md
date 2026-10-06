@@ -143,11 +143,11 @@ nobody can hold an account locked by merely sending traffic.
 |--------|------|--------|
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | `cache.public` |
-| `GET` | `/doctors` | — |
-| `GET` | `/doctors/{slug}` | — |
+| `GET` | `/doctors` | `cache.public:60` |
+| `GET` | `/doctors/{slug}` | `cache.public:60` |
 | `GET` | `/doctors/{slug}/reviews` | `auth.sanctum.optional` |
-| `GET` | `/facilities` | — |
-| `GET` | `/facilities/{slug}` | — |
+| `GET` | `/facilities` | `cache.public:60` |
+| `GET` | `/facilities/{slug}` | `cache.public:60` |
 | `GET` | `/facilities/{slug}/reviews` | `auth.sanctum.optional` |
 | `GET` | `/forum/categories` | `module:forum`, `cache.public` |
 | `GET` | `/forum/categories/{category}/topics` | `module:forum` |
@@ -155,16 +155,17 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/health` | — |
+| `GET` | `/languages` | `cache.public` |
 | `GET` | `/me` | `auth:sanctum` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
-| `GET` | `/pharmacies` | `module:pharmacies` |
-| `GET` | `/pharmacies/{slug}` | `module:pharmacies` |
-| `GET` | `/pharmacies/{slug}/products` | `module:pharmacies` |
+| `GET` | `/pharmacies` | `module:pharmacies`, `cache.public:60` |
+| `GET` | `/pharmacies/{slug}` | `module:pharmacies`, `cache.public:60` |
+| `GET` | `/pharmacies/{slug}/products` | `module:pharmacies`, `cache.public:60` |
 | `GET` | `/pharmacies/{slug}/reviews` | `module:pharmacies`, `auth.sanctum.optional` |
-| `GET` | `/products` | `module:products` |
-| `GET` | `/products/{slug}` | `module:products` |
+| `GET` | `/products` | `module:products`, `cache.public:60` |
+| `GET` | `/products/{slug}` | `module:products`, `cache.public:60` |
 | `GET` | `/search` | — |
 | `GET` | `/settings/public` | — |
 | `GET` | `/specialties` | `cache.public` |
@@ -209,6 +210,19 @@ nobody can hold an account locked by merely sending traffic.
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.
+- Doctor, facility and pharmacy **list** items (and `/search` sections) carry
+  `phone` (string or `null`) and `office_hours` (day-label → hours map, `[]`
+  when unset), the same fields as the profiles.
+- `/doctors?language=<slug>` filters on the doctor's languages. The slug must
+  be a published language (`GET /languages`, which lists only languages some
+  published doctor speaks, with `doctors_count`); anything else is **422**.
+- `cache.public` routes answer `Cache-Control: public, max-age=…` with a
+  content `ETag`, and a matching `If-None-Match` gets a body-less **304**.
+  Taxonomies use 300 s; directory and product lists/profiles use 60 s
+  (`cache.public:60`). Only anonymous 200s are marked: a request with an
+  `Authorization` header gets the default `no-cache, private`, and the public
+  answer carries `Vary: Authorization, Accept-Language`. Review lists and
+  `/search` are never marked.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a

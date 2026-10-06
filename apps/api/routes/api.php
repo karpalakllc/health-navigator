@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -28,6 +29,7 @@ Route::prefix('v1')->group(function (): void {
     // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
     Route::middleware('cache.public')->group(function (): void {
         Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/languages', [LanguageController::class, 'index']);
         Route::get('/specialties', [SpecialtyController::class, 'index']);
         Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
     });
