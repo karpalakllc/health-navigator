@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CityPicker } from "@/components/home/city-picker";
 import type { LocationCity } from "@/lib/api/locations";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 
 const known: LocationCity[] = [
@@ -122,6 +122,30 @@ describe("CityPicker", () => {
     expect(trigger()).toHaveAccessibleName("Град или општина: Битола");
     expect(trigger()).toHaveFocus();
     expect(screen.queryByRole("tree")).toBeNull();
+  });
+
+  it("lets touch and screen-reader users open a town with a 48px button", async () => {
+    const user = userEvent.setup();
+    renderInForm();
+    await user.click(trigger());
+
+    const ohrid = screen.getByRole("treeitem", { name: /^Охрид,/ });
+    const toggle = within(ohrid).getByRole("button", {
+      name: tFormat("homeSearch.cityToggle", { city: "Охрид" }),
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveClass("size-12");
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(ohrid).toHaveAttribute("aria-expanded", "true");
+    expect(within(ohrid).getByRole("group")).toHaveTextContent("Дебарца");
+    // Opening is not picking, and focus stays in the filter box.
+    expect(trigger()).toHaveAccessibleName(t("homeSearch.cityTriggerNone"));
+    expect(filter()).toHaveFocus();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
   it("says the town fallback once per open group, not on every row", async () => {

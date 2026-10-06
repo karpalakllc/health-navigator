@@ -165,11 +165,12 @@ describe("aspect rating input", () => {
       within(waiting).getByRole("radio", { name: "3 ѕвезди од 5" }),
     ).toHaveAttribute("aria-checked", "true");
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "Отстрани ја оценката за „Време на чекање“",
-      }),
-    );
+    const clear = screen.getByRole("button", {
+      name: "Отстрани ја оценката за „Време на чекање“",
+    });
+    // A 48px touch target, like the stars.
+    expect(clear).toHaveClass("min-h-12");
+    await user.click(clear);
     for (const radio of within(waiting).getAllByRole("radio")) {
       expect(radio).toHaveAttribute("aria-checked", "false");
     }

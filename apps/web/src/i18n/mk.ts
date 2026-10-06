@@ -1341,6 +1341,7 @@ export const mk = {
     cityNoMatch: "Нема град или општина за „{q}“.",
     cityMunicipalities: "{count} општини",
     cityMunicipalitiesOne: "{count} општина",
+    cityToggle: "Општини во {city}",
     cityClose: "Затвори",
     allSpecialties: "Сите специјалности",
     specialtiesTitle: "Сите специјалности",

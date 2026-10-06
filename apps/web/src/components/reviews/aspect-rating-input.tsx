@@ -108,7 +108,7 @@ export function AspectRatingInput({
                         aria-label={tFormat("integrity.aspectClearLabel", {
                           aspect: label,
                         })}
-                        className="inline-flex min-h-11 items-center rounded-full px-3 type-meta font-semibold text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink"
+                        className="inline-flex min-h-12 items-center rounded-full px-3 type-meta font-semibold text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink"
                       >
                         {t("integrity.aspectClear")}
                       </button>
