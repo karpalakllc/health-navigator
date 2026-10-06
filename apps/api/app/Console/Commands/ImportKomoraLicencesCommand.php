@@ -39,6 +39,7 @@ class ImportKomoraLicencesCommand extends Command
         $files = [];
         $listDate = null;
         $complete = true;
+        $hashes = null;
 
         if ($localFiles !== []) {
             foreach ($localFiles as $path) {
@@ -70,8 +71,12 @@ class ImportKomoraLicencesCommand extends Command
         try {
             if ($localFiles === []) {
                 $fetched = $fetcher->fetch((bool) $this->option('force'));
+                $hashes = collect($fetched['files'])->mapWithKeys(fn (array $file): array => [$file['url'] => $file['sha256']])->sortKeys()->all();
 
-                if (! $fetched['changed']) {
+                // Unchanged = the same files as the last list that was
+                // successfully APPLIED: a dry run or a failed apply does not
+                // use a new list up.
+                if (! $this->option('force') && $hashes === $this->lastAppliedHashes()) {
                     $run->finish([], ImportRunStatus::NotModified);
                     $this->info('The licence list has not changed since the last download; nothing to do (use --force to process it anyway).');
 
@@ -114,6 +119,7 @@ class ImportKomoraLicencesCommand extends Command
             'list_date' => $listDate->toDateString(),
             'files' => array_map(fn (array $file): string => $file['label'], $files),
             'complete_list' => $complete,
+            'file_hashes' => $hashes ?? null,
         ]]);
         $run->finish($counts);
         $announcer->announce($run);
@@ -139,6 +145,34 @@ class ImportKomoraLicencesCommand extends Command
         $this->error($message);
 
         return self::FAILURE;
+    }
+
+    /**
+     * url => sha256 of the files of the last successful apply of a
+     * downloaded list (null: none yet).
+     *
+     * @return array<string, string>|null
+     */
+    private function lastAppliedHashes(): ?array
+    {
+        $meta = ImportRun::query()
+            ->where('source', KomoraLicenceImporter::SOURCE)
+            ->where('dry_run', false)
+            ->where('status', ImportRunStatus::Succeeded)
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->first(fn (ImportRun $run): bool => is_array($run->source_meta['file_hashes'] ?? null))
+            ?->source_meta;
+
+        if ($meta === null) {
+            return null;
+        }
+
+        $hashes = (array) $meta['file_hashes'];
+        ksort($hashes);
+
+        return $hashes;
     }
 
     /**

@@ -37,6 +37,8 @@ class KomoraLicenceFetcherTest extends TestCase
 
     private string $pdf;
 
+    private string $etag = '"v1"';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -63,8 +65,8 @@ class KomoraLicenceFetcherTest extends TestCase
             return match (true) {
                 str_ends_with($request->url(), '/robots.txt') => Http::response($this->robots),
                 $request->url() === self::PAGE => Http::response($page),
-                $request->hasHeader('If-None-Match', '"v1"') => Http::response('', 304),
-                default => Http::response($this->pdf, 200, ['ETag' => '"v1"', 'Last-Modified' => 'Mon, 06 Jul 2026 10:59:59 GMT']),
+                $request->hasHeader('If-None-Match', $this->etag) => Http::response('', 304),
+                default => Http::response($this->pdf, 200, ['ETag' => $this->etag, 'Last-Modified' => 'Mon, 06 Jul 2026 10:59:59 GMT']),
             };
         });
     }
@@ -170,5 +172,45 @@ class KomoraLicenceFetcherTest extends TestCase
         $this->artisan('import:komora-licences')
             ->expectsOutputToContain('has not changed')
             ->assertSuccessful();
+    }
+
+    public function test_a_dry_run_or_a_failed_apply_does_not_use_up_a_new_list(): void
+    {
+        $this->app->instance(LicenceCandidateSource::class, new FakeLicenceCandidateSource);
+        $this->app->instance(DoctorLicenceSink::class, new FakeDoctorLicenceSink);
+
+        $this->artisan('import:komora-licences', ['--dry-run' => true])->assertSuccessful();
+
+        // The apply after the dry run still processes the list.
+        $this->artisan('import:komora-licences')
+            ->expectsOutputToContain('List of 02.07.2026, 2 file(s).')
+            ->assertSuccessful();
+
+        // A new list version whose apply fails is processed again on the next run.
+        $this->pdf = KomoraListPdf::make([[
+            ['name' => 'АНА ТЕСТОВСКА', 'specialty' => 'педијатрија', 'date' => '01.02.2031', 'number' => '0000001'],
+        ]]);
+        $this->etag = '"v2"';
+        $this->app->instance(LicenceCandidateSource::class, new class implements LicenceCandidateSource
+        {
+            public function doctorIdForLicence(string $licenceNumber): ?int
+            {
+                throw new RuntimeException('Database went away.');
+            }
+
+            public function candidatesFor(string $fullName): array
+            {
+                throw new RuntimeException('Database went away.');
+            }
+        });
+        $this->artisan('import:komora-licences', ['--force' => false])->assertFailed();
+
+        $this->app->instance(LicenceCandidateSource::class, new FakeLicenceCandidateSource);
+        $this->artisan('import:komora-licences')
+            ->expectsOutputToContain('List of 02.07.2026, 2 file(s).')
+            ->assertSuccessful();
+
+        // Now it is consumed.
+        $this->artisan('import:komora-licences')->expectsOutputToContain('has not changed')->assertSuccessful();
     }
 }

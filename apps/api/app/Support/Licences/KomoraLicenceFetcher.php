@@ -27,7 +27,11 @@ final class KomoraLicenceFetcher
     private array $robots = [];
 
     /**
-     * @return array{batch: string, changed: bool, list_date: CarbonImmutable|null, files: list<array{path: string, label: string}>}
+     * `changed` compares with the previous DOWNLOAD only; whether the list was
+     * already applied is the command's decision (a dry run or a failed apply
+     * also downloads).
+     *
+     * @return array{batch: string, changed: bool, list_date: CarbonImmutable|null, files: list<array{path: string, label: string, url: string, sha256: string}>}
      */
     public function fetch(bool $force = false): array
     {
@@ -88,7 +92,7 @@ final class KomoraLicenceFetcher
             if ($response->status() === 304 && $previous !== null) {
                 $path = (string) $previous->storage_path;
                 $this->log($batch, $link, 'not_modified', $previous->etag, $previous->last_modified, $previous->sha256, $previous->bytes, $path, $listDate);
-                $files[] = ['path' => $disk->path($path), 'label' => $link['label']];
+                $files[] = ['path' => $disk->path($path), 'label' => $link['label'], 'url' => $link['url'], 'sha256' => (string) $previous->sha256];
 
                 continue;
             }
@@ -113,7 +117,7 @@ final class KomoraLicenceFetcher
             $changed = $changed || $previous === null || $previous->sha256 !== $sha;
 
             $this->log($batch, $link, 'downloaded', $response->header('ETag') ?: null, $response->header('Last-Modified') ?: null, $sha, strlen($body), $path, $listDate);
-            $files[] = ['path' => $disk->path($path), 'label' => $link['label']];
+            $files[] = ['path' => $disk->path($path), 'label' => $link['label'], 'url' => $link['url'], 'sha256' => $sha];
         }
 
         $this->prune($directory);

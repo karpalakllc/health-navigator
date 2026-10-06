@@ -102,6 +102,11 @@ php artisan import:institutions-json /path/<slice>/institutions.json --dry-run
 php artisan import:institutions-json /path/<slice>/institutions.json
 ```
 
+A downloaded Комора list counts as unchanged only when its files are the
+same (sha256) as those of the last **successful apply**: a dry run or a
+failed apply does not use a new list up, so "dry run first, then apply"
+works and a failed scheduled run is retried by the next one.
+
 `import:komora-licences --file` reads local PDFs; such a partial list never
 marks licences missing unless you add `--complete` (the files are the whole
 list). Without `--list-date` the date is read from the file names.
