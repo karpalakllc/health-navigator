@@ -27,6 +27,22 @@ overlooked when the app is distributed or hosted:
 |---------|---------|---------|----------|-----------------------|
 | [`smalot/pdfparser`](https://github.com/smalot/pdfparser) | 2.12.x (`apps/api/composer.lock`) | [LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html) | Reading the Лекарска комора licence-list PDFs (`App\Support\Licences\KomoraLicenceListParser`, `import:komora-licences`); server side only, never sent to browsers | Used unmodified as a separately installed Composer library, which LGPL-3.0 allows in a proprietary application. If the app (with `vendor/`) is ever distributed to others, include the licence text and keep the library replaceable (it is: Composer); if the library itself is modified, publish those changes under LGPL-3.0. Running it on our own server is not distribution. The owner approved the package in 2026-10 as MIT-licensed; the LGPL-3.0 licence still needs the owner's acknowledgement. |
 
+## Anti-bot proof of work (ALTCHA)
+
+Approved by the owner in 2026-10. Both halves are self-hosted: no request
+goes to altcha.org or any other third party, no cookie is set, and the
+widget's optional „human interaction signature“ collector is switched off.
+
+| Package | Version | Licence | Used for |
+|---------|---------|---------|----------|
+| [`altcha`](https://github.com/altcha-org/altcha) (npm, by Daniel Regeci / altcha.org) | 3.3.x (`apps/web/package-lock.json`) | [MIT](https://github.com/altcha-org/altcha/blob/main/LICENSE) — `node_modules/altcha/LICENSE.txt` | The browser widget (`altcha/external` build plus its PBKDF2 worker, `src/components/altcha/`): fetches a challenge from our own API through `/api/altcha/challenge` and solves it in a Web Worker. Its only dependency, `hash-wasm` (MIT), is for the Argon2/scrypt workers we do not load. |
+| [`altcha-org/altcha`](https://github.com/altcha-org/altcha-lib-php) (Composer, by Daniel Regeci) | 2.3.x (`apps/api/composer.lock`; requires PHP ≥ 8.1, runs on our 8.4/8.5) | [MIT](https://github.com/altcha-org/altcha-lib-php/blob/main/LICENSE.txt) — `vendor/altcha-org/altcha/LICENSE.txt` | Server side: issuing signed PBKDF2 challenges and verifying solutions (`App\Support\Altcha\AltchaGuard`, middleware `altcha`). |
+
+MIT asks only that the copyright and licence notice stay with copies of the
+code; both packages ship it in their own directory. The widget's „Protected by
+ALTCHA“ footer link is hidden — the licence does not require attribution in
+the interface.
+
 ## Images from institutions' websites
 
 Facility logos and cover photos imported by `import:institutions-json` come

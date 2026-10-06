@@ -68,7 +68,9 @@ class StoreProfileCorrectionRequest extends FormRequest
         // listed person's own right (memo §2.1).
         return $this->routeIs('*.facility')
             ? [ProfileCorrectionType::Correction->value]
-            : ProfileCorrectionType::values();
+            // Not ProfileCorrectionType::values(): a profile report has its
+            // own endpoint and fields (StoreProfileReportRequest).
+            : [ProfileCorrectionType::Correction->value, ProfileCorrectionType::Objection->value];
     }
 
     protected function failedValidation(Validator $validator): void

@@ -161,6 +161,59 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Profile reports („Пријави профил“)
+    |--------------------------------------------------------------------------
+    |
+    | Reports about a whole doctor, facility or pharmacy profile share the
+    | corrections queue (type `report`). A profile with `priority_threshold`
+    | or more independent open reports floats to the top of that queue;
+    | nothing is ever hidden automatically. A guest can report one profile
+    | once a day per address (the address is kept only as a keyed hash, in the
+    | cache for that day and on the open report so independent reporters can
+    | be told apart; closing the report erases it). Closed reports are deleted
+    | `retention_days` after they were closed.
+    |
+    */
+
+    'profile_reports' => [
+        'priority_threshold' => max(2, (int) env('PROFILE_REPORT_PRIORITY_THRESHOLD', 3)),
+        'retention_days' => max(30, (int) env('PROFILE_REPORT_RETENTION_DAYS', 90)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | ALTCHA (self-hosted proof of work against bots)
+    |--------------------------------------------------------------------------
+    |
+    | Forms open to automated abuse (sign-up, reports, corrections,
+    | objections, claim requests) need a solved ALTCHA challenge
+    | (App\Support\Altcha\AltchaGuard, middleware `altcha`). Challenges are
+    | issued by GET /v1/altcha/challenge, signed with `hmac_key`, solved in
+    | the visitor's browser (PBKDF2/SHA-256) and verified here; nothing goes
+    | to a third party and nothing is stored except the spent challenge's
+    | hash, in the cache until the challenge expires (replay protection).
+    |
+    | `hmac_key` defaults to a key derived from APP_KEY. Expected browser work
+    | is about `cost` × (counter_min + counter_max) / 2 PBKDF2 rounds: the
+    | defaults take well under a second on a laptop and one to three seconds
+    | on an older phone. A solution is refused when it comes back less than
+    | `min_fill_seconds` after its challenge was issued (no person fills a
+    | form that fast). `enabled` exists for the test suite; keep it on.
+    |
+    */
+
+    'altcha' => [
+        'enabled' => (bool) env('ALTCHA_ENABLED', true),
+        'hmac_key' => env('ALTCHA_HMAC_KEY'),
+        'cost' => max(1, (int) env('ALTCHA_COST', 1000)),
+        'counter_min' => max(0, (int) env('ALTCHA_COUNTER_MIN', 1000)),
+        'counter_max' => max(1, (int) env('ALTCHA_COUNTER_MAX', 4000)),
+        'expires_minutes' => max(1, (int) env('ALTCHA_EXPIRES_MINUTES', 30)),
+        'min_fill_seconds' => max(0, (int) env('ALTCHA_MIN_FILL_SECONDS', 2)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Slow-query logging
     |--------------------------------------------------------------------------
     |

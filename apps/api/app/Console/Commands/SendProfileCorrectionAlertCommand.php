@@ -9,6 +9,7 @@ use App\Models\ProfileCorrection;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
@@ -54,6 +55,18 @@ class SendProfileCorrectionAlertCommand extends Command
             overdueRequests: ProfileCorrection::query()->overdue()->count(),
             types: $types,
             queueUrl: URL::to(ProfileCorrectionResource::getUrl('index')),
+            // Profiles, not reports: distinct subjects over the threshold.
+            priorityProfiles: DB::query()
+                ->fromSub(
+                    ProfileCorrection::query()
+                        ->open()
+                        ->where('type', ProfileCorrectionType::Report->value)
+                        ->onPriorityProfiles()
+                        ->select(['subject_type', 'subject_id'])
+                        ->distinct(),
+                    'priority_profiles',
+                )
+                ->count(),
         );
 
         $recipients = $this->recipients();
