@@ -46,7 +46,6 @@ type Props = {
 
 export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [session, setSession] = useState<GuidanceSessionHandle | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [redFlags, setRedFlags] = useState<string[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -97,37 +96,76 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
     // API answers, and the outcome's heading then replaces the interim one.
   }, [phase, stepIndex, outcome]);
 
+  /*
+   * The session handle lives in refs, not state: two handlers can ask for it
+   * in the same tick (Продолжи, then the emergency shortcut while the start
+   * is still in flight) and must share ONE start request instead of opening
+   * two sessions. `storageEpoch` is bumped whenever the stored handle is
+   * cleared (an outcome, a restart); a start that settles after that does not
+   * write its handle back.
+   */
+  const session = useRef<GuidanceSessionHandle | null>(null);
+  const starting = useRef<Promise<GuidanceSessionHandle> | null>(null);
+  const storageEpoch = useRef(0);
+
+  function clearStoredSession() {
+    storageEpoch.current++;
+    session.current = null;
+    starting.current = null;
+    window.sessionStorage.removeItem(SESSION_KEY);
+  }
+
   const ensureSession = useCallback(
     async (fresh = false): Promise<GuidanceSessionHandle> => {
-      if (session && !fresh) {
-        return session;
-      }
-
       if (fresh) {
+        session.current = null;
+        starting.current = null;
         window.sessionStorage.removeItem(SESSION_KEY);
-      }
+      } else {
+        if (session.current) {
+          return session.current;
+        }
+        if (starting.current) {
+          return starting.current;
+        }
 
-      const stored =
-        typeof window !== "undefined" && !fresh
-          ? parseStoredGuidanceSession(
-              window.sessionStorage.getItem(SESSION_KEY),
-            )
-          : null;
+        const stored = parseStoredGuidanceSession(
+          window.sessionStorage.getItem(SESSION_KEY),
+        );
+        if (stored) {
+          session.current = stored;
 
-      if (stored) {
-        setSession(stored);
-
-        return stored;
+          return stored;
+        }
       }
 
       window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
-      const started = await startGuidanceSession();
-      window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
-      setSession(started);
+      const epoch = storageEpoch.current;
+      const request = startGuidanceSession().then(
+        (started) => {
+          if (starting.current === request) {
+            starting.current = null;
+          }
+          if (storageEpoch.current === epoch) {
+            window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(started));
+            session.current = started;
+          }
 
-      return started;
+          return started;
+        },
+        (error: unknown) => {
+          if (starting.current === request) {
+            starting.current = null;
+          }
+
+          throw error;
+        },
+      );
+      starting.current = request;
+
+      return request;
     },
-    [session],
+    [],
   );
 
   /**
@@ -175,7 +213,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       }
 
       setOutcome(result);
-      window.sessionStorage.removeItem(SESSION_KEY);
+      clearStoredSession();
     } catch (e) {
       if (generation.current === gen) {
         setError(e instanceof Error ? e.message : t("guidance.emergencyError"));
@@ -263,8 +301,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
 
   function handleRestart() {
     generation.current++;
-    window.sessionStorage.removeItem(SESSION_KEY);
-    setSession(null);
+    clearStoredSession();
     setAccepted(false);
     setRedFlags([]);
     setStepIndex(0);
@@ -337,7 +374,7 @@ export function GuidanceWizard({ flow, pharmaciesOn = false }: Props) {
       return () => {
         setOutcome(result);
         setPhase("result");
-        window.sessionStorage.removeItem(SESSION_KEY);
+        clearStoredSession();
       };
     }, t("guidance.saveError"));
   }

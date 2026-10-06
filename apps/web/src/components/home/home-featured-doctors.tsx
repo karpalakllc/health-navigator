@@ -4,6 +4,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Tag } from "@/components/ui/tag";
 import type { DoctorListItem } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { formatRating } from "@/lib/rating";
 import { t } from "@/i18n/t";
 
 /*
@@ -33,7 +34,7 @@ function Rating({ doctor }: { doctor: DoctorListItem }) {
     <span className="inline-flex items-center gap-1.5">
       <StarRating value={average} size="sm" />
       <span className="type-meta font-semibold text-ink">
-        {average.toFixed(1).replace(".", ",")}
+        {formatRating(average)}
       </span>
       <span className="type-meta text-ink-2">({count})</span>
     </span>

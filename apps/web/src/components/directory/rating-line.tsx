@@ -2,16 +2,11 @@ import { Icon, STAR_PATH } from "@/components/ui/icons";
 import { StarRating } from "@/components/ui/star-rating";
 import type { ReviewSummary } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { formatRating } from "@/lib/rating";
 import { t, tCount } from "@/i18n/t";
 
-/** „4,7“: one decimal with the Macedonian comma, no trailing „,0“. */
-export function formatAverage(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-
-  return Number.isInteger(rounded)
-    ? String(rounded)
-    : rounded.toFixed(1).replace(".", ",");
-}
+/** „4,7“ / „5,0“: one decimal with the Macedonian comma (formatRating). */
+export const formatAverage = formatRating;
 
 export function hasRating(
   summary: ReviewSummary,

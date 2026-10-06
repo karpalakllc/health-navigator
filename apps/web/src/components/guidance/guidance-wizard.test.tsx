@@ -634,3 +634,39 @@ describe("GuidanceWizard outcome care ladder", () => {
     expect(api.startGuidanceSession).toHaveBeenCalledTimes(2);
   });
 });
+
+/*
+ * Продолжи starts a session; pressing the emergency shortcut before that
+ * request returns used to start a second one, and the first, landing late,
+ * wrote its handle back into storage the emergency path had just cleared.
+ */
+describe("GuidanceWizard session start shared between handlers", () => {
+  it("uses one session for Продолжи and the emergency shortcut, and leaves storage cleared", async () => {
+    const first = deferred<{ id: string; token: string }>();
+    api.startGuidanceSession
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ id: "session-2", token: "token-2" });
+    const user = userEvent.setup();
+    render(<GuidanceWizard flow={flow} />);
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+    await screen.findByRole("heading", {
+      name: t("guidance.emergencyInterimTitle"),
+    });
+    await act(async () => first.resolve({ id: "session-1", token: "token-1" }));
+    await screen.findByRole("heading", { name: emergency.title });
+
+    expect(api.startGuidanceSession).toHaveBeenCalledTimes(1);
+    expect(api.completeGuidanceEmergency).toHaveBeenCalledWith({
+      id: "session-1",
+      token: "token-1",
+    });
+    expect(window.sessionStorage.getItem("guidance_session")).toBeNull();
+  });
+});

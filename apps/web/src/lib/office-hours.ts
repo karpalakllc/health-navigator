@@ -49,11 +49,38 @@ function dayFromWord(word: string): Weekday | null {
   return stem in DAY_STEMS ? DAY_STEMS[stem] : null;
 }
 
-/** „Пон“ → [0]; „Пон–Пет“ → [0…4]; „Саб, Нед“ → [5, 6]. */
+const WORKDAYS: Weekday[] = [0, 1, 2, 3, 4];
+const WEEKEND: Weekday[] = [5, 6];
+const EVERY_DAY: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
+
+/** Common whole-phrase labels admins type instead of day names. */
+const DAY_PHRASES: [RegExp, Weekday[]][] = [
+  [/^работни\s+(денови|дена|ден)$/, WORKDAYS],
+  [/^викенд(от)?$/, WEEKEND],
+  [/^(секој\s+ден(\s+во\s+неделата)?|секојдневно|цела\s+недела)$/, EVERY_DAY],
+];
+
+function daysFromPhrase(part: string): Weekday[] | null {
+  const text = part.trim().toLowerCase().replace(/\s+/g, " ");
+  for (const [pattern, days] of DAY_PHRASES) {
+    if (pattern.test(text)) return days;
+  }
+  return null;
+}
+
+/**
+ * „Пон“ → [0]; „Пон–Пет“ → [0…4]; „Саб, Нед“ → [5, 6];
+ * „Работни денови“ → [0…4]; „Викенд“ → [5, 6]; „Секој ден“ → [0…6].
+ */
 export function parseDays(label: string): Weekday[] {
   const days = new Set<Weekday>();
 
   for (const part of label.split(/,|\/|\s+и\s+/)) {
+    const phrase = daysFromPhrase(part);
+    if (phrase) {
+      phrase.forEach((d) => days.add(d));
+      continue;
+    }
     const bounds = part.split(/\s*[–—-]\s*/).filter(Boolean);
     if (bounds.length === 1) {
       const day = dayFromWord(bounds[0]);
@@ -149,7 +176,12 @@ function hhmm(minutes: number): string {
 
 /**
  * Open right now? Only answered when the hours parse: null means "we can't
- * tell", and the UI then says nothing rather than guessing.
+ * tell", and the UI then says nothing rather than guessing — in particular
+ * when today is not covered by any parsed row but some row did not parse
+ * (it may well be the one that covers today).
+ *
+ * An overnight range („20:00–02:00“) belongs to the day it starts on: it
+ * keeps that day open until midnight and the next day open until it ends.
  */
 export function openStatus(
   rows: HoursRow[],
@@ -159,25 +191,42 @@ export function openStatus(
   if (parsed.length === 0) {
     return null;
   }
+  const hasUnparsed = parsed.length < rows.length;
 
   const { day, minutes } = skopjeClock(now);
   const today = parsed.find((row) => row.days.includes(day));
+  const yesterday = ((day + 6) % 7) as Weekday;
+  const previous = parsed.find((row) => row.days.includes(yesterday));
 
-  if (!today || today.closed) {
+  if (
+    today &&
+    !today.closed &&
+    today.ranges.some((r) => r.from === 0 && r.to === 24 * 60)
+  ) {
+    return { state: "open24" };
+  }
+
+  // Still inside last night's overnight range?
+  const carriedOver = previous?.closed
+    ? undefined
+    : previous?.ranges.find((r) => r.to < r.from && minutes < r.to);
+  if (carriedOver) {
+    return { state: "open", until: hhmm(carriedOver.to) };
+  }
+
+  if (!today) {
+    return hasUnparsed ? null : { state: "closed", todayHours: null };
+  }
+  if (today.closed) {
     return { state: "closed", todayHours: null };
   }
   if (today.ranges.length === 0) {
     // „По договор“ and the like: something is written, but not a time.
     return null;
   }
-  if (today.ranges.some((r) => r.from === 0 && r.to === 24 * 60)) {
-    return { state: "open24" };
-  }
 
   const current = today.ranges.find((r) =>
-    r.to > r.from
-      ? minutes >= r.from && minutes < r.to
-      : minutes >= r.from || minutes < r.to,
+    r.to > r.from ? minutes >= r.from && minutes < r.to : minutes >= r.from,
   );
 
   return current

@@ -31,31 +31,44 @@ const FETCHERS = {
   pharmacy: fetchPharmacyReviews,
 } as const;
 
+/** The API's default page size for review lists (ReviewController). */
+const DEFAULT_PAGE_SIZE = 15;
+
+function countRatings(
+  page: PaginatedEnvelope<PublicReview>,
+): RatingDistribution {
+  const counts: RatingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const review of page.data) {
+    const stars = Math.round(review.rating) as keyof RatingDistribution;
+    if (stars in counts) counts[stars]++;
+  }
+  return counts;
+}
+
 /**
- * How many reviews gave each star. When the unfiltered first page already
- * holds every review we count it; otherwise five one-row requests read each
- * rating's total. A failure only hides the bars, never the page.
+ * How many reviews gave each star. When the unfiltered first page will hold
+ * every review we count it; otherwise five one-row requests read each
+ * rating's total — started at once, alongside the review list itself, not
+ * after it. A failure only hides the bars, never the page.
  */
 async function ratingDistribution(
   kind: ReviewSectionProps["kind"],
   slug: string,
   summary: ReviewSummary,
-  firstPage: PaginatedEnvelope<PublicReview> | null,
+  firstPage: Promise<PaginatedEnvelope<PublicReview>> | null,
 ): Promise<RatingDistribution | null> {
   if (summary.count === 0) {
     return null;
   }
 
-  if (firstPage && firstPage.meta.total <= firstPage.data.length) {
-    const counts: RatingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    for (const review of firstPage.data) {
-      const stars = Math.round(review.rating) as keyof RatingDistribution;
-      if (stars in counts) counts[stars]++;
-    }
-    return counts;
-  }
-
   try {
+    if (firstPage && summary.count <= DEFAULT_PAGE_SIZE) {
+      const page = await firstPage;
+      if (page.meta.total <= page.data.length) {
+        return countRatings(page);
+      }
+    }
+
     const totals = await Promise.all(
       ([5, 4, 3, 2, 1] as const).map((rating) =>
         FETCHERS[kind](slug, {
@@ -83,14 +96,17 @@ export async function ReviewSection({
   const { page, sort } = reviewParams;
   const rating = reviewParams.rating ? String(reviewParams.rating) : "";
 
-  const reviews = await FETCHERS[kind](slug, reviewParams);
+  const reviewsRequest = FETCHERS[kind](slug, reviewParams);
   const unfilteredFirstPage = !reviewParams.rating && page === 1;
-  const distribution = await ratingDistribution(
-    kind,
-    slug,
-    summary,
-    unfilteredFirstPage ? reviews : null,
-  );
+  const [reviews, distribution] = await Promise.all([
+    reviewsRequest,
+    ratingDistribution(
+      kind,
+      slug,
+      summary,
+      unfilteredFirstPage ? reviewsRequest : null,
+    ),
+  ]);
   const isLoggedIn = Boolean(token);
   const viewerReview = reviews.meta.viewer_review;
 

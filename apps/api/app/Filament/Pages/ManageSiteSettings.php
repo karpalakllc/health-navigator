@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Filament\Support\OptimizedImageUpload;
 use App\Models\SiteSetting;
 use App\Support\Media\BrandingUploadPath;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -59,7 +58,6 @@ class ManageSiteSettings extends Page implements HasSchemas
             'placeholder_doctor_path' => self::brandingStateFromPath($settings->placeholder_doctor_path),
             'placeholder_facility_path' => self::brandingStateFromPath($settings->placeholder_facility_path),
             'placeholder_pharmacy_path' => self::brandingStateFromPath($settings->placeholder_pharmacy_path),
-            'site_font_family' => $settings->site_font_family ?: 'geist',
             'forum_rules_enabled' => $settings->forum_rules_enabled,
             'forum_rules_title' => $settings->forum_rules_title,
             'forum_rules_body' => $settings->forum_rules_body,
@@ -90,17 +88,6 @@ class ManageSiteSettings extends Page implements HasSchemas
                             ->label('Facility placeholder'),
                         OptimizedImageUpload::siteBranding('placeholder_pharmacy_path', 'site/placeholders')
                             ->label('Pharmacy placeholder'),
-                    ]),
-                Section::make('Typography')
-                    ->schema([
-                        Select::make('site_font_family')
-                            ->label('Site font')
-                            ->options([
-                                'geist' => 'Geist (default)',
-                                'inter' => 'Inter',
-                                'system' => 'System UI',
-                            ])
-                            ->required(),
                     ]),
                 Section::make('Footer copy')
                     ->schema([

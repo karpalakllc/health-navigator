@@ -1,20 +1,24 @@
 import { tFormat } from "@/i18n/t";
 
 /**
+ * An average rating as text: always one decimal with the Macedonian decimal
+ * comma — „4,7“, „5,0“ — so every rating on the site reads the same way
+ * (a bare „5“ next to „4,7“ looked like a different scale).
+ */
+export function formatRating(value: number): string {
+  return (Math.round(value * 10) / 10).toFixed(1).replace(".", ",");
+}
+
+/**
  * Accessible text for a star rating, e.g. "4,5 / 5".
  *
  * The stars themselves are drawn to the nearest half star, but the label must
- * not be rounded at all: a 4.5 average announced as "5 / 5" overstates it.
- * One decimal, with the Macedonian decimal comma, and no trailing ",0".
+ * not be rounded to them: a 4.5 average announced as "5 / 5" overstates it.
  */
 export function ratingLabel(value: number, max = 5): string {
   const clamped = Math.min(max, Math.max(0, value));
-  const rounded = Math.round(clamped * 10) / 10;
-  const text = Number.isInteger(rounded)
-    ? String(rounded)
-    : rounded.toFixed(1).replace(".", ",");
 
-  return `${text} / ${max}`;
+  return `${formatRating(clamped)} / ${max}`;
 }
 
 /** A submitted review rating: a whole number of stars from 1 to 5. */

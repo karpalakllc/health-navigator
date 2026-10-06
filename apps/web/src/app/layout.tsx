@@ -72,8 +72,6 @@ export default async function RootLayout({
 }>) {
   const settings = await fetchPublicSettings();
 
-  // settings.site_font_family (geist/inter/system) is no longer honoured:
-  // the D2a type system is Geologica + Source Sans 3.
   return (
     <html
       lang="mk"

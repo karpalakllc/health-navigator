@@ -27,6 +27,12 @@ describe("parseDays", () => {
     ["Саб, Нед", [5, 6]],
     ["Сабота и Недела", [5, 6]],
     ["Пет–Пон", [0, 4, 5, 6]],
+    ["Работни денови", [0, 1, 2, 3, 4]],
+    ["работни дена", [0, 1, 2, 3, 4]],
+    ["Викенд", [5, 6]],
+    ["Секој ден", [0, 1, 2, 3, 4, 5, 6]],
+    ["Секој ден во неделата", [0, 1, 2, 3, 4, 5, 6]],
+    ["Работни денови и Сабота", [0, 1, 2, 3, 4, 5]],
   ])("reads %s", (label, days) => {
     expect(parseDays(label)).toEqual(days);
   });
@@ -135,5 +141,77 @@ describe("openStatus", () => {
     expect(
       openStatus(officeHoursRows({ Вто: "по договор" }, now), now),
     ).toBeNull();
+  });
+
+  it("reads the common phrase labels", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows(
+      { "Работни денови": "08:00–16:00", Викенд: "Затворено" },
+      now,
+    );
+    expect(openStatus(rows, now)).toEqual({ state: "open", until: "16:00" });
+
+    const sunday = new Date("2026-10-11T10:00:00+02:00");
+    expect(
+      openStatus(
+        officeHoursRows(
+          { "Работни денови": "08:00–16:00", Викенд: "Затворено" },
+          sunday,
+        ),
+        sunday,
+      ),
+    ).toEqual({ state: "closed", todayHours: null });
+
+    expect(
+      openStatus(officeHoursRows({ "Секој ден": "07:00–22:00" }, now), now),
+    ).toEqual({ state: "open", until: "22:00" });
+  });
+
+  it("does not say closed when a row it could not read may cover today", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows(
+      { Саб: "08:00–14:00", "Секој втор ден": "08:00–14:00" },
+      now,
+    );
+    expect(openStatus(rows, now)).toBeNull();
+  });
+
+  it("still answers when a parsed row covers today despite an unread row", () => {
+    const now = tuesdayAt("10:00");
+    const rows = officeHoursRows(
+      { "Пон–Пет": "08:00–14:00", Празници: "по договор" },
+      now,
+    );
+    expect(openStatus(rows, now)).toEqual({ state: "open", until: "14:00" });
+  });
+
+  it("keeps an overnight range open after midnight on the next day", () => {
+    // Monday 22:00–02:00; Tuesday is not listed.
+    const hours = { Пон: "22:00–02:00" };
+    const lateMonday = new Date("2026-10-05T23:00:00+02:00");
+    expect(openStatus(officeHoursRows(hours, lateMonday), lateMonday)).toEqual({
+      state: "open",
+      until: "02:00",
+    });
+
+    const now = tuesdayAt("01:00");
+    expect(openStatus(officeHoursRows(hours, now), now)).toEqual({
+      state: "open",
+      until: "02:00",
+    });
+
+    const later = tuesdayAt("03:00");
+    expect(openStatus(officeHoursRows(hours, later), later)).toEqual({
+      state: "closed",
+      todayHours: null,
+    });
+  });
+
+  it("does not open early in the morning from today's own overnight range", () => {
+    // Tuesday 22:00–02:00 only: at 01:00 on Tuesday it is not open yet.
+    const now = tuesdayAt("01:00");
+    expect(
+      openStatus(officeHoursRows({ Вто: "22:00–02:00" }, now), now),
+    ).toEqual({ state: "closed", todayHours: "22:00–02:00" });
   });
 });
