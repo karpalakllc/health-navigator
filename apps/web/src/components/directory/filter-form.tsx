@@ -11,6 +11,11 @@ type FilterFormProps = {
   action?: string;
   method?: "get" | "post";
   fieldsClassName?: string;
+  /**
+   * Below lg the fields hide behind a "Филтрирај" toggle. Pages whose only
+   * control is the query (the /search hub) must keep it visible.
+   */
+  collapsible?: boolean;
 };
 
 export function FilterForm({
@@ -19,30 +24,34 @@ export function FilterForm({
   action,
   method = "get",
   fieldsClassName,
+  collapsible = true,
 }: FilterFormProps) {
-  const [open, setOpen] = useState(false);
+  const [toggledOpen, setOpen] = useState(false);
+  const open = toggledOpen || !collapsible;
 
   return (
     <form action={action} method={method} className="space-y-3">
-      <div className="flex items-center justify-between gap-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="inline-flex min-h-[44px] flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm"
-          aria-expanded={open}
-        >
-          {t("common.filter")}
-          <ChevronIcon
-            className={cn("h-4 w-4 transition", open && "rotate-180")}
-          />
-        </button>
-        <button
-          type="submit"
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
-        >
-          {t("common.search")}
-        </button>
-      </div>
+      {collapsible ? (
+        <div className="flex items-center justify-between gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm"
+            aria-expanded={open}
+          >
+            {t("common.filter")}
+            <ChevronIcon
+              className={cn("h-4 w-4 transition", open && "rotate-180")}
+            />
+          </button>
+          <button
+            type="submit"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+          >
+            {t("common.search")}
+          </button>
+        </div>
+      ) : null}
 
       <div
         className={cn(
@@ -63,7 +72,10 @@ export function FilterForm({
         ) : null}
         <button
           type="submit"
-          className="mt-4 hidden min-h-[44px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground sm:w-auto lg:inline-flex"
+          className={cn(
+            "mt-4 min-h-[44px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground sm:w-auto lg:inline-flex",
+            collapsible ? "hidden" : "inline-flex items-center justify-center",
+          )}
         >
           {t("common.search")}
         </button>
@@ -101,8 +113,12 @@ export function FilterField({
 }) {
   return (
     <div className="flex flex-col text-sm">
-      <span className="mb-2 font-bold text-[#36414b]">{label}</span>
-      {children}
+      {/* A <label>, so the control inside is named by it (it was an unnamed
+          input announced only by its placeholder, if any). */}
+      <label className="flex flex-col">
+        <span className="mb-2 font-bold text-[#36414b]">{label}</span>
+        {children}
+      </label>
       <p className="mt-2 min-h-[1.25rem] text-xs leading-snug text-[#7b8791]">
         {hint ?? "\u00a0"}
       </p>
