@@ -245,7 +245,7 @@ Authorization uses **Spatie roles and permissions** only. Built-in roles:
   (including `Member`). Neither is an authorization input.
 - `users.user_kind` (`staff` / `client`) only decides whether an account is
   managed under Staff or Clients in the admin panel. The legacy `users.role`
-  column is deprecated: nullable, no longer read or written, to be dropped.
+  column was dropped in 2026_10_13_100000.
 - Staff moderators and admins moderate through the Filament panel and the
   public moderation endpoint.
 - **Community moderators** are client accounts holding the `Forum Moderator`

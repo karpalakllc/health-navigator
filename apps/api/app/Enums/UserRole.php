@@ -7,8 +7,8 @@ namespace App\Enums;
  * derived from Spatie roles and `user_kind`. Display only: authorization is
  * Spatie roles and permissions, never this value.
  *
- * Also the vocabulary of the deprecated `users.role` column, which nothing
- * reads or writes any more and which a later migration drops.
+ * Also the vocabulary of the legacy `users.role` column, dropped in
+ * 2026_10_13_100000 (whose down() restores it with these values).
  */
 enum UserRole: string
 {

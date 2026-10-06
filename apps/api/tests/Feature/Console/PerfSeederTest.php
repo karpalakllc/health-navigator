@@ -37,9 +37,9 @@ class PerfSeederTest extends TestCase
 
     /**
      * Seeded members must look like registered ones: the Member role (what
-     * permissions are checked against), a display name (what public surfaces
-     * render), and no value in the deprecated users.role column. Taxonomies
-     * written behind the models' backs must not be served from a stale cache.
+     * permissions are checked against) and a display name (what public surfaces
+     * render). Taxonomies written behind the models' backs must not be served
+     * from a stale cache.
      */
     public function test_members_are_real_members_and_the_taxonomy_cache_is_flushed(): void
     {
@@ -52,7 +52,6 @@ class PerfSeederTest extends TestCase
         $members = User::query()->where('email', 'like', '%@perf.zdravje360.test');
         $this->assertSame(PerfSeeder::MEMBERS, $members->count());
         $this->assertSame(0, (clone $members)->whereNull('display_name')->count());
-        $this->assertSame(0, (clone $members)->whereNotNull('role')->count());
         $this->assertSame(PerfSeeder::MEMBERS, User::role(RoleCatalog::MEMBER)->count());
 
         $member = (clone $members)->first();
