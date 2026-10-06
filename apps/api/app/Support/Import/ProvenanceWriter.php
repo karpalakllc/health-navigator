@@ -155,6 +155,22 @@ final class ProvenanceWriter
      *
      * @param  list<int|string>  $ids
      */
+    /**
+     * Ids this source wrote to a relation last time.
+     *
+     * @return list<int>
+     */
+    public function lastWritten(Model $subject, string $field): array
+    {
+        $row = $subject->exists ? $this->provenance($subject, $field) : null;
+
+        if ($row === null || $row->source !== $this->context->source || $row->value === null || $row->value === '') {
+            return [];
+        }
+
+        return array_map('intval', explode(',', $row->value));
+    }
+
     public function relation(Model $subject, string $field, array $ids, ?int $sourceRecordId = null): void
     {
         sort($ids);

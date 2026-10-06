@@ -187,6 +187,22 @@ class FzomImportTest extends TestCase
         $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->count());
     }
 
+    public function test_a_link_staff_removed_is_not_added_back(): void
+    {
+        $this->import();
+        $doctor = Doctor::query()->where('fzo_facsimile', '900001')->firstOrFail();
+        $hospital = Facility::query()->where('fzo_code', '9000010')->firstOrFail();
+        $doctor->facilities()->detach($hospital->getKey());
+
+        // A changed row, so the record is re-applied rather than skipped as unchanged.
+        $spec = str_replace('ОПШТА МЕДИЦИНА</Specijalnosti>', 'ОПШТА МЕДИЦИНА, СЕМЕЈНА МЕДИЦИНА</Specijalnosti>', (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml')));
+        $this->import(files: $this->files($this->writeSpec($spec)));
+
+        $doctor->refresh();
+        $this->assertFalse($doctor->facilities->contains('id', $hospital->getKey()));
+        $this->assertTrue($doctor->specialties->contains('slug', 'semejna-medicina'));
+    }
+
     public function test_changes_to_a_published_profile_are_applied_and_listed_for_review(): void
     {
         $this->import();

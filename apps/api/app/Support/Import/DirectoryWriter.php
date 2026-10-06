@@ -94,7 +94,10 @@ final class DirectoryWriter
             ->keyBy(fn ($row): int => (int) $row->specialty_id);
 
         $owned = $existing->filter(fn ($row): bool => $row->source === $this->context->source)->keys()->all();
-        $add = array_values(array_diff($specialtyIds, $existing->keys()->all()));
+        // A link this import made before that is gone now was removed by
+        // staff: not re-added.
+        $removedByStaff = array_diff($this->provenance->lastWritten($doctor, 'specialties'), $existing->keys()->all());
+        $add = array_values(array_diff($specialtyIds, $existing->keys()->all(), $removedByStaff));
         $remove = array_values(array_diff($owned, $specialtyIds));
         $hasPrimary = $existing->contains(fn ($row): bool => (bool) $row->is_primary && ! in_array((int) $row->specialty_id, $remove, true));
         $now = now();
@@ -150,7 +153,8 @@ final class DirectoryWriter
 
         $wanted = array_keys($links);
         $owned = $existing->filter(fn ($row): bool => $row->source === $this->context->source)->keys()->all();
-        $add = array_values(array_diff($wanted, $existing->keys()->all()));
+        $removedByStaff = array_diff($this->provenance->lastWritten($doctor, 'facilities'), $existing->keys()->all());
+        $add = array_values(array_diff($wanted, $existing->keys()->all(), $removedByStaff));
         $remove = array_values(array_diff($owned, $wanted));
         $hasPrimary = $existing->contains(fn ($row): bool => (bool) $row->is_primary && ! in_array((int) $row->facility_id, $remove, true));
         $now = now();
