@@ -16,13 +16,15 @@ export function ReplyForm({
   const router = useRouter();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  // Which confirmation to show: the API publishes at once for moderators and
+  // when post moderation is off, and holds the reply for review otherwise.
+  const [success, setSuccess] = useState<"pending" | "approved" | null>(null);
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
     setPending(true);
 
     try {
@@ -43,7 +45,7 @@ export function ReplyForm({
         return;
       }
 
-      setSuccess(true);
+      setSuccess(payload.data?.status === "approved" ? "approved" : "pending");
       setBody("");
       router.refresh();
     } catch {
@@ -75,7 +77,13 @@ export function ReplyForm({
         />
       </label>
       {error ? <FormError>{error}</FormError> : null}
-      <FormSuccess>{success ? t("forum.replySuccess") : null}</FormSuccess>
+      <FormSuccess>
+        {success === "approved"
+          ? t("forum.replyPublished")
+          : success === "pending"
+            ? t("forum.replySuccess")
+            : null}
+      </FormSuccess>
       <button
         type="submit"
         disabled={pending}
