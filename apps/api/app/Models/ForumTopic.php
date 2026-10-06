@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Searchable;
 
 class ForumTopic extends Model
@@ -108,7 +109,8 @@ class ForumTopic extends Model
         return $this->belongsToMany(ForumTag::class, 'forum_tag_topic')
             ->withPivot('confirmed')
             ->withTimestamps()
-            ->orderBy('forum_tags.name');
+            // The order they were given in: the first is the main keyword.
+            ->orderBy('forum_tag_topic.id');
     }
 
     /**
@@ -124,7 +126,12 @@ class ForumTopic extends Model
             $ids[ForumTag::resolve($name)->id] = ['confirmed' => $confirmed];
         }
 
-        $this->tags()->sync($ids);
+        // Detach and re-attach rather than sync(): pivot ids carry the
+        // order, so a reordered list must be written afresh.
+        DB::transaction(function () use ($ids): void {
+            $this->tags()->detach();
+            $this->tags()->attach($ids);
+        });
         $this->unsetRelation('tags');
         // The index entry carries the keywords; syncing the pivot saves no
         // topic column, so Scout would not notice on its own.

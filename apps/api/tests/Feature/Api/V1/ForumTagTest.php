@@ -61,7 +61,7 @@ class ForumTagTest extends TestCase
         ])->assertCreated();
 
         $topic = ForumTopic::query()->sole();
-        $this->assertSame(['операција', 'проширени вени'], $topic->tags()->pluck('name')->all());
+        $this->assertSame(['проширени вени', 'операција'], $topic->tags()->pluck('name')->all());
         $this->assertFalse((bool) $topic->tags()->first()?->pivot?->getAttribute('confirmed'));
         $this->assertSame('prosireni-veni', ForumTag::query()->where('name', 'проширени вени')->value('slug'));
         $this->assertSame('prosireni veni', ForumTag::query()->where('name', 'проширени вени')->value('latin'));
@@ -232,7 +232,8 @@ class ForumTagTest extends TestCase
             ->assertHasNoActionErrors();
 
         $tags = $topic->tags()->get();
-        $this->assertSame(['операција', 'проширени вени'], $tags->pluck('name')->all());
+        // In the order given: the first keyword is the main one.
+        $this->assertSame(['проширени вени', 'операција'], $tags->pluck('name')->all());
         $this->assertTrue($tags->every(fn (ForumTag $tag): bool => (bool) $tag->pivot?->getAttribute('confirmed')));
     }
 }
