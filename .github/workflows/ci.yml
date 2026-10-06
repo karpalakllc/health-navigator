@@ -12,10 +12,13 @@ on:
 permissions:
   contents: read
 
-# A newer push supersedes an in-flight run for the same ref.
+# A newer push to a pull request supersedes its in-flight run. Pushes to main
+# are never cancelled: the path filter diffs each push against the one before,
+# so a cancelled API push followed by a docs-only push would leave the API
+# change untested.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
@@ -106,7 +109,9 @@ jobs:
         run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress --error-format=github
       - name: Baseline must not grow
         # Regenerating the baseline would let a new error in silently. Fixing
-        # one shrinks it; nothing may add to it.
+        # one shrinks it; nothing may add to it. Compared entry by entry
+        # (path + identifier + message), so fixing one error and baselining a
+        # different one does not pass on equal totals.
         env:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
@@ -115,19 +120,36 @@ jobs:
           base="$PUSH_BEFORE"
           if [ "$EVENT" = "pull_request" ]; then base="$PR_BASE"; fi
 
-          count() { grep -Eo 'count: [0-9]+' | awk '{ s += $2 } END { print s + 0 }'; }
-
           if [ -z "$base" ] || ! git cat-file -e "$base:apps/api/phpstan-baseline.neon" 2>/dev/null; then
             echo "No baseline at the base commit; nothing to compare."
             exit 0
           fi
 
-          before="$(git show "$base:apps/api/phpstan-baseline.neon" | count)"
-          after="$(count < phpstan-baseline.neon)"
-          echo "Baselined errors: $before -> $after"
+          # One "count<TAB>path<TAB>identifier<TAB>message" line per entry.
+          entries() {
+            awk '
+              /^\t\t-$/ { if (m != "") print c "\t" p "\t" i "\t" m; m = ""; i = ""; c = 0; p = "" }
+              /^\t\t\tmessage: / { sub(/^\t\t\tmessage: /, ""); m = $0 }
+              /^\t\t\tidentifier: / { sub(/^\t\t\tidentifier: /, ""); i = $0 }
+              /^\t\t\tcount: / { sub(/^\t\t\tcount: /, ""); c = $0 + 0 }
+              /^\t\t\tpath: / { sub(/^\t\t\tpath: /, ""); p = $0 }
+              END { if (m != "") print c "\t" p "\t" i "\t" m }
+            '
+          }
 
-          if [ "$after" -gt "$before" ]; then
-            echo "::error file=apps/api/phpstan-baseline.neon::The Larastan baseline grew from $before to $after errors. Fix the new errors instead of baselining them."
+          git show "$base:apps/api/phpstan-baseline.neon" | entries > /tmp/baseline-before.tsv
+          entries < phpstan-baseline.neon > /tmp/baseline-after.tsv
+          echo "Baselined entries: $(wc -l < /tmp/baseline-before.tsv) -> $(wc -l < /tmp/baseline-after.tsv)"
+
+          grown="$(awk -F '\t' '
+            NR == FNR { before[$2 FS $3 FS $4] += $1; next }
+            { after[$2 FS $3 FS $4] += $1 }
+            END { for (k in after) if (after[k] > before[k] + 0) print after[k] - before[k] "x " k }
+          ' /tmp/baseline-before.tsv /tmp/baseline-after.tsv)"
+
+          if [ -n "$grown" ]; then
+            echo "$grown"
+            echo "::error file=apps/api/phpstan-baseline.neon::The Larastan baseline gained entries (listed above). Fix the new errors instead of baselining them."
             exit 1
           fi
 
