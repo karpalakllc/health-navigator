@@ -5,13 +5,18 @@ namespace Database\Seeders;
 use App\Enums\FacilityType;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\User;
 use App\Support\DeploymentEnvironment;
+use App\Support\DisplayName;
 use App\Support\ReviewAggregates;
+use App\Support\RoleCatalog;
+use App\Support\TaxonomyCache;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Realistic-volume data for measuring query plans (docs/performance.md).
@@ -178,6 +183,11 @@ class PerfSeeder extends Seeder
             }
         }
 
+        // Taxonomies were written with the query builder (no model events), so
+        // the cached lists and their doctor/facility counts would otherwise be
+        // served stale for up to TaxonomyCache::TTL_SECONDS.
+        TaxonomyCache::flush(TaxonomyCache::SPECIALTIES, TaxonomyCache::DEPARTMENTS, TaxonomyCache::FORUM_CATEGORIES);
+
         $this->command?->info(sprintf('PerfSeeder finished in %.1fs.', microtime(true) - $started));
     }
 
@@ -191,19 +201,39 @@ class PerfSeeder extends Seeder
         $rows = [];
 
         for ($i = 1; $i <= self::MEMBERS; $i++) {
+            $name = $this->personName();
             $rows[] = [
-                'name' => $this->personName(),
+                'name' => $name,
+                // Public surfaces render display_name; leaving it null would
+                // measure the accessor's fallback rather than the real column.
+                'display_name' => DisplayName::suggest($name),
                 'email' => "member{$i}@".self::EMAIL_DOMAIN,
                 'email_verified_at' => $this->now,
                 'password' => $password,
-                'role' => 'member',
                 'user_kind' => 'client',
                 'created_at' => $this->now,
                 'updated_at' => $this->now,
             ];
         }
 
-        return $this->insertReturningIds('users', $rows);
+        $ids = $this->insertReturningIds('users', $rows);
+
+        // Members are Spatie Member-role holders as registration makes them
+        // (AuthController); the deprecated users.role column is left null.
+        $memberRole = RoleCatalog::ensure(RoleCatalog::MEMBER)->getKey();
+        $morphClass = (new User)->getMorphClass();
+
+        $this->insertChunked(config('permission.table_names.model_has_roles'), array_map(
+            fn (int $id): array => [
+                'role_id' => $memberRole,
+                'model_type' => $morphClass,
+                'model_id' => $id,
+            ],
+            $ids,
+        ));
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $ids;
     }
 
     /**
