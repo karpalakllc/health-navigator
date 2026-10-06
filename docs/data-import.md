@@ -339,6 +339,12 @@ contained:
 
 ## 10. Schedule and alerts
 
+`import:prune` runs daily at 05:15 (always on): diff summary CSVs, closed
+review items and lifted suppressions are deleted `IMPORT_RETENTION_DAYS`
+(365) days after the run / the decision. Deleting a doctor or facility for
+good (force delete) also deletes its source records, field provenance and
+review items; a doctor's suppression stays (§11).
+
 `routes/console.php` registers both source imports. They are **off by
 default**:
 

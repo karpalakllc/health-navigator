@@ -77,6 +77,13 @@ Schedule::command('model:prune', ['--model' => [ProfileCorrection::class]])
     ->onOneServer()
     ->withoutOverlapping();
 
+// Import bookkeeping retention: diff summaries, closed review items and
+// lifted suppressions go import.retention_days (365) later.
+Schedule::command('import:prune')
+    ->dailyAt('05:15')
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // W6-C: source imports (docs/data-import.md). Both are OFF until the owner
 // sets IMPORT_FZOM_SCHEDULE / IMPORT_KOMORA_SCHEDULE, and each is skipped
 // while its command is not installed. A failed run mails the import alert

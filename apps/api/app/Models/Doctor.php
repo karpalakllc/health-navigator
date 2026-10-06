@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Import\ImportBookkeeping;
 use App\Support\Import\NameKey;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
@@ -79,6 +80,8 @@ class Doctor extends Model
         static::deleting(function (Doctor $doctor): void {
             ImportSuppression::forDoctor($doctor, ImportSuppression::REASON_DELETED, self::actingStaff());
         });
+
+        static::forceDeleted(fn (Doctor $doctor) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_DOCTOR, (int) $doctor->getKey()));
 
         static::restored(function (Doctor $doctor): void {
             ImportSuppression::query()->active()

@@ -37,6 +37,12 @@ return [
     // Largest file accepted from a source; ФЗОМ's are ~6 MB.
     'max_download_bytes' => (int) env('IMPORT_MAX_DOWNLOAD_BYTES', 50 * 1024 * 1024),
 
+    /*
+    | Diff summary CSVs, closed review items and lifted suppressions are
+    | deleted this many days later (import:prune, daily).
+    */
+    'retention_days' => (int) env('IMPORT_RETENTION_DAYS', 365),
+
     // Records written per database transaction.
     'batch_size' => (int) env('IMPORT_BATCH_SIZE', 250),
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\FacilityType;
 use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Import\ImportBookkeeping;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
@@ -53,6 +54,12 @@ class Facility extends Model
     public static function taxonomyCacheGroups(): array
     {
         return [TaxonomyCache::HOME_HIGHLIGHTS];
+    }
+
+    protected static function booted(): void
+    {
+        // The import rows about this facility go with it (ImportBookkeeping).
+        static::forceDeleted(fn (Facility $facility) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_FACILITY, (int) $facility->getKey()));
     }
 
     protected function casts(): array
