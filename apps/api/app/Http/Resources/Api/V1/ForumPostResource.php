@@ -23,8 +23,10 @@ class ForumPostResource extends JsonResource
             'author' => new ForumAuthorResource($this->user),
             'published_at' => $this->published_at?->toIso8601String(),
             // Whether the topic's opener wrote this reply („Автор“ tag). Decided
-            // here so the payload never has to carry an account id.
+            // here so the payload never has to carry an account id. Never for a
+            // deleted account, whose posts must not be linkable to each other.
             'is_topic_author' => $this->topic !== null
+                && ! $this->user->isAnonymised()
                 && (int) $this->user_id === (int) $this->topic->user_id,
         ];
     }

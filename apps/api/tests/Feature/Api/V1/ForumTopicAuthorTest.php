@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Actions\AnonymiseUser;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -41,5 +42,22 @@ class ForumTopicAuthorTest extends TestCase
             $this->assertArrayNotHasKey('user_id', $post['author']);
             $this->assertArrayNotHasKey('id', $post['author']);
         }
+    }
+
+    /**
+     * A deleted account's replies are anonymous: the tag would still tie them
+     * to the (equally anonymous) opener's topic and to each other.
+     */
+    public function test_a_deleted_openers_replies_are_not_tagged(): void
+    {
+        $opener = User::factory()->create();
+        $category = ForumCategory::factory()->create(['slug' => 'general']);
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id, 'slug' => 'water', 'user_id' => $opener->id]);
+        ForumPost::factory()->create(['forum_topic_id' => $topic->id, 'user_id' => $opener->id]);
+        app(AnonymiseUser::class)->handle($opener);
+
+        $this->getJson('/api/v1/forum/categories/general/topics/water')
+            ->assertOk()
+            ->assertJsonPath('data.posts.0.is_topic_author', false);
     }
 }
