@@ -338,6 +338,26 @@ final class DoctorProfileFields
                 $sync[(int) $link['id']] = ['is_primary' => (bool) $link['is_primary']];
             }
 
+            // A request can wait for days: a specialty or workplace it adds
+            // that staff have unpublished (or that is no longer clinical) since
+            // is left out, so approval cannot link the profile to it.
+            $current = $doctor->{$relation}()->pluck($relation.'.id')->map(fn ($id): int => (int) $id)->all();
+            $added = array_diff(array_keys($sync), $current);
+
+            if ($added !== []) {
+                $still = ($relation === 'facilities'
+                    ? Facility::query()->published()->clinical()
+                    : Specialty::query()->published())
+                    ->whereKey($added)
+                    ->pluck('id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->all();
+
+                foreach (array_diff($added, $still) as $gone) {
+                    unset($sync[$gone]);
+                }
+            }
+
             $doctor->{$relation}()->sync($sync);
 
             activity('doctor_profile')

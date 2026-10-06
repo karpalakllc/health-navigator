@@ -310,6 +310,30 @@ class DoctorDashboardTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_approving_a_stale_request_skips_workplaces_unpublished_since(): void
+    {
+        [$doctor, , $token] = $this->linkedDoctor();
+        $kept = Facility::factory()->create(['type' => FacilityType::Clinic]);
+        $closed = Facility::factory()->create(['type' => FacilityType::Hospital]);
+        $cardiology = Specialty::factory()->create(['is_published' => true]);
+        $retired = Specialty::factory()->create(['is_published' => true]);
+
+        $this->as($token)->postJson('/api/v1/me/doctor/change-requests', [
+            'facility_ids' => [$kept->id, $closed->id],
+            'specialty_ids' => [$cardiology->id, $retired->id],
+        ])->assertCreated();
+
+        // Days later, before staff decide.
+        $closed->forceFill(['is_published' => false])->save();
+        $retired->forceFill(['is_published' => false])->save();
+
+        app(DecideDoctorChangeRequest::class)->approve(DoctorChangeRequest::query()->sole(), $this->staff);
+
+        $doctor->refresh()->load(['facilities', 'specialties']);
+        $this->assertSame([$kept->id], $doctor->facilities->pluck('id')->all());
+        $this->assertSame([$cardiology->id], $doctor->specialties->pluck('id')->all());
+    }
+
     public function test_one_pending_request_at_a_time_and_no_empty_requests(): void
     {
         [, , $token] = $this->linkedDoctor();
