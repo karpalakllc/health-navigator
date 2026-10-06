@@ -35,6 +35,12 @@ class PlatformPreflightCommandTest extends TestCase
             'zdravje.seed.local_demo' => false,
             'sentry.dsn' => 'https://public@o0.ingest.sentry.io/0',
             'media.disk' => 's3',
+            'filesystems.disks.s3.bucket' => 'zdravje-media',
+            'filesystems.disks.s3.region' => 'eu-central-1',
+            'filesystems.disks.s3.key' => 'AKIAEXAMPLE',
+            'filesystems.disks.s3.secret' => 'secret',
+            'filesystems.disks.s3.url' => 'https://media.zdravje360.mk',
+            'filesystems.disks.s3.endpoint' => null,
             'scout.driver' => 'meilisearch',
             'scout.meilisearch.host' => 'https://search.zdravje360.mk',
             'scout.meilisearch.key' => 'secret',
@@ -95,6 +101,15 @@ class PlatformPreflightCommandTest extends TestCase
             'default admin email' => [['zdravje.admin.email' => 'admin@zdravje360.test'], 'zdravje.admin.email'],
             'demo seeding on' => [['zdravje.seed.local_demo' => true], 'zdravje.seed.local_demo'],
             'unknown media disk' => [['media.disk' => 'nope'], 'media.disk'],
+            's3 media without bucket' => [['filesystems.disks.s3.bucket' => null], 'filesystems.disks.s3.bucket'],
+            's3 media without region' => [['filesystems.disks.s3.region' => ''], 'filesystems.disks.s3.region'],
+            's3 media without access key' => [['filesystems.disks.s3.key' => null], 'filesystems.disks.s3.key'],
+            's3 media without secret' => [['filesystems.disks.s3.secret' => null], 'filesystems.disks.s3.secret'],
+            's3 media with http public url' => [['filesystems.disks.s3.url' => 'http://media.zdravje360.mk'], 'filesystems.disks.s3.url'],
+            'other s3-driver media disk without bucket' => [[
+                'media.disk' => 'r2',
+                'filesystems.disks.r2' => ['driver' => 's3', 'key' => 'k', 'secret' => 's', 'region' => 'auto', 'url' => 'https://media.zdravje360.mk'],
+            ], 'filesystems.disks.r2.bucket'],
             'meilisearch without key' => [['scout.meilisearch.key' => null], 'scout.meilisearch.key'],
             'meilisearch on localhost' => [['scout.meilisearch.host' => 'http://localhost:7700'], 'scout.meilisearch.host'],
         ];
@@ -118,6 +133,10 @@ class PlatformPreflightCommandTest extends TestCase
         return [
             'no sentry dsn' => [['sentry.dsn' => null], 'sentry.dsn'],
             'public media disk' => [['media.disk' => 'public'], 'media.disk'],
+            's3 endpoint without public url' => [[
+                'filesystems.disks.s3.endpoint' => 'https://account.r2.cloudflarestorage.com',
+                'filesystems.disks.s3.url' => null,
+            ], 'filesystems.disks.s3.url'],
             'unrecognised cache store' => [['cache.default' => 'octane'], 'cache.default'],
         ];
     }
@@ -147,6 +166,13 @@ class PlatformPreflightCommandTest extends TestCase
     public function test_meilisearch_credentials_are_only_required_when_it_is_the_driver(): void
     {
         config(['scout.driver' => 'database', 'scout.meilisearch.key' => null]);
+
+        $this->assertSame([], $this->preflight()['errors']);
+    }
+
+    public function test_object_storage_credentials_are_only_required_for_an_s3_media_disk(): void
+    {
+        config(['media.disk' => 'public', 'filesystems.disks.s3.bucket' => null, 'filesystems.disks.s3.key' => null]);
 
         $this->assertSame([], $this->preflight()['errors']);
     }
