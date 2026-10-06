@@ -67,15 +67,15 @@ final class RelatedForumTopics
      */
     public static function forDoctor(Doctor $doctor, int $limit = self::DEFAULT_LIMIT): Collection
     {
-        $key = self::nameKey($doctor->full_name);
+        $keys = self::doctorNameKeys($doctor->full_name);
 
-        if ($key === null) {
+        if ($keys === []) {
             return new Collection;
         }
 
         return self::base()
             ->whereHas('tags', fn (Builder $tags) => $tags
-                ->where('match_key', $key)
+                ->whereIn('match_key', $keys)
                 ->where('forum_tag_topic.confirmed', true))
             ->orderByDesc('last_post_at')
             ->orderByDesc('id')
@@ -118,6 +118,30 @@ final class RelatedForumTopics
     private static function base(): Builder
     {
         return ForumTopic::query()->visible()->with(['user', 'category']);
+    }
+
+    /**
+     * Profiles store names with a title („д-р Елена Димитрова“); a keyword
+     * may carry it or not. The name without leading titles, alone and with
+     * the common „д-р“/„dr“ prefixes, are all the same person.
+     *
+     * @return list<string>
+     */
+    private static function doctorNameKeys(?string $name): array
+    {
+        $bare = preg_replace(
+            '/^((д-р|др|dr|d-r|проф|prof|доц|doc|м-р|mr|прим|prim|асист|asist)\.?\s+)+/u',
+            '',
+            ForumTagNormalizer::clean((string) $name),
+        ) ?? '';
+        $key = self::nameKey($bare);
+
+        // A single word (a surname alone) is too ambiguous to link a person.
+        if ($key === null || ! str_contains($key, ' ')) {
+            return [];
+        }
+
+        return [$key, 'd r '.$key, 'dr '.$key];
     }
 
     private static function nameKey(?string $name): ?string

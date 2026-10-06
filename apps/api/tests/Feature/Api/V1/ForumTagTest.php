@@ -176,20 +176,26 @@ class ForumTagTest extends TestCase
 
     public function test_doctor_related_topics_use_confirmed_tags_only(): void
     {
-        $doctor = Doctor::factory()->create(['full_name' => 'Елена Димитрова', 'slug' => 'elena-dimitrova']);
+        // Profiles carry the title in the name; keywords may or may not.
+        Doctor::factory()->create(['full_name' => 'д-р Елена Димитрова', 'slug' => 'elena-dimitrova']);
         $confirmed = $this->topic('Искуство кај кардиолог', ['Елена Димитрова'], confirmed: true);
+        $withTitle = $this->topic('Втор преглед', ['Dr. Elena Dimitrova'], confirmed: true);
         $this->topic('Само предлог', ['elena dimitrova'], confirmed: false);
+        $this->topic('Само презиме', ['Димитрова'], confirmed: true);
         $this->topic('Елена Димитрова во наслов');
 
-        $this->getJson('/api/v1/forum/topics/related?doctor=elena-dimitrova')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.slug', $confirmed->slug);
+        $slugs = array_column(
+            $this->getJson('/api/v1/forum/topics/related?doctor=elena-dimitrova')->assertOk()->json('data'),
+            'slug',
+        );
+        sort($slugs);
+        $expected = [$confirmed->slug, $withTitle->slug];
+        sort($expected);
+        $this->assertSame($expected, $slugs);
 
         $this->getJson('/api/v1/forum/topics/related?doctor=nema')->assertNotFound();
         $this->getJson('/api/v1/forum/topics/related')->assertUnprocessable();
         $this->getJson('/api/v1/forum/topics/related?doctor=a&facility=b')->assertUnprocessable();
-        $this->assertNotNull($doctor);
     }
 
     public function test_facility_related_topics_match_tag_or_title(): void
