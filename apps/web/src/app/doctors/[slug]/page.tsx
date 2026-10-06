@@ -9,6 +9,7 @@ import {
   ProfileContactList,
   type ContactInfo,
 } from "@/components/directory/profile-contact";
+import { LicenceStatusTag } from "@/components/directory/licence-status";
 import { ProfileHeader } from "@/components/directory/profile-header";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
@@ -206,6 +207,7 @@ export default async function DoctorDetailPage({
                   ) : (
                     <Tag>{t("doctors.notAcceptingPatients")}</Tag>
                   )}
+                  <LicenceStatusTag valid={doctor.has_valid_licence} />
                   {doctor.years_experience ? (
                     <Tag icon="award">
                       {tFormat("doctors.yearsExperience", {

@@ -551,6 +551,7 @@ export const mk = {
     facilities: "Работни места",
     noFacilities: "Нема поврзани установи.",
     acceptingPatients: "Прима нови пациенти",
+    licenceValid: "Лиценца: важечка",
     sponsored: "Спонзорирано",
     yearsExperience: "{years} год. искуство",
     education: "Образование",
