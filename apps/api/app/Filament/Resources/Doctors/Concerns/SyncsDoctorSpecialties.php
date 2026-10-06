@@ -38,9 +38,11 @@ trait SyncsDoctorSpecialties
         // Filament saved the doctor first (whose saved hook flushed the
         // specialty list, doctors_count included) and only then synced the
         // pivot, which fires no model event: without this the list would cache
-        // the pre-sync counts for TaxonomyCache::TTL_SECONDS. Same for the
-        // search document, which embeds the specialty names.
+        // the pre-sync counts for TaxonomyCache::TTL_SECONDS (the home page's
+        // top specialties likewise). Same for the search document, which
+        // embeds the specialty names.
         TaxonomyCache::flush(TaxonomyCache::SPECIALTIES);
+        TaxonomyCache::flush(TaxonomyCache::HOME_HIGHLIGHTS);
         $this->record->unsetRelation('specialties')->searchable();
     }
 

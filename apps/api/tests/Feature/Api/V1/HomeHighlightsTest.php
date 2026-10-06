@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Actions\AnonymiseUser;
 use App\Enums\FacilityType;
 use App\Enums\ReviewStatus;
 use App\Models\Doctor;
@@ -190,6 +191,22 @@ class HomeHighlightsTest extends TestCase
             $this->assertStringNotContainsString($private, $content);
         }
         $this->assertStringNotContainsString('user_id', $content);
+    }
+
+    public function test_a_deleted_author_appears_as_a_deleted_user_and_the_cache_is_busted(): void
+    {
+        $doctor = Doctor::factory()->create(['is_published' => true]);
+        $author = User::factory()->create(['name' => 'Ана Трајкова']);
+        $author->forceFill(['display_name' => 'Ана од Охрид'])->save();
+        $this->approvedReview($doctor, ['user_id' => $author->id]);
+
+        $this->getJson(self::URI)->assertOk()
+            ->assertJsonPath('data.recent_reviews.0.author_name', 'Ана од Охрид');
+
+        app(AnonymiseUser::class)->handle($author);
+
+        $this->getJson(self::URI)->assertOk()
+            ->assertJsonPath('data.recent_reviews.0.author_name', __('api.account.deleted_user_name'));
     }
 
     public function test_is_publicly_cacheable_and_busted_when_a_review_is_moderated(): void

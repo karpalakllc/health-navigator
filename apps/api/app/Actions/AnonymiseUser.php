@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\User;
 use App\Support\Media\ImageOptimizer;
+use App\Support\TaxonomyCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -77,6 +78,9 @@ final class AnonymiseUser
 
             return $avatarPath;
         });
+
+        // The home page caches recent reviews with their authors' names.
+        TaxonomyCache::flush(TaxonomyCache::HOME_HIGHLIGHTS);
 
         // Only once nothing points at it: a rolled-back deletion keeps its photo.
         if (is_string($avatarPath) && $avatarPath !== '') {

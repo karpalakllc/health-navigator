@@ -156,8 +156,8 @@ class HomeHighlightsController extends Controller
                 },
             )
             ->with([
-                // `name` only feeds publicName()'s fallback; it is never sent.
-                'user:id,name,display_name',
+                // `name` and `anonymised_at` only feed publicName(); neither is sent.
+                'user:id,name,display_name,anonymised_at',
                 'reviewable',
             ])
             ->latest('published_at')
