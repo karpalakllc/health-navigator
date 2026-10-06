@@ -188,4 +188,22 @@ class SecurityRegressionTest extends TestCase
         $this->postJson("/api/v1/triage/sessions/{$sessionId}/emergency")
             ->assertOk();
     }
+
+    public function test_a_token_issued_before_gaining_panel_access_stops_working(): void
+    {
+        // Staff must use the 2FA-protected panel; API login refuses them. A token
+        // the account held from before it was granted panel access must not
+        // become a way around that.
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $user = User::factory()->create();
+        $token = $user->createToken('web')->plainTextToken;
+
+        $this->withToken($token)->getJson('/api/v1/me')->assertOk();
+
+        $user->assignRole('Moderator');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/v1/me')->assertUnauthorized();
+    }
 }
