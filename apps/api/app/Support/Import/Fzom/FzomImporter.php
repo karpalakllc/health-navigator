@@ -4,10 +4,12 @@ namespace App\Support\Import\Fzom;
 
 use App\Enums\FacilityType;
 use App\Enums\ImportReviewKind;
+use App\Enums\ImportRunStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
+use App\Models\ImportRun;
 use App\Models\SourceRecord;
 use App\Models\SpecialtyAlias;
 use App\Support\Import\DirectoryWriter;
@@ -32,9 +34,10 @@ use RuntimeException;
  *    the review queue.
  * 3. Values are written through ProvenanceWriter (locks, conflicts,
  *    changes on published profiles); new records are hidden drafts.
- * 4. Records the source no longer lists count a missed run; after
+ * 4. Records a complete snapshot no longer lists count a missed run; after
  *    `missing_after_runs` consecutive misses they are queued as "missing".
- *    Nothing is deleted or unpublished.
+ *    Nothing is deleted or unpublished. A partial snapshot (one of the two
+ *    files) never counts a miss.
  */
 final class FzomImporter
 {
@@ -43,11 +46,31 @@ final class FzomImporter
     public function __construct(private readonly FzomXmlReader $reader) {}
 
     /**
-     * @param  array<string, string>  $files  label => local path, all files of one complete snapshot
+     * A complete snapshot has every file the source publishes (both ФЗОМ
+     * lists). Only a complete one can tell that a record left the source.
+     *
+     * @param  array<string, string>  $files  label => local path
+     */
+    public static function isComplete(array $files): bool
+    {
+        return array_diff(array_keys((array) config('import.fzom.files')), array_keys($files)) === [];
+    }
+
+    /**
+     * @param  array<string, string>  $files  label => local path; a partial set (one file) updates what it lists and never marks anything missing
      */
     public function import(ImportContext $context, array $files): void
     {
         [$facilities, $doctors] = $this->aggregate($context, $files);
+        $complete = self::isComplete($files);
+
+        // Before anything is written (aliases, specialties and review items
+        // included): a truncated file must leave the database untouched.
+        if ($complete) {
+            $this->guardAgainstMassMissing($context, array_map('strval', array_keys($doctors)));
+        } else {
+            $context->increment('partial_snapshot');
+        }
 
         $provenance = new ProvenanceWriter($context);
         $writer = new DirectoryWriter($context, $provenance);
@@ -58,14 +81,35 @@ final class FzomImporter
         $context->increment('facilities_in_source', count($facilities));
         $context->increment('doctors_in_source', count($doctors));
 
-        $this->guardAgainstMassMissing($context, array_keys($facilities), array_keys($doctors));
-
         $facilityIds = $this->importFacilities($context, $writer, $facilities);
         $seenDoctorIds = $this->importDoctors($context, $writer, $doctors, $facilityIds);
 
-        $this->markMissing($context, FieldProvenance::SUBJECT_FACILITY, array_values($facilityIds));
-        $this->markMissing($context, FieldProvenance::SUBJECT_DOCTOR, $seenDoctorIds);
+        $this->touchSeen(array_merge(
+            array_map(fn ($key): string => 'facility:'.$key, array_keys($facilities)),
+            array_map(fn ($fax): string => 'doctor:'.$fax, array_keys($doctors)),
+        ));
+
+        if ($complete) {
+            $this->markMissing($context, FieldProvenance::SUBJECT_FACILITY, array_values($facilityIds));
+            $this->markMissing($context, FieldProvenance::SUBJECT_DOCTOR, $seenDoctorIds);
+        }
+
         $provenance->flushChanges();
+    }
+
+    /**
+     * source_records.last_seen_at = the last run that listed the record,
+     * changed or not (the safety stop's baseline).
+     *
+     * @param  list<string>  $externalKeys
+     */
+    private function touchSeen(array $externalKeys): void
+    {
+        $now = now();
+
+        foreach (array_chunk($externalKeys, 1000) as $chunk) {
+            SourceRecord::query()->where('source', self::SOURCE)->whereIn('external_key', $chunk)->toBase()->update(['last_seen_at' => $now]);
+        }
     }
 
     /**
@@ -208,12 +252,32 @@ final class FzomImporter
      * A truncated or half-generated file looks like most doctors left.
      * An apply stops before writing; a dry run reports it.
      *
-     * @param  list<string>  $facilityKeys
-     * @param  list<string>  $facsimiles
+     * The baseline is the previous complete snapshot: the doctors listed by
+     * the last successful complete apply (and any partial run since), not
+     * every doctor ever seen, so ordinary turnover never adds up to a stop.
+     *
+     * @param  list<string>  $facsimiles  every facsimile in this snapshot
      */
-    private function guardAgainstMassMissing(ImportContext $context, array $facilityKeys, array $facsimiles): void
+    private function guardAgainstMassMissing(ImportContext $context, array $facsimiles): void
     {
-        $known = SourceRecord::query()->where('source', self::SOURCE)->where('subject_type', FieldProvenance::SUBJECT_DOCTOR)->count();
+        $previous = ImportRun::query()
+            ->where('source', self::SOURCE)
+            ->where('dry_run', false)
+            ->where('status', ImportRunStatus::Succeeded)
+            ->whereKeyNot($context->run->getKey())
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->first(fn (ImportRun $run): bool => (bool) ($run->source_meta['complete'] ?? true));
+
+        if ($previous === null) {
+            return;
+        }
+
+        $baseline = fn () => SourceRecord::query()->where('source', self::SOURCE)
+            ->where('subject_type', FieldProvenance::SUBJECT_DOCTOR)
+            ->where('last_seen_at', '>=', $previous->started_at);
+        $known = $baseline()->count();
 
         if ($known === 0) {
             return;
@@ -222,16 +286,14 @@ final class FzomImporter
         $present = 0;
 
         foreach (array_chunk($facsimiles, 1000) as $chunk) {
-            $present += SourceRecord::query()->where('source', self::SOURCE)
-                ->whereIn('external_key', array_map(fn ($fax): string => 'doctor:'.$fax, $chunk))
-                ->count();
+            $present += $baseline()->whereIn('external_key', array_map(fn ($fax): string => 'doctor:'.$fax, $chunk))->count();
         }
 
         $ratio = ($known - $present) / $known;
         $context->increment('doctors_absent_this_run', $known - $present);
 
         if ($ratio > (float) config('import.max_missing_ratio')) {
-            $message = sprintf('Safety stop: %d of %d known doctors are absent from this snapshot (%.0f%%).', $known - $present, $known, $ratio * 100);
+            $message = sprintf('Safety stop: %d of the %d doctors in the previous complete snapshot are absent from this one (%.0f%%).', $known - $present, $known, $ratio * 100);
 
             if (! $context->dryRun) {
                 throw new RuntimeException($message.' Check the source files; nothing was written.');

@@ -30,7 +30,7 @@ final class FzomImportJob
             if ($localFiles !== null) {
                 $this->importer->import($context, $localFiles);
 
-                return ['files' => array_map(fn (string $path): array => [
+                return ['complete' => FzomImporter::isComplete($localFiles), 'files' => array_map(fn (string $path): array => [
                     'local' => basename($path),
                     'sha256' => hash_file('sha256', $path) ?: null,
                     'bytes' => filesize($path) ?: 0,
@@ -39,7 +39,7 @@ final class FzomImportJob
 
             $previous = $this->previousMeta();
             $files = [];
-            $meta = ['files' => []];
+            $meta = ['complete' => true, 'files' => []];
             $folder = $this->fetcher->newSnapshotFolder();
 
             foreach ((array) config('import.fzom.files') as $label => $url) {

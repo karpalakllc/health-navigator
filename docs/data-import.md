@@ -59,10 +59,14 @@ and `storage/app/private/imports/komora/…` (`KOMORA_KEEP_SNAPSHOTS`).
   `licence`) is never written by any import.
 - **Missing ≠ deleted.** A record absent from two consecutive complete
   ФЗОМ snapshots (`IMPORT_MISSING_AFTER_RUNS`) is queued as **missing**.
-  Staff decide (hide or keep).
-- **Safety stop.** A ФЗОМ apply that would mark more than 20 %
-  (`IMPORT_MAX_MISSING_RATIO`) of the known doctors missing aborts before
-  writing — that is what a truncated source file looks like.
+  Staff decide (hide or keep). A partial run (`--pzz` or `--spec` alone)
+  updates what its file lists and never counts anyone as missing.
+- **Safety stop.** A complete ФЗОМ apply in which more than 20 %
+  (`IMPORT_MAX_MISSING_RATIO`) of the doctors of the previous complete
+  snapshot are absent aborts before writing anything (no aliases,
+  specialties or review items either) — that is what a truncated source
+  file looks like. Ordinary turnover does not add up: the baseline is the
+  previous snapshot, not every doctor ever seen.
 - **No search or audit-log noise.** Imports do not touch the search index
   (drafts are not searchable anyway) or write one activity-log entry per
   record; the run, its diff and the provenance are the record. Publishing
@@ -75,7 +79,8 @@ Always start with a dry run.
 ```sh
 php artisan import:fzom --dry-run
 php artisan import:fzom                       # apply
-php artisan import:fzom --pzz=/path/a.xml --spec=/path/b.xml --dry-run   # local files
+php artisan import:fzom --pzz=/path/a.xml --spec=/path/b.xml --dry-run   # local files (both = complete)
+php artisan import:fzom --pzz=/path/a.xml --dry-run   # one file = partial run, never marks missing
 php artisan import:fzom --force               # import although the source answered 304
 
 php artisan import:komora-licences --dry-run

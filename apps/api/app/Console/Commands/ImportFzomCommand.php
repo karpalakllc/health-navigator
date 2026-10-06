@@ -15,8 +15,8 @@ class ImportFzomCommand extends Command
 {
     protected $signature = 'import:fzom
         {--dry-run : Run everything, report what would change, write nothing}
-        {--pzz= : Use this local primary-care XML instead of downloading}
-        {--spec= : Use this local specialist XML instead of downloading}
+        {--pzz= : Use this local primary-care XML instead of downloading (alone: a partial run, never marks anything missing)}
+        {--spec= : Use this local specialist XML instead of downloading (alone: a partial run, never marks anything missing)}
         {--force : Import even when the source answers 304 Not Modified}';
 
     protected $description = 'Import doctors and facilities from the ФЗОМ doctor register (XML)';
