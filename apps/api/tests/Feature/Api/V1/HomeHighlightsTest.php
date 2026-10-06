@@ -167,27 +167,30 @@ class HomeHighlightsTest extends TestCase
             ->assertJsonPath('data.recent_reviews.0.excerpt', 'Лекар');
     }
 
-    public function test_authors_appear_by_public_display_name_only(): void
+    public function test_authors_appear_by_username_only(): void
     {
         $doctor = Doctor::factory()->create(['is_published' => true]);
-        $named = User::factory()->create(['name' => 'Марија Костовска', 'email' => 'marija@example.test']);
-        $named->forceFill(['display_name' => 'Марија од Битола'])->save();
-        $unnamed = User::factory()->create(['name' => 'Петар Георгиев', 'email' => 'petar@example.test']);
-        // A legacy account without a display name falls back to the suggested
-        // short form, never the full name.
-        DB::table('users')->where('id', $unnamed->id)->update(['display_name' => null]);
+        $named = User::factory()->create(['name' => 'Марија Костовска', 'username' => 'bitolchanka', 'email' => 'marija@example.test']);
+        // The old public „Име П.“ form is no longer shown anywhere: initials
+        // can be enough for a doctor to recognise a patient.
+        $named->forceFill(['display_name' => 'Марија К.'])->save();
+        $legacy = User::factory()->create(['name' => 'Петар Георгиев', 'email' => 'petar@example.test']);
+        $legacy->forceFill(['display_name' => 'Петар Г.'])->save();
+        $legacy->forceFill(['username' => null])->save();
 
         $this->approvedReview($doctor, ['user_id' => $named->id, 'published_at' => now()->subMinute()]);
-        $this->approvedReview($doctor, ['user_id' => $unnamed->id, 'published_at' => now()]);
+        $this->approvedReview($doctor, ['user_id' => $legacy->id, 'published_at' => now()]);
 
         $response = $this->getJson(self::URI)->assertOk();
 
         $response
-            ->assertJsonPath('data.recent_reviews.0.author_name', 'Петар Г.')
-            ->assertJsonPath('data.recent_reviews.1.author_name', 'Марија од Битола');
+            // An account saved without a username gets a temporary one, never a name.
+            ->assertJsonPath('data.recent_reviews.0.author_name', $legacy->fresh()->username)
+            ->assertJsonPath('data.recent_reviews.1.author_name', 'bitolchanka');
+        $this->assertStringStartsWith('clen-', (string) $legacy->fresh()->username);
 
         $content = (string) $response->getContent();
-        foreach (['Марија Костовска', 'Петар Георгиев', 'marija@example.test', 'petar@example.test'] as $private) {
+        foreach (['Марија', 'Петар', 'marija@example.test', 'petar@example.test'] as $private) {
             $this->assertStringNotContainsString($private, $content);
         }
         $this->assertStringNotContainsString('user_id', $content);
@@ -196,12 +199,11 @@ class HomeHighlightsTest extends TestCase
     public function test_a_deleted_author_appears_as_a_deleted_user_and_the_cache_is_busted(): void
     {
         $doctor = Doctor::factory()->create(['is_published' => true]);
-        $author = User::factory()->create(['name' => 'Ана Трајкова']);
-        $author->forceFill(['display_name' => 'Ана од Охрид'])->save();
+        $author = User::factory()->create(['name' => 'Ана Трајкова', 'username' => 'ana_ohrid']);
         $this->approvedReview($doctor, ['user_id' => $author->id]);
 
         $this->getJson(self::URI)->assertOk()
-            ->assertJsonPath('data.recent_reviews.0.author_name', 'Ана од Охрид');
+            ->assertJsonPath('data.recent_reviews.0.author_name', 'ana_ohrid');
 
         app(AnonymiseUser::class)->handle($author);
 

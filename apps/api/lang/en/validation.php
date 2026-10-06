@@ -16,11 +16,18 @@ return [
             'required' => 'Confirm that you understand the guidance is general information only.',
             'accepted' => 'Confirm that you understand the guidance is general information only.',
         ],
-        'display_name' => [
-            'regex' => 'The display name must start with a letter and may contain only letters, spaces and . - \'',
-            'too_short' => 'The display name must contain at least two letters.',
-            'mixed_script' => 'Do not mix Cyrillic and Latin letters within one word of the display name.',
-            'reserved' => 'The display name cannot contain a title or role (e.g. "Dr", "administrator", "moderator", "team") or the platform\'s name.',
+        'username' => [
+            'length' => 'The username must be 3 to 30 characters long.',
+            'alphabet' => 'The username may contain only letters (Latin or Macedonian Cyrillic), digits and . _ -',
+            'start' => 'The username must start with a letter.',
+            'separators' => 'The characters . _ - cannot follow one another.',
+            'mixed_script' => 'Use either Latin or Cyrillic letters, not both.',
+            'not_allowed' => 'This username is not allowed.',
+            'taken' => 'This username is already in use.',
+        ],
+        'accept_terms' => [
+            'required' => 'Confirm that you are at least 14 and accept the Terms of Use and the Privacy Policy.',
+            'accepted' => 'Confirm that you are at least 14 and accept the Terms of Use and the Privacy Policy.',
         ],
     ],
 

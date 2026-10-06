@@ -20,8 +20,8 @@ class ForumTopicAuthorTest extends TestCase
 
     public function test_replies_say_whether_the_topic_opener_wrote_them(): void
     {
-        $opener = User::factory()->create(['display_name' => 'Ана П.']);
-        $namesake = User::factory()->create(['display_name' => 'Ана П.']);
+        $opener = User::factory()->create(['name' => 'Ана Петрова', 'username' => 'ana_p']);
+        $namesake = User::factory()->create(['name' => 'Ана Петрова', 'username' => 'ana_pe']);
         $category = ForumCategory::factory()->create(['slug' => 'general']);
         $topic = ForumTopic::factory()->create([
             'forum_category_id' => $category->id,
@@ -35,7 +35,7 @@ class ForumTopicAuthorTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.posts.0.is_topic_author', true)
             ->assertJsonPath('data.posts.1.is_topic_author', false)
-            ->assertJsonPath('data.posts.1.author_name', 'Ана П.');
+            ->assertJsonPath('data.posts.1.author_name', 'ana_pe');
 
         foreach ($response->json('data.posts') as $post) {
             $this->assertArrayNotHasKey('user_id', $post);

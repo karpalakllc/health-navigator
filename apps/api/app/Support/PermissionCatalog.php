@@ -16,6 +16,7 @@ final class PermissionCatalog
             self::community(),
             self::guidance(),
             self::member(),
+            self::usernames(),
         );
     }
 
@@ -140,6 +141,20 @@ final class PermissionCatalog
     public static function guidance(): array
     {
         return self::crudPermissions(['triage_flows']);
+    }
+
+    /**
+     * The blocked and reserved username lists, and renaming a member whose
+     * username slipped through (Filament). Administrator only by default;
+     * added after launch, so a migration grants it to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function usernames(): array
+    {
+        return [
+            'usernames.manage',
+        ];
     }
 
     /**

@@ -40,7 +40,7 @@ class ReviewTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.rating', 5)
-            ->assertJsonPath('data.0.author_name', $member->display_name)
+            ->assertJsonPath('data.0.author_name', $member->username)
             ->assertJsonStructure(['meta' => ['current_page', 'per_page', 'total', 'last_page']]);
     }
 

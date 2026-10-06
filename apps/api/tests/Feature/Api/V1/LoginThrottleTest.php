@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -125,14 +126,14 @@ class LoginThrottleTest extends TestCase
 
         $payload = [
             'name' => 'Someone',
-            'display_name' => 'Нов Ч.',
+            'accept_terms' => true,
             'email' => 'target@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
         ];
 
         foreach (range(1, 6) as $_) {
-            $this->postJson('/api/v1/auth/register', $payload)->assertStatus(202);
+            $this->postJson('/api/v1/auth/register', [...$payload, 'username' => TestUsername::next()])->assertStatus(202);
         }
 
         $user = User::query()->where('email', 'target@example.com')->sole();
@@ -147,7 +148,8 @@ class LoginThrottleTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Someone',
-            'display_name' => 'Нов Ч.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'mixed@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',
@@ -216,7 +218,8 @@ class LoginThrottleTest extends TestCase
         foreach (range(1, 12) as $_) {
             $this->postJson('/api/v1/auth/register', [
                 'name' => 'Someone',
-                'display_name' => 'Нов Ч.',
+                'username' => TestUsername::next(),
+                'accept_terms' => true,
                 'email' => 'taken@example.com',
                 'password' => 'sufficiently1long',
                 'password_confirmation' => 'sufficiently1long',
@@ -236,7 +239,8 @@ class LoginThrottleTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Someone',
-            'display_name' => 'Нов Ч.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'fresh@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',

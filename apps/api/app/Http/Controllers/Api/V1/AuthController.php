@@ -168,7 +168,7 @@ class AuthController extends Controller
         $hashedPassword = Hash::make($password);
 
         $name = $request->string('name')->toString();
-        $displayName = $request->string('display_name')->toString();
+        $username = $request->string('username')->toString();
 
         $existing = User::query()->where('email', $email)->first();
 
@@ -181,14 +181,18 @@ class AuthController extends Controller
         try {
             // The Member role is what lets the account post reviews and forum
             // content; created together so no account exists without it.
-            $user = DB::transaction(function () use ($name, $displayName, $email, $hashedPassword): User {
-                $user = User::query()->create([
+            $user = DB::transaction(function () use ($name, $username, $email, $hashedPassword): User {
+                $user = User::query()->forceCreate([
                     'name' => $name,
-                    'display_name' => $displayName,
+                    'username' => $username,
                     'email' => $email,
                     'password' => $hashedPassword,
                     'user_kind' => UserKind::Client,
                     'email_verified_at' => null,
+                    // „14+ and I accept the terms and the privacy policy“,
+                    // ticked on the form (RegisterRequest requires it).
+                    'terms_accepted_at' => now(),
+                    'terms_version' => (string) config('zdravje.legal.terms_version'),
                 ]);
 
                 $user->assignRole(RoleCatalog::ensure(RoleCatalog::MEMBER));
@@ -202,9 +206,14 @@ class AuthController extends Controller
 
             if ($raced !== null) {
                 $this->notifyExistingAccount($raced);
+
+                return $this->registrationAccepted();
             }
 
-            return $this->registrationAccepted();
+            // Not the address, so the username: someone took it a moment ago.
+            throw ValidationException::withMessages([
+                'username' => [__('validation.custom.username.taken')],
+            ]);
         }
 
         VerificationMailer::sendVerificationLink($user);

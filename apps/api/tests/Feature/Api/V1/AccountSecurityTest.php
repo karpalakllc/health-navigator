@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use RuntimeException;
+use Tests\Support\TestUsername;
 use Tests\TestCase;
 
 /**
@@ -55,7 +56,8 @@ class AccountSecurityTest extends TestCase
 
         return array_merge([
             'name' => 'New Member',
-            'display_name' => 'Нов Ч.',
+            'username' => TestUsername::next(),
+            'accept_terms' => true,
             'email' => 'victim@example.com',
             'password' => $password,
             'password_confirmation' => $password,

@@ -3,7 +3,8 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Http\Requests\Api\V1\Concerns\NormalizesEmail;
-use App\Http\Requests\Api\V1\Concerns\ValidatesDisplayName;
+use App\Support\Usernames\UsernameNormalizer;
+use App\Support\Usernames\UsernameValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -12,7 +13,6 @@ class RegisterRequest extends FormRequest
     use NormalizesEmail {
         prepareForValidation as normalizeEmail;
     }
-    use ValidatesDisplayName;
 
     public function authorize(): bool
     {
@@ -22,7 +22,10 @@ class RegisterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->normalizeEmail();
-        $this->normalizeDisplayName();
+
+        if (is_string($this->input('username'))) {
+            $this->merge(['username' => UsernameNormalizer::prepare($this->input('username'))]);
+        }
     }
 
     /**
@@ -33,8 +36,13 @@ class RegisterRequest extends FormRequest
         return [
             // Private: account page, admin, mail. Never shown publicly.
             'name' => ['required', 'string', 'max:255'],
-            // Shown next to reviews and forum posts instead of the name.
-            'display_name' => $this->displayNameRules(),
+            // Public and unique: shown next to reviews and forum posts instead
+            // of the name. Unlike the address, a taken username may be
+            // reported as taken — usernames are public anyway.
+            'username' => UsernameValidator::rules(),
+            // „I am at least 14 and accept the Terms of Use and the Privacy
+            // Policy“: recorded as users.terms_accepted_at + terms_version.
+            'accept_terms' => ['accepted'],
             // Deliberately NOT unique: rejecting a duplicate here tells an anonymous
             // caller that the address is registered. The controller handles the
             // collision and answers identically either way.

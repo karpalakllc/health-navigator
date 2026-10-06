@@ -7,10 +7,10 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\User;
 use App\Support\DeploymentEnvironment;
-use App\Support\DisplayName;
 use App\Support\ReviewAggregates;
 use App\Support\RoleCatalog;
 use App\Support\TaxonomyCache;
+use App\Support\Usernames\UsernameNormalizer;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -208,9 +208,12 @@ class PerfSeeder extends Seeder
             $name = $this->personName();
             $rows[] = [
                 'name' => $name,
-                // Public surfaces render display_name; leaving it null would
-                // measure the accessor's fallback rather than the real column.
-                'display_name' => DisplayName::suggest($name),
+                // Public surfaces render the username; leaving it null would
+                // measure the fallback rather than the real column. Inserted
+                // directly, so the folded forms are computed here.
+                'username' => "perf_member{$i}",
+                'username_normalized' => UsernameNormalizer::key("perf_member{$i}"),
+                'username_skeleton' => UsernameNormalizer::skeleton("perf_member{$i}"),
                 'email' => "member{$i}@".self::EMAIL_DOMAIN,
                 'email_verified_at' => $this->now,
                 'password' => $password,

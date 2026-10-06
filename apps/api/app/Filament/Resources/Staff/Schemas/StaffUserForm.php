@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Staff\Schemas;
 
 use App\Filament\Support\EmailField;
+use App\Filament\Support\UsernameField;
 use App\Models\User;
 use App\Policies\Support\PrivilegeHierarchy;
 use Closure;
@@ -17,7 +18,10 @@ class StaffUserForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required(),
+            TextInput::make('name')
+                ->required()
+                ->helperText('Private: shown here and on the account page, never publicly.'),
+            UsernameField::make(),
             EmailField::make()->required()->unique(ignoreRecord: true),
             // Options are narrowed to what the acting user may grant, and the
             // rule re-checks server-side: a non-administrator must not be able to
