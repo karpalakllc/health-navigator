@@ -53,6 +53,7 @@ class PlatformPreflightCommandTest extends TestCase
             'zdravje.admin.email' => 'ops@zdravje360.mk',
             'zdravje.seed.local_demo' => false,
             'sentry.dsn' => 'https://public@o0.ingest.sentry.io/0',
+            'zdravje.alerts.email' => 'alerts@zdravje360.mk',
             'media.disk' => 's3',
             'filesystems.disks.s3.bucket' => 'zdravje-media',
             'filesystems.disks.s3.region' => 'eu-central-1',
@@ -205,6 +206,8 @@ class PlatformPreflightCommandTest extends TestCase
     {
         return [
             'no sentry dsn' => [['sentry.dsn' => null], 'sentry.dsn'],
+            'no alert email' => [['zdravje.alerts.email' => null], 'zdravje.alerts.email'],
+            'alert email not an address' => [['zdravje.alerts.email' => 'ops team'], 'zdravje.alerts.email'],
             'public media disk' => [['media.disk' => 'public'], 'media.disk'],
             's3 endpoint without public url' => [[
                 'filesystems.disks.s3.endpoint' => 'https://account.r2.cloudflarestorage.com',

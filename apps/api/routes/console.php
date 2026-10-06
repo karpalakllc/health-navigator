@@ -23,3 +23,11 @@ Schedule::command('sanctum:prune-expired --hours=24')
     ->dailyAt('04:15')
     ->onOneServer()
     ->withoutOverlapping();
+
+// Failed jobs stay inspectable and retryable (queue:failed / queue:retry) for
+// 30 days, then go: their payloads can carry an address or a notice's text.
+// NotifyOnFailedJob has alerted on each long before then.
+Schedule::command('queue:prune-failed --hours=720')
+    ->dailyAt('04:30')
+    ->onOneServer()
+    ->withoutOverlapping();

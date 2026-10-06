@@ -74,4 +74,22 @@ return [
         'secret' => env('WEB_TIER_SECRET'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Operational alerts
+    |--------------------------------------------------------------------------
+    |
+    | Where NotifyOnFailedJob mails a failed queued job (verification and reset
+    | mail, moderation notices, search indexing). Unset sends nothing, and
+    | `platform:preflight` warns about it on a deployment. One alert per job
+    | class per throttle window, so a broken mail server does not answer a
+    | storm of failures with a storm of mail.
+    |
+    */
+
+    'alerts' => [
+        'email' => env('PLATFORM_ALERT_EMAIL'),
+        'failed_job_throttle_minutes' => (int) env('PLATFORM_ALERT_THROTTLE_MINUTES', 15),
+    ],
+
 ];
