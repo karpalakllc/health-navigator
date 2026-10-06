@@ -50,6 +50,9 @@ class PrivilegeEscalationTest extends TestCase
         $user = User::factory()->create([
             'role' => $column,
             'user_kind' => UserKind::Staff,
+            // Enrolled in two-factor, so page requests reach authorisation
+            // instead of stopping at the panel's MFA set-up redirect.
+            'app_authentication_secret' => 'JBSWY3DPEHPK3PXP',
         ]);
 
         if ($roleName !== null) {

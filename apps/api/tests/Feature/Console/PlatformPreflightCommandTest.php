@@ -2,6 +2,11 @@
 
 namespace Tests\Feature\Console;
 
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -29,6 +34,9 @@ class PlatformPreflightCommandTest extends TestCase
             'queue.default' => 'redis',
             'cache.default' => 'redis',
             'session.secure' => true,
+            'session.lifetime' => 60,
+            'session.same_site' => 'lax',
+            'session.http_only' => true,
             'cors.allowed_origins' => ['https://zdravje360.mk'],
             'sanctum.expiration' => 43_200,
             'zdravje.admin.email' => 'ops@zdravje360.mk',
@@ -94,6 +102,11 @@ class PlatformPreflightCommandTest extends TestCase
             'file cache' => [['cache.default' => 'file'], 'cache.default'],
             'array cache' => [['cache.default' => 'array'], 'cache.default'],
             'insecure session cookie' => [['session.secure' => null], 'session.secure'],
+            'admin idle timeout too long' => [['session.lifetime' => 120], 'session.lifetime'],
+            'admin session never idles out' => [['session.lifetime' => 0], 'session.lifetime'],
+            'cross-site session cookie' => [['session.same_site' => 'none'], 'session.same_site'],
+            'unset same-site' => [['session.same_site' => null], 'session.same_site'],
+            'script-readable session cookie' => [['session.http_only' => false], 'session.http_only'],
             'no cors origins' => [['cors.allowed_origins' => []], 'cors.allowed_origins'],
             'localhost cors origin' => [['cors.allowed_origins' => ['https://zdravje360.mk', 'http://localhost:3000']], 'cors.allowed_origins'],
             'wildcard cors origin' => [['cors.allowed_origins' => ['*']], 'cors.allowed_origins'],
@@ -124,6 +137,42 @@ class PlatformPreflightCommandTest extends TestCase
         $result = $this->preflight();
 
         $this->assertSame([$check], array_values(array_unique($result['errors'])));
+        $this->assertSame(1, $result['exit']);
+    }
+
+    public function test_strict_same_site_is_accepted(): void
+    {
+        config(['session.same_site' => 'strict']);
+
+        $this->assertSame([], $this->preflight()['errors']);
+    }
+
+    /**
+     * The admin panel's MFA wiring has no config switch, so each way of
+     * undoing it is applied to the registered panel itself.
+     *
+     * @return array<string, array{\Closure(Panel): void}>
+     */
+    public static function weakenedAdminMultiFactorAuthentication(): array
+    {
+        return [
+            'no providers' => [fn (Panel $panel) => $panel->multiFactorAuthentication([])],
+            'no recovery codes' => [fn (Panel $panel) => $panel->multiFactorAuthentication([AppAuthentication::make()], isRequired: true)
+                ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)],
+            'not required' => [fn (Panel $panel) => $panel->requiresMultiFactorAuthentication(false)],
+            'stock middleware' => [fn (Panel $panel) => $panel->multiFactorAuthenticationRequiredMiddlewareName(EnsureMultiFactorAuthenticationIsEnabled::class)],
+        ];
+    }
+
+    /** @param  \Closure(Panel): void  $weaken */
+    #[DataProvider('weakenedAdminMultiFactorAuthentication')]
+    public function test_weakened_admin_mfa_fails_the_preflight(\Closure $weaken): void
+    {
+        $weaken(Filament::getPanel('admin'));
+
+        $result = $this->preflight();
+
+        $this->assertSame(['filament.admin.mfa'], $result['errors']);
         $this->assertSame(1, $result['exit']);
     }
 

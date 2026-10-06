@@ -2,8 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\PendingModerationOverview;
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +32,16 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
+            // Authenticator-app TOTP with single-use recovery codes. "Required" here
+            // only registers the set-up page and attaches the middleware below to
+            // every panel page; the middleware decides per user, so staff holding
+            // admin.access must enrol and community moderators may.
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()],
+                isRequired: true,
+            )
+            ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)
+            ->profile(EditProfile::class, isSimple: false)
             ->brandName('Zdravje360')
             ->colors([
                 // Align with public web --color-primary / --color-accent

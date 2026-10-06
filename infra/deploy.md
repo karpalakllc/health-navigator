@@ -299,6 +299,15 @@ Two one-off checks before the first deploy of the Part I remediation:
 - TLS terminated at the PaaS edge (required for production). `SESSION_SECURE_COOKIE=true`.
 - One `APP_KEY` per environment, generated once (see deploy step 2); never reuse the production key in staging.
 - Use strong unique passwords for staff accounts (Filament).
+- **Rotating `APP_KEY`:** staff two-factor secrets and recovery codes are encrypted with it. Move the old key into `APP_PREVIOUS_KEYS` when rotating, or every enrolled account is locked out of the panel.
+
+## Admin panel: two-factor, session, headers
+
+- **Two-factor is mandatory for anyone holding `admin.access`** (Administrator, Moderator). On first sign-in they land on `/admin/multi-factor-authentication/set-up` and must scan the QR code with an authenticator app, confirm a code and their password, and save the 8 one-time recovery codes (shown once). Community moderators may enrol from `/admin/profile`; it is optional for them. Setting up, regenerating recovery codes and disabling all ask for the current password. There is no config switch to turn this off; `platform:preflight` fails if the panel wiring is removed.
+- **Lost authenticator and recovery codes:** an administrator clears the two columns for that account (`users.app_authentication_secret`, `users.app_authentication_recovery_codes` set to `NULL`) in a database session; the user enrols again on next sign-in.
+- **API sign-in is refused** (`403 auth.staff_use_admin`) for `admin.access` holders and for anyone enrolled in two-factor; staff work in the panel. Enrolling revokes the account's API tokens. Tokens issued before someone was *promoted* to `admin.access` are not revoked — revoke them by hand when promoting.
+- **Session:** the panel is the only session user. `SESSION_LIFETIME` is its idle timeout, default 60 minutes; preflight refuses more than 60, a `SESSION_SAME_SITE` other than `lax`/`strict`, and `SESSION_HTTP_ONLY=false`. `SESSION_EXPIRE_ON_CLOSE` stays false by default (the idle timeout is the control).
+- **Security headers** (`SetSecurityHeaders`, global): `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, a minimal `Permissions-Policy`, `X-Frame-Options: DENY` everywhere. `/api/*` gets `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`. The panel gets an enforced CSP of `frame-ancestors`/`base-uri`/`object-src`/`form-action` only; the full fetch policy (Filament needs `'unsafe-inline'` and `'unsafe-eval'` for scripts) is sent as `Content-Security-Policy-Report-Only` with no report endpoint — check the browser console on the panel after a Filament upgrade and promote it to enforced once clean. HSTS (`max-age=31536000`, no `includeSubDomains`) is sent only over HTTPS in deployed environments. No `Cross-Origin-Resource-Policy`: the web app embeds media from another origin. `/storage` and build assets are served by the web server, not Laravel, so add headers there at the edge if wanted.
 
 ## Backups
 

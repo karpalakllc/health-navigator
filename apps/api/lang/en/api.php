@@ -35,6 +35,7 @@ return [
         'privacy_note' => 'For security, we do not reveal whether an address is already registered.',
         'throttled' => 'Too many failed attempts. Please try again in :seconds seconds.',
         'email_unverified' => 'Please confirm your email address before continuing. Check your inbox or request a new link.',
+        'staff_use_admin' => 'This account is protected by two-factor authentication. Sign in through the administration panel.',
     ],
 
     'registration' => [

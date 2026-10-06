@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
+use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Http\Responses\ApiResponse;
 use App\Support\FrontendUrl;
@@ -62,6 +63,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // the visitor's address. Appended globally so it runs after TrustProxies,
         // whose scheme decision it preserves, and before any route throttle.
         $middleware->append(TrustWebTierClientIp::class);
+
+        // Global rather than per group so error pages, 404s and the panel's
+        // Livewire endpoints carry them too.
+        $middleware->append(SetSecurityHeaders::class);
 
         // Constrain the Host header to APP_URL's domain outside local/testing.
         // This is what stops a request claiming an arbitrary host and having

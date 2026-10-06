@@ -11,6 +11,10 @@ use App\Support\EmailAddress;
 use App\Support\Media\MediaUrl;
 use App\Support\Media\NameInitials;
 use Database\Factories\UserFactory;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,14 +28,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role', 'user_kind', 'avatar_path'])]
-#[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser, MustVerifyEmail
+// The second-factor columns are hidden here as well as by Filament's traits, so
+// that dropping a trait can never start serialising them.
+#[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, Notifiable;
 
     private ?bool $hasScopedForumModeration = null;
 
@@ -43,6 +50,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'password' => 'hashed',
             'role' => UserRole::class,
             'user_kind' => UserKind::class,
+            // Ciphertext under APP_KEY; the recovery codes inside are also hashed.
+            'app_authentication_secret' => 'encrypted',
+            'app_authentication_recovery_codes' => 'encrypted:array',
         ];
     }
 
@@ -72,6 +82,36 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
                 || $this->can('forum_posts.view')
                 || $this->can('forum_categories.view')
             );
+    }
+
+    /**
+     * Anyone holding admin.access (Administrator, Moderator) must enrol a second
+     * factor before the panel lets them past the set-up page. Community
+     * moderators may enrol but are not made to (EnsureStaffMultiFactorAuthentication).
+     */
+    public function requiresMultiFactorAuthentication(): bool
+    {
+        return $this->can('admin.access');
+    }
+
+    public function hasMultiFactorAuthenticationEnabled(): bool
+    {
+        return filled($this->getAppAuthenticationSecret());
+    }
+
+    /**
+     * Enrolling ends every API session: API login refuses accounts with a second
+     * factor (AuthController::login()), and a token minted on the password alone
+     * before enrolment would otherwise keep working without it.
+     */
+    public function saveAppAuthenticationSecret(#[SensitiveParameter] ?string $secret): void
+    {
+        $this->app_authentication_secret = $secret;
+        $this->save();
+
+        if (filled($secret)) {
+            $this->revokeApiTokens();
+        }
     }
 
     public function isCommunityModeratorOnly(): bool
