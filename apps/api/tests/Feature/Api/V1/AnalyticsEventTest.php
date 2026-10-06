@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Models\AnalyticsEvent;
 use App\Models\Doctor;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;

@@ -33,4 +33,12 @@ describe("securityHeaders", () => {
     );
     expect(keys).not.toContain("Content-Security-Policy");
   });
+
+  it("never hands the next page the previous URL's path or query", () => {
+    const referrer = securityHeaders("https://zdravje360.mk").find(
+      (h) => h.key === "Referrer-Policy",
+    );
+
+    expect(referrer?.value).toBe("strict-origin");
+  });
 });

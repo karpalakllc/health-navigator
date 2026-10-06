@@ -26,7 +26,11 @@ export function securityHeaders(siteUrl: string | undefined): Header[] {
   const headers: Header[] = [
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },
-    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    // strict-origin, not strict-origin-when-cross-origin: same-origin
+    // navigations would otherwise hand the next page (and Plausible, which
+    // reads document.referrer) the full previous URL, e.g. /search?q=….
+    // The Origin header the route-handler CSRF guard checks is unaffected.
+    { key: "Referrer-Policy", value: "strict-origin" },
     {
       key: "Permissions-Policy",
       value: "camera=(), microphone=(), geolocation=()",

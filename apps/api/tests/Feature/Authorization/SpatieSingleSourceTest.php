@@ -113,6 +113,7 @@ class SpatieSingleSourceTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', [
             'name' => 'New Member',
+            'display_name' => 'Тест К.',
             'email' => 'new@example.com',
             'password' => 'sufficiently1long',
             'password_confirmation' => 'sufficiently1long',

@@ -75,12 +75,24 @@ class AnalyticsService
         $counts = Cache::remember(
             "analytics:summary:{$days}",
             self::AGGREGATE_TTL_SECONDS,
-            fn (): array => AnalyticsEvent::query()
-                ->where('occurred_at', '>=', Carbon::now()->subDays($days))
-                ->select('event', DB::raw('count(*) as total'))
-                ->groupBy('event')
-                ->pluck('total', 'event')
-                ->all(),
+            function () use ($days): array {
+                $since = Carbon::now()->subDays($days);
+
+                $counts = AnalyticsEvent::query()
+                    ->where('occurred_at', '>=', $since)
+                    ->select('event', DB::raw('count(*) as total'))
+                    ->groupBy('event')
+                    ->pluck('total', 'event')
+                    ->all();
+
+                // Searches are kept only as anonymous daily aggregates, at day
+                // granularity (they have no time of day).
+                $counts['search.query'] = (int) SearchTermDaily::query()
+                    ->where('date', '>=', $since->toDateString())
+                    ->sum('count');
+
+                return $counts;
+            },
         );
 
         return [
@@ -89,10 +101,7 @@ class AnalyticsService
             'reviews_submitted' => (int) ($counts['review.submitted'] ?? 0),
             'forum_topics' => (int) ($counts['forum.topic_created'] ?? 0),
             'forum_posts' => (int) ($counts['forum.post_created'] ?? 0),
-            // Day granularity: the aggregates have no time of day.
-            'search_queries' => (int) SearchTermDaily::query()
-                ->where('date', '>=', $since->toDateString())
-                ->sum('count'),
+            'search_queries' => (int) ($counts['search.query'] ?? 0),
         ];
     }
 
