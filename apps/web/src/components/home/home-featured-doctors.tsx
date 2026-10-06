@@ -1,12 +1,14 @@
+import { FeaturedMark } from "@/components/directory/cover-media";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
 import { Button, TextLink } from "@/components/ui/button";
+import { SectionHeader } from "@/components/ui/section-header";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Tag } from "@/components/ui/tag";
 import type { DoctorListItem } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatRating } from "@/lib/rating";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 
 /*
  * The mockup's „Дежурни аптеки денес“ slot. The API has no on-duty pharmacy
@@ -14,15 +16,13 @@ import { t } from "@/i18n/t";
  * closest real rail instead: featured / top-rated doctors from /doctors.
  */
 
+/** Cards shown side by side on desktop; the phone rail scrolls through all. */
+const DESKTOP_CARDS = 3;
+
 function doctorMeta(doctor: DoctorListItem): string {
   return [doctor.primary_specialty?.name, doctor.city]
     .filter(Boolean)
     .join(" · ");
-}
-
-/** „Види профил: д-р …“ — starts with the visible label (WCAG 2.5.3). */
-function profileLabel(visible: string, doctor: DoctorListItem): string {
-  return `${visible}: ${doctor.full_name}`;
 }
 
 function Rating({ doctor }: { doctor: DoctorListItem }) {
@@ -42,84 +42,99 @@ function Rating({ doctor }: { doctor: DoctorListItem }) {
   );
 }
 
-function StatusTag({ doctor }: { doctor: DoctorListItem }) {
-  if (doctor.is_sponsored) {
-    return <SponsoredBadge />;
-  }
-  if (doctor.accepts_new_patients) {
-    return (
-      <Tag tone="care" icon="check">
-        {t("doctors.acceptingPatients")}
-      </Tag>
-    );
-  }
-  return null;
-}
-
-/** Desktop: white card in the hero's right column, three rows. */
-export function HomeFeaturedDoctorsCard({
-  doctors,
-}: {
-  doctors: DoctorListItem[];
-}) {
-  if (doctors.length === 0) {
-    return null;
-  }
+/**
+ * One rail card, built like the featured card on /doctors: a featured doctor
+ * gets the apricot band with „Истакнат“ (and „Спонзорирано“ when paid) across
+ * the top. Below: photo beside name and specialty, the rating, the
+ * „Прима нови пациенти“ tag on its own line (never squeezed beside the
+ * photo), and a secondary „Види профил“ pill.
+ *
+ * The card's five parts are rows of the rail's grid (subgrid), so names,
+ * ratings, tags and buttons line up across cards even when only some carry
+ * the band — like a pricing table's „most popular“ ribbon.
+ */
+function FeaturedDoctorCard({ doctor }: { doctor: DoctorListItem }) {
+  const featured = doctor.is_featured;
+  const meta = doctorMeta(doctor);
 
   return (
-    <section aria-labelledby="home-featured-card-title" className="card p-6">
-      <h2 id="home-featured-card-title" className="type-h3 text-ink">
-        {t("home.featuredDoctors")}
-      </h2>
-      <ul className="mt-2">
-        {doctors.slice(0, 3).map((doctor, index) => (
-          <li
-            key={doctor.slug}
-            className={cn(
-              "flex items-center gap-4 py-3.5",
-              index > 0 && "border-t border-line",
-            )}
-          >
-            <DirectoryAvatar
-              kind="doctor"
-              avatarUrl={doctor.avatar_url}
-              name={doctor.full_name}
-              size={44}
-            />
-            <div className="min-w-0 flex-1">
-              <h3 className="font-ui text-lg font-semibold leading-6 text-ink">
-                {doctor.full_name}
-              </h3>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="type-meta text-ink-2">
-                  {doctorMeta(doctor)}
-                </span>
-                <Rating doctor={doctor} />
-                {doctor.is_sponsored ? <SponsoredBadge /> : null}
-              </div>
-            </div>
-            <Button
-              href={`/doctors/${doctor.slug}`}
-              variant="soft"
-              size="sm"
-              trailingIcon="chevron-right"
-              aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
-            >
-              {t("doctors.viewProfile")}
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <div className="border-t border-line pt-1">
-        <TextLink href="/doctors" trailingIcon="arrow-right">
-          {t("home.topRatedViewAll")}
-        </TextLink>
+    <article
+      data-featured={featured || undefined}
+      className="card hover-lift row-span-5 grid w-full grid-rows-subgrid"
+    >
+      {featured ? (
+        <div
+          data-featured-band=""
+          className="flex min-h-11 flex-wrap items-center gap-2 rounded-t-card bg-apricot px-4 py-1.5 lg:px-5"
+        >
+          <FeaturedMark />
+          {doctor.is_sponsored ? <SponsoredBadge /> : null}
+        </div>
+      ) : (
+        <div aria-hidden="true" />
+      )}
+
+      <div
+        data-doctor-identity=""
+        className="flex items-center gap-3 px-4 pt-4 lg:px-5 lg:pt-5"
+      >
+        <DirectoryAvatar
+          kind="doctor"
+          avatarUrl={doctor.avatar_url}
+          name={doctor.full_name}
+          size={56}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-ui text-lg font-semibold leading-6 text-ink">
+            {doctor.full_name}
+          </h3>
+          {meta ? (
+            <p className="mt-0.5 text-[0.9375rem] leading-5 text-ink-2">
+              {meta}
+            </p>
+          ) : null}
+        </div>
       </div>
-    </section>
+
+      <div className="flex min-h-6 items-center px-4 pt-3 lg:px-5">
+        <Rating doctor={doctor} />
+      </div>
+
+      <div
+        data-doctor-tags=""
+        className="flex flex-wrap content-start gap-2 px-4 pt-3 lg:px-5"
+      >
+        {doctor.accepts_new_patients ? (
+          <Tag tone="care" icon="check">
+            {t("doctors.acceptingPatients")}
+          </Tag>
+        ) : null}
+        {doctor.is_sponsored && !featured ? <SponsoredBadge /> : null}
+      </div>
+
+      <div className="self-end px-4 pb-4 pt-4 lg:px-5 lg:pb-5">
+        <Button
+          href={`/doctors/${doctor.slug}`}
+          variant="secondary"
+          fullWidth
+          trailingIcon="arrow-right"
+          aria-label={tFormat("directory.viewProfileOf", {
+            name: doctor.full_name,
+          })}
+        >
+          {t("doctors.viewProfile")}
+        </Button>
+      </div>
+    </article>
   );
 }
 
-/** Mobile/tablet: a horizontal rail of cards below the tiles. */
+/**
+ * „Истакнати лекари“. Phones and tablets: a horizontal rail that snaps card
+ * by card, with the next card peeking in and room around the cards so their
+ * shadows and focus rings are not clipped. Desktop: the first three cards in
+ * a row. Either way a grid whose five rows the cards share (see above).
+ */
 export function HomeFeaturedDoctorsRail({
   doctors,
   className,
@@ -133,49 +148,39 @@ export function HomeFeaturedDoctorsRail({
 
   return (
     <section aria-labelledby="home-featured-rail-title" className={className}>
-      <h2 id="home-featured-rail-title" className="type-h2 px-5 text-ink">
-        {t("home.featuredDoctors")}
-      </h2>
-      <ul className="scroll-row mt-2 flex gap-3 overflow-x-auto px-5 pb-4 pt-2">
-        {doctors.map((doctor) => (
+      <SectionHeader
+        id="home-featured-rail-title"
+        title={t("home.featuredDoctors")}
+        action={
+          // Phones: the title alone fits the row; the link follows the rail.
+          <span className="hidden lg:block">
+            <TextLink href="/doctors" trailingIcon="arrow-right">
+              {t("home.topRatedViewAll")}
+            </TextLink>
+          </span>
+        }
+        className="items-center px-5 lg:px-0"
+      />
+      <ul
+        data-rail=""
+        className={cn(
+          "scroll-row mt-1 grid snap-x snap-mandatory scroll-px-5 auto-cols-[min(17.5rem,calc(100vw-5.5rem))] grid-flow-col grid-rows-[repeat(5,auto)] gap-x-3 overflow-x-auto px-5 pb-6 pt-2 sm:auto-cols-[18.5rem]",
+          "lg:mt-4 lg:grid-flow-row lg:grid-cols-3 lg:gap-x-6 lg:overflow-visible lg:px-0 lg:pb-0",
+        )}
+      >
+        {doctors.map((doctor, index) => (
           <li
             key={doctor.slug}
-            className="card hover-lift flex w-[260px] flex-none flex-col p-4"
+            className={cn(
+              "row-span-5 grid snap-start grid-rows-subgrid",
+              index >= DESKTOP_CARDS && "lg:hidden",
+            )}
           >
-            <div className="flex items-start justify-between gap-2">
-              <DirectoryAvatar
-                kind="doctor"
-                avatarUrl={doctor.avatar_url}
-                name={doctor.full_name}
-                size={56}
-              />
-              <div className="flex min-h-8 flex-wrap justify-end gap-2">
-                <StatusTag doctor={doctor} />
-              </div>
-            </div>
-            <h3 className="mt-3 font-ui text-lg font-semibold leading-6 text-ink">
-              {doctor.full_name}
-            </h3>
-            <p className="mt-0.5 text-[0.9375rem] leading-[1.375rem] text-ink-2">
-              {doctorMeta(doctor)}
-            </p>
-            <div className="mt-1 min-h-6">
-              <Rating doctor={doctor} />
-            </div>
-            <div className="mt-auto pt-4">
-              <Button
-                href={`/doctors/${doctor.slug}`}
-                variant="soft"
-                fullWidth
-                aria-label={profileLabel(t("doctors.viewProfile"), doctor)}
-              >
-                {t("doctors.viewProfile")}
-              </Button>
-            </div>
+            <FeaturedDoctorCard doctor={doctor} />
           </li>
         ))}
       </ul>
-      <div className="px-5 pt-1">
+      <div className="px-5 lg:hidden">
         <TextLink href="/doctors" trailingIcon="arrow-right">
           {t("home.topRatedViewAll")}
         </TextLink>

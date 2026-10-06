@@ -4,16 +4,11 @@ import {
   HomePopularSpecialties,
   HomeTrustRow,
 } from "@/components/home/home-community";
-import {
-  HomeDirectoryTiles,
-  type HomeTile,
-} from "@/components/home/home-directory-tiles";
-import {
-  HomeFeaturedDoctorsCard,
-  HomeFeaturedDoctorsRail,
-} from "@/components/home/home-featured-doctors";
+import { HomeDirectoryTiles } from "@/components/home/home-directory-tiles";
+import { HomeFeaturedDoctorsRail } from "@/components/home/home-featured-doctors";
 import { HomeGuidanceCard } from "@/components/home/home-guidance-card";
 import { HomeHero } from "@/components/home/home-hero";
+import { buildHeroStats, buildHomeTiles } from "@/components/home/home-tiles";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
 import type { ForumCategory, ForumTopicSearchItem } from "@/lib/api/forum";
@@ -26,7 +21,7 @@ import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
-import { t, tCount, type MessageKey } from "@/i18n/t";
+import { t } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
   t("home.heroHeading"),
@@ -123,54 +118,23 @@ export default async function Home() {
     ? forumCategories.reduce((sum, c) => sum + (c.topics_count ?? 0), 0)
     : undefined;
 
-  const tiles: HomeTile[] = [
+  const totals = {
+    doctors: doctorsTotal,
+    facilities: facilitiesTotal,
+    pharmacies: pharmaciesTotal,
+    products: productsTotal,
+    forumTopics: forumTotal,
+  };
+  const tiles = buildHomeTiles(
     {
-      href: "/doctors",
-      label: t("nav.doctors"),
-      icon: "stethoscope",
-      sub: countLine("home.tileDoctorsCount", doctorsTotal),
-      feature: true,
+      pharmacies: pharmaciesOn,
+      products: productsOn,
+      guidance: guidanceOn,
+      forum: forumOn,
     },
-    {
-      href: "/facilities",
-      label: t("nav.facilities"),
-      icon: "building",
-      sub: countLine("home.tileFacilitiesCount", facilitiesTotal),
-    },
-  ];
-  if (pharmaciesOn) {
-    tiles.push({
-      href: "/pharmacies",
-      label: t("nav.pharmacies"),
-      icon: "pill",
-      sub: countLine("home.tilePharmaciesCount", pharmaciesTotal),
-    });
-  }
-  if (productsOn) {
-    tiles.push({
-      href: "/products",
-      label: t("nav.products"),
-      icon: "package",
-      sub: countLine("home.tileProductsCount", productsTotal),
-    });
-  }
-  if (guidanceOn) {
-    tiles.push({
-      href: "/guidance",
-      label: t("nav.guidance"),
-      icon: "compass",
-      sub: t("home.tileGuidanceSub"),
-      feature: true,
-    });
-  }
-  if (forumOn) {
-    tiles.push({
-      href: "/forum",
-      label: t("nav.forum"),
-      icon: "message-circle",
-      sub: countLine("home.tileForumCount", forumTotal),
-    });
-  }
+    totals,
+  );
+  const heroStats = buildHeroStats(totals);
 
   const hasCommunity = forumOn && topics.length > 0;
   const popular = bySize.slice(0, POPULAR_SPECIALTIES);
@@ -182,7 +146,7 @@ export default async function Home() {
           href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,
           label: s.name,
         }))}
-        aside={<HomeFeaturedDoctorsCard doctors={doctors} />}
+        stats={heroStats}
       />
 
       <div data-reveal="">
@@ -192,7 +156,9 @@ export default async function Home() {
         />
       </div>
 
-      <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:hidden" />
+      <div data-reveal="">
+        <HomeFeaturedDoctorsRail doctors={doctors} className="pt-8 lg:pt-20" />
+      </div>
 
       {/* Mobile: guidance, community, trust stacked. Desktop: community (7)
           beside guidance + popular specialties (5), as in the D2a mockup. */}
@@ -243,10 +209,6 @@ export default async function Home() {
       />
     </div>
   );
-}
-
-function countLine(key: MessageKey, total: number | undefined) {
-  return total === undefined ? undefined : tCount(key, total);
 }
 
 function mergeHomeDoctors(
