@@ -149,11 +149,11 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily'])
         ->group(function (): void {
             Route::post('/reviews/{review}/reports', [ContentReportController::class, 'storeForReview'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
             Route::middleware('module:forum')->group(function (): void {
                 Route::post('/forum/categories/{category}/topics/{topic}/reports', [ContentReportController::class, 'storeForForumTopic']);
                 Route::post('/forum/posts/{post}/reports', [ContentReportController::class, 'storeForForumPost'])
-                    ->whereNumber('post');
+                    ->where('post', '[0-9]{1,18}');
             });
         });
 
@@ -162,9 +162,9 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'verified', 'can:create,'.Review::class, 'throttle:60,10,api-review-helpful'])
         ->group(function (): void {
             Route::put('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'store'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
             Route::delete('/reviews/{review}/helpful', [ReviewHelpfulController::class, 'destroy'])
-                ->whereNumber('review');
+                ->where('review', '[0-9]{1,18}');
         });
 
     // Account data rights and devices (D5, D6).
@@ -173,7 +173,7 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
         Route::get('/tokens', [TokenController::class, 'index']);
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
-        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
+        Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->where('token', '[0-9]{1,18}');
     });
 
     // Usernames (W5-U): is a name free, while someone types it at sign-up or
@@ -199,11 +199,11 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('/avatar', [DoctorDashboardController::class, 'updateAvatar']);
                 Route::post('/change-requests', [DoctorDashboardController::class, 'storeChangeRequest']);
                 Route::delete('/change-requests/{changeRequest}', [DoctorDashboardController::class, 'withdrawChangeRequest'])
-                    ->whereNumber('changeRequest');
+                    ->where('changeRequest', '[0-9]{1,18}');
                 Route::put('/reviews/{review}/reply', [DoctorDashboardController::class, 'upsertReply'])
-                    ->whereNumber('review');
+                    ->where('review', '[0-9]{1,18}');
                 Route::delete('/reviews/{review}/reply', [DoctorDashboardController::class, 'destroyReply'])
-                    ->whereNumber('review');
+                    ->where('review', '[0-9]{1,18}');
             });
         });
 
