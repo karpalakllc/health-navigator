@@ -1,21 +1,7 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import { mediaRemotePatterns, resolveMediaUrl } from "./src/lib/media-origin";
-
-/*
- * Content-Security-Policy is NOT set here. It is minted per request in
- * src/proxy.ts so each response can carry a fresh script nonce; a static header
- * would shadow that and force `unsafe-inline` back in.
- */
-const securityHeaders = [
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
-  },
-];
+import { securityHeaders } from "./src/lib/security-headers";
 
 /*
  * The local Laravel API serves uploads over plain http on :8000. Only a dev
@@ -49,7 +35,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: securityHeaders,
+        // CSP is set per request in src/proxy.ts; see security-headers.ts.
+        headers: securityHeaders(process.env.NEXT_PUBLIC_SITE_URL),
       },
     ];
   },
