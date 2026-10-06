@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteHeader, SiteTabBar } from "@/components/layout/site-header";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { AuthUser } from "@/lib/api/me";
 import { t } from "@/i18n/t";
@@ -123,5 +123,30 @@ describe("SiteHeader", () => {
       ),
     );
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+  });
+
+  it("draws the tab bar for the same session as the header", async () => {
+    session.getSessionToken.mockResolvedValue("tok");
+    session.fetchMe.mockResolvedValue(ana);
+    render(await SiteTabBar());
+
+    expect(
+      screen.getByRole("link", { name: t("nav.tabProfile") }),
+    ).toHaveAttribute("href", "/account");
+  });
+
+  it("sends a visitor with a dead session to sign-in from the tab bar", async () => {
+    mockFetch({ status: 204 });
+    session.getSessionToken.mockResolvedValue("stale");
+    session.fetchMe.mockRejectedValue(
+      new ApiRequestError("Unauthenticated", 401),
+    );
+    render(await SiteTabBar());
+
+    expect(
+      screen
+        .getByRole("link", { name: t("nav.tabProfile") })
+        .getAttribute("href"),
+    ).toMatch(/^\/login/);
   });
 });

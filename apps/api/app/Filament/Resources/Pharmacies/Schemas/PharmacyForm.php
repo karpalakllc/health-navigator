@@ -39,6 +39,9 @@ class PharmacyForm
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         OptimizedImageUpload::avatar('avatar_url', 'pharmacies')
+                            ->label('Logo')
+                            ->columnSpanFull(),
+                        OptimizedImageUpload::cover('cover_path', 'pharmacies/covers')
                             ->columnSpanFull(),
                         Textarea::make('description')
                             ->rows(4)

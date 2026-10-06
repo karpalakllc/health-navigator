@@ -42,6 +42,21 @@ describe("LoginForm", () => {
     ).toHaveAttribute("href", "/forgot-password");
   });
 
+  it("confirms a password reset when sent back with ?reset=1", () => {
+    setSearchParams({ reset: "1" });
+    render(<LoginForm />);
+
+    expect(screen.getByText(t("auth.resetPasswordDone"))).toBeVisible();
+  });
+
+  it("says nothing about a reset on a plain visit", () => {
+    render(<LoginForm />);
+
+    expect(
+      screen.queryByText(t("auth.resetPasswordDone")),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not submit an empty form", async () => {
     const fetch = mockFetch({ status: 200, body: {} });
     render(<LoginForm />);
@@ -51,7 +66,31 @@ describe("LoginForm", () => {
       .click(screen.getByRole("button", { name: t("auth.signIn") }));
 
     expect(fetch).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(t("auth.email"))).toBeInvalid();
+    const email = screen.getByLabelText(t("auth.email"));
+    expect(email).toBeInvalid();
+    // Our Macedonian message under the field, not the browser's bubble.
+    expect(email.closest("form")).toHaveAttribute("novalidate");
+    expect(email).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailRequired")}`,
+    );
+    expect(
+      screen.getByLabelText(t("auth.password")),
+    ).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.fieldRequired")}`,
+    );
+    expect(email).toHaveFocus();
+  });
+
+  it("checks the e-mail shape before sending", async () => {
+    const fetch = mockFetch({ status: 200, body: {} });
+    render(<LoginForm />);
+
+    await fillAndSubmit("ana.example.mk");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(t("auth.email"))).toHaveAccessibleDescription(
+      `${t("ui.errorPrefix")} ${t("ui.emailInvalid")}`,
+    );
   });
 
   it("toggles password visibility with a named button", async () => {

@@ -155,10 +155,15 @@ return [
             Doctor::class => [
                 'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names', 'specialty_names_latin'],
                 'filterableAttributes' => ['city'],
+                // Unified search sorts on it. Meilisearch's default ranking
+                // rules apply `sort` after words/typo/proximity/attribute, so
+                // relevance still leads and featured only breaks ties.
+                'sortableAttributes' => ['is_featured'],
             ],
             Facility::class => [
                 'searchableAttributes' => ['name', 'city', 'description', 'type', 'department_names', 'department_names_latin'],
                 'filterableAttributes' => ['city', 'type'],
+                'sortableAttributes' => ['is_featured'],
             ],
             ForumTopic::class => [
                 'searchableAttributes' => ['title', 'body', 'category_name'],

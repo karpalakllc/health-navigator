@@ -1,13 +1,36 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { FooterSearchButton } from "@/components/layout/footer-search-button";
-import { pageContainerClass } from "@/components/ui/layout";
-import { cn } from "@/lib/cn";
+import { SiteBrandMark } from "@/components/layout/site-brand-mark";
 import { isPathEnabled } from "@/lib/site-modules";
 import type { PublicSettings } from "@/lib/api/settings";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { t, tFormat } from "@/i18n/t";
 
-const linkClass = "text-sm text-muted-foreground transition hover:text-primary";
+// 48px rows on mobile (WCAG 2.5.8 with room to spare), 40px on desktop.
+const linkClass =
+  "inline-flex min-h-12 items-center text-[1.0625rem] leading-[1.375rem] text-ink no-underline hover:underline hover:decoration-coral hover:decoration-2 hover:underline-offset-4 lg:min-h-10";
+
+/**
+ * The admin's 194/112 sentence with each emergency number as a tap-to-call
+ * link inside it: same quiet line, underlined like any inline text link, no
+ * buttons. Other text (and any other number) stays as written.
+ */
+export function EmergencyLine({ text }: { text: string }) {
+  return (
+    <p>
+      {text.split(/(?<!\d)(194|112)(?!\d)/).map((part, index) =>
+        index % 2 === 1 ? (
+          <a key={index} href={`tel:${part}`} className="link-underline">
+            {part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </p>
+  );
+}
 
 export async function SiteFooter() {
   const settings = await fetchPublicSettings();
@@ -15,27 +38,47 @@ export async function SiteFooter() {
   return <SiteFooterContent settings={settings} />;
 }
 
+function Column({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <h2 className="mb-1 text-[0.9375rem] font-semibold leading-[1.375rem] text-ink-2 lg:mb-2 lg:text-base">
+        {title}
+      </h2>
+      <ul className="m-0 flex list-none flex-col p-0">{children}</ul>
+    </div>
+  );
+}
+
+/**
+ * Sand footer with 28px top corners. Mobile: logo, a 2-column link grid
+ * (48px rows), then the bottom lines. Desktop: a 12-column grid (5 brand +
+ * 3 link columns) and a ruled bottom line. The bottom line carries the site's
+ * only standing safety copy: ONE quiet 194/112 sentence and ONE disclaimer
+ * (both admin-editable settings), in ink-2 — no red box, no repeats. The sand
+ * runs down behind the mobile tab bar (bottom padding = --tabbar-space).
+ */
 export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-border bg-muted/30">
-      <div className={`${pageContainerClass} py-10`}>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-              {t("meta.title")}
-            </p>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {t("footer.informational")}
+    <footer className="mt-10 rounded-t-[28px] bg-sand lg:mt-20">
+      <div className="mx-auto w-full max-w-[1240px] px-5 pb-[calc(2.5rem+var(--tabbar-space))] pt-10 lg:px-6 lg:pt-14">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-12 lg:gap-x-6">
+          <div className="col-span-2 lg:col-span-5">
+            <Link
+              href="/"
+              className="inline-flex min-h-12 items-center rounded-lg no-underline"
+            >
+              <SiteBrandMark logoUrl={settings.logo_url} />
+              <span className="sr-only">, {t("nav.homeLink")}</span>
+            </Link>
+            <p className="mt-3 max-w-[420px] type-body text-ink">
+              {t("footer.tagline")}
             </p>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-              {t("footer.directory")}
-            </p>
-            <ul className="flex flex-col gap-2">
+          <div className="lg:col-span-2">
+            <Column title={t("footer.directory")}>
               <li>
                 <Link href="/doctors" className={linkClass}>
                   {t("nav.doctors")}
@@ -60,14 +103,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   </Link>
                 </li>
               ) : null}
-            </ul>
+            </Column>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-              {t("footer.resources")}
-            </p>
-            <ul className="flex flex-col gap-2">
+          <div className="lg:col-span-2">
+            <Column title={t("footer.resources")}>
               <li>
                 <Link href="/about" className={linkClass}>
                   {t("footer.about")}
@@ -88,21 +128,13 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                 </li>
               ) : null}
               <li>
-                <FooterSearchButton
-                  className={cn(
-                    linkClass,
-                    "inline-block text-left font-[inherit]",
-                  )}
-                />
+                <FooterSearchButton className={linkClass} />
               </li>
-            </ul>
+            </Column>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-              {t("footer.legal")}
-            </p>
-            <ul className="flex flex-col gap-2">
+          <div className="lg:col-span-3">
+            <Column title={t("footer.legal")}>
               <li>
                 <Link href="/privacy" className={linkClass}>
                   {t("footer.privacy")}
@@ -118,28 +150,24 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   {t("footer.disclaimer")}
                 </Link>
               </li>
-            </ul>
+            </Column>
           </div>
         </div>
 
-        <div
-          className={cn(
-            "mt-10 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-center text-sm text-destructive",
-          )}
-        >
-          {settings.footer_emergency_text}
+        <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 lg:mt-10 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+          <div className="flex max-w-[760px] flex-col gap-1 type-meta text-ink-2">
+            <EmergencyLine text={settings.footer_emergency_text} />
+            <p>
+              {t("footer.informational")} {settings.footer_disclaimer_text}
+            </p>
+          </div>
+          <p className="type-meta text-ink-2 lg:whitespace-nowrap">
+            {tFormat("footer.copyright", {
+              year,
+              name: settings.copyright_name,
+            })}
+          </p>
         </div>
-
-        <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-          {settings.footer_disclaimer_text}
-        </p>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          {tFormat("footer.copyright", {
-            year,
-            name: settings.copyright_name,
-          })}
-        </p>
       </div>
     </footer>
   );

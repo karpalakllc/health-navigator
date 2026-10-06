@@ -1,22 +1,32 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
-import { DoctorProfileHero } from "@/components/directory/doctor-profile-hero";
-import { DoctorSidebarContact } from "@/components/directory/doctor-sidebar-contact";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
-import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
-import { TagList } from "@/components/directory/tag-list";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
+import {
+  ProfileCallBar,
+  ProfileContactCard,
+  ProfileContactList,
+  type ContactInfo,
+} from "@/components/directory/profile-contact";
+import { ProfileHeader } from "@/components/directory/profile-header";
+import {
+  HoursTable,
+  ProfileSection,
+  ProfileTagList,
+} from "@/components/directory/profile-parts";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { PageShell } from "@/components/ui/page-shell";
+import { Icon } from "@/components/ui/icons";
+import { SponsoredBadge } from "@/components/ui/sponsored-badge";
+import { FeaturedTag, Tag } from "@/components/ui/tag";
 import { fetchDoctor } from "@/lib/api/doctors";
 import { facilityPublicPath, facilityTypeLabel } from "@/lib/facility-labels";
+import { addressMapUrl } from "@/lib/maps";
 import { pageMetadata } from "@/lib/metadata";
+import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { ApiRequestError } from "@/lib/api/server";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 
 type DoctorDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -72,6 +82,48 @@ export default async function DoctorDetailPage({
     throw error;
   }
 
+  const now = new Date();
+  const primarySpecialty =
+    doctor.specialties.find((s) => s.is_primary)?.name ??
+    doctor.specialties[0]?.name;
+  const specialtyLine = [primarySpecialty, doctor.subspecialty]
+    .filter(Boolean)
+    .join(" · ");
+  const otherSpecialties = doctor.specialties
+    .filter((s) => s.name !== primarySpecialty)
+    .map((s) => s.name);
+  const workplace =
+    doctor.facilities.find((f) => f.is_primary) ?? doctor.facilities[0];
+  const directionsHref = workplace
+    ? addressMapUrl({ name: workplace.name, city: workplace.city })
+    : null;
+  const hasHours = officeHoursRows(doctor.office_hours, now).length > 0;
+
+  const contact: ContactInfo = {
+    name: doctor.full_name,
+    phone: doctor.phone,
+    email: doctor.email,
+    place: workplace
+      ? {
+          title: workplace.name,
+          sub: workplace.city,
+          href: facilityPublicPath(workplace.type, workplace.slug),
+        }
+      : doctor.city
+        ? { title: doctor.city }
+        : null,
+    directionsHref,
+    hours: doctor.office_hours,
+    hoursAnchor: hasHours ? "hours" : undefined,
+    fee: doctor.consultation_fee_note
+      ? {
+          label: `${t("doctors.consultationFee")}: ${doctor.consultation_fee_note}`,
+          note: t("doctors.feeNote"),
+        }
+      : null,
+    now,
+  };
+
   const facilityItems = doctor.facilities.map((facility) => ({
     href: facilityPublicPath(facility.type, facility.slug),
     title: facility.name,
@@ -84,14 +136,8 @@ export default async function DoctorDetailPage({
       .join(" · "),
   }));
 
-  const officeHourEntries = Object.entries(doctor.office_hours ?? {});
-
-  const primarySpecialty =
-    doctor.specialties.find((s) => s.is_primary)?.name ??
-    doctor.specialties[0]?.name;
-
   return (
-    <PageShell gap="loose" className="pb-16 pt-[18px]">
+    <>
       {/*
         Only facts the database actually holds — no credentials, ratings or
         affiliations we cannot substantiate. Overstating a clinician's
@@ -116,62 +162,133 @@ export default async function DoctorDetailPage({
           ...(doctor.phone ? { telephone: doctor.phone } : {}),
         }}
       />
-      <Breadcrumbs
-        items={[
+      <DirectoryDetailLayout
+        back={{ href: "/doctors", label: t("doctors.back") }}
+        breadcrumbs={[
           { label: t("common.home"), href: "/" },
           { label: t("doctors.title"), href: "/doctors" },
           { label: doctor.full_name },
         ]}
-      />
-
-      <DirectoryDetailLayout
         main={
-          <div className="space-y-5">
-            <DoctorProfileHero doctor={doctor} />
+          <>
+            <ProfileHeader
+              kind="doctor"
+              avatarUrl={doctor.avatar_url}
+              name={doctor.full_name}
+              subtitle={specialtyLine || undefined}
+              summary={doctor.review_summary}
+              tags={
+                <>
+                  {doctor.accepts_new_patients ? (
+                    <Tag tone="care" icon="check">
+                      {t("doctors.acceptingPatients")}
+                    </Tag>
+                  ) : (
+                    <Tag>{t("doctors.notAcceptingPatients")}</Tag>
+                  )}
+                  {doctor.years_experience ? (
+                    <Tag icon="award">
+                      {tFormat("doctors.yearsExperience", {
+                        years: String(doctor.years_experience),
+                      })}
+                    </Tag>
+                  ) : null}
+                  {doctor.languages.length > 0 ? (
+                    <Tag icon="globe" className="lg:hidden">
+                      {doctor.languages.join(", ")}
+                    </Tag>
+                  ) : null}
+                  {doctor.is_sponsored ? <SponsoredBadge /> : null}
+                  {doctor.is_featured && !doctor.is_sponsored ? (
+                    <FeaturedTag />
+                  ) : null}
+                </>
+              }
+              details={
+                doctor.languages.length > 0 || otherSpecialties.length > 0 ? (
+                  <>
+                    {doctor.languages.length > 0 ? (
+                      <p className="flex items-center gap-2 type-body text-ink">
+                        <Icon name="globe" size={20} className="text-ink-2" />
+                        <span className="text-ink-2">
+                          {t("doctors.languages")}:
+                        </span>
+                        {doctor.languages.join(", ")}
+                      </p>
+                    ) : null}
+                    {otherSpecialties.length > 0 ? (
+                      <p className="flex items-center gap-2 type-body text-ink">
+                        <Icon
+                          name="stethoscope"
+                          size={20}
+                          className="text-ink-2"
+                        />
+                        <span className="text-ink-2">
+                          {t("doctors.specialties")}:
+                        </span>
+                        {otherSpecialties.join(", ")}
+                      </p>
+                    ) : null}
+                  </>
+                ) : undefined
+              }
+            />
 
-            {doctor.education ? (
-              <ProfileContentCard title={t("doctors.education")}>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {doctor.education}
-                </p>
-              </ProfileContentCard>
-            ) : null}
+            <ProfileContactList info={contact} />
 
-            {doctor.languages.length > 0 ? (
-              <ProfileContentCard title={t("doctors.languages")}>
-                <TagList items={doctor.languages} />
-              </ProfileContentCard>
-            ) : null}
-
-            {doctor.clinical_interests.length > 0 ? (
-              <ProfileContentCard title={t("doctors.clinicalInterests")}>
-                <TagList items={doctor.clinical_interests} />
-              </ProfileContentCard>
+            {doctor.bio || doctor.education ? (
+              <ProfileSection id="about" title={t("doctors.about")}>
+                {doctor.bio ? (
+                  <p className="type-reading measure text-ink">{doctor.bio}</p>
+                ) : null}
+                {doctor.education ? (
+                  <p className="mt-4 flex gap-2 type-body text-ink">
+                    <Icon
+                      name="award"
+                      size={20}
+                      className="mt-0.5 text-ink-2"
+                    />
+                    <span>
+                      <span className="text-ink-2">
+                        {t("doctors.education")}:
+                      </span>{" "}
+                      {doctor.education}
+                    </span>
+                  </p>
+                ) : null}
+              </ProfileSection>
             ) : null}
 
             {doctor.procedures.length > 0 ? (
-              <ProfileContentCard title={t("doctors.procedures")}>
-                <TagList items={doctor.procedures} />
-              </ProfileContentCard>
+              <ProfileSection id="procedures" title={t("doctors.procedures")}>
+                <ProfileTagList items={doctor.procedures} />
+              </ProfileSection>
             ) : null}
 
-            {officeHourEntries.length > 0 ? (
-              <ProfileContentCard title={t("doctors.officeHours")}>
-                <OfficeHoursGrid
-                  hours={Object.fromEntries(officeHourEntries)}
-                />
-              </ProfileContentCard>
+            {doctor.clinical_interests.length > 0 ? (
+              <ProfileSection
+                id="interests"
+                title={t("doctors.clinicalInterests")}
+              >
+                <ProfileTagList items={doctor.clinical_interests} />
+              </ProfileSection>
             ) : null}
 
-            <ProfileContentCard
-              title={t("doctors.facilities")}
+            {hasHours ? (
+              <ProfileSection id="hours" title={t("doctors.officeHours")}>
+                <HoursTable hours={doctor.office_hours} now={now} />
+              </ProfileSection>
+            ) : null}
+
+            <ProfileSection
               id="doctor-locations"
+              title={t("doctors.facilities")}
             >
               <EntityLinkList
                 items={facilityItems}
                 emptyMessage={t("doctors.noFacilities")}
               />
-            </ProfileContentCard>
+            </ProfileSection>
 
             <ReviewSection
               kind="doctor"
@@ -179,10 +296,11 @@ export default async function DoctorDetailPage({
               summary={doctor.review_summary}
               searchParams={reviewQuery}
             />
-          </div>
+          </>
         }
-        sidebar={<DoctorSidebarContact doctor={doctor} />}
+        sidebar={<ProfileContactCard info={contact} />}
+        footer={<ProfileCallBar info={contact} />}
       />
-    </PageShell>
+    </>
   );
 }

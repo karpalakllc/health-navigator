@@ -23,6 +23,8 @@ class PharmacyListResource extends JsonResource
             'name' => $this->name,
             'city' => $this->city,
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
+            'cover_url' => MediaUrl::resolve($this->cover_path),
+            'is_featured' => (bool) $this->is_featured,
             'review_summary' => ReviewSummary::for($this->resource),
         ];
     }

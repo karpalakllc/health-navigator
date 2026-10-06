@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
@@ -7,11 +8,27 @@ export type AccountSection = "overview" | "reviews" | "forum";
 const sections: {
   id: AccountSection;
   href: string;
+  icon: IconName;
   labelKey: "account.navOverview" | "nav.myReviews" | "nav.myForum";
 }[] = [
-  { id: "overview", href: "/account", labelKey: "account.navOverview" },
-  { id: "reviews", href: "/account/reviews", labelKey: "nav.myReviews" },
-  { id: "forum", href: "/account/forum", labelKey: "nav.myForum" },
+  {
+    id: "overview",
+    href: "/account",
+    icon: "user",
+    labelKey: "account.navOverview",
+  },
+  {
+    id: "reviews",
+    href: "/account/reviews",
+    icon: "star",
+    labelKey: "nav.myReviews",
+  },
+  {
+    id: "forum",
+    href: "/account/forum",
+    icon: "message-circle",
+    labelKey: "nav.myForum",
+  },
 ];
 
 type AccountSubNavProps = {
@@ -19,33 +36,38 @@ type AccountSubNavProps = {
   className?: string;
 };
 
+/**
+ * Account sections. A row of chip-style pills on a phone (scrolls if it must),
+ * a vertical list on desktop; the current one is ink-filled / sand and
+ * carries aria-current.
+ */
 export function AccountSubNav({ current, className }: AccountSubNavProps) {
   return (
-    <nav
-      aria-label={t("account.subNavAria")}
-      className={cn(
-        "content-card flex flex-row gap-1 overflow-x-auto rounded-[1.25rem] p-1 lg:flex-col lg:overflow-visible",
-        className,
-      )}
-    >
-      {sections.map((item) => {
-        const active = item.id === current;
+    <nav aria-label={t("account.subNavAria")} className={className}>
+      <ul className="scroll-row -mx-5 -my-2.5 flex gap-2 px-5 py-2.5 lg:mx-0 lg:my-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:py-0">
+        {sections.map((item) => {
+          const active = item.id === current;
 
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={cn(
-              "flex min-h-[44px] shrink-0 items-center rounded-lg px-3 py-2.5 text-sm font-medium transition lg:min-h-0",
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {t(item.labelKey)}
-          </Link>
-        );
-      })}
+          return (
+            <li key={item.id} className="shrink-0">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-12 items-center gap-2 rounded-pill px-4 type-chip",
+                  "lg:min-h-14 lg:gap-3 lg:px-5 lg:type-body",
+                  active
+                    ? "bg-ink font-semibold text-white lg:bg-sand lg:text-ink"
+                    : "bg-white text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong)] hover:bg-sand lg:bg-transparent lg:shadow-none",
+                )}
+              >
+                <Icon name={item.icon} size={20} />
+                <span>{t(item.labelKey)}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

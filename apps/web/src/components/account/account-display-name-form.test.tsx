@@ -48,6 +48,14 @@ describe("AccountDisplayNameForm", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       t("account.displayNameInvalid"),
     );
+    // The rules are tied to the field, not only announced once.
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription(
+      new RegExp(
+        t("account.displayNameInvalid").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      ),
+    );
+    expect(field).toHaveAccessibleName(t("account.displayName"));
     expect(fetch).not.toHaveBeenCalled();
   });
 

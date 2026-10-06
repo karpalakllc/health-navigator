@@ -1,24 +1,33 @@
 import { notFound } from "next/navigation";
-import { HeroMeshCard } from "@/components/design/hero-mesh-card";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
-import { ForumPostCard } from "@/components/forum/forum-post-card";
+import { Pagination } from "@/components/directory/pagination";
+import { ForumColumns, forumPageClass } from "@/components/forum/forum-layout";
+import {
+  ForumPostCard,
+  isSameAuthor,
+} from "@/components/forum/forum-post-card";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
-import { ReplyForm } from "@/components/forum/reply-form";
-import { Pagination } from "@/components/directory/pagination";
-import { Badge } from "@/components/ui/badge";
-import { PageSection } from "@/components/ui/page-section";
-import { PageShell } from "@/components/ui/page-shell";
+import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
+import { BackLink } from "@/components/ui/back-link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
+import { Tag } from "@/components/ui/tag";
+import { getShellSession } from "@/lib/auth/header-session";
 import { getSessionToken } from "@/lib/auth/session";
-import { fetchForumTopicPage, type ForumPost } from "@/lib/api/forum";
+import {
+  fetchForumCategories,
+  fetchForumTopicPage,
+  type ForumPost,
+} from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 
 type TopicDetailPageProps = {
   params: Promise<{ categorySlug: string; topicSlug: string }>;
@@ -83,6 +92,22 @@ export default async function TopicDetailPage({
 
   const { topic, posts, meta, related_topics: relatedTopics = [] } = data;
 
+  // The topic count for the aside; the category list is cached and only
+  // decorative here, so a failure just leaves the count out.
+  const [categories, session] = await Promise.all([
+    fetchForumCategories().catch(() => []),
+    token ? getShellSession() : Promise.resolve(null),
+  ]);
+  const categoryCount = categories.find(
+    (item) => item.slug === topic.category.slug,
+  )?.topics_count;
+  const viewer = session?.user
+    ? {
+        name: session.user.display_name,
+        initials: session.user.avatar_initials || undefined,
+      }
+    : null;
+
   const originalPost: ForumPost = {
     id: 0,
     body: topic.body,
@@ -91,45 +116,56 @@ export default async function TopicDetailPage({
     published_at: topic.published_at,
   };
 
-  return (
-    <>
-      <PageHeroBleed>
-        <HeroMeshCard
-          variant="profile"
-          align="start"
-          className="w-full max-w-none"
-        >
-          <Breadcrumbs
-            items={[
-              { label: t("common.home"), href: "/" },
-              { label: t("forum.title"), href: "/forum" },
-              { label: topic.category.name, href: `/forum/${categorySlug}` },
-              { label: topic.title },
-            ]}
-          />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {topic.is_pinned ? (
-              <Badge variant="primary">{t("forum.pinned")}</Badge>
-            ) : null}
-            {topic.is_locked ? (
-              <Badge variant="secondary">{t("forum.locked")}</Badge>
-            ) : null}
-          </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-            {topic.title}
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {formatForumReplyCount(topic.replies_count)}
-            <span aria-hidden> · </span>
-            {t("forum.lastActivity")}:{" "}
-            {formatForumLastActivity(topic.published_at)}
-          </p>
-        </HeroMeshCard>
-      </PageHeroBleed>
+  const canReply = !topic.is_locked && Boolean(token);
+  const replyAction = canReply ? (
+    <Button href={`#${REPLY_FORM_ID}`} variant="soft" leadingIcon="reply">
+      {t("forum.replyToTopic")}
+    </Button>
+  ) : null;
 
-      <PageShell className="gap-8 pb-16">
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
-          <div className="min-w-0 space-y-6">
+  return (
+    <div className={`${forumPageClass} gap-6`}>
+      <ForumColumns
+        main={
+          <>
+            <div className="lg:hidden">
+              <BackLink
+                href={`/forum/${categorySlug}`}
+                label={topic.category.name}
+              />
+            </div>
+            <div className="-mb-6 hidden lg:block">
+              <Breadcrumbs
+                items={[
+                  { label: t("common.home"), href: "/" },
+                  { label: t("forum.title"), href: "/forum" },
+                  {
+                    label: topic.category.name,
+                    href: `/forum/${categorySlug}`,
+                  },
+                  { label: topic.title },
+                ]}
+              />
+            </div>
+
+            <header className="flex flex-col gap-2">
+              {topic.is_pinned || topic.is_locked ? (
+                <div className="flex flex-wrap gap-2">
+                  {topic.is_pinned ? (
+                    <Tag tone="ink">{t("forum.pinned")}</Tag>
+                  ) : null}
+                  {topic.is_locked ? <Tag>{t("forum.locked")}</Tag> : null}
+                </div>
+              ) : null}
+              <h1 className="type-h1 break-words text-ink">{topic.title}</h1>
+              <p className="type-meta text-ink-2">
+                {formatForumReplyCount(topic.replies_count)}
+                <span aria-hidden="true"> · </span>
+                {t("forum.lastActivity")}:{" "}
+                {formatForumLastActivity(topic.published_at)}
+              </p>
+            </header>
+
             {topic.viewer?.can_moderate ? (
               <ForumTopicModerationToolbar
                 categorySlug={categorySlug}
@@ -139,18 +175,32 @@ export default async function TopicDetailPage({
               />
             ) : null}
 
-            <ForumPostCard post={originalPost} isOriginalPost />
+            <ForumPostCard
+              post={originalPost}
+              isOriginalPost
+              isTopicAuthor
+              actions={replyAction}
+            />
 
-            <PageSection title={t("forum.replies")}>
+            <section
+              aria-labelledby="forum-replies-heading"
+              className="flex flex-col gap-3 pt-2"
+            >
+              <h2 id="forum-replies-heading" className="type-h2 text-ink">
+                {tFormat("forum.repliesHeading", {
+                  count: topic.replies_count,
+                })}
+              </h2>
               {posts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("forum.noReplies")}
-                </p>
+                <p className="type-body text-ink-2">{t("forum.noReplies")}</p>
               ) : (
-                <ul className="grid gap-3">
+                <ul className="flex flex-col gap-3">
                   {posts.map((post) => (
                     <li key={post.id}>
-                      <ForumPostCard post={post} />
+                      <ForumPostCard
+                        post={post}
+                        isTopicAuthor={isSameAuthor(post.author, topic.author)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -162,28 +212,54 @@ export default async function TopicDetailPage({
                 total={meta.total}
                 searchParams={{}}
               />
-            </PageSection>
+            </section>
 
             {topic.is_locked ? (
-              <p className="content-card rounded-[1.625rem] p-4 text-sm text-muted-foreground">
+              <Notice tone="info" icon="info">
                 {t("forum.topicLocked")}
-              </p>
+              </Notice>
             ) : token ? (
-              <ReplyForm categorySlug={categorySlug} topicSlug={topicSlug} />
-            ) : null}
-          </div>
-
+              <ReplyForm
+                categorySlug={categorySlug}
+                topicSlug={topicSlug}
+                viewer={viewer}
+              />
+            ) : (
+              <Card
+                as="section"
+                padding="md"
+                aria-labelledby="forum-login-heading"
+                className="flex flex-col items-start gap-3 lg:p-8"
+              >
+                <h2 id="forum-login-heading" className="type-h3 text-ink">
+                  {t("forum.loginCtaTitle")}
+                </h2>
+                <p className="type-body text-ink-2">
+                  {t("forum.loginCtaBody")}
+                </p>
+                <Button
+                  href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {t("forum.guestReplyCta")}
+                </Button>
+              </Card>
+            )}
+          </>
+        }
+        aside={
           <ForumTopicSidebar
-            author={topic.author}
+            category={{
+              name: topic.category.name,
+              topics_count: categoryCount,
+            }}
             categorySlug={categorySlug}
-            categoryName={topic.category.name}
             relatedTopics={relatedTopics}
             settings={settings}
-            isLoggedIn={Boolean(token)}
-            redirectPath={redirectPath}
           />
-        </div>
-      </PageShell>
-    </>
+        }
+      />
+    </div>
   );
 }

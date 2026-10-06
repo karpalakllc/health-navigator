@@ -1,6 +1,8 @@
-import { filterInputClassName } from "@/components/directory/filter-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
 import { t } from "@/i18n/t";
 
+/** Search within one category (GET, keeps working without JavaScript). */
 export function ForumTopicSearch({
   defaultQuery,
   action,
@@ -12,22 +14,21 @@ export function ForumTopicSearch({
     <form
       action={action}
       method="get"
-      className="flex flex-col gap-2 sm:flex-row sm:items-center"
+      role="search"
+      aria-label={t("forum.searchTopics")}
+      className="flex flex-col gap-3 sm:flex-row sm:items-end"
     >
-      <input
+      <Input
+        label={t("forum.searchTopics")}
         name="q"
         type="search"
         defaultValue={defaultQuery ?? ""}
-        placeholder={t("forum.searchTopics")}
-        className={`${filterInputClassName} min-h-[44px] flex-1`}
-        aria-label={t("forum.searchTopics")}
+        placeholder={t("forum.searchPlaceholder")}
+        className="flex-1"
       />
-      <button
-        type="submit"
-        className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground"
-      >
+      <Button type="submit" size="lg" leadingIcon="search">
         {t("common.search")}
-      </button>
+      </Button>
     </form>
   );
 }

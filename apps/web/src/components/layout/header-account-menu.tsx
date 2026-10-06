@@ -9,6 +9,9 @@ import type { AuthUser } from "@/lib/api/me";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
+const itemClass =
+  "flex min-h-12 items-center rounded-xl px-4 text-base text-ink no-underline hover:bg-sand";
+
 export function HeaderAccountMenu({ user }: { user: AuthUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,9 +49,7 @@ export function HeaderAccountMenu({ user }: { user: AuthUser }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl p-0",
-          "hover:opacity-90",
-          open && "ring-2 ring-primary/40",
+          "flex h-11 items-center gap-2.5 rounded-full bg-sand py-1 pl-1 pr-4 text-base font-semibold text-ink hover:bg-line",
         )}
         aria-expanded={open}
         aria-haspopup="true"
@@ -58,17 +59,20 @@ export function HeaderAccountMenu({ user }: { user: AuthUser }) {
           name={user.name}
           avatarUrl={user.avatar_url}
           initials={user.avatar_initials}
-          className="!h-10 !w-10 !rounded-xl !border-0"
+          className="!size-9 !bg-white !text-[0.875rem]"
         />
+        <span aria-hidden="true" className="max-w-[10rem] truncate">
+          {user.display_name}
+        </span>
       </button>
       {open ? (
         <div
-          className="absolute right-0 z-50 mt-2 min-w-[12rem] rounded-xl border border-border bg-card py-1 shadow-lg"
+          className="absolute right-0 z-50 mt-2 min-w-[14rem] rounded-2xl bg-white p-2 shadow-card"
           role="menu"
         >
           <Link
             href="/account"
-            className="block px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
+            className={cn(itemClass, "font-semibold")}
             role="menuitem"
             onClick={() => setOpen(false)}
           >
@@ -76,7 +80,7 @@ export function HeaderAccountMenu({ user }: { user: AuthUser }) {
           </Link>
           <Link
             href="/account/reviews"
-            className="block px-4 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className={itemClass}
             role="menuitem"
             onClick={() => setOpen(false)}
           >
@@ -84,15 +88,15 @@ export function HeaderAccountMenu({ user }: { user: AuthUser }) {
           </Link>
           <Link
             href="/account/forum"
-            className="block px-4 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className={itemClass}
             role="menuitem"
             onClick={() => setOpen(false)}
           >
             {t("nav.myForum")}
           </Link>
-          <div className="border-t border-border px-2 py-2">
+          <div className="mt-1 border-t border-line pt-2">
             <LogoutButton
-              className="w-full justify-center rounded-lg border border-border bg-transparent px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+              className="w-full"
               onLoggedOut={() => {
                 setOpen(false);
                 router.refresh();

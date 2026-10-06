@@ -1,154 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { useSitePlaceholders } from "@/components/layout/site-placeholders-provider";
-import { StarRating } from "@/components/ui/star-rating";
-import { cn } from "@/lib/cn";
+import {
+  CoverImage,
+  CoverLogo,
+  FeaturedMark,
+} from "@/components/directory/cover-media";
+import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
+import { RatingLine } from "@/components/directory/rating-line";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icons";
+import { Tag } from "@/components/ui/tag";
 import type { FacilityListItem } from "@/lib/api/types";
 import { facilityKindLabel } from "@/lib/facility-labels";
-import { t } from "@/i18n/t";
+import { telHref } from "@/lib/phone";
+import { t, tCount, tFormat } from "@/i18n/t";
 
-export function FacilityCard({
-  facility,
-  layout = "grid",
-}: {
-  facility: FacilityListItem;
-  layout?: "grid" | "list";
-}) {
-  const placeholders = useSitePlaceholders();
-  const avatarSrc = facility.avatar_url ?? placeholders.facility;
-  const subtitle = [facilityKindLabel(facility.type), facility.city]
-    .filter(Boolean)
-    .join(" · ");
-
-  if (layout === "list") {
-    return (
-      <article className="directory-card card-lift flex h-full flex-col gap-4 rounded-[1.75rem] p-[22px] sm:flex-row sm:items-start">
-        <FacilityCardBody
-          facility={facility}
-          avatarSrc={avatarSrc}
-          subtitle={subtitle}
-          className="sm:flex-1"
-        />
-        <Link
-          href={`/facilities/${facility.slug}`}
-          className="btn-gradient-teal inline-flex min-h-[54px] w-full shrink-0 items-center justify-center rounded-[1.125rem] px-8 text-sm font-extrabold text-white transition hover:brightness-105 sm:w-auto sm:self-center"
-        >
-          {t("home.viewProfile")}
-        </Link>
-      </article>
-    );
-  }
+/**
+ * A clinic / hospital / laboratory result (D2a card): the cover photo (or a
+ * soft placeholder) across the top with the logo slot over its bottom-left
+ * corner and „Истакнат“ over its top-left, then the name, kind, place,
+ * rating, open status, tags and the two actions.
+ */
+export function FacilityCard({ facility }: { facility: FacilityListItem }) {
+  const href = `/facilities/${facility.slug}`;
+  const tel = telHref(facility.phone);
+  const hasTags =
+    facility.has_emergency_services || facility.departments_count > 0;
 
   return (
-    <article className="directory-card card-lift flex h-full flex-col rounded-[1.75rem] p-[22px]">
-      <div className="flex min-h-0 flex-1 flex-col">
-        <FacilityCardBody
-          facility={facility}
-          avatarSrc={avatarSrc}
-          subtitle={subtitle}
+    <article className="card hover-lift flex h-full flex-col">
+      <div className="relative">
+        <CoverImage
+          kind="facility"
+          coverUrl={facility.cover_url}
+          className="aspect-video rounded-t-card md:aspect-[2/1]"
+        />
+        {facility.is_featured ? (
+          <FeaturedMark className="absolute left-3 top-3 shadow-card" />
+        ) : null}
+        <CoverLogo
+          kind="facility"
+          avatarUrl={facility.avatar_url}
+          name={facility.name}
+          className="absolute -bottom-7 left-4"
         />
       </div>
-      <Link
-        href={`/facilities/${facility.slug}`}
-        className="btn-gradient-teal mt-[18px] inline-flex min-h-[54px] w-full shrink-0 items-center justify-center rounded-[1.125rem] text-sm font-extrabold text-white transition hover:brightness-105"
-      >
-        {t("home.viewProfile")}
-      </Link>
-    </article>
-  );
-}
 
-function FacilityCardBody({
-  facility,
-  avatarSrc,
-  subtitle,
-  className,
-}: {
-  facility: FacilityListItem;
-  avatarSrc: string | null;
-  subtitle: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-3.5">
-          {avatarSrc ? (
-            // Remote admin-uploaded avatar; next/image would 400 in production because
-            // images.remotePatterns cannot read NEXT_PUBLIC_API_URL. See next.config.ts.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarSrc}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-[62px] w-[62px] shrink-0 rounded-[1.25rem] border border-border object-cover"
-            />
-          ) : (
-            <div className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[1.25rem] border border-[#e7edf0] bg-gradient-to-b from-[#f2f5f7] to-[#eef2f4] text-lg font-bold text-[#7a8691]">
-              {facility.name.charAt(0)}
-            </div>
-          )}
-          <div className="min-w-0">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-              {facility.name}
-            </h2>
-            {subtitle ? (
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {subtitle}
-              </p>
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-10">
+        <h2 className="type-h3 text-ink">
+          <Link href={href} className="link-grow">
+            {facility.name}
+          </Link>
+        </h2>
+        <p className="type-meta mt-0.5 text-ink-2">
+          {facilityKindLabel(facility.type)}
+        </p>
+
+        <div className="mt-4 flex flex-col gap-2">
+          {facility.city ? (
+            <p className="flex items-start gap-2 type-body text-ink">
+              <Icon name="map-pin" size={20} className="mt-0.5 text-ink-2" />
+              {facility.city}
+            </p>
+          ) : null}
+          <RatingLine summary={facility.review_summary} showStars={false} />
+          {facility.office_hours ? (
+            <LiveOpenStatusLine hours={facility.office_hours} />
+          ) : null}
+        </div>
+
+        {hasTags ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {facility.has_emergency_services ? (
+              <Tag icon="building">{t("facilities.emergencyAvailable")}</Tag>
+            ) : null}
+            {facility.departments_count > 0 ? (
+              <Tag>
+                {tCount(
+                  "facilities.departmentCount",
+                  facility.departments_count,
+                )}
+              </Tag>
             ) : null}
           </div>
-        </div>
-        {facility.has_emergency_services ? (
-          <span className="shrink-0 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-extrabold text-amber-800">
-            {t("facilities.emergencyBadge")}
-          </span>
         ) : null}
+
+        <div className="mt-auto flex gap-2 pt-4">
+          {tel ? (
+            <Button
+              href={tel}
+              variant="soft"
+              leadingIcon="phone"
+              className="flex-1"
+              aria-label={tFormat("directory.callName", {
+                name: facility.name,
+              })}
+            >
+              {t("directory.call")}
+            </Button>
+          ) : null}
+          <Button
+            href={href}
+            className="flex-1"
+            aria-label={tFormat("directory.viewProfileOf", {
+              name: facility.name,
+            })}
+          >
+            {t("doctors.viewProfile")}
+          </Button>
+        </div>
       </div>
-
-      {facility.city ? (
-        <p className="mt-3.5 inline-flex items-center gap-2 text-sm text-[#5d6772]">
-          <PinIcon className="h-4 w-4 shrink-0" aria-hidden />
-          {facility.city}
-        </p>
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        {facility.review_summary.count > 0 &&
-        facility.review_summary.average_rating !== null ? (
-          <>
-            <StarRating value={facility.review_summary.average_rating} />
-            <span className="text-sm font-bold text-[#485460]">
-              {facility.review_summary.average_rating} (
-              {facility.review_summary.count})
-            </span>
-          </>
-        ) : (
-          <span className="directory-tag">
-            {facilityKindLabel(facility.type)}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PinIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="10" r="2.5" />
-    </svg>
+    </article>
   );
 }

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
 
 type PaginationProps = {
@@ -7,6 +7,8 @@ type PaginationProps = {
   lastPage: number;
   total: number;
   searchParams: Record<string, string | undefined>;
+  /** The nav's name; give each one its own when a page has two. */
+  label?: string;
 };
 
 function buildHref(
@@ -32,6 +34,7 @@ function buildHref(
   return query ? `${basePath}?${query}` : basePath;
 }
 
+/** „Претходна“ / „Следна“ pills with „Страница 1 од 3 (24 вкупно)“ between. */
 export function Pagination({
   basePath,
   currentPage,
@@ -39,6 +42,7 @@ export function Pagination({
   total,
   searchParams,
   pageParam = "page",
+  label = t("pagination.label"),
 }: PaginationProps & { pageParam?: string }) {
   if (lastPage <= 1) {
     return null;
@@ -46,29 +50,33 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"
-      aria-label="Pagination"
+      className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-between"
+      aria-label={label}
     >
-      <p>
+      <p className="type-meta order-first text-ink-2 sm:order-none">
         {t("pagination.page")} {currentPage} {t("pagination.of")} {lastPage} (
         {total} {t("pagination.total")})
       </p>
-      <div className="flex gap-3">
+      <div className="flex w-full gap-2 sm:w-auto sm:order-last">
         {currentPage > 1 ? (
-          <Link
+          <Button
             href={buildHref(basePath, currentPage - 1, searchParams, pageParam)}
-            className="font-medium text-primary underline-offset-4 hover:text-primary/80 hover:underline"
+            variant="secondary"
+            leadingIcon="chevron-left"
+            className="flex-1 sm:flex-none"
           >
             {t("pagination.previous")}
-          </Link>
+          </Button>
         ) : null}
         {currentPage < lastPage ? (
-          <Link
+          <Button
             href={buildHref(basePath, currentPage + 1, searchParams, pageParam)}
-            className="font-medium text-primary underline-offset-4 hover:text-primary/80 hover:underline"
+            variant="secondary"
+            trailingIcon="chevron-right"
+            className="flex-1 sm:flex-none"
           >
             {t("pagination.next")}
-          </Link>
+          </Button>
         ) : null}
       </div>
     </nav>

@@ -4,6 +4,36 @@ export function formatForumReplyCount(count: number): string {
   return tCount("forum.repliesCount", count);
 }
 
+/**
+ * The compact author line under a forum post's name: „Член од 2025 · 12
+ * објави“. The post count adds the author's approved topics and replies. The year is read in
+ * Europe/Skopje so the server and the browser render the same text.
+ */
+export function formatForumAuthorStats(author: {
+  member_since: string | null;
+  topics_count: number;
+  posts_count: number;
+}): string {
+  const parts: string[] = [];
+  const since = author.member_since ? new Date(author.member_since) : null;
+
+  if (since && !Number.isNaN(since.getTime())) {
+    const year = new Intl.DateTimeFormat("en", {
+      year: "numeric",
+      timeZone: "Europe/Skopje",
+    }).format(since);
+    parts.push(tFormat("forum.authorMemberSince", { year }));
+  }
+
+  const posts = author.topics_count + author.posts_count;
+
+  if (posts > 0) {
+    parts.push(tCount("forum.authorPosts", posts));
+  }
+
+  return parts.join(" · ");
+}
+
 export function formatForumDateTime(iso: string | null | undefined): string {
   if (!iso) {
     return "";
@@ -52,7 +82,7 @@ export function formatForumLastActivity(
   const diffHours = Math.round(diffMinutes / 60);
 
   if (diffHours < 24) {
-    return tFormat("forum.activityHoursAgo", { count: String(diffHours) });
+    return tCount("forum.activityHoursAgo", diffHours);
   }
 
   const diffDays = Math.round(diffHours / 24);

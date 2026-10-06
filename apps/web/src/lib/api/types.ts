@@ -82,6 +82,12 @@ export type DoctorListItem = {
     city: string | null;
   } | null;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type ReviewSummary = {
@@ -139,11 +145,20 @@ export type FacilityListItem = {
   name: string;
   type: FacilityType;
   city: string | null;
+  /** The logo (null in most demo data: the initial is shown instead). */
   avatar_url: string | null;
+  /** Cover photo, WebP ≤1600×900; optional until every API serves it. */
+  cover_url?: string | null;
   has_emergency_services: boolean;
   is_featured: boolean;
   departments_count: number;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type FacilityDetail = {
@@ -161,6 +176,8 @@ export type FacilityDetail = {
   email: string | null;
   website: string | null;
   avatar_url: string | null;
+  cover_url?: string | null;
+  is_featured?: boolean;
   office_hours: Record<string, string>;
   doctors: {
     slug: string;
@@ -175,8 +192,18 @@ export type PharmacyListItem = {
   slug: string;
   name: string;
   city: string | null;
+  /** The logo, else the initial. */
   avatar_url: string | null;
+  /** Cover photo, WebP ≤1600×900. */
+  cover_url?: string | null;
+  is_featured?: boolean;
   review_summary: ReviewSummary;
+  /**
+   * Not in the list payload yet: when the API adds it, cards get a
+   * tap-to-call „Јави се“ (and an open-now line from office_hours).
+   */
+  phone?: string | null;
+  office_hours?: Record<string, string> | unknown[];
 };
 
 export type PharmacyDetail = {
@@ -191,6 +218,8 @@ export type PharmacyDetail = {
   email: string | null;
   website: string | null;
   avatar_url: string | null;
+  cover_url?: string | null;
+  is_featured?: boolean;
   office_hours: Record<string, string>;
   review_summary: ReviewSummary;
 };

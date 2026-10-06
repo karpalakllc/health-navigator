@@ -198,6 +198,17 @@ nobody can hold an account locked by merely sending traffic.
   published specialty name) and clinical facilities (name or a published
   department name), on `/search` too; `city` is a separate parameter.
   Minimum query length is 2 characters, matching `SearchQuery::normalize`.
+- Doctor, facility and pharmacy lists put `is_featured` items **first**, inside
+  the current filters, then apply the chosen sort (`/doctors?sort=name|rating`;
+  facilities and pharmacies sort by name); totals and pages are unaffected.
+  `/search` does the same per vertical on the SQL path; with Meilisearch,
+  `is_featured` is a sortable attribute applied after relevance, so it only
+  breaks ties between equally relevant hits (needs `php artisan
+  search:reindex` once to push the setting). Every item carries `is_featured`;
+  doctors also carry `is_sponsored`, which must stay visibly labelled.
+- Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
+  pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
+  1600×900), on both list and detail payloads.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a

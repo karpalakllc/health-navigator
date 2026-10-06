@@ -1,13 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { FilterInputWrap } from "@/components/directory/filter-input-wrap";
-import { Pagination } from "@/components/directory/pagination";
 import Link from "next/link";
-import { loginHref } from "@/lib/auth/login-href";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { SortSelect } from "@/components/directory/filter-controls";
+import { Pagination } from "@/components/directory/pagination";
+import { reviewsBasePath } from "@/components/reviews/review-paths";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewList } from "@/components/reviews/review-list";
+import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icons";
 import { StarRating } from "@/components/ui/star-rating";
+import { Tag } from "@/components/ui/tag";
+import { loginHref } from "@/lib/auth/login-href";
 import type {
   PaginatedEnvelope,
   PublicReview,
@@ -37,12 +42,47 @@ export function ReviewsPanel({
   rating,
 }: ReviewsPanelProps) {
   const router = useRouter();
-  const basePath =
-    kind === "doctor"
-      ? `/doctors/${slug}`
-      : kind === "pharmacy"
-        ? `/pharmacies/${slug}`
-        : `/facilities/${slug}`;
+  const basePath = reviewsBasePath(kind, slug);
+  // Set when the form posts; the refresh that follows swaps the form for the
+  // pending card, and the viewport (and focus) must follow it there.
+  const justSubmitted = useRef(false);
+  const viewerStatus = viewerReview?.status ?? null;
+
+  useEffect(() => {
+    if (!justSubmitted.current) {
+      return;
+    }
+
+    const target =
+      viewerStatus === "pending"
+        ? document.getElementById(PENDING_REVIEW_ID)
+        : viewerStatus === "approved"
+          ? document.getElementById("reviews-title")
+          : null;
+
+    if (!target) {
+      return;
+    }
+
+    justSubmitted.current = false;
+    if (!target.hasAttribute("tabindex")) {
+      target.setAttribute("tabindex", "-1");
+    }
+    target.scrollIntoView?.({ block: "center" });
+    target.focus({ preventScroll: true });
+  }, [viewerStatus]);
+
+  // A profile opened at #reviews / #review-form: the section can arrive after
+  // the browser's own jump to the fragment (streaming), so jump again once.
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (hash !== "#reviews" && hash !== "#review-form") {
+      return;
+    }
+
+    document.getElementById(hash.slice(1))?.scrollIntoView?.();
+  }, []);
 
   function buildHref(next: { page?: number; sort?: string; rating?: string }) {
     const params = new URLSearchParams();
@@ -65,54 +105,51 @@ export function ReviewsPanel({
     return query ? `${basePath}?${query}#reviews` : `${basePath}#reviews`;
   }
 
+  const hasAny = initial.meta.total > 0 || rating !== "";
+
   return (
-    <div id="reviews" className="scroll-mt-24 space-y-4">
-      <div className="content-card grid gap-3.5 rounded-[1.625rem] p-[18px] sm:max-w-xl sm:grid-cols-2">
-        <label className="grid gap-2 text-sm">
-          <span className="font-bold text-[#36414b]">
-            {t("reviews.sortLabel")}
-          </span>
-          <FilterInputWrap
-            compact
-            icon={<SortIcon className="h-5 w-5" aria-hidden />}
-          >
-            <select
-              value={sort}
-              onChange={(event) =>
-                router.push(buildHref({ sort: event.target.value, page: 1 }))
-              }
-            >
-              <option value="newest">{t("reviews.sortNewest")}</option>
-              <option value="oldest">{t("reviews.sortOldest")}</option>
-              <option value="rating_high">{t("reviews.sortRatingHigh")}</option>
-              <option value="rating_low">{t("reviews.sortRatingLow")}</option>
-            </select>
-          </FilterInputWrap>
-        </label>
-        <label className="grid gap-2 text-sm">
-          <span className="font-bold text-[#36414b]">
-            {t("reviews.filterRating")}
-          </span>
-          <FilterInputWrap
-            compact
-            icon={<StarGlyph className="h-5 w-5" aria-hidden />}
-          >
-            <select
+    <div className="flex flex-col gap-4">
+      {hasAny ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="type-meta text-ink-2">
+            {tFormat("reviews.shownOf", {
+              shown: initial.data.length,
+              total: initial.meta.total,
+            })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <SortSelect
+              label={t("reviews.filterRating")}
               value={rating}
-              onChange={(event) =>
-                router.push(buildHref({ rating: event.target.value, page: 1 }))
+              onChange={(value) =>
+                router.push(buildHref({ rating: value, page: 1 }))
               }
-            >
-              <option value="">{t("reviews.filterAllRatings")}</option>
-              {[5, 4, 3, 2, 1].map((stars) => (
-                <option key={stars} value={String(stars)}>
-                  {tFormat("reviews.filterStars", { stars: String(stars) })}
-                </option>
-              ))}
-            </select>
-          </FilterInputWrap>
-        </label>
-      </div>
+              options={[
+                { value: "", label: t("reviews.filterAllRatings") },
+                ...[5, 4, 3, 2, 1].map((stars) => ({
+                  value: String(stars),
+                  label: tFormat("reviews.filterStars", {
+                    stars: String(stars),
+                  }),
+                })),
+              ]}
+            />
+            <SortSelect
+              label={t("reviews.sortLabel")}
+              value={sort}
+              onChange={(value) =>
+                router.push(buildHref({ sort: value, page: 1 }))
+              }
+              options={[
+                { value: "newest", label: t("reviews.sortNewest") },
+                { value: "oldest", label: t("reviews.sortOldest") },
+                { value: "rating_high", label: t("reviews.sortRatingHigh") },
+                { value: "rating_low", label: t("reviews.sortRatingLow") },
+              ]}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <ReviewList reviews={initial.data} />
 
@@ -135,77 +172,69 @@ export function ReviewsPanel({
       ) : null}
 
       {isLoggedIn && (!viewerReview || viewerReview.status === "rejected") ? (
-        <ReviewForm kind={kind} slug={slug} />
+        <ReviewForm
+          kind={kind}
+          slug={slug}
+          onSubmitted={() => {
+            justSubmitted.current = true;
+          }}
+        />
       ) : null}
 
       {!isLoggedIn ? (
-        <div className="flex min-h-[54px] items-center rounded-full border border-border bg-white/80 px-[18px] text-[0.95rem] text-[#5a6773]">
-          <Link
-            href={loginHref(`${basePath}#reviews`)}
-            className="font-bold text-primary hover:underline"
-          >
-            {t("nav.login")}
-          </Link>
-          <span className="ml-1">{t("reviews.loginToSubmit")}</span>
-        </div>
+        <Card
+          tone="sand"
+          padding="md"
+          className="flex items-start gap-3 type-body text-ink"
+        >
+          <Icon name="user" size={22} className="mt-0.5 shrink-0" />
+          {/* One sentence: the link stays inline so the rest of it does not
+              wrap onto a line of its own on a phone. */}
+          <p>
+            <Link
+              href={loginHref(`${basePath}#reviews`)}
+              className="link-underline font-semibold text-ink"
+            >
+              {t("nav.login")}
+            </Link>{" "}
+            {t("reviews.loginToSubmit")}
+          </p>
+        </Card>
       ) : null}
     </div>
   );
 }
 
+/** The pending card's id: focus lands here after a review is sent. */
+const PENDING_REVIEW_ID = "review-pending";
+
 function PendingReviewCard({ review }: { review: ViewerReview }) {
   return (
-    <article className="rounded-[1.625rem] border border-amber-200/80 bg-amber-50/60 p-5">
-      <p className="text-sm font-semibold text-amber-900">
+    <Card
+      as="article"
+      id={PENDING_REVIEW_ID}
+      tabIndex={-1}
+      aria-labelledby={`${PENDING_REVIEW_ID}-title`}
+      tone="sand"
+      padding="md"
+      className="flex flex-col gap-2"
+    >
+      <p
+        id={`${PENDING_REVIEW_ID}-title`}
+        className="type-body font-semibold text-ink"
+      >
         {t("reviews.pendingTitle")}
       </p>
-      <p className="mt-1 text-xs text-amber-800/90">
-        {t("reviews.pendingBody")}
-      </p>
-      <div className="mt-3 flex items-center gap-2">
-        <StarRating value={review.rating} />
-        <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-xs font-medium text-amber-900">
+      <p className="type-meta text-ink-2">{t("reviews.pendingBody")}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <StarRating value={review.rating} size="md" />
+        <Tag tone="white" icon="clock">
           {t("reviews.pending")}
-        </span>
+        </Tag>
       </div>
       {review.body ? (
-        <p className="mt-2 text-sm text-foreground">{review.body}</p>
+        <p className="type-reading text-ink">{review.body}</p>
       ) : null}
-    </article>
-  );
-}
-
-function SortIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function StarGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"
-        strokeLinejoin="round"
-      />
-    </svg>
+    </Card>
   );
 }

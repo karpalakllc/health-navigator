@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Models\Concerns\DeletesReplacedMedia;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\FacilityFactory;
@@ -18,7 +19,7 @@ use Laravel\Scout\Searchable;
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
-    use HasFactory, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -34,6 +35,7 @@ class Facility extends Model
         'email',
         'website',
         'avatar_url',
+        'cover_path',
         'office_hours',
         'is_published',
         'is_featured',
@@ -52,6 +54,16 @@ class Facility extends Model
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
         ];
+    }
+
+    /**
+     * avatar_url is the logo, cover_path the wide header image.
+     *
+     * @return list<string>
+     */
+    protected function mediaPathColumns(): array
+    {
+        return ['avatar_url', 'cover_path'];
     }
 
     /**
@@ -210,6 +222,8 @@ class Facility extends Model
             'type' => $this->type?->value,
             'city' => $this->city,
             'description' => $this->description,
+            // Sortable (config/scout.php); see Doctor::toSearchableArray().
+            'is_featured' => (bool) $this->is_featured,
             'department_names' => $departmentNames->all(),
             // Meilisearch does not transliterate; the SQL path matches Latin too.
             'department_names_latin' => $departmentNames

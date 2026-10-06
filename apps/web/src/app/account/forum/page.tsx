@@ -1,12 +1,14 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AccountLayout } from "@/components/account/account-layout";
+import {
+  AccountLayout,
+  AccountPage,
+} from "@/components/account/account-layout";
 import { AccountPageHero } from "@/components/account/account-page-hero";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
 import { Pagination } from "@/components/directory/pagination";
-import { ModerationStatusBadge } from "@/components/ui/moderation-status-badge";
-import { PageShell } from "@/components/ui/page-shell";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
+import {
+  ForumActivityItem,
+  ForumActivitySection,
+} from "@/components/forum/forum-activity-list";
 import { getSessionToken } from "@/lib/auth/session";
 import { fetchMyForumPosts, fetchMyForumTopics } from "@/lib/api/forum";
 import { ApiRequestError } from "@/lib/api/server";
@@ -52,70 +54,17 @@ export default async function AccountForumPage({
   }
 
   return (
-    <>
-      <PageHeroBleed>
-        <AccountPageHero
-          badge={t("nav.myForum")}
-          title={t("account.forumActivity")}
-          description={t("account.forumHeroDescription")}
-        />
-      </PageHeroBleed>
-
-      <PageShell className="pb-16">
-        <AccountLayout current="forum">
-          <ProfileContentCard title={t("account.topicsHeading")}>
-            <ul className="divide-y divide-border/80">
-              {topics.data.length === 0 ? (
-                <li className="py-4 text-sm text-muted-foreground">
-                  {t("account.noTopicsYet")}
-                </li>
-              ) : (
-                topics.data.map((topic) => (
-                  <li
-                    key={`${topic.slug}-${topic.created_at}`}
-                    className="space-y-2 py-4 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="font-semibold text-foreground">
-                        {topic.status === "approved" ? (
-                          <Link
-                            href={`/forum/${topic.category.slug}/${topic.slug}`}
-                            className="text-primary underline-offset-2 hover:underline"
-                          >
-                            {topic.title}
-                          </Link>
-                        ) : (
-                          topic.title
-                        )}
-                      </p>
-                      <ModerationStatusBadge status={topic.status} />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {topic.category.name}
-                      <span aria-hidden> · </span>
-                      {formatForumReplyCount(topic.replies_count)}
-                      {topic.last_post_at || topic.published_at ? (
-                        <>
-                          <span aria-hidden> · </span>
-                          {t("forum.lastActivity")}:{" "}
-                          {formatForumLastActivity(
-                            topic.last_post_at ?? topic.published_at,
-                          )}
-                        </>
-                      ) : null}
-                    </p>
-                    {topic.status === "rejected" && topic.rejection_note ? (
-                      <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                          {t("account.rejectionNote")}:{" "}
-                        </span>
-                        {topic.rejection_note}
-                      </p>
-                    ) : null}
-                  </li>
-                ))
-              )}
-            </ul>
+    <AccountPage>
+      <AccountPageHero
+        badge={t("nav.myForum")}
+        title={t("account.forumActivity")}
+        description={t("account.forumHeroDescription")}
+      />
+      <AccountLayout current="forum">
+        <ForumActivitySection
+          id="my-forum-topics"
+          title={t("account.topicsHeading")}
+          pagination={
             <Pagination
               basePath="/account/forum"
               currentPage={topics.meta.current_page}
@@ -123,53 +72,52 @@ export default async function AccountForumPage({
               total={topics.meta.total}
               searchParams={{}}
               pageParam="topics_page"
+              label={`${t("account.topicsHeading")}: ${t("pagination.label")}`}
             />
-          </ProfileContentCard>
-
-          <ProfileContentCard title={t("account.repliesHeading")}>
-            <ul className="divide-y divide-border/80">
-              {posts.data.length === 0 ? (
-                <li className="py-4 text-sm text-muted-foreground">
-                  {t("account.noRepliesYet")}
-                </li>
-              ) : (
-                posts.data.map((post) => (
-                  <li
-                    key={post.id}
-                    className="space-y-2 py-4 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        {post.status === "approved" ? (
-                          <Link
-                            href={`/forum/${post.topic.category_slug}/${post.topic.slug}`}
-                            className="text-primary underline-offset-2 hover:underline"
-                          >
-                            {post.topic.title}
-                          </Link>
-                        ) : (
-                          post.topic.title
+          }
+        >
+          {topics.data.length === 0 ? (
+            <li className="px-5 py-4 type-body text-ink-2">
+              {t("account.noTopicsYet")}
+            </li>
+          ) : (
+            topics.data.map((topic) => (
+              <ForumActivityItem
+                key={`${topic.slug}-${topic.created_at}`}
+                title={topic.title}
+                href={
+                  topic.status === "approved"
+                    ? `/forum/${topic.category.slug}/${topic.slug}`
+                    : undefined
+                }
+                status={topic.status}
+                rejectionNote={
+                  topic.status === "rejected" ? topic.rejection_note : null
+                }
+                meta={
+                  <>
+                    {topic.category.name}
+                    <span aria-hidden="true"> · </span>
+                    {formatForumReplyCount(topic.replies_count)}
+                    {topic.last_post_at || topic.published_at ? (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        {formatForumLastActivity(
+                          topic.last_post_at ?? topic.published_at,
                         )}
-                      </p>
-                      <ModerationStatusBadge status={post.status} />
-                    </div>
-                    {post.body ? (
-                      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                        {post.body}
-                      </p>
+                      </>
                     ) : null}
-                    {post.status === "rejected" && post.rejection_note ? (
-                      <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                          {t("account.rejectionNote")}:{" "}
-                        </span>
-                        {post.rejection_note}
-                      </p>
-                    ) : null}
-                  </li>
-                ))
-              )}
-            </ul>
+                  </>
+                }
+              />
+            ))
+          )}
+        </ForumActivitySection>
+
+        <ForumActivitySection
+          id="my-forum-replies"
+          title={t("account.repliesHeading")}
+          pagination={
             <Pagination
               basePath="/account/forum"
               currentPage={posts.meta.current_page}
@@ -177,10 +125,34 @@ export default async function AccountForumPage({
               total={posts.meta.total}
               searchParams={{}}
               pageParam="posts_page"
+              label={`${t("account.repliesHeading")}: ${t("pagination.label")}`}
             />
-          </ProfileContentCard>
-        </AccountLayout>
-      </PageShell>
-    </>
+          }
+        >
+          {posts.data.length === 0 ? (
+            <li className="px-5 py-4 type-body text-ink-2">
+              {t("account.noRepliesYet")}
+            </li>
+          ) : (
+            posts.data.map((post) => (
+              <ForumActivityItem
+                key={post.id}
+                title={post.topic.title}
+                href={
+                  post.status === "approved"
+                    ? `/forum/${post.topic.category_slug}/${post.topic.slug}`
+                    : undefined
+                }
+                status={post.status}
+                rejectionNote={
+                  post.status === "rejected" ? post.rejection_note : null
+                }
+                body={post.body}
+              />
+            ))
+          )}
+        </ForumActivitySection>
+      </AccountLayout>
+    </AccountPage>
   );
 }

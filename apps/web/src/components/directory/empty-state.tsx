@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 
 export function EmptyState({
@@ -18,21 +19,23 @@ export function EmptyState({
     <div
       role="status"
       className={cn(
-        "rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center",
+        "card flex flex-col items-center px-6 py-12 text-center",
         className,
       )}
     >
-      <div
-        className="mx-auto mb-5 h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/15 to-accent/15 ring-1 ring-border"
-        aria-hidden
-      />
-      <p className="text-lg font-semibold text-foreground">{title}</p>
+      <span
+        aria-hidden="true"
+        className="mb-5 inline-flex size-14 items-center justify-center rounded-full bg-sand text-ink"
+      >
+        <Icon name="search" size={26} />
+      </span>
+      <p className="type-h3 text-ink">{title}</p>
       {description ? (
-        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+        <p className="type-meta measure mt-2 text-ink-2">{description}</p>
       ) : null}
       {clearHref && clearLabel ? (
         <div className="mt-6">
-          <Button href={clearHref} variant="outline">
+          <Button href={clearHref} variant="secondary">
             {clearLabel}
           </Button>
         </div>

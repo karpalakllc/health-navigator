@@ -89,7 +89,11 @@ final class MeilisearchUnifiedSearch
      */
     private function searchDoctors(string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $search = MeilisearchGateway::idsOnly(Doctor::search($q))->query(fn (Builder $query) => $query->published());
+        $search = MeilisearchGateway::idsOnly(Doctor::search($q))
+            ->query(fn (Builder $query) => $query->published())
+            // A sortable attribute (config/scout.php): ranks after relevance,
+            // so among equally good matches featured profiles come first.
+            ->orderBy('is_featured', 'desc');
 
         if ($city !== null) {
             $cities = $this->matchingCities(Doctor::query()->published(), $city);
@@ -117,7 +121,9 @@ final class MeilisearchUnifiedSearch
      */
     private function searchFacilities(string $q, ?string $city, int $perPage, bool $pharmacies): LengthAwarePaginator
     {
-        $search = MeilisearchGateway::idsOnly(Facility::search($q))->query(fn (Builder $query) => $query->published());
+        $search = MeilisearchGateway::idsOnly(Facility::search($q))
+            ->query(fn (Builder $query) => $query->published())
+            ->orderBy('is_featured', 'desc');
 
         if ($pharmacies) {
             $search->where('type', FacilityType::Pharmacy->value);

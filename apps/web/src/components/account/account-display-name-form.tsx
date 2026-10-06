@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { filterInputClassName } from "@/components/directory/filter-form";
+import { TextField } from "@/components/auth/text-field";
 import { Button } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
 import {
@@ -23,8 +23,7 @@ export function AccountDisplayNameForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const inputId = useId();
-  const helpId = useId();
+  const errorId = useId();
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -75,41 +74,41 @@ export function AccountDisplayNameForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3 text-sm">
-      <label htmlFor={inputId} className="font-medium text-foreground">
-        {t("account.displayName")}
-      </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          id={inputId}
-          type="text"
-          name="display_name"
-          required
-          maxLength={DISPLAY_NAME_MAX_LENGTH}
-          autoComplete="nickname"
-          aria-describedby={helpId}
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setSaved(false);
-          }}
-          className={filterInputClassName}
-        />
-        <Button
-          type="submit"
-          disabled={pending}
-          className="min-h-[44px] w-full sm:w-auto"
-        >
-          {pending
-            ? t("account.displayNameSaving")
-            : t("account.displayNameSave")}
-        </Button>
-      </div>
-      <p id={helpId} className="text-xs text-muted-foreground">
-        {t("account.displayNameHelp")}
-      </p>
-      {error ? <FormError>{error}</FormError> : null}
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      className="flex max-w-xl flex-col gap-4"
+    >
+      {/* The alert below is the field's error: it is announced once, and
+          linked as the field's description so it is read again on focus. */}
+      <TextField
+        label={t("account.displayName")}
+        hint={t("account.displayNameHelp")}
+        type="text"
+        name="display_name"
+        required
+        maxLength={DISPLAY_NAME_MAX_LENGTH}
+        autoComplete="nickname"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setSaved(false);
+        }}
+      />
+      {error ? <FormError id={errorId}>{error}</FormError> : null}
       <FormSuccess>{saved ? t("account.displayNameSaved") : null}</FormSuccess>
+      <Button
+        type="submit"
+        loading={pending}
+        disabled={pending}
+        className="w-full sm:w-auto sm:self-start"
+      >
+        {pending
+          ? t("account.displayNameSaving")
+          : t("account.displayNameSave")}
+      </Button>
     </form>
   );
 }

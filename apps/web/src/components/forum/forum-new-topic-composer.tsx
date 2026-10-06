@@ -1,18 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { AuthFormCard } from "@/components/auth/auth-form-card";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { ForumRulesBand } from "@/components/forum/forum-rules-band";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
+import { useState } from "react";
+import { formatCharCounter } from "@/components/forum/char-counter";
+import { ForumRulesCard } from "@/components/forum/forum-rules-band";
+import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox, Input, Select, Textarea } from "@/components/ui/field";
+import { FormError } from "@/components/ui/form-message";
+import { Icon } from "@/components/ui/icons";
+import { Tag } from "@/components/ui/tag";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
+import { focusField, lengthError } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
-import { FormError } from "@/components/ui/form-message";
 
-const CONSENT_ERROR_ID = "forum-topic-consent-error";
+const CONSENT_ID = "forum-topic-consent";
+const PREVIEW_ID = "forum-topic-preview";
+const TITLE_ID = "forum-topic-title";
+const BODY_ID = "forum-topic-body";
+/** API limits (StoreForumTopicRequest). */
+const TITLE_MIN_LENGTH = 5;
+const TITLE_MAX_LENGTH = 255;
+const BODY_MIN_LENGTH = 20;
+const BODY_MAX_LENGTH = 10000;
 
 type ForumNewTopicComposerProps = {
   categories: ForumCategory[];
@@ -23,6 +35,11 @@ type ForumNewTopicComposerProps = {
   >;
 };
 
+/**
+ * The new-topic composer. On mobile it fills the screen (no card) and keeps
+ * „Преглед“ and „Испрати на проверка“ in a bar above the tab bar; on desktop
+ * it is a card beside the guidelines and the rules.
+ */
 export function ForumNewTopicComposer({
   categories,
   defaultCategorySlug,
@@ -44,25 +61,30 @@ export function ForumNewTopicComposer({
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [bodyError, setBodyError] = useState<string | null>(null);
 
   const canSubmit = accepted;
 
-  const previewBody = useMemo(
-    () => (
-      <article className="prose prose-sm max-w-none text-foreground">
-        <h3 className="text-xl font-bold">
-          {title || t("forum.previewTitlePlaceholder")}
-        </h3>
-        <p className="whitespace-pre-wrap text-muted-foreground">
-          {body || t("forum.previewBodyPlaceholder")}
-        </p>
-      </article>
-    ),
-    [title, body],
-  );
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    // Our own checks (the form is noValidate): the API's min lengths, in
+    // Macedonian, under each field.
+    const problems = {
+      title: lengthError(title, TITLE_MIN_LENGTH),
+      body: lengthError(body, BODY_MIN_LENGTH),
+    };
+    setTitleError(problems.title);
+    setBodyError(problems.body);
+
+    if (problems.title || problems.body) {
+      setConsentMissing(!canSubmit);
+      setError(null);
+      focusField(problems.title ? TITLE_ID : BODY_ID);
+      return;
+    }
+
     if (!canSubmit || !categorySlug) {
       setConsentMissing(!canSubmit);
       setError(t("forum.consentRequired"));
@@ -102,116 +124,166 @@ export function ForumNewTopicComposer({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <AuthFormCard>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">
-              {t("forum.categories")}
-            </span>
-            <select
-              value={categorySlug}
-              onChange={(event) => setCategorySlug(event.target.value)}
-              className={filterInputClassName}
-              required
-            >
-              {categories.map((category) => (
-                <option key={category.slug} value={category.slug}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">
-              {t("common.title")}
-            </span>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              required
-              minLength={5}
-              className={filterInputClassName}
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">
-              {t("common.message")}
-            </span>
-            <textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              required
-              minLength={20}
-              rows={8}
-              className={filterInputClassName}
-            />
-          </label>
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <Card
+        padding="none"
+        className="max-lg:bg-transparent max-lg:shadow-none lg:p-8"
+      >
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+        >
+          {/* One of the two places the safety note shows (with the forum
+              home): before someone writes about their health. */}
+          <ForumSafetyNotice />
+          <Select
+            label={t("forum.category")}
+            value={categorySlug}
+            onChange={(event) => setCategorySlug(event.target.value)}
+            required
+          >
+            {categories.map((category) => (
+              <option key={category.slug} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+          <Input
+            id={TITLE_ID}
+            label={t("common.title")}
+            error={titleError ?? undefined}
+            value={title}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              if (titleError) {
+                setTitleError(
+                  lengthError(event.target.value, TITLE_MIN_LENGTH),
+                );
+              }
+            }}
+            required
+            minLength={TITLE_MIN_LENGTH}
+            maxLength={TITLE_MAX_LENGTH}
+          />
+          <Textarea
+            id={BODY_ID}
+            label={t("common.message")}
+            hint={t("forum.replyHint")}
+            error={bodyError ?? undefined}
+            value={body}
+            onChange={(event) => {
+              setBody(event.target.value);
+              if (bodyError) {
+                setBodyError(lengthError(event.target.value, BODY_MIN_LENGTH));
+              }
+            }}
+            required
+            minLength={BODY_MIN_LENGTH}
+            maxLength={BODY_MAX_LENGTH}
+            rows={8}
+            counter={formatCharCounter(body.length, BODY_MAX_LENGTH)}
+          />
 
-          <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(event) => {
-                  setAccepted(event.target.checked);
-                  if (event.target.checked) {
-                    setConsentMissing(false);
-                  }
-                }}
-                required
-                aria-invalid={consentMissing || undefined}
-                aria-describedby={consentMissing ? CONSENT_ERROR_ID : undefined}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-border text-primary"
-              />
-              <span>{t("forum.consent")}</span>
-            </label>
+          <div className="rounded-card bg-sand px-4 py-1">
+            <Checkbox
+              id={CONSENT_ID}
+              label={t("forum.consent")}
+              checked={accepted}
+              onChange={(event) => {
+                setAccepted(event.target.checked);
+                if (event.target.checked) {
+                  setConsentMissing(false);
+                }
+              }}
+              required
+              error={consentMissing ? t("forum.consentRequired") : undefined}
+            />
           </div>
 
-          {preview ? previewBody : null}
+          {preview ? (
+            <Card
+              id={PREVIEW_ID}
+              tone="sand"
+              padding="md"
+              className="flex flex-col gap-3"
+            >
+              <Tag tone="white" icon="eye" className="self-start">
+                {t("forum.previewLabel")}
+              </Tag>
+              <h2 className="type-h2 text-ink">
+                {title || t("forum.previewTitlePlaceholder")}
+              </h2>
+              <p className="whitespace-pre-wrap break-words type-reading text-ink">
+                {body || t("forum.previewBodyPlaceholder")}
+              </p>
+            </Card>
+          ) : null}
 
           {error ? (
-            <FormError id={consentMissing ? CONSENT_ERROR_ID : undefined}>
-              {error}
+            <FormError>
+              {consentMissing ? (
+                <a
+                  href={`#${CONSENT_ID}`}
+                  className="underline decoration-2 underline-offset-4"
+                >
+                  {error}
+                </a>
+              ) : (
+                error
+              )}
             </FormError>
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
+          <p className="flex items-start gap-2 type-meta text-ink-2">
+            <Icon name="clock" size={20} className="mt-0.5" />
+            <span>{t("forum.topicModerationNote")}</span>
+          </p>
+
+          <div
+            data-sticky-action-bar
+            className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 flex gap-3 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:static lg:mx-0 lg:justify-end lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none"
+          >
+            <Button
+              variant="secondary"
+              size="lg"
+              leadingIcon={preview ? "eye-off" : "eye"}
+              aria-expanded={preview}
+              aria-controls={preview ? PREVIEW_ID : undefined}
               onClick={() => setPreview((current) => !current)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted/50"
+              className="max-lg:px-4"
             >
-              {preview ? t("forum.hidePreview") : t("forum.showPreview")}
-            </button>
-            <button
+              {/* Icon-only in the narrow mobile bar; the name stays. */}
+              <span className="max-lg:sr-only">
+                {preview ? t("forum.hidePreview") : t("forum.showPreview")}
+              </span>
+            </Button>
+            <Button
               type="submit"
+              size="lg"
+              leadingIcon="send"
               disabled={pending || !canSubmit}
-              // Disabled was white on 60%-opacity coral (about 2:1, unreadable);
-              // grey with dark text reads as unavailable and stays legible.
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-secondary-foreground"
+              loading={pending}
+              className="flex-1 max-lg:px-4 lg:flex-none"
             >
               {pending
                 ? t("common.submitting")
                 : t("forum.topicSubmitModeration")}
-            </button>
-            <Link
-              href={categorySlug ? `/forum/${categorySlug}` : "/forum"}
-              className="inline-flex min-h-[44px] items-center justify-center text-sm font-semibold text-muted-foreground hover:text-foreground"
-            >
-              {t("common.cancel")}
-            </Link>
+            </Button>
           </div>
         </form>
-      </AuthFormCard>
+      </Card>
 
-      <aside className="space-y-6">
-        <ProfileContentCard title={t("forum.newTopicGuidelinesTitle")}>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+      <aside className="flex flex-col gap-5">
+        <Card tone="apricot" padding="md" className="flex flex-col gap-2">
+          <h2 className="type-h3 text-ink">
+            {t("forum.newTopicGuidelinesTitle")}
+          </h2>
+          <p className="type-body text-ink">
             {t("forum.newTopicGuidelinesBody")}
           </p>
-        </ProfileContentCard>
-        <ForumRulesBand settings={settings} />
+        </Card>
+        <ForumRulesCard settings={settings} headingId="forum-composer-rules" />
       </aside>
     </div>
   );

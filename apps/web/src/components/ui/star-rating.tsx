@@ -1,62 +1,87 @@
+import { useId } from "react";
+import { STAR_PATH } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 import { ratingLabel } from "@/lib/rating";
 
 type StarRatingProps = {
   value: number;
   max?: number;
-  size?: "sm" | "md";
-  /** Defaults to primary brand color for filled stars. */
+  /** sm 16px (inline meta), md 20px (cards, reviews), lg 24px (summaries). */
+  size?: "sm" | "md" | "lg";
+  /** legacy — ignored; stars are always amber #a14806. */
   tone?: "primary" | "amber";
+  className?: string;
 };
 
-const iconSize = {
-  sm: "h-3.5 w-3.5",
-  md: "h-4 w-4",
-} as const;
+const PX = { sm: 16, md: 20, lg: 24 } as const;
 
-const STAR_PATH =
-  "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z";
-
-function StarIcon({
-  className,
-  filled,
-  "data-fill": dataFill,
+function Star({
+  size,
+  fill,
+  clipId,
 }: {
-  className?: string;
-  filled: boolean;
-  "data-fill"?: string;
+  size: number;
+  fill: "full" | "half" | "empty";
+  clipId: string;
 }) {
+  const strokeWidth = Math.round(((1.6 * 24) / size) * 100) / 100;
+
   return (
     <svg
-      data-fill={dataFill}
-      className={className}
+      data-fill={fill}
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
-      fill={filled ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={filled ? 0 : 1.5}
-      strokeLinejoin="round"
-      aria-hidden
+      aria-hidden="true"
+      focusable="false"
+      className="shrink-0 text-star"
     >
-      <path strokeLinecap="round" strokeLinejoin="round" d={STAR_PATH} />
+      {fill === "half" ? (
+        <defs>
+          <clipPath id={clipId}>
+            {/* The star spans x 2.6–21.4; half fills to its visual middle. */}
+            <rect x="0" y="0" width="12" height="24" />
+          </clipPath>
+        </defs>
+      ) : null}
+      <path
+        d={STAR_PATH}
+        fill={fill === "full" ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+      {fill === "half" ? (
+        <path
+          d={STAR_PATH}
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeLinejoin="round"
+          clipPath={`url(#${clipId})`}
+        />
+      ) : null}
     </svg>
   );
 }
 
+/**
+ * Read-only stars, amber #a14806 (6.1:1 on white, 5.7:1 on cream). Drawn to
+ * the nearest half star; the accessible name keeps one decimal („4,5 / 5“),
+ * so a 4.5 average is never announced or drawn as five.
+ */
 export function StarRating({
   value,
   max = 5,
   size = "sm",
-  tone = "primary",
+  className,
 }: StarRatingProps) {
-  // Nearest half star: 4.5 draws four and a half, not five (it used to round
-  // to whole stars, so every 4.5 average looked like a perfect score).
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const halves = Math.min(max * 2, Math.max(0, Math.round(value * 2)));
-  const filledTone = tone === "amber" ? "text-amber-500" : "text-primary";
-  const emptyClass = `shrink-0 text-muted-foreground/40 ${iconSize[size]}`;
-  const filledClass = `shrink-0 ${filledTone} ${iconSize[size]}`;
 
   return (
     <span
-      className="inline-flex items-center gap-0.5"
+      className={cn("inline-flex items-center gap-0.5", className)}
       role="img"
       aria-label={ratingLabel(value, max)}
     >
@@ -68,27 +93,12 @@ export function StarRating({
               ? "half"
               : "empty";
 
-        if (fill === "half") {
-          return (
-            <span
-              key={index}
-              data-fill="half"
-              className={`relative inline-flex shrink-0 ${iconSize[size]}`}
-            >
-              <StarIcon filled={false} className={emptyClass} />
-              <span className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
-                <StarIcon filled className={filledClass} />
-              </span>
-            </span>
-          );
-        }
-
         return (
-          <StarIcon
+          <Star
             key={index}
-            filled={fill === "full"}
-            data-fill={fill}
-            className={fill === "full" ? filledClass : emptyClass}
+            size={PX[size]}
+            fill={fill}
+            clipId={`star-${uid}-${index}`}
           />
         );
       })}

@@ -1,20 +1,32 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
-import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
 import { EntityLinkList } from "@/components/directory/entity-link-list";
-import { FacilityProfileHero } from "@/components/directory/facility-profile-hero";
-import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
-import { PharmacySidebarContact } from "@/components/directory/pharmacy-sidebar-contact";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
+import {
+  ProfileCallBar,
+  ProfileContactCard,
+  ProfileContactList,
+  type ContactInfo,
+} from "@/components/directory/profile-contact";
+import { ProfileHeader } from "@/components/directory/profile-header";
+import {
+  HoursTable,
+  ProfileSection,
+} from "@/components/directory/profile-parts";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { JsonLd } from "@/components/seo/json-ld";
-import { PageShell } from "@/components/ui/page-shell";
+import { FeaturedTag } from "@/components/ui/tag";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
+import {
+  addressMapUrl,
+  googleMapsDirectionsUrl,
+  hasMapCoordinates,
+} from "@/lib/maps";
 import { pageMetadata } from "@/lib/metadata";
+import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { placeJsonLd } from "@/lib/structured-data";
 import { t } from "@/i18n/t";
@@ -79,16 +91,59 @@ export default async function PharmacyDetailPage({
     notFound();
   }
 
+  const now = new Date();
+  const hasHours = officeHoursRows(pharmacy.office_hours, now).length > 0;
+  const directionsHref = hasMapCoordinates(
+    pharmacy.latitude,
+    pharmacy.longitude,
+  )
+    ? googleMapsDirectionsUrl(
+        pharmacy.latitude as number,
+        pharmacy.longitude as number,
+      )
+    : addressMapUrl({
+        name: pharmacy.name,
+        address: pharmacy.address,
+        city: pharmacy.city,
+      });
+
+  const contact: ContactInfo = {
+    name: pharmacy.name,
+    phone: pharmacy.phone,
+    email: pharmacy.email,
+    website: pharmacy.website,
+    place:
+      pharmacy.address || pharmacy.city
+        ? {
+            title: pharmacy.address ?? pharmacy.city ?? "",
+            sub:
+              pharmacy.address &&
+              pharmacy.city &&
+              !pharmacy.address.includes(pharmacy.city)
+                ? pharmacy.city
+                : null,
+          }
+        : null,
+    directionsHref,
+    hours: pharmacy.office_hours,
+    hoursAnchor: hasHours ? "hours" : undefined,
+    coordinates: { latitude: pharmacy.latitude, longitude: pharmacy.longitude },
+    now,
+  };
+
   const productItems = products.data.map((product) => ({
     href: `/products/${product.slug}`,
     title: product.name,
-    subtitle: [product.category, `${product.price} ${product.currency}`]
-      .filter(Boolean)
-      .join(" · "),
+    subtitle: product.category ?? undefined,
+    aside: (
+      <span className="type-body font-semibold tabular-nums text-ink">
+        {product.price.toLocaleString("mk-MK")} {product.currency}
+      </span>
+    ),
   }));
 
   return (
-    <PageShell gap="loose" className="pb-16 pt-[18px]">
+    <>
       <JsonLd
         data={placeJsonLd(
           "Pharmacy",
@@ -96,36 +151,53 @@ export default async function PharmacyDetailPage({
           absoluteUrl(`/pharmacies/${pharmacy.slug}`),
         )}
       />
-      <Breadcrumbs
-        items={[
+      <DirectoryDetailLayout
+        back={{ href: "/pharmacies", label: t("pharmacies.back") }}
+        breadcrumbs={[
           { label: t("common.home"), href: "/" },
           { label: t("pharmacies.title"), href: "/pharmacies" },
           { label: pharmacy.name },
         ]}
-      />
-
-      <DirectoryDetailLayout
         main={
-          <div className="space-y-5">
-            <FacilityProfileHero
-              facility={pharmacy}
-              typeLabel={t("nav.pharmacies")}
+          <>
+            <ProfileHeader
+              kind="pharmacy"
+              avatarUrl={pharmacy.avatar_url}
+              cover={{ url: pharmacy.cover_url }}
+              name={pharmacy.name}
+              subtitle={[t("pharmacies.kind"), pharmacy.city]
+                .filter(Boolean)
+                .join(" · ")}
+              summary={pharmacy.review_summary}
+              tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />
 
-            <PriceDisclaimer />
+            <ProfileContactList info={contact} />
 
-            {Object.keys(pharmacy.office_hours ?? {}).length > 0 ? (
-              <ProfileContentCard title={t("directory.officeHours")}>
-                <OfficeHoursGrid hours={pharmacy.office_hours} />
-              </ProfileContentCard>
+            {pharmacy.description ? (
+              <ProfileSection id="about" title={t("pharmacies.about")}>
+                <p className="type-reading measure text-ink">
+                  {pharmacy.description}
+                </p>
+              </ProfileSection>
             ) : null}
 
-            <ProfileContentCard title={t("pharmacies.products")}>
-              <EntityLinkList
-                items={productItems}
-                emptyMessage={t("pharmacies.noProducts")}
-              />
-            </ProfileContentCard>
+            {hasHours ? (
+              <ProfileSection id="hours" title={t("directory.officeHours")}>
+                <HoursTable hours={pharmacy.office_hours} now={now} />
+              </ProfileSection>
+            ) : null}
+
+            <ProfileSection id="products" title={t("pharmacies.products")}>
+              <div className="flex flex-col gap-4">
+                <PriceDisclaimer />
+                <EntityLinkList
+                  items={productItems}
+                  icon="pill"
+                  emptyMessage={t("pharmacies.noProducts")}
+                />
+              </div>
+            </ProfileSection>
 
             <ReviewSection
               kind="pharmacy"
@@ -133,10 +205,11 @@ export default async function PharmacyDetailPage({
               summary={pharmacy.review_summary}
               searchParams={reviewQuery}
             />
-          </div>
+          </>
         }
-        sidebar={<PharmacySidebarContact pharmacy={pharmacy} />}
+        sidebar={<ProfileContactCard info={contact} />}
+        footer={<ProfileCallBar info={contact} />}
       />
-    </PageShell>
+    </>
   );
 }

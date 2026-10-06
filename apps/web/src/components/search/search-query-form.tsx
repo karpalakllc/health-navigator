@@ -1,16 +1,15 @@
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
 import { t } from "@/i18n/t";
 
+const HINT_ID = "search-query-hint";
+
 /**
- * The /search query form. The query is the page's only real control, so it is
- * never collapsed behind the mobile "Филтрирај" toggle, and it takes focus on
- * the empty hub so a visitor arriving from the header search icon can type at
- * once.
+ * The /search query form: „Име, специјалност или поим“ + „Град“ + Пребарај, a
+ * plain GET form to /search. The query is the page's only real control, so it
+ * is never collapsed behind a mobile filter toggle, and it takes focus on the
+ * empty hub so a visitor arriving from the header search icon can type at
+ * once. White card on the apricot band; one row from lg.
  */
 export function SearchQueryForm({
   q,
@@ -22,33 +21,45 @@ export function SearchQueryForm({
   autoFocus?: boolean;
 }) {
   return (
-    <div className="filters-card filters-card-nested p-4 sm:p-5">
-      <FilterForm
-        searchHint={SEARCH_QUERY_HINT}
-        action="/search"
-        method="get"
-        fieldsClassName="sm:grid-cols-2"
-        collapsible={false}
-      >
-        <FilterField label={t("search.queryLabel")}>
-          <input
-            name="q"
-            type="search"
-            defaultValue={q ?? ""}
-            className={filterInputClassName}
-            autoComplete="off"
-            autoFocus={autoFocus}
-          />
-        </FilterField>
-        <FilterField label={t("search.cityLabel")}>
-          <input
-            name="city"
-            defaultValue={city ?? ""}
-            className={filterInputClassName}
-            autoComplete="off"
-          />
-        </FilterField>
-      </FilterForm>
-    </div>
+    <form
+      role="search"
+      aria-label={t("search.title")}
+      action="/search"
+      method="get"
+      className="rounded-card bg-white p-4 shadow-card lg:p-5"
+    >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)_auto] lg:items-end">
+        <Input
+          id="search-q"
+          name="q"
+          type="search"
+          label={t("search.queryLabel")}
+          defaultValue={q ?? ""}
+          autoComplete="off"
+          autoFocus={autoFocus}
+          aria-describedby={HINT_ID}
+        />
+        <Input
+          id="search-city"
+          name="city"
+          type="text"
+          label={t("search.cityLabel")}
+          defaultValue={city ?? ""}
+          autoComplete="address-level2"
+        />
+        <Button
+          type="submit"
+          size="lg"
+          leadingIcon="search"
+          fullWidth
+          className="lg:h-14 lg:w-auto lg:min-w-40"
+        >
+          {t("common.search")}
+        </Button>
+      </div>
+      <p id={HINT_ID} className="type-meta mt-3 text-ink-2">
+        {t("search.queryHint")}
+      </p>
+    </form>
   );
 }

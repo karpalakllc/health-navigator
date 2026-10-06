@@ -14,16 +14,19 @@ const source = readFileSync(
 );
 
 const fontCalls = [...source.matchAll(/=\s*(\w+)\(\{([^}]*)\}\)/g)].filter(
-  ([, name]) => /^(Geist|Geist_Mono|Inter)$/.test(name),
+  ([, name]) => /^(Geologica|Source_Sans_3|Geist|Geist_Mono|Inter)$/.test(name),
 );
 
 describe("root layout fonts", () => {
-  it("configures every Google font it imports", () => {
+  it("loads exactly the D2a faces: Geologica (UI) and Source Sans 3 (reading)", () => {
     expect(fontCalls.map(([, name]) => name).sort()).toEqual([
-      "Geist",
-      "Geist_Mono",
-      "Inter",
+      "Geologica",
+      "Source_Sans_3",
     ]);
+  });
+
+  it("no longer ships Geist, Geist Mono or Inter", () => {
+    expect(source).not.toMatch(/\b(Geist|Geist_Mono|Inter)\b/);
   });
 
   it.each(fontCalls.map(([, name, options]) => [name, options]))(
@@ -32,4 +35,16 @@ describe("root layout fonts", () => {
       expect(options).toMatch(/subsets:\s*\[[^\]]*"cyrillic"/);
     },
   );
+
+  it.each([
+    ["Geologica", "--font-geologica"],
+    ["Source_Sans_3", "--font-source-sans"],
+  ])("%s is exposed as the %s CSS variable", (name, variable) => {
+    const options = fontCalls.find(([, n]) => n === name)?.[2] ?? "";
+    expect(options).toContain(`variable: "${variable}"`);
+  });
+
+  it("keeps the document in Macedonian", () => {
+    expect(source).toMatch(/lang="mk"/);
+  });
 });

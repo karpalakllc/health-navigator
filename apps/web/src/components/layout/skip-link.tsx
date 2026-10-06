@@ -6,12 +6,14 @@ export const MAIN_CONTENT_ID = "main";
 /**
  * First tab stop on every page: without it a keyboard user tabs through the
  * logo, every nav link, search and the account menu before reaching content.
+ * Hidden until focused, then a small ink pill (white text, 15.6:1) that
+ * carries the global focus ring.
  */
 export function SkipLink() {
   return (
     <a
       href={`#${MAIN_CONTENT_ID}`}
-      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-xl focus:bg-card focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-2 focus:z-[300] focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-pill focus:bg-ink focus:px-4 focus:type-label focus:text-white"
     >
       {t("nav.skipToContent")}
     </a>

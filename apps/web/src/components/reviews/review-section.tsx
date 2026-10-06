@@ -1,12 +1,20 @@
 import { getSessionToken } from "@/lib/auth/session";
-import type { ReviewSummary } from "@/lib/api/types";
+import type {
+  PaginatedEnvelope,
+  PublicReview,
+  ReviewSummary,
+} from "@/lib/api/types";
 import {
   fetchDoctorReviews,
   fetchFacilityReviews,
   fetchPharmacyReviews,
+  type ReviewListParams,
 } from "@/lib/api/reviews";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
-import { ReviewSummaryBlock } from "@/components/reviews/review-summary";
+import {
+  ReviewSummaryBlock,
+  type RatingDistribution,
+} from "@/components/reviews/review-summary";
 import { parseReviewQuery, type ReviewQueryInput } from "@/lib/review-query";
 import { t } from "@/i18n/t";
 
@@ -16,6 +24,65 @@ type ReviewSectionProps = {
   summary: ReviewSummary;
   searchParams?: ReviewQueryInput;
 };
+
+const FETCHERS = {
+  doctor: fetchDoctorReviews,
+  facility: fetchFacilityReviews,
+  pharmacy: fetchPharmacyReviews,
+} as const;
+
+/** The API's default page size for review lists (ReviewController). */
+const DEFAULT_PAGE_SIZE = 15;
+
+function countRatings(
+  page: PaginatedEnvelope<PublicReview>,
+): RatingDistribution {
+  const counts: RatingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const review of page.data) {
+    const stars = Math.round(review.rating) as keyof RatingDistribution;
+    if (stars in counts) counts[stars]++;
+  }
+  return counts;
+}
+
+/**
+ * How many reviews gave each star. When the unfiltered first page will hold
+ * every review we count it; otherwise five one-row requests read each
+ * rating's total — started at once, alongside the review list itself, not
+ * after it. A failure only hides the bars, never the page.
+ */
+async function ratingDistribution(
+  kind: ReviewSectionProps["kind"],
+  slug: string,
+  summary: ReviewSummary,
+  firstPage: Promise<PaginatedEnvelope<PublicReview>> | null,
+): Promise<RatingDistribution | null> {
+  if (summary.count === 0) {
+    return null;
+  }
+
+  try {
+    if (firstPage && summary.count <= DEFAULT_PAGE_SIZE) {
+      const page = await firstPage;
+      if (page.meta.total <= page.data.length) {
+        return countRatings(page);
+      }
+    }
+
+    const totals = await Promise.all(
+      ([5, 4, 3, 2, 1] as const).map((rating) =>
+        FETCHERS[kind](slug, {
+          rating,
+          per_page: 1,
+        } satisfies ReviewListParams),
+      ),
+    );
+    const [five, four, three, two, one] = totals.map((r) => r.meta.total);
+    return { 5: five, 4: four, 3: three, 2: two, 1: one };
+  } catch {
+    return null;
+  }
+}
 
 export async function ReviewSection({
   kind,
@@ -29,25 +96,43 @@ export async function ReviewSection({
   const { page, sort } = reviewParams;
   const rating = reviewParams.rating ? String(reviewParams.rating) : "";
 
-  const reviews =
-    kind === "doctor"
-      ? await fetchDoctorReviews(slug, reviewParams)
-      : kind === "pharmacy"
-        ? await fetchPharmacyReviews(slug, reviewParams)
-        : await fetchFacilityReviews(slug, reviewParams);
+  const reviewsRequest = FETCHERS[kind](slug, reviewParams);
+  const unfilteredFirstPage = !reviewParams.rating && page === 1;
+  const [reviews, distribution] = await Promise.all([
+    reviewsRequest,
+    ratingDistribution(
+      kind,
+      slug,
+      summary,
+      unfilteredFirstPage ? reviewsRequest : null,
+    ),
+  ]);
+  const isLoggedIn = Boolean(token);
+  const viewerReview = reviews.meta.viewer_review;
 
   return (
-    <section className="scroll-mt-24 space-y-4">
-      <h2 className="text-[1.45rem] font-black tracking-tight text-foreground">
-        {t("reviews.summary")}
+    <section
+      id="reviews"
+      aria-labelledby="reviews-title"
+      className="flex flex-col gap-4 pt-4 lg:gap-5 lg:pt-6"
+    >
+      <h2 id="reviews-title" className="type-h2 text-ink">
+        {t("reviews.title")}
       </h2>
-      <ReviewSummaryBlock summary={summary} />
+      <ReviewSummaryBlock
+        summary={summary}
+        distribution={distribution}
+        kind={kind}
+        slug={slug}
+        isLoggedIn={isLoggedIn}
+        canWrite={!viewerReview || viewerReview.status === "rejected"}
+      />
       <ReviewsPanel
         kind={kind}
         slug={slug}
         initial={reviews}
-        viewerReview={reviews.meta.viewer_review}
-        isLoggedIn={Boolean(token)}
+        viewerReview={viewerReview}
+        isLoggedIn={isLoggedIn}
         page={page}
         sort={sort}
         rating={rating}

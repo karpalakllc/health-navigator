@@ -1,18 +1,26 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
-import { AuthFormCard } from "@/components/auth/auth-form-card";
-import { PasswordInput } from "@/components/auth/password-input";
+import { useEffect, useRef, useState } from "react";
+import { AuthStateHeader } from "@/components/auth/auth-page";
+import { PasswordField } from "@/components/auth/password-input";
 import { PrivacyNote } from "@/components/auth/privacy-note";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/auth/text-field";
+import { Button, TextLink } from "@/components/ui/button";
+import { ErrorSummary } from "@/components/ui/error-summary";
+import { FormError } from "@/components/ui/form-message";
+import { Notice } from "@/components/ui/notice";
 import {
   DISPLAY_NAME_MAX_LENGTH,
   suggestDisplayName,
 } from "@/lib/display-name";
-import { t } from "@/i18n/t";
-import { FormError } from "@/components/ui/form-message";
+import {
+  compactErrors,
+  emailError,
+  mapApiFieldErrors,
+  passwordConfirmationError,
+  requiredError,
+} from "@/lib/form-validation";
+import { t, type MessageKey } from "@/i18n/t";
 
 type RegisterFormProps = {
   registrationsEnabled: boolean;
@@ -21,35 +29,32 @@ type RegisterFormProps = {
 type Field =
   "name" | "display_name" | "email" | "password" | "password_confirmation";
 
-const FIELDS: Field[] = [
-  "name",
-  "display_name",
-  "email",
-  "password",
-  "password_confirmation",
+/** Form order, with each field's visible label (used by the error summary). */
+const FIELDS: Array<{ field: Field; label: MessageKey }> = [
+  { field: "name", label: "auth.registerName" },
+  { field: "display_name", label: "auth.registerDisplayName" },
+  { field: "email", label: "auth.email" },
+  { field: "password", label: "auth.password" },
+  { field: "password_confirmation", label: "auth.registerPasswordConfirm" },
 ];
 
-/** The first message per field from a Laravel 422 `errors` bag. */
+const FIELD_NAMES = FIELDS.map(({ field }) => field);
+
+/**
+ * Every field's errors from a Laravel 422 `errors` bag, in our words, under
+ * the right field: the API files the „confirmed“ rule under `password`, but
+ * the person has to fix the confirmation field.
+ */
 function fieldErrorsFrom(errors: unknown): Partial<Record<Field, string>> {
-  const out: Partial<Record<Field, string>> = {};
-
-  if (!errors || typeof errors !== "object") {
-    return out;
-  }
-
-  for (const field of FIELDS) {
-    const messages = (errors as Record<string, unknown>)[field];
-
-    if (Array.isArray(messages) && typeof messages[0] === "string") {
-      out[field] = messages[0];
-    }
-  }
-
-  return out;
+  return mapApiFieldErrors(errors, FIELD_NAMES, {
+    passwordField: "password",
+    confirmationField: "password_confirmation",
+  });
 }
 
-function errorId(field: Field): string {
-  return `register-${field}-error`;
+/** Stable ids: the summary links to them; errors are `<id>-error`. */
+function fieldId(field: Field): string {
+  return `register-${field}`;
 }
 
 export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
@@ -59,10 +64,6 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     null,
   );
   const displayName = customDisplayName ?? suggestDisplayName(name);
-  const nameId = useId();
-  const nameHelpId = useId();
-  const displayNameId = useId();
-  const displayNameHelpId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -73,6 +74,15 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  // Bumped on every rejected submit so focus moves to the summary each time.
+  const [rejections, setRejections] = useState(0);
+
+  useEffect(() => {
+    if (rejections > 0) {
+      summaryRef.current?.focus();
+    }
+  }, [rejections]);
 
   // The success card replaces a taller form, so without this the viewport is
   // left below it (showing the footer) and focus is on a removed button.
@@ -87,17 +97,31 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   }, [submitted]);
 
   if (!registrationsEnabled) {
-    return (
-      <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-        {t("auth.registerDisabled")}
-      </p>
-    );
+    return <Notice tone="info">{t("auth.registerDisabled")}</Notice>;
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setFieldErrors({});
+
+    const local = compactErrors<Field>({
+      name: requiredError(name),
+      display_name: requiredError(displayName),
+      email: emailError(email),
+      password: requiredError(password),
+      password_confirmation: passwordConfirmationError(
+        password,
+        passwordConfirmation,
+      ),
+    });
+
+    setFieldErrors(local);
+
+    if (Object.keys(local).length > 0) {
+      setRejections((count) => count + 1);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -116,16 +140,17 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        // Each field shows its own message; the alert keeps the summary
-        // (Laravel's "… (и уште N грешки)" names only the first one).
-        setFieldErrors(fieldErrorsFrom(payload.errors));
-        setError(
-          payload.message ??
-            payload.errors?.display_name?.[0] ??
-            payload.errors?.email?.[0] ??
-            payload.errors?.password?.[0] ??
-            t("auth.registerFailed"),
-        );
+        // Each field shows its own message and the summary lists them all
+        // (Laravel's "… (и уште N грешки)" names only the first one). A
+        // reply without field errors (rate limit, server) keeps its message.
+        const mapped = fieldErrorsFrom(payload.errors);
+        setFieldErrors(mapped);
+
+        if (Object.keys(mapped).length > 0) {
+          setRejections((count) => count + 1);
+        } else {
+          setError(payload.message ?? t("auth.registerFailed"));
+        }
         return;
       }
 
@@ -141,186 +166,111 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
 
   if (submitted) {
     return (
-      <AuthFormCard>
-        <div className="grid gap-3">
-          <h2
-            ref={successHeadingRef}
-            tabIndex={-1}
-            className="scroll-mt-24 text-lg font-semibold text-foreground focus:outline-none"
-          >
-            {t("auth.verifyCheckInbox")}
-          </h2>
-          <p role="status" className="text-sm text-muted-foreground">
-            {t("auth.verifyCheckInboxBody")}
-          </p>
-          <PrivacyNote />
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            {t("auth.signIn")}
-          </Link>
-        </div>
-      </AuthFormCard>
+      <div className="flex flex-col gap-5">
+        <AuthStateHeader
+          icon="mail"
+          title={t("auth.verifyCheckInbox")}
+          headingRef={successHeadingRef}
+        />
+        <p role="status" className="type-body text-ink">
+          {t("auth.verifyCheckInboxBody")}
+        </p>
+        <PrivacyNote />
+        <Button href="/login" variant="secondary" size="lg" fullWidth>
+          {t("auth.signIn")}
+        </Button>
+      </div>
     );
   }
 
-  function invalidProps(field: Field) {
-    return fieldErrors[field]
-      ? { "aria-invalid": true, "aria-describedby": errorId(field) }
-      : {};
-  }
-
-  /** Help text always describes the field; an error, when shown, too. */
-  function describedBy(field: Field, helpId: string): string {
-    return fieldErrors[field] ? `${helpId} ${errorId(field)}` : helpId;
-  }
+  const rejected = FIELDS.filter(({ field }) => fieldErrors[field]);
 
   return (
-    <AuthFormCard>
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        {/* Help text sits outside the <label> so it describes the field
-            (aria-describedby) instead of becoming part of its name. */}
-        <div className="grid gap-1.5 text-sm">
-          <label htmlFor={nameId} className="font-medium text-foreground">
-            {t("auth.registerName")}
-          </label>
-          <input
-            id={nameId}
-            type="text"
-            name="name"
-            required
-            autoComplete="name"
-            aria-invalid={fieldErrors.name ? true : undefined}
-            aria-describedby={describedBy("name", nameHelpId)}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={filterInputClassName}
+    <div className="flex flex-col gap-6">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <TextField
+          id={fieldId("name")}
+          label={t("auth.registerName")}
+          hint={t("auth.registerNameHelp")}
+          error={fieldErrors.name}
+          type="text"
+          name="name"
+          required
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <TextField
+          id={fieldId("display_name")}
+          label={t("auth.registerDisplayName")}
+          hint={t("auth.registerDisplayNameHelp")}
+          error={fieldErrors.display_name}
+          type="text"
+          name="display_name"
+          required
+          maxLength={DISPLAY_NAME_MAX_LENGTH}
+          autoComplete="nickname"
+          value={displayName}
+          onChange={(e) => setCustomDisplayName(e.target.value)}
+        />
+        <TextField
+          id={fieldId("email")}
+          label={t("auth.email")}
+          error={fieldErrors.email}
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <PasswordField
+          id={fieldId("password")}
+          label={t("auth.password")}
+          hint={t("auth.passwordRules")}
+          error={fieldErrors.password}
+          name="password"
+          autoComplete="new-password"
+          required
+          value={password}
+          onChange={setPassword}
+        />
+        <PasswordField
+          id={fieldId("password_confirmation")}
+          label={t("auth.registerPasswordConfirm")}
+          error={fieldErrors.password_confirmation}
+          name="password_confirmation"
+          autoComplete="new-password"
+          required
+          value={passwordConfirmation}
+          onChange={setPasswordConfirmation}
+        />
+        {/* Every rejected field, named and linked, with its message. */}
+        {rejected.length > 0 ? (
+          <ErrorSummary
+            ref={summaryRef}
+            items={rejected.map(({ field, label }) => ({
+              id: fieldId(field),
+              label: t(label),
+              message: fieldErrors[field] ?? "",
+            }))}
           />
-          <p id={nameHelpId} className="text-xs text-muted-foreground">
-            {t("auth.registerNameHelp")}
-          </p>
-          <FieldError field="name" message={fieldErrors.name} />
-        </div>
-        <div className="grid gap-1.5 text-sm">
-          <label
-            htmlFor={displayNameId}
-            className="font-medium text-foreground"
-          >
-            {t("auth.registerDisplayName")}
-          </label>
-          <input
-            id={displayNameId}
-            type="text"
-            name="display_name"
-            required
-            maxLength={DISPLAY_NAME_MAX_LENGTH}
-            autoComplete="nickname"
-            aria-invalid={fieldErrors.display_name ? true : undefined}
-            aria-describedby={describedBy("display_name", displayNameHelpId)}
-            value={displayName}
-            onChange={(e) => setCustomDisplayName(e.target.value)}
-            className={filterInputClassName}
-          />
-          <p id={displayNameHelpId} className="text-xs text-muted-foreground">
-            {t("auth.registerDisplayNameHelp")}
-          </p>
-          <FieldError field="display_name" message={fieldErrors.display_name} />
-        </div>
-        <div className="grid gap-1.5">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-foreground">
-              {t("auth.email")}
-            </span>
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={filterInputClassName}
-              {...invalidProps("email")}
-            />
-          </label>
-          <FieldError field="email" message={fieldErrors.email} />
-        </div>
-        <div className="grid gap-1.5">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-foreground">
-              {t("auth.password")}
-            </span>
-            <PasswordInput
-              id="register-password"
-              name="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={setPassword}
-              invalid={Boolean(fieldErrors.password)}
-              describedBy={
-                fieldErrors.password ? errorId("password") : undefined
-              }
-            />
-          </label>
-          <FieldError field="password" message={fieldErrors.password} />
-        </div>
-        <div className="grid gap-1.5">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-foreground">
-              {t("auth.registerPasswordConfirm")}
-            </span>
-            <PasswordInput
-              id="register-password-confirm"
-              name="password_confirmation"
-              autoComplete="new-password"
-              required
-              value={passwordConfirmation}
-              onChange={setPasswordConfirmation}
-              invalid={Boolean(fieldErrors.password_confirmation)}
-              describedBy={
-                fieldErrors.password_confirmation
-                  ? errorId("password_confirmation")
-                  : undefined
-              }
-            />
-          </label>
-          <FieldError
-            field="password_confirmation"
-            message={fieldErrors.password_confirmation}
-          />
-        </div>
+        ) : null}
         {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
+          size="lg"
+          fullWidth
+          loading={pending}
           disabled={pending}
-          className="min-h-[44px] w-full sm:w-auto"
         >
           {pending ? t("auth.registering") : t("auth.register")}
         </Button>
-        <p className="text-sm text-muted-foreground">
-          {t("auth.haveAccount")}{" "}
-          <Link
-            href="/login"
-            className="font-medium text-primary underline-offset-4 hover:underline"
-          >
-            {t("auth.signIn")}
-          </Link>
-        </p>
       </form>
-    </AuthFormCard>
-  );
-}
-
-/** Not an alert: the form's summary is the one announced; this is read with the field. */
-function FieldError({ field, message }: { field: Field; message?: string }) {
-  if (!message) {
-    return null;
-  }
-
-  return (
-    <span id={errorId(field)} className="text-sm text-destructive">
-      {message}
-    </span>
+      <p className="flex flex-wrap items-center gap-x-2 border-t border-line pt-4 type-body text-ink-2">
+        <span>{t("auth.haveAccount")}</span>
+        <TextLink href="/login">{t("auth.signIn")}</TextLink>
+      </p>
+    </div>
   );
 }

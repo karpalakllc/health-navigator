@@ -43,14 +43,22 @@ class DoctorController extends Controller
             $query->where('doctors.reviews_count', '>=', (int) $validated['min_reviews']);
         }
 
+        // Featured profiles lead whatever the visitor filtered to; the chosen
+        // sort then orders each group. A plain boolean key, so it is the
+        // leading column of an index-backed sort, and totals are unaffected.
+        $query->orderByDesc('doctors.is_featured');
+
         if (($validated['sort'] ?? 'name') === 'rating') {
             // Unrated doctors hold rating_avg = 0, below any real average (1–5),
             // so they sort last without an IS NULL key.
             $query->orderByDesc('doctors.rating_avg');
             $query->orderBy('doctors.full_name');
         } else {
-            $query->orderBy('full_name');
+            $query->orderBy('doctors.full_name');
         }
+
+        // Names repeat; the id keeps pages from overlapping or skipping rows.
+        $query->orderBy('doctors.id');
 
         $perPage = $validated['per_page'] ?? 15;
 

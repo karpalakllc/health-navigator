@@ -1,24 +1,36 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { PrivacyNote } from "@/components/auth/privacy-note";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { Button } from "@/components/ui/button";
-import { t } from "@/i18n/t";
+import { TextField } from "@/components/auth/text-field";
+import { Button, TextLink } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
+import { Icon } from "@/components/ui/icons";
+import { emailError, focusField } from "@/lib/form-validation";
+import { t } from "@/i18n/t";
+
+const FORGOT_EMAIL_ID = "forgot-email";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
+  const [emailProblem, setEmailProblem] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setSuccess(false);
+
+    const problem = emailError(email);
+    setEmailProblem(problem);
+
+    if (problem) {
+      focusField(FORGOT_EMAIL_ID);
+      return;
+    }
+
     setPending(true);
 
     try {
@@ -48,39 +60,48 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <AuthFormCard>
+    <div className="flex flex-col gap-6">
       {/*
         The status region stays mounted across the swap from form to
-        confirmation, so the confirmation is announced (see FormSuccess).
+        confirmation, so the confirmation is announced (see FormSuccess). The
+        icon sits outside it so the region holds the message alone.
       */}
-      <FormSuccess tone="muted">
-        {success ? t("auth.forgotPasswordSuccess") : null}
-      </FormSuccess>
+      <div className={success ? "flex items-start gap-3" : "contents"}>
+        {success ? (
+          <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">
+            <Icon name="mail" size={24} />
+          </span>
+        ) : null}
+        <FormSuccess tone="muted">
+          {success ? t("auth.forgotPasswordSuccess") : null}
+        </FormSuccess>
+      </div>
       {success ? (
-        <div className="mt-2">
-          <PrivacyNote />
-        </div>
+        <PrivacyNote />
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-foreground">
-              {t("auth.email")}
-            </span>
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={filterInputClassName}
-            />
-          </label>
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+        >
+          <TextField
+            id={FORGOT_EMAIL_ID}
+            label={t("auth.email")}
+            error={emailProblem}
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
           {error ? <FormError>{error}</FormError> : null}
           <Button
             type="submit"
+            size="lg"
+            fullWidth
+            loading={pending}
             disabled={pending}
-            className="min-h-[44px] w-full sm:w-auto"
           >
             {pending
               ? t("auth.forgotPasswordSending")
@@ -88,14 +109,12 @@ export function ForgotPasswordForm() {
           </Button>
         </form>
       )}
-      <p className="mt-4 text-sm text-muted-foreground">
-        <Link
-          href="/login"
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
+      <p className="border-t border-line pt-4">
+        <TextLink href="/login">
+          <Icon name="arrow-left" size={20} />
           {t("auth.backToLogin")}
-        </Link>
+        </TextLink>
       </p>
-    </AuthFormCard>
+    </div>
   );
 }

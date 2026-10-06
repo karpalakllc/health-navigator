@@ -1,23 +1,36 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { DirectoryDetailLayout } from "@/components/directory/directory-detail-layout";
-import { FacilityDoctorList } from "@/components/directory/facility-doctor-list";
-import { FacilityEmergencyBanner } from "@/components/directory/facility-emergency-banner";
-import { FacilityProfileHero } from "@/components/directory/facility-profile-hero";
-import { FacilitySidebarContact } from "@/components/directory/facility-sidebar-contact";
-import { OfficeHoursGrid } from "@/components/directory/office-hours-grid";
-import { TagList } from "@/components/directory/tag-list";
-import { ProfileContentCard } from "@/components/design/profile-content-card";
+import { EntityLinkList } from "@/components/directory/entity-link-list";
+import {
+  ProfileCallBar,
+  ProfileContactCard,
+  ProfileContactList,
+  type ContactInfo,
+} from "@/components/directory/profile-contact";
+import { ProfileHeader } from "@/components/directory/profile-header";
+import {
+  HoursTable,
+  ProfileSection,
+  ProfileTagList,
+} from "@/components/directory/profile-parts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ReviewSection } from "@/components/reviews/review-section";
-import { PageShell } from "@/components/ui/page-shell";
+import { FeaturedTag, Tag } from "@/components/ui/tag";
+import { Monogram } from "@/components/ui/user-avatar";
 import { fetchFacility } from "@/lib/api/facilities";
+import { facilityKindLabel } from "@/lib/facility-labels";
+import {
+  googleMapsDirectionsUrl,
+  hasMapCoordinates,
+  addressMapUrl,
+} from "@/lib/maps";
 import { pageMetadata } from "@/lib/metadata";
+import { officeHoursRows } from "@/lib/office-hours";
 import { ApiRequestError } from "@/lib/api/server";
 import { absoluteUrl } from "@/lib/site-url";
 import { facilitySchemaType, placeJsonLd } from "@/lib/structured-data";
-import { t } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -68,10 +81,57 @@ export default async function FacilityDetailPage({
     throw error;
   }
 
-  const officeHourEntries = Object.entries(facility.office_hours ?? {});
+  const now = new Date();
+  const hasHours = officeHoursRows(facility.office_hours, now).length > 0;
+  const directionsHref = hasMapCoordinates(
+    facility.latitude,
+    facility.longitude,
+  )
+    ? googleMapsDirectionsUrl(
+        facility.latitude as number,
+        facility.longitude as number,
+      )
+    : addressMapUrl({
+        name: facility.name,
+        address: facility.address,
+        city: facility.city,
+      });
+
+  const contact: ContactInfo = {
+    name: facility.name,
+    phone: facility.phone,
+    email: facility.email,
+    website: facility.website,
+    place:
+      facility.address || facility.city
+        ? {
+            title: facility.address ?? facility.city ?? "",
+            sub:
+              facility.address &&
+              facility.city &&
+              !facility.address.includes(facility.city)
+                ? facility.city
+                : null,
+          }
+        : null,
+    directionsHref,
+    hours: facility.office_hours,
+    hoursAnchor: hasHours ? "hours" : undefined,
+    coordinates: { latitude: facility.latitude, longitude: facility.longitude },
+    now,
+  };
+
+  const doctorItems = facility.doctors.map((doctor) => ({
+    href: `/doctors/${doctor.slug}`,
+    title: doctor.full_name,
+    subtitle: doctor.is_primary ? t("facilities.primaryWorkplace") : undefined,
+    leading: (
+      <Monogram name={doctor.full_name} kind="doctor" size={44} tone="white" />
+    ),
+  }));
 
   return (
-    <PageShell gap="loose" className="pb-16 pt-[18px]">
+    <>
       <JsonLd
         data={placeJsonLd(
           facilitySchemaType(facility.type),
@@ -79,43 +139,79 @@ export default async function FacilityDetailPage({
           absoluteUrl(`/facilities/${facility.slug}`),
         )}
       />
-      <Breadcrumbs
-        items={[
+      <DirectoryDetailLayout
+        back={{ href: "/facilities", label: t("facilities.back") }}
+        breadcrumbs={[
           { label: t("common.home"), href: "/" },
           { label: t("facilities.title"), href: "/facilities" },
           { label: facility.name },
         ]}
-      />
-
-      <DirectoryDetailLayout
         main={
-          <div className="space-y-5">
-            <FacilityProfileHero facility={facility} />
+          <>
+            <ProfileHeader
+              kind="facility"
+              avatarUrl={facility.avatar_url}
+              cover={{ url: facility.cover_url }}
+              name={facility.name}
+              subtitle={[facilityKindLabel(facility.type), facility.city]
+                .filter(Boolean)
+                .join(" · ")}
+              summary={facility.review_summary}
+              tags={
+                <>
+                  {facility.has_emergency_services ? (
+                    <Tag icon="building">
+                      {t("facilities.emergencyAvailable")}
+                    </Tag>
+                  ) : null}
+                  {facility.departments.length > 0 ? (
+                    <Tag>
+                      {tCount(
+                        "facilities.departmentCount",
+                        facility.departments.length,
+                      )}
+                    </Tag>
+                  ) : null}
+                  {facility.is_featured ? <FeaturedTag /> : null}
+                </>
+              }
+            />
 
-            {facility.has_emergency_services ? (
-              <FacilityEmergencyBanner />
+            <ProfileContactList info={contact} />
+
+            {facility.description ? (
+              <ProfileSection id="about" title={t("facilities.about")}>
+                <p className="type-reading measure text-ink">
+                  {facility.description}
+                </p>
+              </ProfileSection>
             ) : null}
 
             {facility.departments.length > 0 ? (
-              <ProfileContentCard title={t("facilities.departments")}>
-                <TagList items={facility.departments} />
-              </ProfileContentCard>
+              <ProfileSection
+                id="departments"
+                title={t("facilities.departments")}
+              >
+                <ProfileTagList items={facility.departments} />
+              </ProfileSection>
             ) : null}
 
-            {officeHourEntries.length > 0 ? (
-              <ProfileContentCard title={t("directory.officeHours")}>
-                <OfficeHoursGrid
-                  hours={Object.fromEntries(officeHourEntries)}
-                />
-              </ProfileContentCard>
+            {hasHours ? (
+              <ProfileSection id="hours" title={t("directory.officeHours")}>
+                <HoursTable hours={facility.office_hours} now={now} />
+              </ProfileSection>
             ) : null}
 
-            <ProfileContentCard title={t("facilities.doctors")}>
-              <FacilityDoctorList
-                doctors={facility.doctors}
+            <ProfileSection
+              id="facility-doctors"
+              title={t("facilities.doctors")}
+            >
+              <EntityLinkList
+                items={doctorItems}
                 emptyMessage={t("facilities.noDoctors")}
+                columns={2}
               />
-            </ProfileContentCard>
+            </ProfileSection>
 
             <ReviewSection
               kind="facility"
@@ -123,10 +219,11 @@ export default async function FacilityDetailPage({
               summary={facility.review_summary}
               searchParams={reviewQuery}
             />
-          </div>
+          </>
         }
-        sidebar={<FacilitySidebarContact facility={facility} />}
+        sidebar={<ProfileContactCard info={contact} />}
+        footer={<ProfileCallBar info={contact} />}
       />
-    </PageShell>
+    </>
   );
 }

@@ -26,7 +26,7 @@ The audit found the emergency-call instruction written with a Bulgarian spelling
 **повика<u>й</u>те** (`й`, a letter Macedonian does not have) instead of
 **повика<u>ј</u>те**. It appeared in **10 places**: the footer of every page, the
 legal disclaimer, the symptom-guidance screen, the forum notice, the facility
-emergency banner, and every welcome email. A second Bulgarian form,
+emergency banner (since removed from the redesign), and every welcome email. A second Bulgarian form,
 **Добре дојдовте** instead of **Добредојдовте**, was in the welcome email subject
 and body.
 
@@ -266,7 +266,7 @@ These two were wrong and are now fixed. Confirm the corrections are right.
 
 | Was (Bulgarian) | Now (Macedonian) | Where |
 |-----------------|------------------|-------|
-| При медицинска итност повика**й**те 194 или 112 веднаш. | При медицинска итност повика**ј**те 194 или 112 веднаш. | Footer of every page, disclaimer, guidance, forum notice, facility banner, welcome email — 10 places |
+| При медицинска итност повика**й**те 194 или 112 веднаш. | При медицинска итност повика**ј**те 194 или 112 веднаш. | Footer of every page, disclaimer, guidance, forum notice, welcome email (the facility emergency banner that also carried it has since been removed) |
 | **Добре дојдовте** на Zdravje360 | **Добредојдовте** на Zdravje360 | Welcome email subject and heading |
 
 ---

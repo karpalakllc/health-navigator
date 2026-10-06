@@ -1,3 +1,5 @@
+import { MapPlaceholder } from "@/components/directory/profile-parts";
+import { Button } from "@/components/ui/button";
 import {
   googleMapsDirectionsUrl,
   googleMapsSearchUrl,
@@ -6,6 +8,7 @@ import {
 } from "@/lib/maps";
 import { t, tFormat } from "@/i18n/t";
 
+/** OpenStreetMap embed when coordinates exist; the sand stand-in otherwise. */
 export function FacilityMapEmbed({
   latitude,
   longitude,
@@ -18,58 +21,44 @@ export function FacilityMapEmbed({
   mapFallbackUrl?: string | null;
 }) {
   if (!hasMapCoordinates(latitude, longitude)) {
-    if (!mapFallbackUrl) {
-      return null;
-    }
-
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 text-center">
-        <p className="text-sm text-muted-foreground">
-          {t("facilities.mapCoordinatesMissing")}
-        </p>
-        <a
-          href={mapFallbackUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/92"
-        >
-          {t("directory.viewOnMap")} →
-        </a>
-      </div>
-    );
+    return mapFallbackUrl ? <MapPlaceholder href={mapFallbackUrl} /> : null;
   }
 
   const lat = latitude as number;
   const lng = longitude as number;
 
   return (
-    <div className="motion-safe:animate-fade-up space-y-3">
-      <div className="overflow-hidden rounded-2xl border border-border shadow-[0_16px_44px_-28px_rgb(15_23_42/0.45)]">
+    <div className="flex flex-col gap-3">
+      <div className="overflow-hidden rounded-xl bg-sand">
         <iframe
           title={tFormat("facilities.mapEmbedTitle", { name })}
           src={openStreetMapEmbedUrl(lat, lng)}
-          className="h-56 w-full border-0 sm:h-64"
+          className="aspect-[16/10] w-full border-0"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <a
+        <Button
           href={googleMapsSearchUrl(lat, lng)}
+          variant="secondary"
+          size="sm"
+          trailingIcon="external-link"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/30 hover:text-primary"
         >
-          {t("facilities.openInGoogleMaps")} →
-        </a>
-        <a
+          {t("facilities.openInGoogleMaps")}
+        </Button>
+        <Button
           href={googleMapsDirectionsUrl(lat, lng)}
+          variant="soft"
+          size="sm"
+          leadingIcon="navigation"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/92"
         >
-          {t("facilities.getDirections")} →
-        </a>
+          {t("facilities.getDirections")}
+        </Button>
       </div>
     </div>
   );

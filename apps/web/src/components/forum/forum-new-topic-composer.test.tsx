@@ -1,9 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ForumNewTopicComposer } from "@/components/forum/forum-new-topic-composer";
 import type { ForumCategory } from "@/lib/api/forum";
-import { t } from "@/i18n/t";
+import { t, type MessageKey } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 import {
   mockFetch,
@@ -11,6 +17,11 @@ import {
   requestBody,
 } from "../../../test/fetch";
 import { router } from "../../../test/next-navigation";
+
+/** Required fields carry a visually hidden „(задолжително)“ in their label. */
+function requiredLabel(key: MessageKey) {
+  return `${t(key)} (${t("ui.required")})`;
+}
 
 const categories: ForumCategory[] = [
   { slug: "srce", name: "Срце и крвни садови", description: null },
@@ -39,11 +50,11 @@ function submitButton() {
 
 async function fill(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
-    screen.getByLabelText(t("common.title")),
+    screen.getByLabelText(requiredLabel("common.title")),
     "Висок притисок наутро",
   );
   await user.type(
-    screen.getByLabelText(t("common.message")),
+    screen.getByLabelText(requiredLabel("common.message")),
     "Дали некој има искуство со мерење на притисок наутро?",
   );
 }
@@ -60,8 +71,8 @@ describe("ForumNewTopicComposer", () => {
   it("labels the fields and enforces their minimum lengths", () => {
     renderComposer();
 
-    const title = screen.getByLabelText(t("common.title"));
-    const body = screen.getByLabelText(t("common.message"));
+    const title = screen.getByLabelText(requiredLabel("common.title"));
+    const body = screen.getByLabelText(requiredLabel("common.message"));
     expect(title).toBeRequired();
     expect(title).toHaveAttribute("minlength", "5");
     expect(body).toBeRequired();
@@ -72,11 +83,15 @@ describe("ForumNewTopicComposer", () => {
 
   it("preselects a known default category and ignores an unknown one", () => {
     const { unmount } = renderComposer("koza");
-    expect(screen.getByLabelText(t("forum.categories"))).toHaveValue("koza");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "koza",
+    );
     unmount();
 
     renderComposer("nepostoi");
-    expect(screen.getByLabelText(t("forum.categories"))).toHaveValue("srce");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "srce",
+    );
   });
 
   it("asks for one consent covering rules, diagnosis and emergencies", () => {
@@ -86,6 +101,19 @@ describe("ForumNewTopicComposer", () => {
     expect(label).toHaveTextContent("правилата на заедницата");
     expect(label).toHaveTextContent("не дава дијагноза или третман");
     expect(label).toHaveTextContent("194 или 112");
+  });
+
+  it("shows the forum safety note with 194/112 before the form", () => {
+    renderComposer();
+
+    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
+      "href",
+      "tel:194",
+    );
+    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
+      "href",
+      "tel:112",
+    );
   });
 
   it("keeps submit disabled until the consent is ticked", async () => {
@@ -99,9 +127,45 @@ describe("ForumNewTopicComposer", () => {
     expect(submitButton()).toBeDisabled();
   });
 
+  it("checks the title and message lengths in Macedonian before sending", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    renderComposer();
+
+    const title = screen.getByLabelText(requiredLabel("common.title"));
+    const body = screen.getByLabelText(requiredLabel("common.message"));
+    expect(title.closest("form")).toHaveAttribute("novalidate");
+
+    await user.type(title, "Ко");
+    await consentAll(user);
+    await user.click(submitButton());
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(title).toHaveAttribute("aria-invalid", "true");
+    expect(title).toHaveAccessibleDescription(
+      new RegExp("Напишете најмалку 5 знаци"),
+    );
+    expect(body).toHaveAccessibleDescription(new RegExp(t("ui.fieldRequired")));
+    expect(title).toHaveFocus();
+
+    // Fixing the title clears its error as the person types.
+    await user.type(title, "нтрола");
+    expect(title).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("labels the single category select in the singular", () => {
+    renderComposer();
+
+    expect(
+      screen.getByRole("combobox", { name: requiredLabel("forum.category") }),
+    ).toBeInTheDocument();
+    expect(t("forum.category")).toBe("Категорија");
+  });
+
   it("links the missing-consent error to the checkbox", async () => {
     const user = userEvent.setup();
     renderComposer();
+    await fill(user);
 
     expect(consentBox()).not.toHaveAttribute("aria-describedby");
     // The button is disabled, so submit the form directly (e.g. Enter key
@@ -111,8 +175,15 @@ describe("ForumNewTopicComposer", () => {
     const error = await screen.findByRole("alert");
     expect(error).toHaveTextContent(t("forum.consentRequired"));
     expect(consentBox()).toHaveAttribute("aria-invalid", "true");
+    // The per-field error under the checkbox (ink, „Грешка:“ prefix).
     expect(consentBox()).toHaveAccessibleDescription(
-      t("forum.consentRequired"),
+      `${t("ui.errorPrefix")} ${t("forum.consentRequired")}`,
+    );
+
+    // The summary links straight to the checkbox.
+    expect(within(error).getByRole("link")).toHaveAttribute(
+      "href",
+      `#${consentBox().id}`,
     );
 
     await user.click(consentBox());
@@ -122,15 +193,14 @@ describe("ForumNewTopicComposer", () => {
   it("keeps the disabled submit legible instead of fading white on coral", () => {
     renderComposer();
 
-    const classes = submitButton().className.split(/\s+/);
-    // opacity-60 left white text on pale coral at about 2:1.
+    const button = submitButton();
+    const classes = button.className.split(/\s+/);
+    // opacity-60 left white text on pale coral at about 2:1. The shared ink
+    // pill styles a disabled button as sand with ink-2 text (6.5:1) instead.
+    expect(button).toBeDisabled();
     expect(classes).not.toContain("disabled:opacity-60");
-    expect(classes).toEqual(
-      expect.arrayContaining([
-        "disabled:bg-muted",
-        "disabled:text-secondary-foreground",
-      ]),
-    );
+    expect(classes).not.toContain("opacity-60");
+    expect(classes).toEqual(expect.arrayContaining(["btn", "btn-primary"]));
   });
 
   it("submits for moderation and sends the author to their forum page", async () => {
@@ -189,7 +259,10 @@ describe("ForumNewTopicComposer", () => {
     const user = userEvent.setup();
     renderComposer();
 
-    await user.type(screen.getByLabelText(t("common.title")), "Наслов на тема");
+    await user.type(
+      screen.getByLabelText(requiredLabel("common.title")),
+      "Наслов на тема",
+    );
     await user.click(
       screen.getByRole("button", { name: t("forum.showPreview") }),
     );

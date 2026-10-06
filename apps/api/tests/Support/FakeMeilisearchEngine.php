@@ -21,6 +21,10 @@ use RuntimeException;
  * Every filtered field must be listed in the index's filterableAttributes in
  * config/scout.php, or the real server would reject the search.
  *
+ * Every sorted field must likewise be in sortableAttributes. Sorting is
+ * applied to the substring matches as the only ranking (stable, so equal keys
+ * keep id order).
+ *
  * What it does NOT verify: Meilisearch's own ranking or typo tolerance.
  * Matching here is a case-insensitive substring test.
  */
@@ -129,6 +133,8 @@ class FakeMeilisearchEngine extends MeilisearchEngine
                 && $this->matchesFilters($document, $builder),
         ));
 
+        $hits = $this->sortHits($hits, $builder, (array) ($searchParams['sort'] ?? []));
+
         $perPage = (int) ($searchParams['hitsPerPage'] ?? 20);
         $page = (int) ($searchParams['page'] ?? 1);
 
@@ -176,6 +182,64 @@ class FakeMeilisearchEngine extends MeilisearchEngine
         }
 
         return false;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $hits
+     * @param  list<string>  $sort  Meilisearch "field:asc|desc" expressions
+     * @return list<array<string, mixed>>
+     */
+    private function sortHits(array $hits, Builder $builder, array $sort): array
+    {
+        if ($sort === []) {
+            return $hits;
+        }
+
+        $sortable = $this->indexSetting($builder, 'sortableAttributes');
+
+        foreach ($sort as $expression) {
+            [$field] = explode(':', $expression);
+            Assert::assertContains(
+                $field,
+                $sortable,
+                sprintf('[%s] is sorted on but not in its sortableAttributes (config/scout.php); Meilisearch would reject the search.', $field),
+            );
+        }
+
+        usort($hits, function (array $a, array $b) use ($sort): int {
+            foreach ($sort as $expression) {
+                [$field, $direction] = array_pad(explode(':', $expression), 2, 'asc');
+                $result = ($a[$field] ?? null) <=> ($b[$field] ?? null);
+
+                if ($result !== 0) {
+                    return $direction === 'desc' ? -$result : $result;
+                }
+            }
+
+            return 0;
+        });
+
+        return $hits;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function indexSetting(Builder $builder, string $key): array
+    {
+        $value = [];
+
+        foreach ((array) config('scout.meilisearch.index-settings', []) as $name => $settings) {
+            $matches = class_exists($name)
+                ? $builder->model instanceof $name
+                : config('scout.prefix').$name === $builder->model->searchableAs();
+
+            if ($matches) {
+                $value = $settings[$key] ?? [];
+            }
+        }
+
+        return $value;
     }
 
     /**

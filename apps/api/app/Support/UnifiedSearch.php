@@ -81,6 +81,8 @@ final class UnifiedSearch
                 // lazy-loads once per doctor, unpublished facilities included.
                 'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
             ])
+            // Featured first, as in the directory lists (DoctorController).
+            ->orderByDesc('is_featured')
             ->orderBy('full_name');
 
         if ($city !== null && $city !== '') {
@@ -102,6 +104,7 @@ final class UnifiedSearch
         $query = Facility::query()
             ->published()
             ->clinical()
+            ->orderByDesc('is_featured')
             ->orderBy('name');
 
         if ($city !== null && $city !== '') {
@@ -123,6 +126,7 @@ final class UnifiedSearch
         $query = Facility::query()
             ->published()
             ->pharmacy()
+            ->orderByDesc('is_featured')
             ->orderBy('name');
 
         if ($city !== null && $city !== '') {

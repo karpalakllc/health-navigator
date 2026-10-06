@@ -1,170 +1,252 @@
 import type { Metadata } from "next";
-import { HeroMeshCard } from "@/components/design/hero-mesh-card";
-import { SectionHeading } from "@/components/design/section-heading";
-import { TrustRibbon } from "@/components/design/trust-ribbon";
-import { HomeFacilitiesRail } from "@/components/layout/home-facilities-rail";
-import { HomeFaq } from "@/components/layout/home-faq";
-import { HomeFeaturedDoctorsSection } from "@/components/layout/home-featured-doctors-section";
+import {
+  HomeCommunity,
+  HomePopularSpecialties,
+  HomeTrustRow,
+} from "@/components/home/home-community";
+import {
+  HomeDirectoryTiles,
+  type HomeTile,
+} from "@/components/home/home-directory-tiles";
+import {
+  HomeFeaturedDoctorsCard,
+  HomeFeaturedDoctorsRail,
+} from "@/components/home/home-featured-doctors";
+import { HomeGuidanceCard } from "@/components/home/home-guidance-card";
+import { HomeHero } from "@/components/home/home-hero";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
-import { HomeHeroSearchClient } from "@/components/layout/home-hero-search-client";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
-import { HomeQuickActions } from "@/components/layout/home-quick-actions";
-import { HomeSpecialtyExplorer } from "@/components/layout/home-specialty-explorer";
-import { PageShell } from "@/components/ui/page-shell";
-import { homeHeroCopyClass, pageEdgeBleedClass } from "@/components/ui/layout";
-import type { DoctorListItem } from "@/lib/api/types";
+import type { ForumCategory, ForumTopicSearchItem } from "@/lib/api/forum";
+import { fetchForumCategories, fetchForumRecentTopics } from "@/lib/api/forum";
+import type { DoctorListItem, Specialty } from "@/lib/api/types";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
+import { fetchPharmacies } from "@/lib/api/pharmacies";
+import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
-import { moduleFlags } from "@/lib/site-modules";
-import { t } from "@/i18n/t";
+import { t, tCount, type MessageKey } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
-  `${t("home.heroTitleLead")} ${t("home.heroTitleAccent")}`.trim(),
-  t("home.heroSubtitle"),
+  t("home.heroHeading"),
+  t("home.heroLead"),
   { path: "/" },
 );
 
 const TOP_RATED_MIN_REVIEWS = 2;
+const FEATURED_LIMIT = 6;
+const QUICK_LINKS = 3;
+const POPULAR_SPECIALTIES = 8;
+const COMMUNITY_TOPICS = 3;
+
+/** A list endpoint's total, or undefined when the module is off or it fails. */
+async function totalOf(
+  enabled: boolean,
+  load: () => Promise<{ meta: { total: number } }>,
+): Promise<number | undefined> {
+  if (!enabled) {
+    return undefined;
+  }
+  try {
+    return (await load()).meta.total;
+  } catch {
+    return undefined;
+  }
+}
+
+async function settle<T>(enabled: boolean, load: () => Promise<T>, empty: T) {
+  if (!enabled) {
+    return empty;
+  }
+  try {
+    return await load();
+  } catch {
+    return empty;
+  }
+}
 
 export default async function Home() {
   const settings = await fetchPublicSettings();
-  let topDoctors: Awaited<ReturnType<typeof fetchDoctors>>["data"] = [];
-  let facilities: Awaited<ReturnType<typeof fetchFacilities>>["data"] = [];
-  let specialties: Awaited<ReturnType<typeof fetchSpecialties>> = [];
+  const forumOn = settings.public_forum;
+  const guidanceOn = settings.public_guidance;
+  const pharmaciesOn = settings.public_pharmacies;
+  const productsOn = settings.public_products;
 
-  try {
-    const [topRes, featuredRes, facilitiesRes, specRes] = await Promise.all([
-      fetchDoctors({
-        sort: "rating",
-        min_reviews: TOP_RATED_MIN_REVIEWS,
-        per_page: 8,
-      }),
-      fetchDoctors({ featured: true, per_page: 8 }),
-      fetchFacilities({ featured: true, per_page: 3 }),
-      fetchSpecialties(),
-    ]);
-    topDoctors = mergeHomeDoctors(topRes.data, featuredRes.data, 8);
-    facilities = facilitiesRes.data;
-    specialties = specRes;
-  } catch {
-    topDoctors = [];
-    facilities = [];
-    specialties = [];
+  const [
+    topRated,
+    featured,
+    specialties,
+    topics,
+    forumCategories,
+    doctorsTotal,
+    facilitiesTotal,
+    pharmaciesTotal,
+    productsTotal,
+  ] = await Promise.all([
+    settle(
+      true,
+      async () =>
+        (
+          await fetchDoctors({
+            sort: "rating",
+            min_reviews: TOP_RATED_MIN_REVIEWS,
+            per_page: FEATURED_LIMIT,
+          })
+        ).data,
+      [] as DoctorListItem[],
+    ),
+    settle(
+      true,
+      async () =>
+        (await fetchDoctors({ featured: true, per_page: FEATURED_LIMIT })).data,
+      [] as DoctorListItem[],
+    ),
+    settle(true, fetchSpecialties, [] as Specialty[]),
+    settle(
+      forumOn,
+      async () => (await fetchForumRecentTopics(COMMUNITY_TOPICS)).data,
+      [] as ForumTopicSearchItem[],
+    ),
+    settle(forumOn, () => fetchForumCategories(), [] as ForumCategory[]),
+    totalOf(true, () => fetchDoctors({ per_page: 1 })),
+    totalOf(true, () => fetchFacilities({ per_page: 1 })),
+    totalOf(pharmaciesOn, () => fetchPharmacies({ per_page: 1 })),
+    totalOf(productsOn, () => fetchProducts({ per_page: 1 })),
+  ]);
+
+  const doctors = mergeHomeDoctors(topRated, featured, FEATURED_LIMIT);
+  const bySize = [...specialties]
+    .filter((s) => s.doctors_count > 0)
+    .sort((a, b) => b.doctors_count - a.doctors_count);
+  const forumTotal = forumCategories.length
+    ? forumCategories.reduce((sum, c) => sum + (c.topics_count ?? 0), 0)
+    : undefined;
+
+  const tiles: HomeTile[] = [
+    {
+      href: "/doctors",
+      label: t("nav.doctors"),
+      icon: "stethoscope",
+      sub: countLine("home.tileDoctorsCount", doctorsTotal),
+      feature: true,
+    },
+    {
+      href: "/facilities",
+      label: t("nav.facilities"),
+      icon: "building",
+      sub: countLine("home.tileFacilitiesCount", facilitiesTotal),
+    },
+  ];
+  if (pharmaciesOn) {
+    tiles.push({
+      href: "/pharmacies",
+      label: t("nav.pharmacies"),
+      icon: "pill",
+      sub: countLine("home.tilePharmaciesCount", pharmaciesTotal),
+    });
+  }
+  if (productsOn) {
+    tiles.push({
+      href: "/products",
+      label: t("nav.products"),
+      icon: "package",
+      sub: countLine("home.tileProductsCount", productsTotal),
+    });
+  }
+  if (guidanceOn) {
+    tiles.push({
+      href: "/guidance",
+      label: t("nav.guidance"),
+      icon: "compass",
+      sub: t("home.tileGuidanceSub"),
+      feature: true,
+    });
+  }
+  if (forumOn) {
+    tiles.push({
+      href: "/forum",
+      label: t("nav.forum"),
+      icon: "message-circle",
+      sub: countLine("home.tileForumCount", forumTotal),
+    });
   }
 
-  return (
-    <>
-      <div className={`${pageEdgeBleedClass} pb-2 pt-[18px]`}>
-        <section className="space-y-4">
-          <HeroMeshCard align="full">
-            <div className="mx-auto inline-flex w-fit items-center gap-2.5 rounded-full border border-white/90 bg-white/90 px-4 py-2 text-sm font-semibold text-[#5c6670] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
-              <ShieldIcon />
-              {t("home.heroBadge")}
-            </div>
-            <h1
-              className={`${homeHeroCopyClass} mt-[18px] text-[clamp(2.5rem,5vw,4.9rem)] font-black leading-[0.95] tracking-[-0.055em] text-foreground`}
-            >
-              {t("home.heroTitleLead")}{" "}
-              <span className="text-primary">{t("home.heroTitleAccent")}</span>
-            </h1>
-            <p
-              className={`${homeHeroCopyClass} mt-[22px] text-[1.14rem] leading-[1.8] text-muted-foreground`}
-            >
-              {t("home.heroSubtitle")}
-            </p>
-            <HomeHeroSearchClient modules={moduleFlags(settings)} />
-          </HeroMeshCard>
+  const hasCommunity = forumOn && topics.length > 0;
+  const popular = bySize.slice(0, POPULAR_SPECIALTIES);
 
-          <TrustRibbon
-            items={[
-              {
-                text: t("home.trustInformational"),
-                tone: "teal",
-                icon: <InfoIcon />,
-              },
-              {
-                text: t("home.trustEmergency"),
-                tone: "red",
-                icon: <PhoneIcon />,
-              },
-              {
-                text: t("home.trustModerated"),
-                tone: "teal",
-                icon: <CheckIcon />,
-              },
-              { text: t("home.trustLocal"), tone: "red", icon: <MapIcon /> },
-            ]}
-            className="hidden xl:grid"
-          />
-          <TrustRibbon
-            columns={3}
-            items={[
-              {
-                text: t("home.trustInformational"),
-                tone: "teal",
-                icon: <InfoIcon />,
-              },
-              {
-                text: t("home.trustEmergency"),
-                tone: "red",
-                icon: <PhoneIcon />,
-              },
-              {
-                text: t("home.trustModerated"),
-                tone: "teal",
-                icon: <CheckIcon />,
-              },
-            ]}
-            className="xl:hidden"
-          />
-        </section>
+  return (
+    <div className="mx-auto w-full max-w-[1240px] lg:px-6">
+      <HomeHero
+        quickLinks={bySize.slice(0, QUICK_LINKS).map((s) => ({
+          href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,
+          label: s.name,
+        }))}
+        aside={<HomeFeaturedDoctorsCard doctors={doctors} />}
+      />
+
+      <div data-reveal="">
+        <HomeDirectoryTiles
+          tiles={tiles}
+          className="px-5 pt-8 lg:px-0 lg:pt-20"
+        />
       </div>
 
-      <PageShell gap="loose" className="pb-20 pt-8">
-        {/* Quick actions — 3 cards only (reference) */}
-        <section>
-          <SectionHeading
-            eyebrow={t("home.quickActions")}
-            eyebrowVariant="pill"
-            title={t("home.quickActionsTitle")}
-            description={t("home.quickActionsDescription")}
+      <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:hidden" />
+
+      {/* Mobile: guidance, community, trust stacked. Desktop: community (7)
+          beside guidance + popular specialties (5), as in the D2a mockup. */}
+      <div
+        data-reveal=""
+        className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-0 lg:px-0"
+      >
+        {hasCommunity ? (
+          <HomeCommunity
+            topics={topics}
+            className="order-2 lg:order-1 lg:col-span-7"
           />
-          <HomeQuickActions showForum={settings.public_forum} />
-        </section>
-
-        <HomeFeaturedDoctorsSection doctors={topDoctors} />
-
-        {/* Institutions (reference #institutions, alt surface) */}
-        <HomeFacilitiesRail facilities={facilities} />
-
-        {/* Specialties (reference) */}
-        {specialties.some((s) => s.doctors_count > 0) ? (
-          <section>
-            <SectionHeading
-              title={t("home.specialtiesTitle")}
-              description={t("home.specialtiesDescription")}
-            />
-            <HomeSpecialtyExplorer specialties={specialties} />
-          </section>
         ) : null}
+        <div
+          className={
+            hasCommunity
+              ? "order-1 flex flex-col gap-10 lg:order-2 lg:col-span-5 lg:pt-[52px]"
+              : "order-1 grid gap-10 lg:col-span-12 lg:grid-cols-2 lg:gap-6"
+          }
+        >
+          {guidanceOn ? <HomeGuidanceCard /> : null}
+          <HomePopularSpecialties
+            specialties={popular}
+            className="hidden lg:block"
+          />
+        </div>
+      </div>
 
-        <HomeHowItWorksSection />
+      <div data-reveal="">
+        <HomeHowItWorksSection className="mt-14 px-5 lg:mt-20 lg:px-0" />
+      </div>
 
-        {/* Forum + transparency (reference #forum) */}
-        {settings.public_forum ? (
-          <section id="forum">
-            <HomeForumTransparency />
-          </section>
-        ) : null}
+      <div data-reveal="">
+        <HomeForumTransparency
+          showForum={forumOn}
+          className="mt-10 px-5 lg:mt-14 lg:px-0"
+        />
+      </div>
 
-        {/* FAQ (reference) */}
-        <HomeFaq />
-      </PageShell>
-    </>
+      {/* Last before the footer, as in the D2a mockup. */}
+      <HomeTrustRow
+        items={[
+          t("home.trustRowModerated"),
+          t("home.trustRowClarity"),
+          t("home.trustRowLocal"),
+        ]}
+        className="mt-10 px-5 lg:mt-14 lg:px-0"
+      />
+    </div>
   );
+}
+
+function countLine(key: MessageKey, total: number | undefined) {
+  return total === undefined ? undefined : tCount(key, total);
 }
 
 function mergeHomeDoctors(
@@ -185,93 +267,4 @@ function mergeHomeDoctors(
     }
   }
   return merged;
-}
-
-function ShieldIcon() {
-  return (
-    <svg
-      className="h-4 w-4 text-accent"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 014.11 2h3a2 2 0 012 1.72c.383.12.762.26 1.128.4a2 2 0 012.11-.45l1.27-.27a2 2 0 012.53 1.01L22 16.92z"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function MapIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path
-        d="M12 21s-7-4-7-10a7 7 0 1114 0c0 6-7 10-7 10z"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="11" r="2.5" />
-    </svg>
-  );
 }

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { Button } from "@/components/ui/button";
 import { PrivacyNote } from "@/components/auth/privacy-note";
+import { TextField } from "@/components/auth/text-field";
+import { Button } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
+import { emailError, focusField } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
+
+const RESEND_EMAIL_ID = "resend-email";
 
 /**
  * Requests a fresh verification link.
@@ -22,10 +25,20 @@ export function ResendVerificationForm({
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailProblem, setEmailProblem] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const problem = emailError(email);
+    setEmailProblem(problem);
+
+    if (problem) {
+      focusField(RESEND_EMAIL_ID);
+      return;
+    }
+
     setPending(true);
 
     // "Sent" only when the API accepted the request. Its accepted reply is the
@@ -57,33 +70,36 @@ export function ResendVerificationForm({
   // The status region stays mounted across the swap from form to confirmation,
   // so the confirmation is announced (see FormSuccess).
   return (
-    <div className={sent ? "grid gap-2" : undefined}>
+    <div className="flex flex-col gap-4">
       <FormSuccess tone="muted">
         {sent ? t("auth.verifyResendSent") : null}
       </FormSuccess>
       {sent ? (
         <PrivacyNote />
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-3">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-semibold text-foreground">
-              {t("auth.email")}
-            </span>
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className={filterInputClassName}
-            />
-          </label>
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+        >
+          <TextField
+            id={RESEND_EMAIL_ID}
+            label={t("auth.email")}
+            error={emailProblem}
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
           {error ? <FormError>{error}</FormError> : null}
           <Button
             type="submit"
+            size="lg"
+            fullWidth
+            loading={pending}
             disabled={pending}
-            className="min-h-[44px] w-full sm:w-auto"
           >
             {t("auth.verifyResend")}
           </Button>

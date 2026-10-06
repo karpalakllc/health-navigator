@@ -1,19 +1,17 @@
+import { Notice, NoticeTelLink } from "@/components/ui/notice";
 import { t } from "@/i18n/t";
 
-export function ForumSafetyNotice({ compact = false }: { compact?: boolean }) {
-  if (compact) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        {t("forum.safetyEmergency")}
-      </p>
-    );
-  }
-
+/**
+ * The persistent forum safety note: support, not medical advice; 194/112 as
+ * bold ink tel: links. Deliberately soft (chip-tint), never a red fill. Shown
+ * only on the forum home and the new-topic composer, not on every page.
+ */
+export function ForumSafetyNotice({ className }: { className?: string }) {
   return (
-    <aside className="rounded-xl border border-warning/35 bg-warning/10 p-4 text-sm text-foreground">
-      <p className="font-semibold">{t("forum.safetyTitle")}</p>
-      <p className="mt-2 text-muted-foreground">{t("forum.safetyBody")}</p>
-      <p className="mt-2 text-muted-foreground">{t("forum.safetyEmergency")}</p>
-    </aside>
+    <Notice tone="safety" className={className}>
+      {t("forum.safetyLead")} {t("forum.safetyUrgent")}{" "}
+      <NoticeTelLink number="194" /> {t("forum.safetyOr")}{" "}
+      <NoticeTelLink number="112" />.
+    </Notice>
   );
 }
