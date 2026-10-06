@@ -154,9 +154,10 @@ a failure there means a user is waiting for something that will not arrive.
 
 - **Alert:** set `PLATFORM_ALERT_EMAIL`. `NotifyOnFailedJob` mails it
   synchronously (not through the queue that is failing) with the job class,
-  queue, exception and the request ID it was dispatched under — at most once per
-  job class per `PLATFORM_ALERT_THROTTLE_MINUTES` (15), so a dead mail server
-  sends one alert, not hundreds. If the mailer is what broke, the alert fails
+  queue, exception (addresses masked) and the request ID it was dispatched
+  under — at most once per job class and exception class per
+  `PLATFORM_ALERT_THROTTLE_MINUTES` (15), so a dead mail server sends one
+  alert, not hundreds. If the mailer is what broke, the alert fails
   too and is logged; Sentry still has the exception.
 - **Inspect and retry:** `php artisan queue:failed`, then
   `php artisan queue:retry <uuid>` (or `all`) once the cause is fixed;
