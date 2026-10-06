@@ -13,6 +13,7 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchPublicSettings();
@@ -46,13 +47,13 @@ export default async function ProductsPage({
   }
 
   const params = await searchParams;
-  const page = params.page ? Number(params.page) : 1;
+  const page = parseListPage(params.page);
 
   const products = await fetchProducts({
     q: params.q,
     category: params.category,
     pharmacy: params.pharmacy,
-    page: Number.isFinite(page) ? page : 1,
+    page,
   });
 
   const filterParams = {

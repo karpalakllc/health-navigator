@@ -88,4 +88,20 @@ class ApiHardeningTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data');
     }
+
+    /**
+     * Each page is a distinct cache entry and a distinct OFFSET scan; a client
+     * walking page=1..∞ should be told no, not served empty pages forever.
+     */
+    public function test_list_pages_are_capped(): void
+    {
+        $doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
+
+        foreach (['/api/v1/doctors', '/api/v1/facilities', "/api/v1/doctors/{$doctor->slug}/reviews"] as $path) {
+            $this->getJson("{$path}?page=1000")->assertOk();
+            $this->getJson("{$path}?page=1001")
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('page');
+        }
+    }
 }

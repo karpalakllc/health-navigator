@@ -11,6 +11,7 @@ import { fetchDepartments } from "@/lib/api/departments";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tCount } from "@/i18n/t";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 export const metadata: Metadata = pageMetadata(
   t("facilities.title"),
@@ -48,7 +49,7 @@ export default async function FacilitiesPage({
   searchParams,
 }: FacilitiesPageProps) {
   const params = await searchParams;
-  const page = params.page ? Number(params.page) : 1;
+  const page = parseListPage(params.page);
   const hasEmergency = params.has_emergency === "1";
 
   const [facilities, departments] = await Promise.all([
@@ -58,7 +59,7 @@ export default async function FacilitiesPage({
       q: params.q,
       has_emergency: hasEmergency ? true : undefined,
       department: params.department,
-      page: Number.isFinite(page) ? page : 1,
+      page,
     }),
     fetchDepartments().catch(() => []),
   ]);

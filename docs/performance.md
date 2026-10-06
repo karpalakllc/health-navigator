@@ -303,11 +303,16 @@ to cache for them.
   `fetchForumCategories`) use `next: { revalidate: 300 }` (`TAXONOMY_CACHE`).
 - Anonymous directory lists (`fetchDoctors`, `fetchFacilities`,
   `fetchPharmacies`, `fetchProducts`) use `next: { revalidate: 60 }` **only when
-  the request has no free text** (`q`, `city`; for products also the free-text
-  `category`) — `directoryCache()`. A cached fetch reaches the API without the
-  visitor's address, in the site-wide rate-limit bucket, and every distinct URL
-  is its own cache entry; arbitrary search text would make that set unbounded,
-  so those listings stay `no-store` and per-visitor.
+  every parameter is in a known-safe set** (`directoryCache()`,
+  `directory-cache-policy.ts`): a specialty/department slug present in the
+  cached taxonomy, a facility type or sort from its enum, a boolean, page ≤ 5.
+  A cached fetch reaches the API without the visitor's address, in the
+  site-wide rate-limit bucket, and every distinct URL is its own cache entry;
+  free text (`q`, `city`, product `category`), an unknown slug, a product
+  `pharmacy` filter or a deep page would make that set unbounded, so those
+  listings stay `no-store` and forward the visitor. The API also rejects
+  `page` > 1000 on every list endpoint, and the web pages clamp `?page=` to
+  that range (`parseListPage`).
 - Token-bearing reads (`lib/api/server.ts`) are always `no-store`
   (`cache-policy.test.ts`).
 

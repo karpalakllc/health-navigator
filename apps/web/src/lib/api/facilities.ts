@@ -3,8 +3,13 @@ import {
   directoryCache,
   type ApiCacheOptions,
 } from "@/lib/api/client";
+import { fetchDepartments } from "@/lib/api/departments";
 import { apiGetServer } from "@/lib/api/server";
-import type { FacilityDetail, FacilityListItem } from "@/lib/api/types";
+import type {
+  FacilityDetail,
+  FacilityListItem,
+  FacilityType,
+} from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
 export type FacilityListParams = {
@@ -40,13 +45,39 @@ function toQuery(params: FacilityListParams): string {
   return query ? `?${query}` : "";
 }
 
+const FACILITY_TYPES: readonly FacilityType[] = [
+  "clinic",
+  "hospital",
+  "laboratory",
+];
+
+/**
+ * A department only keeps a listing cacheable when the (cached) taxonomy
+ * knows it; city and q are free text and never do.
+ */
+async function facilitiesCache(
+  params: FacilityListParams,
+): Promise<ApiCacheOptions> {
+  const departments = params.department
+    ? await fetchDepartments().catch(() => [])
+    : [];
+
+  return directoryCache(params, {
+    oneOf: {
+      department: departments.map(({ slug }) => slug),
+      type: FACILITY_TYPES,
+    },
+    booleans: ["has_emergency", "featured"],
+  });
+}
+
 export async function fetchFacilities(
   params: FacilityListParams = {},
   options?: ApiCacheOptions,
 ) {
   return apiGetPaginated<FacilityListItem>(
     `/facilities${toQuery(params)}`,
-    options ?? directoryCache(params),
+    options ?? (await facilitiesCache(params)),
   );
 }
 

@@ -1,6 +1,10 @@
 import "server-only";
 import { webTierRequestHeaders } from "@/lib/api/client-ip";
 import { apiUrl } from "@/lib/config";
+import {
+  isCacheableDirectoryQuery,
+  type DirectoryCacheRule,
+} from "@/lib/api/directory-cache-policy";
 import type { ApiEnvelope, PaginatedEnvelope } from "@/lib/api/types";
 
 /**
@@ -28,25 +32,20 @@ export const TAXONOMY_CACHE: ApiCacheOptions = { revalidate: 300 };
 export const DIRECTORY_REVALIDATE_SECONDS = 60;
 
 /**
- * Data-cache policy for an anonymous directory list. Only listings without
- * free text are cached: each distinct URL is its own cache entry, and a cache
- * miss reaches the API without the visitor's address (serverSideHeaders), in
- * the site-wide rate-limit bucket. Bounded inputs (a specialty slug, a page,
- * a sort) keep that set small; arbitrary search text would not, so those
- * listings stay per-request and per-visitor.
+ * Data-cache policy for an anonymous directory list: cached for a minute only
+ * when every parameter is in the rule's known-safe set
+ * (lib/api/directory-cache-policy.ts); otherwise per-request, with the
+ * visitor's address forwarded (serverSideHeaders).
  *
  * Token-bearing reads go through lib/api/server.ts, which is always no-store.
  */
 export function directoryCache(
   params: Record<string, unknown>,
-  freeTextKeys: readonly string[] = ["q", "city"],
+  rule?: DirectoryCacheRule,
 ): ApiCacheOptions {
-  const hasFreeText = freeTextKeys.some((key) => {
-    const value = params[key];
-    return typeof value === "string" ? value.trim() !== "" : value != null;
-  });
-
-  return hasFreeText ? {} : { revalidate: DIRECTORY_REVALIDATE_SECONDS };
+  return isCacheableDirectoryQuery(params, rule)
+    ? { revalidate: DIRECTORY_REVALIDATE_SECONDS }
+    : {};
 }
 
 function cacheInit({ revalidate }: ApiCacheOptions = {}): RequestInit {

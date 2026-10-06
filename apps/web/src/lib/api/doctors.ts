@@ -4,6 +4,7 @@ import {
   type ApiCacheOptions,
 } from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
+import { fetchSpecialties } from "@/lib/api/specialties";
 import type { DoctorDetail, DoctorListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
@@ -37,13 +38,34 @@ function toQuery(params: DoctorListParams): string {
   return query ? `?${query}` : "";
 }
 
+/**
+ * A specialty only keeps a listing cacheable when it is one the (cached)
+ * taxonomy knows; city and q are free text and never do.
+ */
+async function doctorsCache(
+  params: DoctorListParams,
+): Promise<ApiCacheOptions> {
+  const specialties = params.specialty
+    ? await fetchSpecialties().catch(() => [])
+    : [];
+
+  return directoryCache(params, {
+    oneOf: {
+      specialty: specialties.map(({ slug }) => slug),
+      sort: ["name", "rating"],
+    },
+    booleans: ["featured"],
+    integers: { min_reviews: 10 },
+  });
+}
+
 export async function fetchDoctors(
   params: DoctorListParams = {},
   options?: ApiCacheOptions,
 ) {
   return apiGetPaginated<DoctorListItem>(
     `/doctors${toQuery(params)}`,
-    options ?? directoryCache(params),
+    options ?? (await doctorsCache(params)),
   );
 }
 

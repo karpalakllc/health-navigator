@@ -11,6 +11,7 @@ import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
 import { t, tCount } from "@/i18n/t";
+import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 export const metadata: Metadata = pageMetadata(
   t("doctors.title"),
@@ -29,7 +30,7 @@ type DoctorsPageProps = {
 
 export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const params = await searchParams;
-  const page = params.page ? Number(params.page) : 1;
+  const page = parseListPage(params.page);
   const sort = params.sort === "rating" ? "rating" : "name";
 
   const [specialties, doctors] = await Promise.all([
@@ -39,7 +40,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       city: params.city,
       q: params.q,
       sort,
-      page: Number.isFinite(page) ? page : 1,
+      page,
     }),
   ]);
 

@@ -28,16 +28,22 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_API_URL = "http://api.test";
   webTierRequestHeaders.mockResolvedValue({ "X-Web-Tier-Auth": "s" });
   getSessionToken.mockResolvedValue("member-token");
-  fetchMock.mockImplementation(
-    async () =>
-      new Response(
-        JSON.stringify({
-          data: [],
-          meta: { current_page: 1, per_page: 15, total: 0, last_page: 1 },
-        }),
-        { status: 200 },
-      ),
-  );
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.endsWith("/specialties")) {
+      return Response.json({ data: [{ slug: "kardiologija" }] });
+    }
+    if (url.endsWith("/departments")) {
+      return Response.json({ data: [{ slug: "urgenten" }] });
+    }
+
+    return new Response(
+      JSON.stringify({
+        data: [],
+        meta: { current_page: 1, per_page: 15, total: 0, last_page: 1 },
+      }),
+      { status: 200 },
+    );
+  });
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -81,13 +87,52 @@ describe("directory list fetches", () => {
     ["doctors", () => fetchDoctors({ specialty: "kardiologija", page: 2 })],
     ["doctors by rating", () => fetchDoctors({ sort: "rating" })],
     ["facilities", () => fetchFacilities({ department: "urgenten" })],
+    [
+      "emergency hospitals",
+      () => fetchFacilities({ type: "hospital", has_emergency: true }),
+    ],
     ["pharmacies", () => fetchPharmacies({ page: 3 })],
-    ["products", () => fetchProducts({ pharmacy: "zegin" })],
+    ["products", () => fetchProducts({ page: 2 })],
   ])("caches %s without free text for a minute", async (_name, load) => {
     await load();
 
     expect(lastInit().next).toEqual({ revalidate: 60 });
     expect(authorization(lastInit())).toBeNull();
+    expect(webTierRequestHeaders).toHaveBeenLastCalledWith({
+      forwardVisitor: false,
+    });
+  });
+
+  it.each([
+    ["an unknown specialty", () => fetchDoctors({ specialty: "x-1" })],
+    ["a deep page", () => fetchDoctors({ page: 6 })],
+    ["a huge page", () => fetchDoctors({ page: 1e9 })],
+    [
+      "an unknown sort",
+      () => fetchDoctors({ sort: "price" as unknown as "name" }),
+    ],
+    ["an unknown department", () => fetchFacilities({ department: "nope" })],
+    ["an unknown facility type", () => fetchFacilities({ type: "spa" })],
+    ["a non-boolean flag", () => fetchFacilities({ has_emergency: "maybe" })],
+    ["a pharmacy's products", () => fetchProducts({ pharmacy: "zegin" })],
+  ])("sends %s per-visitor instead of caching it", async (_name, load) => {
+    await load();
+
+    expect(lastInit().cache).toBe("no-store");
+    expect(lastInit().next).toBeUndefined();
+    expect(webTierRequestHeaders).toHaveBeenLastCalledWith({
+      forwardVisitor: true,
+    });
+  });
+
+  it("does not cache a specialty when the taxonomy cannot be read", async () => {
+    fetchMock.mockImplementationOnce(
+      async () => new Response("", { status: 503 }),
+    );
+
+    await fetchDoctors({ specialty: "kardiologija" });
+
+    expect(lastInit().cache).toBe("no-store");
   });
 
   it.each([
@@ -107,6 +152,10 @@ describe("directory list fetches", () => {
   it("treats blank free text as absent", () => {
     expect(directoryCache({ q: "  ", city: "" })).toEqual({ revalidate: 60 });
     expect(directoryCache({ q: "x" })).toEqual({});
+  });
+
+  it("does not cache products by pharmacy", () => {
+    expect(directoryCache({ pharmacy: "zegin" })).toEqual({});
   });
 });
 

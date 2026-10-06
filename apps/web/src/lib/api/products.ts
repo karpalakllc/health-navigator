@@ -25,10 +25,12 @@ function toQuery(params: Record<string, string | number | undefined>): string {
 }
 
 export async function fetchProducts(params: ProductListParams = {}) {
-  // category is free text in the API (an ILIKE match), so it is uncached too.
+  // Only the unfiltered pages are shared: category is free text in the API
+  // (an ILIKE match), and pharmacy is a slug with no cached list to check it
+  // against, so either makes the listing per-visitor.
   return apiGetPaginated<ProductListItem>(
     `/products${toQuery(params)}`,
-    directoryCache(params, ["q", "category"]),
+    directoryCache(params),
   );
 }
 
