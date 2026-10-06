@@ -28,7 +28,7 @@ class TriageTest extends TestCase
         $response = $this->getJson('/api/v1/triage/flow');
 
         $response->assertOk()
-            ->assertJsonPath('data.title', 'General symptom guidance')
+            ->assertJsonPath('data.title', TriageSeeder::TITLE)
             ->assertJsonStructure([
                 'data' => [
                     'title',
