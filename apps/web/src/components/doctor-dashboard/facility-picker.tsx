@@ -43,9 +43,9 @@ export function FacilityPicker({
     const needle = query.trim();
 
     if ([...needle].length < 2) {
+      // Too short to search: a reply still on its way is dropped, and the
+      // results below are hidden.
       latest.current += 1;
-      setResults([]);
-      setStatus("idle");
 
       return;
     }
@@ -91,13 +91,17 @@ export function FacilityPicker({
     return () => window.clearTimeout(timer);
   }, [query, onNamesChange]);
 
+  const active = [...query.trim()].length >= 2;
   const listed = [
     ...known.filter((option) => selected.includes(option.id)),
-    ...results.filter((option) => !selected.includes(option.id)),
+    ...(active ? results : []).filter(
+      (option) => !selected.includes(option.id),
+    ),
   ];
 
-  const statusText =
-    status === "searching"
+  const statusText = !active
+    ? ""
+    : status === "searching"
       ? t("doctorDashboard.facilitySearching")
       : status === "empty"
         ? t("doctorDashboard.facilitySearchEmpty")
