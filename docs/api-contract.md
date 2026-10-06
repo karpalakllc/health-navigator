@@ -73,17 +73,20 @@ mechanism for the Next.js web client and future mobile clients.
 - **Login requires a verified address**: correct credentials on an unverified
   account return `403` with code `auth.email_unverified`. This is not an oracle —
   it is only reachable by someone who already knows the password.
-- **Accounts behind two-factor authentication cannot sign in here.** Correct
-  credentials for an account that holds `admin.access` (Administrator,
-  Moderator — the admin panel requires them to enrol an authenticator) or that
-  has enrolled one (an opted-in community moderator) return `403` with code
-  `auth.staff_use_admin`, and no token. The API has no second-factor step, so a
-  token issued on the password alone would carry the account's moderation
-  powers without the factor the panel demands. Checked before the
-  verified-address rule; like it, only reachable with the right password.
-  Enrolling an authenticator revokes the account's existing API tokens; gaining
-  `admin.access` does not, so tokens issued before a promotion stay valid until
-  they expire or are revoked.
+- **Staff cannot sign in here.** Correct credentials for an account that holds
+  `admin.access` (Administrator, Moderator — the admin panel requires them to
+  enrol an authenticator) return `403` with code `auth.staff_use_admin`, and no
+  token. The API has no second-factor step, so a token issued on the password
+  alone would carry the account's moderation powers without the factor the
+  panel demands. Checked before the verified-address rule; like it, only
+  reachable with the right password. Two-factor protects the admin panel only:
+  a community moderator who has opted in to an authenticator still signs in
+  here with their password, and keeps their tokens when they enrol.
+- **Existing tokens follow the same rule.** A token is refused (`401`, not
+  deleted) for as long as its account holds `admin.access` — including one
+  issued before the account was promoted — and works again after demotion,
+  until it expires. Enrolling an authenticator deletes the existing tokens of
+  an account that holds `admin.access`.
 - Contributing endpoints (reviews, forum topics and replies, avatar upload)
   carry the `verified` guard and return the same `403` / `auth.email_unverified`.
 - **Token expiration:** `SANCTUM_TOKEN_EXPIRATION_MINUTES`, default **43200**

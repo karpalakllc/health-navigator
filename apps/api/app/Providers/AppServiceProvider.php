@@ -32,14 +32,19 @@ class AppServiceProvider extends ServiceProvider
         TriageFlow::observe(TriageFlowObserver::class);
 
         // Staff sign in through the 2FA-protected panel, and API login refuses them
-        // (auth.staff_use_admin). Apply the same rule to tokens they already hold —
-        // one issued before the account gained panel access or enrolled in 2FA
-        // would otherwise keep working until it expired.
+        // (auth.staff_use_admin). Apply the same rule to tokens they already hold:
+        // one issued before the account gained admin.access is refused (not
+        // deleted) for as long as it holds it, and works again after demotion
+        // until it expires. Only requiresMultiFactorAuthentication() is consulted —
+        // a community moderator's opt-in second factor protects the panel only,
+        // and the secret need not be decrypted on every request. That check costs
+        // a constant two permission queries per token-authenticated request
+        // (Spatie resolves admin.access through the user's roles and direct
+        // permissions; the permission list itself is cached).
         Sanctum::authenticateAccessTokensUsing(
             fn (PersonalAccessToken $token, bool $isValid): bool => $isValid
                 && ! ($token->tokenable instanceof User
-                    && ($token->tokenable->requiresMultiFactorAuthentication()
-                        || $token->tokenable->hasMultiFactorAuthenticationEnabled())),
+                    && $token->tokenable->requiresMultiFactorAuthentication()),
         );
 
         // Pushed here rather than in bootstrap/app.php: it joins the api group

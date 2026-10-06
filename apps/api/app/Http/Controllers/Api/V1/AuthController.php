@@ -102,13 +102,14 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        // The admin panel asks these accounts for a second factor; a token minted
-        // here on the password alone would carry the same staff powers (forum
-        // moderation through the policies) without it. Staff work in the panel,
-        // and a community moderator who has enrolled an authenticator is held to
-        // it everywhere. Only reachable with the right password, like the check
-        // below, so it reveals nothing the caller has not already proved.
-        if ($user->requiresMultiFactorAuthentication() || $user->hasMultiFactorAuthenticationEnabled()) {
+        // The admin panel requires a second factor of these accounts; a token
+        // minted here on the password alone would carry the same staff powers
+        // (forum moderation through the policies) without it, so staff work in
+        // the panel. Two-factor protects the panel only: a community moderator
+        // who opted in still signs in to the website with their password. Only
+        // reachable with the right password, like the check below, so it
+        // reveals nothing the caller has not already proved.
+        if ($user->requiresMultiFactorAuthentication()) {
             return ApiResponse::errorCode('auth.staff_use_admin', 403);
         }
 

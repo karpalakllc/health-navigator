@@ -23,9 +23,10 @@ use Tests\TestCase;
  * Staff two-factor authentication in the admin panel (Filament's
  * AppAuthentication with recovery codes).
  *
- * Required for anyone holding admin.access, optional for community moderators,
- * and not a way round the API: an account behind a second factor cannot mint a
- * token with its password alone.
+ * Required for anyone holding admin.access, optional for community moderators.
+ * It protects the panel: staff cannot mint an API token with their password
+ * alone, while a community moderator who opted in still signs in to the public
+ * website (the API) with their password.
  */
 class StaffMultiFactorAuthenticationTest extends TestCase
 {
@@ -304,15 +305,23 @@ class StaffMultiFactorAuthenticationTest extends TestCase
         }
     }
 
-    public function test_an_enrolled_community_moderator_cannot_get_an_api_token_with_their_password(): void
+    public function test_an_enrolled_community_moderator_still_signs_in_to_the_api(): void
     {
+        // Two-factor protects the panel. A community moderator who opted in is
+        // not required to have it, and the public website is password-only.
         $moderator = $this->communityModerator($this->secret());
 
         $this->postJson('/api/v1/auth/login', ['email' => $moderator->email, 'password' => self::PASSWORD])
-            ->assertForbidden()
-            ->assertJsonPath('code', 'auth.staff_use_admin');
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['token']]);
+    }
 
-        $this->assertSame(0, $moderator->tokens()->count());
+    public function test_an_enrolled_community_moderator_keeps_using_their_api_token(): void
+    {
+        $moderator = $this->communityModerator($this->secret());
+        $token = $moderator->createToken('web')->plainTextToken;
+
+        $this->withToken($token)->getJson('/api/v1/me')->assertOk();
     }
 
     public function test_an_unenrolled_community_moderator_still_signs_in_to_the_api(): void
@@ -333,13 +342,41 @@ class StaffMultiFactorAuthenticationTest extends TestCase
             ->assertJsonPath('code', 'validation.failed');
     }
 
-    public function test_enrolling_revokes_existing_api_tokens(): void
+    public function test_enrolling_revokes_existing_api_tokens_for_staff(): void
+    {
+        $admin = $this->administrator();
+        $admin->createToken('web');
+
+        $admin->saveAppAuthenticationSecret($this->secret());
+
+        $this->assertSame(0, $admin->tokens()->count());
+    }
+
+    public function test_a_community_moderator_enrolling_keeps_their_api_tokens(): void
     {
         $moderator = $this->communityModerator();
         $moderator->createToken('web');
 
         $moderator->saveAppAuthenticationSecret($this->secret());
 
-        $this->assertSame(0, $moderator->tokens()->count());
+        $this->assertSame(1, $moderator->tokens()->count());
+    }
+
+    // --- the profile page --------------------------------------------------
+
+    public function test_a_community_moderator_is_told_what_two_factor_protects(): void
+    {
+        $this->actingAs($this->communityModerator());
+
+        $this->get('/admin/profile')->assertOk()
+            ->assertSee('Two-factor authentication protects your access to this moderation panel. Signing in to the public website still uses your password.');
+    }
+
+    public function test_staff_are_not_shown_the_community_moderator_note(): void
+    {
+        $this->actingAs($this->administrator($this->secret()));
+
+        $this->get('/admin/profile')->assertOk()
+            ->assertDontSee('Signing in to the public website still uses your password.');
     }
 }

@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Models\User;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
+use Filament\Facades\Filament;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Arr;
 
@@ -25,7 +28,14 @@ class EditProfile extends BaseEditProfile
 
     public function content(Schema $schema): Schema
     {
-        return $schema->components(Arr::wrap($this->getMultiFactorAuthenticationContentComponent()));
+        return $schema->components([
+            // Community moderators enrol by choice, and might expect it to cover
+            // their public account too. It does not: API login and tokens are
+            // held to two-factor only for accounts that require it (admin.access).
+            Text::make('Two-factor authentication protects your access to this moderation panel. Signing in to the public website still uses your password.')
+                ->visible(fn (): bool => ($user = Filament::auth()->user()) instanceof User && $user->isCommunityModeratorOnly()),
+            ...Arr::wrap($this->getMultiFactorAuthenticationContentComponent()),
+        ]);
     }
 
     /**

@@ -100,16 +100,18 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     /**
-     * Enrolling ends every API session: API login refuses accounts with a second
-     * factor (AuthController::login()), and a token minted on the password alone
-     * before enrolment would otherwise keep working without it.
+     * Enrolling ends every API session for staff: API login refuses accounts
+     * that require a second factor (AuthController::login()), and a token minted
+     * on the password alone before enrolment would otherwise keep working
+     * without it. A community moderator's second factor protects the panel
+     * only, so their website sessions are left alone.
      */
     public function saveAppAuthenticationSecret(#[SensitiveParameter] ?string $secret): void
     {
         $this->app_authentication_secret = $secret;
         $this->save();
 
-        if (filled($secret)) {
+        if (filled($secret) && $this->requiresMultiFactorAuthentication()) {
             $this->revokeApiTokens();
         }
     }
