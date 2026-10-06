@@ -9,7 +9,7 @@ import { t, tFormat } from "@/i18n/t";
 type ReviewListProps = {
   reviews: PublicReview[];
   isLoggedIn?: boolean;
-  /** The viewer's own review: no „Корисно“ on it (the API refuses). */
+  /** The viewer's own review: no „Корисно“ or „Пријави“ on it (the API refuses both). */
   viewerReviewId?: number | null;
   /** Where sign-in returns to from „Корисно“ / „Пријави“. */
   returnTo?: string;
@@ -66,7 +66,9 @@ export function ReviewList({
               {review.response ? (
                 <OfficialResponse response={review.response} />
               ) : null}
-              {typeof review.id === "number" ? (
+              {/* Neither „Корисно“ nor „Пријави“ on the viewer's own review:
+                  the API refuses both. */}
+              {typeof review.id === "number" && !own ? (
                 <div
                   role="group"
                   aria-label={tFormat("reviews.actions", {
@@ -74,17 +76,13 @@ export function ReviewList({
                   })}
                   className="mt-auto flex flex-wrap items-start justify-between gap-2 pt-1"
                 >
-                  {own ? (
-                    <span />
-                  ) : (
-                    <ReviewHelpfulButton
-                      reviewId={review.id}
-                      count={review.helpful_count ?? 0}
-                      voted={review.viewer?.has_voted_helpful ?? false}
-                      isLoggedIn={isLoggedIn}
-                      returnTo={returnTo}
-                    />
-                  )}
+                  <ReviewHelpfulButton
+                    reviewId={review.id}
+                    count={review.helpful_count ?? 0}
+                    voted={review.viewer?.has_voted_helpful ?? false}
+                    isLoggedIn={isLoggedIn}
+                    returnTo={returnTo}
+                  />
                   <ReportButton
                     target={{ kind: "review", id: review.id }}
                     label={tFormat("reports.actionReview", {

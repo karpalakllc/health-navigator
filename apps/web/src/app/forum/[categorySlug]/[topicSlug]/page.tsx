@@ -125,12 +125,15 @@ export default async function TopicDetailPage({
       ) : (
         <span />
       )}
-      <ReportButton
-        target={{ kind: "forum_topic", categorySlug, topicSlug }}
-        label={t("reports.actionTopic")}
-        isLoggedIn={isLoggedIn}
-        returnTo={redirectPath}
-      />
+      {/* Not on one's own topic: the API refuses it. */}
+      {topic.viewer?.is_own ? null : (
+        <ReportButton
+          target={{ kind: "forum_topic", categorySlug, topicSlug }}
+          label={t("reports.actionTopic")}
+          isLoggedIn={isLoggedIn}
+          returnTo={redirectPath}
+        />
+      )}
     </div>
   );
 
@@ -212,16 +215,18 @@ export default async function TopicDetailPage({
                         post={post}
                         isTopicAuthor={post.is_topic_author === true}
                         actions={
-                          <div className="flex w-full justify-end">
-                            <ReportButton
-                              target={{ kind: "forum_post", id: post.id }}
-                              label={tFormat("reports.actionPost", {
-                                name: post.author.name,
-                              })}
-                              isLoggedIn={isLoggedIn}
-                              returnTo={redirectPath}
-                            />
-                          </div>
+                          post.viewer?.is_own ? undefined : (
+                            <div className="flex w-full justify-end">
+                              <ReportButton
+                                target={{ kind: "forum_post", id: post.id }}
+                                label={tFormat("reports.actionPost", {
+                                  name: post.author.name,
+                                })}
+                                isLoggedIn={isLoggedIn}
+                                returnTo={redirectPath}
+                              />
+                            </div>
+                          )
                         }
                       />
                     </li>

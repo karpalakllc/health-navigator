@@ -28,6 +28,12 @@ class ForumPostResource extends JsonResource
             'is_topic_author' => $this->topic !== null
                 && ! $this->user->isAnonymised()
                 && (int) $this->user_id === (int) $this->topic->user_id,
+            'viewer' => $this->when(
+                $request->user() !== null,
+                fn (): array => [
+                    'is_own' => (int) $this->user_id === (int) $request->user()?->getKey(),
+                ],
+            ),
         ];
     }
 }

@@ -302,11 +302,16 @@ nobody can hold an account locked by merely sending traffic.
 - Reports: `POST /reviews/{id}/reports`, `POST /forum/posts/{id}/reports` and
   `POST /forum/categories/{category}/topics/{topic}/reports` take `reason`
   (`spam|abuse|false_information|personal_data|other`) and an optional `note`
-  (≤ 500). Only publicly visible content can be reported (otherwise 404). The
+  (≤ 500). Only publicly visible content can be reported (otherwise 404; a
+  pharmacy review while the pharmacies module is off is not public, for
+  „Корисно“ too). Your own review, topic or reply is a 422 (`content`). The
   first report answers 201, a repeat by the same account 200 with the same body
   and no new row. Process: [notice-and-action.md](./notice-and-action.md).
-- Forum replies carry `is_topic_author` (written by the topic's opener); the
-  payload never includes account ids.
+- Forum replies carry `is_topic_author` (written by the topic's opener; never
+  for a deleted account); the payload never includes account ids. On a
+  signed-in request the topic and each reply carry `viewer.is_own` (the web
+  hides „Пријави“ on it), and the topic's `viewer.can_moderate` is present only
+  when true; anonymous payloads carry no `viewer`.
 - `GET /health` returns `data.status` of `ok` (200) or `degraded` (503) with a
   `checks` map. It is **exempt from maintenance mode**, so a 503 there always
   means real degradation.

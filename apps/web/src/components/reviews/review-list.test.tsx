@@ -127,19 +127,29 @@ describe("ReviewList „Корисно“", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("x");
   });
 
-  it("offers no vote on the viewer's own review, but still the report link", () => {
-    render(<ReviewList reviews={[review()]} isLoggedIn viewerReviewId={11} />);
+  it("offers neither a vote nor a report on the viewer's own review", () => {
+    render(
+      <ReviewList
+        reviews={[review(), review({ id: 12, author_name: "Петар Г." })]}
+        isLoggedIn
+        viewerReviewId={11}
+      />,
+    );
 
-    const actions = screen.getByRole("group", {
-      name: tFormat("reviews.actions", { name: "Ана П." }),
-    });
     expect(
-      within(actions).queryByRole("button", { name: /Корисно/ }),
+      screen.queryByRole("group", {
+        name: tFormat("reviews.actions", { name: "Ана П." }),
+      }),
     ).not.toBeInTheDocument();
     expect(
-      within(actions).getByRole("button", {
+      screen.queryByRole("button", {
         name: tFormat("reports.actionReview", { name: "Ана П." }),
       }),
-    ).toHaveTextContent(t("reports.action"));
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: tFormat("reports.actionReview", { name: "Петар Г." }),
+      }),
+    ).toBeInTheDocument();
   });
 });

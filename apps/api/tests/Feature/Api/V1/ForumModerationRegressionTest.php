@@ -215,6 +215,6 @@ class ForumModerationRegressionTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/v1/forum/categories/{$other->slug}/topics/{$outOfScope->slug}")
             ->assertOk()
-            ->assertJsonMissingPath('data.topic.viewer');
+            ->assertJsonMissingPath('data.topic.viewer.can_moderate');
     }
 }
