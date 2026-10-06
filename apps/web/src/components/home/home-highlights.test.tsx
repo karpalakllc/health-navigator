@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import { HomeCities } from "@/components/home/home-cities";
+import { HomeHero } from "@/components/home/home-hero";
 import { HomeRecentReviews } from "@/components/home/home-recent-reviews";
 import { HomeRecentlyViewed } from "@/components/home/home-recently-viewed";
 import { HomeSpecialties } from "@/components/home/home-specialties";
@@ -299,5 +300,16 @@ describe("RecordRecentlyViewed", () => {
     expect(() =>
       render(<RecordRecentlyViewed kind="doctor" slug="x" name="д-р Икс" />),
     ).not.toThrow();
+  });
+});
+
+describe("HomeHero phone search placeholder", () => {
+  it("uses the short prompt so it is not clipped at 360–390px", () => {
+    render(<HomeHero quickLinks={[]} />);
+
+    expect(
+      screen.getByRole("searchbox", { name: t("nav.searchWhat") }),
+    ).toHaveAttribute("placeholder", t("nav.searchWhatPlaceholderShort"));
+    expect(t("nav.searchWhatPlaceholderShort").length).toBeLessThanOrEqual(20);
   });
 });

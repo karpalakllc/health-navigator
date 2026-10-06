@@ -1,9 +1,7 @@
 import { CommunityTopicCard } from "@/components/home/community-topic-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ChipLink } from "@/components/ui/chip";
 import { Icon } from "@/components/ui/icons";
 import type { ForumTopicSearchItem } from "@/lib/api/forum";
-import type { Specialty } from "@/lib/api/types";
 import { t } from "@/i18n/t";
 
 /** „Од заедницата“: the latest published forum topics. */
@@ -30,38 +28,6 @@ export function HomeCommunity({
         {topics.map((topic) => (
           <li key={`${topic.category.slug}/${topic.slug}`}>
             <CommunityTopicCard topic={topic} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/** „Популарни специјалности“: specialties with the most doctors, as chips. */
-export function HomePopularSpecialties({
-  specialties,
-  className,
-}: {
-  specialties: Specialty[];
-  className?: string;
-}) {
-  if (specialties.length === 0) {
-    return null;
-  }
-
-  return (
-    <section aria-labelledby="home-specialties-title" className={className}>
-      <h2 id="home-specialties-title" className="type-h3 text-ink">
-        {t("home.popularSpecialties")}
-      </h2>
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {specialties.map((specialty) => (
-          <li key={specialty.slug}>
-            <ChipLink
-              href={`/doctors?specialty=${encodeURIComponent(specialty.slug)}`}
-            >
-              {specialty.name}
-            </ChipLink>
           </li>
         ))}
       </ul>

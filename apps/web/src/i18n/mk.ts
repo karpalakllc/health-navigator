@@ -55,6 +55,8 @@ export const mk = {
     searchWhat: "Што барате?",
     searchWhere: "Каде?",
     searchWhatPlaceholder: "Лекар, специјалност, аптека…",
+    // The phone hero card is too narrow for the full prompt (clipped at 360–390).
+    searchWhatPlaceholderShort: "Лекар, специјалност…",
     searchWherePlaceholder: "Град",
     searchSubmit: "Пребарај",
     searchLandmark: "Пребарување низ сајтот",

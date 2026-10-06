@@ -119,7 +119,7 @@ function HeroSearchForm() {
           name="q"
           type="search"
           autoComplete="off"
-          placeholder={t("nav.searchWhatPlaceholder")}
+          placeholder={t("nav.searchWhatPlaceholderShort")}
           className="h-12 min-w-0 flex-1 rounded-sm border-0 bg-transparent p-0 type-body text-ink placeholder:text-ink-2"
         />
       </div>

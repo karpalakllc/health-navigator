@@ -62,6 +62,8 @@ export function HomeRecentlyViewed({ className }: { className?: string }) {
             </div>
             <Button
               variant="ghost"
+              // Phones wrap it under the heading: line its text up with it.
+              className="max-sm:-ml-5"
               leadingIcon="x"
               aria-label={t("homeSections.recentClearLabel")}
               onClick={() => {

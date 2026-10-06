@@ -41,13 +41,13 @@ export function HomeSpecialties({
           >
             <Link
               href={`/doctors?specialty=${encodeURIComponent(specialty.slug)}`}
-              className="card hover-lift flex min-h-[72px] w-full items-center gap-3 p-3 text-ink lg:gap-4 lg:p-4"
+              className="card hover-lift flex min-h-[72px] w-full flex-col items-start gap-3 p-3 text-ink sm:p-4 lg:flex-row lg:items-center lg:gap-4"
             >
               <span className="flex size-11 flex-none items-center justify-center rounded-full bg-chip-tint lg:size-12">
                 <Icon name={specialtyIcon(specialty)} size={22} />
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block break-words font-ui text-base font-semibold leading-5 lg:text-[1.0625rem] lg:leading-6">
+              <span className="w-full min-w-0 lg:w-auto lg:flex-1">
+                <span className="block break-words font-ui text-[0.9375rem] font-semibold leading-5 sm:text-base lg:text-[1.0625rem] lg:leading-6">
                   {specialty.name}
                 </span>{" "}
                 <span className="mt-0.5 block text-[0.9375rem] leading-5 text-ink-2">
