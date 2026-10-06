@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 
 class Doctor extends Model
@@ -42,6 +43,24 @@ class Doctor extends Model
         'is_published',
         'published_at',
     ];
+
+    public const EXCLUSIVE_FLAGS_MESSAGE = 'A sponsored doctor cannot also be featured: featured must never be paid for.';
+
+    /**
+     * Featured (editorial, unpaid) and sponsored (paid) are exclusive: the
+     * public explanations of the two labels contradict each other. Checked on
+     * every save, whatever writes the row; the admin form says it first.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Doctor $doctor): void {
+            if ($doctor->is_featured && $doctor->is_sponsored) {
+                throw ValidationException::withMessages([
+                    'is_featured' => [self::EXCLUSIVE_FLAGS_MESSAGE],
+                ]);
+            }
+        });
+    }
 
     /**
      * GET /specialties embeds published-doctor counts; GET /home/highlights

@@ -101,12 +101,15 @@ class FeaturedOrderingTest extends TestCase
 
     public function test_doctor_list_items_label_featured_and_sponsored(): void
     {
-        $this->doctor('Alpha', true, ['is_sponsored' => true]);
+        $this->doctor('Alpha', true);
+        $this->doctor('Bravo', false, ['is_sponsored' => true]);
 
         $this->getJson('/api/v1/doctors')
             ->assertOk()
             ->assertJsonPath('data.0.is_featured', true)
-            ->assertJsonPath('data.0.is_sponsored', true);
+            ->assertJsonPath('data.0.is_sponsored', false)
+            ->assertJsonPath('data.1.is_featured', false)
+            ->assertJsonPath('data.1.is_sponsored', true);
     }
 
     public function test_facilities_list_featured_first_within_filters(): void
