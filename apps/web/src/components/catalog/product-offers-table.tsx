@@ -1,67 +1,87 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { formatMkDate } from "@/lib/mk-date";
+import { Tag } from "@/components/ui/tag";
 import type { ProductOffer } from "@/lib/api/types";
-import { t } from "@/i18n/t";
+import { cn } from "@/lib/cn";
+import { t, tFormat } from "@/i18n/t";
 
+/** Prices per pharmacy, cheapest first, the lowest marked „Најдобра цена“. */
 export function ProductOffersTable({ offers }: { offers: ProductOffer[] }) {
   if (offers.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">{t("products.noOffers")}</p>
-    );
+    return <p className="type-body text-ink-2">{t("products.noOffers")}</p>;
   }
 
   const minPrice = Math.min(...offers.map((offer) => offer.price));
+  const sorted = [...offers].sort((a, b) => a.price - b.price);
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border">
-      <table className="w-full min-w-[320px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 font-semibold text-foreground">
-              {t("products.pharmacyColumn")}
-            </th>
-            <th className="px-4 py-3 font-semibold text-foreground">
-              {t("products.priceColumn")}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {offers.map((offer) => {
-            const isBest = offer.price === minPrice;
+    <table className="w-full border-collapse type-body">
+      <thead>
+        <tr className="type-meta text-ink-2">
+          <th scope="col" className="px-3 pb-2 text-left font-normal">
+            {t("products.pharmacyColumn")}
+          </th>
+          <th scope="col" className="px-3 pb-2 text-right font-normal">
+            {t("products.priceColumn")}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((offer) => {
+          const isBest = offer.price === minPrice;
+          const updated = formatMkDate(offer.price_updated_at);
 
-            return (
-              <tr
-                key={`${offer.pharmacy.slug}-${offer.price}`}
-                className={isBest ? "bg-primary/5" : "border-t border-border"}
+          return (
+            <tr
+              key={`${offer.pharmacy.slug}-${offer.price}`}
+              className={cn(
+                "[&+tr>*]:border-t [&+tr>*]:border-line",
+                isBest && "bg-care-tint [&+tr>*]:border-transparent",
+              )}
+            >
+              <th
+                scope="row"
+                className={cn(
+                  "px-3 py-3 text-left align-top font-normal",
+                  isBest && "rounded-l-lg",
+                )}
               >
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/pharmacies/${offer.pharmacy.slug}`}
-                    className="font-medium text-foreground hover:text-primary"
-                  >
-                    {offer.pharmacy.name}
-                  </Link>
-                  {offer.pharmacy.city ? (
-                    <p className="text-xs text-muted-foreground">
-                      {offer.pharmacy.city}
-                    </p>
-                  ) : null}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-semibold tabular-nums">
-                    {offer.price.toLocaleString("mk-MK")} {offer.currency}
-                  </span>
-                  {isBest ? (
-                    <Badge variant="primary" className="ml-2 align-middle">
-                      {t("products.bestDeal")}
-                    </Badge>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                <Link
+                  href={`/pharmacies/${offer.pharmacy.slug}`}
+                  className="link-underline font-semibold text-ink"
+                >
+                  {offer.pharmacy.name}
+                </Link>
+                <span className="mt-0.5 block type-meta text-ink-2">
+                  {[
+                    offer.pharmacy.city,
+                    updated
+                      ? tFormat("products.priceUpdated", { date: updated })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </th>
+              <td
+                className={cn(
+                  "px-3 py-3 text-right align-top",
+                  isBest && "rounded-r-lg",
+                )}
+              >
+                <span className="block whitespace-nowrap font-semibold tabular-nums text-ink">
+                  {offer.price.toLocaleString("mk-MK")} {offer.currency}
+                </span>
+                {isBest ? (
+                  <Tag tone="white" icon="check" className="mt-1 text-care">
+                    {t("products.bestDeal")}
+                  </Tag>
+                ) : null}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }

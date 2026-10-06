@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { filterInputClassName } from "@/components/directory/filter-form";
 import { StarRatingInput } from "@/components/reviews/star-rating-input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/field";
+import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { t } from "@/i18n/t";
 import { isValidReviewRating } from "@/lib/rating";
-import { FormError, FormSuccess } from "@/components/ui/form-message";
 
 type ReviewFormProps = {
   kind: "doctor" | "facility" | "pharmacy";
@@ -19,6 +21,7 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
   const [rating, setRating] = useState<number | null>(null);
   const [ratingError, setRatingError] = useState(false);
   const ratingErrorId = useId();
+  const titleId = useId();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -71,45 +74,56 @@ export function ReviewForm({ kind, slug }: ReviewFormProps) {
   }
 
   return (
-    <form
+    <Card
+      as="form"
+      id="review-form"
+      aria-labelledby={titleId}
       onSubmit={handleSubmit}
-      className="grid gap-3 rounded-xl border border-border bg-card p-4"
+      className="flex flex-col gap-5"
     >
-      <p className="text-sm font-semibold text-foreground">
-        {t("reviews.submitTitle")}
-      </p>
-      <p className="text-xs text-muted-foreground">{t("reviews.pending")}</p>
-      <StarRatingInput
-        value={rating}
-        onChange={(value) => {
-          setRating(value);
-          setRatingError(false);
-        }}
-        disabled={pending}
-        invalid={ratingError}
-        errorId={ratingErrorId}
-      />
-      {ratingError ? (
-        <FormError id={ratingErrorId}>{t("reviews.ratingRequired")}</FormError>
-      ) : null}
-      <label className="grid gap-1 text-sm">
-        <span>{t("reviews.body")}</span>
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={4}
-          className={filterInputClassName}
+      <div className="flex flex-col gap-1">
+        <h3 id={titleId} className="type-h3 text-ink">
+          {t("reviews.submitTitle")}
+        </h3>
+        <p className="type-meta text-ink-2">{t("reviews.pending")}</p>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="type-label text-ink" aria-hidden="true">
+          {t("reviews.rating")}
+        </p>
+        <StarRatingInput
+          value={rating}
+          onChange={(value) => {
+            setRating(value);
+            setRatingError(false);
+          }}
+          disabled={pending}
+          invalid={ratingError}
+          errorId={ratingErrorId}
         />
-      </label>
+        {ratingError ? (
+          <FormError id={ratingErrorId}>
+            {t("reviews.ratingRequired")}
+          </FormError>
+        ) : null}
+      </div>
+      <Textarea
+        label={t("reviews.body")}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={5}
+      />
       {error ? <FormError>{error}</FormError> : null}
       <FormSuccess>{success ? t("reviews.submitSuccess") : null}</FormSuccess>
-      <button
+      <Button
         type="submit"
+        size="lg"
+        loading={pending}
         disabled={pending}
-        className="min-h-[44px] rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+        className="self-stretch sm:self-start"
       >
         {pending ? t("common.submitting") : t("reviews.submit")}
-      </button>
-    </form>
+      </Button>
+    </Card>
   );
 }

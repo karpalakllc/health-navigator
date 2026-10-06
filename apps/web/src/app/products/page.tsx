@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { PriceDisclaimer } from "@/components/catalog/price-disclaimer";
 import { ProductCard } from "@/components/catalog/product-card";
-import { DirectoryCardGrid } from "@/components/directory/directory-card-grid";
-import { ProductsFilterBar } from "@/components/directory/products-filter-bar";
 import { EmptyState } from "@/components/directory/empty-state";
-import { PageHeader } from "@/components/directory/page-header";
-import { PageShell } from "@/components/ui/page-shell";
 import { Pagination } from "@/components/directory/pagination";
+import { ProductsDirectory } from "@/components/directory/products-directory";
+import { ResultsGrid } from "@/components/directory/results-grid";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
@@ -56,26 +54,16 @@ export default async function ProductsPage({
     page,
   });
 
-  const filterParams = {
-    q: params.q,
-    category: params.category,
-    pharmacy: params.pharmacy,
+  const applied = {
+    q: params.q ?? "",
+    category: params.category ?? "",
+    pharmacy: params.pharmacy ?? "",
   };
-
-  const hasFilters = Boolean(params.q || params.category || params.pharmacy);
+  const hasFilters = Object.values(applied).some(Boolean);
 
   return (
-    <PageShell>
-      <PageHeader
-        title={t("products.title")}
-        description={t("products.description")}
-      />
+    <ProductsDirectory applied={applied} total={products.meta.total}>
       <PriceDisclaimer />
-
-      <ProductsFilterBar
-        values={filterParams}
-        resultsTotal={products.meta.total}
-      />
 
       {products.data.length === 0 ? (
         <EmptyState
@@ -85,13 +73,13 @@ export default async function ProductsPage({
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />
       ) : (
-        <DirectoryCardGrid>
+        <ResultsGrid>
           {products.data.map((product) => (
             <li key={product.slug}>
               <ProductCard product={product} />
             </li>
           ))}
-        </DirectoryCardGrid>
+        </ResultsGrid>
       )}
 
       <Pagination
@@ -99,8 +87,8 @@ export default async function ProductsPage({
         currentPage={products.meta.current_page}
         lastPage={products.meta.last_page}
         total={products.meta.total}
-        searchParams={filterParams}
+        searchParams={applied}
       />
-    </PageShell>
+    </ProductsDirectory>
   );
 }

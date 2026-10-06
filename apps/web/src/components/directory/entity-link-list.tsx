@@ -1,63 +1,68 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { Icon, type IconName } from "@/components/ui/icons";
 
 export type EntityLinkItem = {
   href: string;
   title: string;
   subtitle?: string;
+  /** Right-hand value, e.g. a price. */
+  aside?: ReactNode;
+  /** A leading node instead of the icon disc (e.g. a monogram). */
+  leading?: ReactNode;
 };
 
 type EntityLinkListProps = {
   items: EntityLinkItem[];
   emptyMessage: string;
+  icon?: IconName;
+  /** Two columns from md up (e.g. a facility's doctors). */
+  columns?: 1 | 2;
 };
 
-export function EntityLinkList({ items, emptyMessage }: EntityLinkListProps) {
+/** Sand rows linking to related profiles: icon disc, title, meta, chevron. */
+export function EntityLinkList({
+  items,
+  emptyMessage,
+  icon = "building",
+  columns = 1,
+}: EntityLinkListProps) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <p className="type-body text-ink-2">{emptyMessage}</p>;
   }
 
   return (
-    <ul className="grid list-none gap-3.5 p-0">
+    <ul
+      className={
+        columns === 2
+          ? "m-0 grid list-none gap-2 p-0 md:grid-cols-2"
+          : "m-0 grid list-none gap-2 p-0"
+      }
+    >
       {items.map((item) => (
         <li key={item.href}>
           <Link
             href={item.href}
-            className="grid grid-cols-[52px_1fr] items-start gap-3.5 rounded-[1.375rem] border border-border bg-gradient-to-b from-[#fbfcfc] to-[#f8fafb] p-4 transition hover:shadow-[0_14px_40px_rgb(16_30_36_/_0.08)]"
+            className="flex min-h-16 items-center gap-3 rounded-2xl bg-sand/60 px-3 py-2.5 text-ink no-underline hover:bg-sand"
           >
-            <span className="icon-soft-teal flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[1.125rem]">
-              <BuildingIcon className="h-5 w-5" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <strong className="block text-base text-foreground">
-                {item.title}
-              </strong>
+            {item.leading ?? (
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white">
+                <Icon name={icon} size={22} />
+              </span>
+            )}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="type-body font-semibold">{item.title}</span>
               {item.subtitle ? (
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {item.subtitle}
-                </p>
+                <span className="type-meta text-ink-2">{item.subtitle}</span>
               ) : null}
             </span>
+            {item.aside ? (
+              <span className="shrink-0 text-right">{item.aside}</span>
+            ) : null}
+            <Icon name="chevron-right" size={20} className="text-ink-2" />
           </Link>
         </li>
       ))}
     </ul>
-  );
-}
-
-function BuildingIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18M6 12H4M10 12H8M14 12h-2M18 12h-2M10 16H8M14 16h-2M6 20h12"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

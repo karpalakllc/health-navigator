@@ -1,41 +1,44 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icons";
+import { Tag } from "@/components/ui/tag";
 import type { ProductListItem } from "@/lib/api/types";
 import { t, tFormat, tCount } from "@/i18n/t";
 
+/** A catalogue product: the whole card links to its price comparison. */
 export function ProductCard({ product }: { product: ProductListItem }) {
   return (
-    <Link href={`/products/${product.slug}`} className="block h-full">
-      <Card className="card-hover flex h-full flex-col gap-3 p-5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-lg font-bold text-violet-700">
-          {product.name.charAt(0)}
-        </div>
-        <div>
-          <h2 className="font-semibold text-foreground">{product.name}</h2>
+    <Link
+      href={`/products/${product.slug}`}
+      className="card flex h-full flex-col gap-4 p-5 text-ink no-underline hover:bg-white [&:hover_h2]:underline"
+    >
+      <div className="flex items-start gap-3">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sand">
+          <Icon name="pill" size={22} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="type-h3 text-ink">{product.name}</h2>
           {product.category ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {product.category}
-            </p>
+            <p className="type-meta mt-0.5 text-ink-2">{product.category}</p>
           ) : null}
         </div>
-        <div className="mt-auto flex flex-wrap items-center gap-2">
-          {product.from_price != null ? (
-            <Badge variant="primary">
-              {tFormat("products.priceFrom", {
-                price: product.from_price.toLocaleString("mk-MK"),
-              })}
-            </Badge>
-          ) : (
-            <Badge variant="outline">{t("products.noPriceListed")}</Badge>
-          )}
-          {product.offer_count > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {tCount("products.offerCount", product.offer_count)}
-            </span>
-          ) : null}
-        </div>
-      </Card>
+      </div>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+        {product.from_price != null ? (
+          <p className="type-h3 tabular-nums text-ink">
+            {tFormat("products.priceFrom", {
+              price: product.from_price.toLocaleString("mk-MK"),
+            })}
+          </p>
+        ) : (
+          <Tag tone="outline">{t("products.noPriceListed")}</Tag>
+        )}
+        {product.offer_count > 0 ? (
+          <span className="flex items-center gap-1.5 type-meta text-ink-2">
+            <Icon name="building" size={18} />
+            {tCount("products.offerCount", product.offer_count)}
+          </span>
+        ) : null}
+      </div>
     </Link>
   );
 }

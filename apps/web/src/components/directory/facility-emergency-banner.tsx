@@ -1,36 +1,30 @@
+import { EmergencyCallLinks } from "@/components/guidance/emergency-call-links";
+import { Icon } from "@/components/ui/icons";
 import { t } from "@/i18n/t";
 
+/**
+ * The emergency card on a facility that offers emergency care: a white card
+ * with the 2px ink frame and the real 194 / 112 tel: buttons. Red appears
+ * only in those buttons — never as a surface.
+ */
 export function FacilityEmergencyBanner() {
   return (
-    <div
-      role="note"
-      className="flex gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-foreground"
+    <section
+      aria-labelledby="facility-emergency-title"
+      className="flex flex-col gap-4 rounded-card border-2 border-ink bg-white p-5 lg:p-8"
     >
-      <EmergencyIcon
-        className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
-        aria-hidden
-      />
-      <div>
-        <p className="font-semibold">{t("facilities.emergencyBannerTitle")}</p>
-        <p className="mt-1 text-muted-foreground">
-          {t("facilities.emergencyBannerBody")}
-        </p>
+      <div className="flex gap-3">
+        <Icon name="alert-triangle" size={24} className="mt-0.5 text-ink" />
+        <div className="flex flex-col gap-1">
+          <h2 id="facility-emergency-title" className="type-h3 text-ink">
+            {t("facilities.emergencyBannerTitle")}
+          </h2>
+          <p className="type-body text-ink">
+            {t("facilities.emergencyBannerBody")}
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function EmergencyIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-      <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
-    </svg>
+      <EmergencyCallLinks />
+    </section>
   );
 }

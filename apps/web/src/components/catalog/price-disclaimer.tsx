@@ -1,9 +1,10 @@
+import { Notice } from "@/components/ui/notice";
 import { t } from "@/i18n/t";
 
-export function PriceDisclaimer() {
+export function PriceDisclaimer({ className }: { className?: string }) {
   return (
-    <p className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+    <Notice tone="info" className={className}>
       {t("catalog.priceDisclaimer")}
-    </p>
+    </Notice>
   );
 }

@@ -22,17 +22,7 @@ const PAGES: Record<string, string> = {
 const BLOCKING = new Set(["serious", "critical"]);
 
 /** page name → rule id → why it is known. */
-const CONTRAST =
-  "Primary buttons and links are white on #ff5757 / #ff5757 on near-white " +
-  "(≈3.1:1), and muted text #66758a sits at 4.2–4.3:1 on the warm page " +
-  "backgrounds; WCAG AA needs 4.5:1 for body-size text.";
-
-const KNOWN: Record<string, Record<string, string>> = {
-  doctors: {
-    "color-contrast": CONTRAST,
-  },
-  "doctor profile": { "color-contrast": CONTRAST },
-};
+const KNOWN: Record<string, Record<string, string>> = {};
 
 async function blockingViolations(page: Page, path: string) {
   await page.goto(path);

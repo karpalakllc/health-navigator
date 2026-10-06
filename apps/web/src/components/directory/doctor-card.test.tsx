@@ -38,6 +38,40 @@ describe("DoctorCard", () => {
     expect(screen.getByText("МС")).toBeInTheDocument();
   });
 
+  it("shows the place, the rating with one decimal and the review count", () => {
+    render(
+      <DoctorCard
+        doctor={{
+          ...marko,
+          primary_facility: { name: "Клиника Ана", city: "Скопје" },
+          review_summary: { count: 23, average_rating: 4.75 },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Клиника Ана, Скопје")).toBeInTheDocument();
+    expect(screen.getByText("4,8")).toBeInTheDocument();
+    expect(screen.getByText("23 рецензии")).toBeInTheDocument();
+  });
+
+  it("says so when there are no reviews instead of showing zero stars", () => {
+    render(<DoctorCard doctor={marko} />);
+
+    expect(screen.getByText("Сè уште нема рецензии")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("calls the doctor's number when the list sends one", () => {
+    render(<DoctorCard doctor={{ ...marko, phone: "02 312 4567" }} />);
+
+    expect(
+      screen.getByRole("link", { name: "Јави се: д-р Марко Стојанов" }),
+    ).toHaveAttribute("href", "tel:023124567");
+    expect(
+      screen.getByRole("link", { name: "Види профил: д-р Марко Стојанов" }),
+    ).toHaveAttribute("href", "/doctors/marko-stojanov");
+  });
+
   it("adds no extra line for a doctor with one specialty", () => {
     render(
       <DoctorCard
