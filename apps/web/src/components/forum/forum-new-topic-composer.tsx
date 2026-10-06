@@ -192,7 +192,10 @@ export function ForumNewTopicComposer({
             <span>{t("forum.topicModerationNote")}</span>
           </p>
 
-          <div className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 flex gap-3 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:static lg:mx-0 lg:justify-end lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
+          <div
+            data-sticky-action-bar
+            className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 flex gap-3 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:static lg:mx-0 lg:justify-end lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none"
+          >
             <Button
               variant="secondary"
               size="lg"

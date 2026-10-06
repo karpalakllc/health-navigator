@@ -43,6 +43,7 @@ export function StickyActionBar({
       <div
         role="region"
         aria-label={label}
+        data-sticky-action-bar
         data-hidden={footerVisible || undefined}
         className={cn(
           "fixed inset-x-0 bottom-[var(--tabbar-space)] z-30 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:hidden",
