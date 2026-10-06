@@ -244,6 +244,39 @@ looks cheaper to it than the 0.7 ms trigram path. Two consequences:
   ~20 ms to ~3 ms of database time (last column above). This is an operations
   setting, not something a migration should impose.
 
+### Name-or-taxonomy search (`searchNameOrSpecialty` / `searchNameOrDepartment`)
+
+After the measurements above, `?q=` on `/doctors`, `/facilities` and unified
+search was widened to also match a published specialty / department name. The
+first version emitted `full_name ILIKE … OR EXISTS (specialty join …)`; a
+correlated `EXISTS` inside an `OR` keeps the trigram index out of the plan
+entirely (even with `random_page_cost = 1.1`, even with `enable_seqscan = off`),
+so every search filtered all published doctors row by row. It is now
+`id IN (name matches UNION pivot rows of the matching taxonomy ids)`, with the
+matching specialty/department ids resolved first (one query on a ~20-row
+table; the union arm is dropped when none match). Same rows, same totals.
+
+Re-measured on the same `PerfSeeder` data, same method (5 runs, median; ms
+summed over the request's queries (slowest) · buffers):
+
+| Request | OR EXISTS, default | UNION, default | OR EXISTS, `rpc 1.1` | UNION, `rpc 1.1` |
+|---|--:|--:|--:|--:|
+| `/doctors?q=кардио` (specialty match, 351 rows) | 10.79 (9.83) · 5213 | 3.56 (2.61) · 534 | 10.59 (9.80) · 5197 | 3.38 (2.58) · 518 |
+| `/doctors?q=nikolovski` | 9.23 (7.91) · 5507 | 10.47 (8.73) · 2814 | 9.23 (8.06) · 5502 | 1.98 (1.48) · 3038 |
+| `/doctors?q=петров` | 8.25 (7.36) · 5285 | 9.00 (7.86) · 1947 | 8.09 (7.35) · 5290 | 1.30 (0.89) · 2289 |
+| `/facilities?q=медика` | 2.57 (2.42) · 147 | 3.76 (3.60) · 297 | 2.57 (2.43) · 147 | 0.85 (0.69) · 409 |
+| `/facilities?q=кардиологија` (department match, 404 rows) | 3.35 (3.03) · 266 | 10.23 (5.76) · 477 | 3.27 (2.96) · 266 | 2.15 (1.71) · 581 |
+
+With the recommended SSD setting every case is faster (2–7×), and the
+specialty-term search is 3× faster under either setting. Under the *default*
+costs at this volume the planner still seq-scans the name arm (see the
+caveat above), now over every facility rather than only the published
+clinical ones, so name-only and department-term facility searches are
+slightly slower (≤ 7 ms more). The `/doctors?q=nikolovski` row in the main
+table (9.24 · 901) predates the specialty widening. `DatabaseIndexesTest::
+test_name_or_taxonomy_searches_can_use_the_trigram_indexes_on_postgres`
+guards the plan shape.
+
 ### Denormalised review aggregates (`2026_10_10_100002_add_review_aggregates_to_doctors_and_facilities`)
 
 `doctors` and `facilities` (pharmacies are facilities) gained

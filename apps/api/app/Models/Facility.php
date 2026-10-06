@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Searchable;
 
 class Facility extends Model
@@ -157,17 +158,30 @@ class Facility extends Model
      * Public free-text search for clinical facilities: the name, or the name of
      * a published department, so "кардиологија" finds hospitals that have one.
      *
+     * `id IN (name matches UNION members of the matching departments)`, for the
+     * same reason as Doctor::scopeSearchNameOrSpecialty(): an OR with a
+     * correlated EXISTS keeps the name trigram index out of the plan.
+     *
      * @param  Builder<Facility>  $query
      * @return Builder<Facility>
      */
     public function scopeSearchNameOrDepartment(Builder $query, string $term): Builder
     {
-        return $query->where(function (Builder $inner) use ($term): void {
-            ScriptInsensitiveSearch::whereColumnMatches($inner, 'facilities.name', $term)
-                ->orWhereHas('departments', function (Builder $departmentQuery) use ($term): void {
-                    $departmentQuery->published()->searchName($term);
-                });
-        });
+        $departmentIds = Department::query()->published()->searchName($term)->pluck('id');
+
+        $matches = ScriptInsensitiveSearch::whereColumnMatches(
+            static::query()->withoutGlobalScopes()->select('facilities.id'),
+            'facilities.name',
+            $term,
+        )->toBase();
+
+        if ($departmentIds->isNotEmpty()) {
+            $matches->union(
+                DB::table('department_facility')->select('facility_id')->whereIn('department_id', $departmentIds),
+            );
+        }
+
+        return $query->whereIn('facilities.id', $matches);
     }
 
     /**

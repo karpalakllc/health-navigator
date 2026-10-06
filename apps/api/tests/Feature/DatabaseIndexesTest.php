@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Doctor;
+use App\Models\Facility;
+use App\Models\Specialty;
 use App\Support\TrigramSearchIndexes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -70,5 +73,36 @@ class DatabaseIndexesTest extends TestCase
         ));
 
         $this->assertStringContainsString('doctors_full_name_trgm_index', $plan);
+    }
+
+    /**
+     * The public searches match the name OR a taxonomy name. Written as
+     * `name ILIKE … OR EXISTS (…)` the trigram index could never serve the
+     * name half (even with sequential scans priced out), so every search
+     * filtered all doctors row by row.
+     */
+    public function test_name_or_taxonomy_searches_can_use_the_trigram_indexes_on_postgres(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('pg_trgm is PostgreSQL only.');
+        }
+
+        // A matching specialty / department, so the taxonomy half is present.
+        Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        Department::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+
+        DB::statement('SET LOCAL enable_seqscan = off');
+
+        foreach ([
+            'doctors_full_name_trgm_index' => Doctor::query()->where('is_published', true)->searchNameOrSpecialty('kardio'),
+            'facilities_name_trgm_index' => Facility::query()->where('is_published', true)->searchNameOrDepartment('kardio'),
+        ] as $index => $query) {
+            $plan = implode("\n", array_column(
+                array_map(fn ($row) => (array) $row, DB::select('EXPLAIN '.$query->toSql(), $query->getBindings())),
+                'QUERY PLAN',
+            ));
+
+            $this->assertStringContainsString($index, $plan);
+        }
     }
 }

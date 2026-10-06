@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Searchable;
 
 class Doctor extends Model
@@ -147,17 +148,34 @@ class Doctor extends Model
      * Public free-text search: the name, or the name of a published specialty,
      * so "кардиолог" / "kardio" finds cardiologists, not only doctors named so.
      *
+     * Written as `id IN (name matches UNION members of the matching
+     * specialties)` rather than `name ILIKE … OR EXISTS (specialty …)`: an OR
+     * with a correlated subquery cannot use the full_name trigram index, so
+     * every search filtered all published doctors row by row. Each arm of the
+     * union uses its own index (trigram; doctor_specialty's specialty_id), and
+     * the specialties matching the term — a handful of rows — are resolved
+     * first so the pivot arm is a plain IN list, or absent when none match.
+     *
      * @param  Builder<Doctor>  $query
      * @return Builder<Doctor>
      */
     public function scopeSearchNameOrSpecialty(Builder $query, string $term): Builder
     {
-        return $query->where(function (Builder $inner) use ($term): void {
-            ScriptInsensitiveSearch::whereColumnMatches($inner, 'doctors.full_name', $term)
-                ->orWhereHas('specialties', function (Builder $specialtyQuery) use ($term): void {
-                    $specialtyQuery->published()->searchName($term);
-                });
-        });
+        $specialtyIds = Specialty::query()->published()->searchName($term)->pluck('id');
+
+        $matches = ScriptInsensitiveSearch::whereColumnMatches(
+            static::query()->withoutGlobalScopes()->select('doctors.id'),
+            'doctors.full_name',
+            $term,
+        )->toBase();
+
+        if ($specialtyIds->isNotEmpty()) {
+            $matches->union(
+                DB::table('doctor_specialty')->select('doctor_id')->whereIn('specialty_id', $specialtyIds),
+            );
+        }
+
+        return $query->whereIn('doctors.id', $matches);
     }
 
     /**
