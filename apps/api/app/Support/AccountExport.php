@@ -12,6 +12,7 @@ use App\Models\DoctorClaimRequest;
 use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\ProfileCorrection;
 use App\Models\Review;
 use App\Models\ReviewAspectRating;
 use App\Models\User;
@@ -77,6 +78,23 @@ final class AccountExport
             'status' => $report->status->value,
             'created_at' => $report->created_at?->toIso8601String(),
             'resolved_at' => $report->resolved_at?->toIso8601String(),
+        ]);
+        echo ',';
+        // Profile corrections and objections sent while signed in: what was
+        // asked and its status — not who handled it or the staff note.
+        $this->writeList('profile_corrections', ProfileCorrection::query()->where('user_id', $this->user->getKey()), fn (ProfileCorrection $request): array => [
+            'type' => $request->type->value,
+            'about' => [
+                'kind' => $request->subjectKind(),
+                'name' => $request->subjectName(),
+                'slug' => $request->subject?->getAttribute('slug'),
+            ],
+            'field' => $request->field?->value,
+            'message' => $request->message,
+            'contact' => $request->contact,
+            'status' => $request->status->value,
+            'created_at' => $request->created_at?->toIso8601String(),
+            'resolved_at' => $request->resolved_at?->toIso8601String(),
         ]);
         echo ',';
         $this->writeHelpfulVotes();

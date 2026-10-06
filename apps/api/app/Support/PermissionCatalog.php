@@ -18,6 +18,9 @@ final class PermissionCatalog
             self::member(),
             self::usernames(),
             self::doctorAccountsAndAudit(),
+            self::imports(),
+            self::licences(),
+            self::profileCorrections(),
         );
     }
 
@@ -154,6 +157,40 @@ final class PermissionCatalog
     }
 
     /**
+     * Data import (W6): imports.view reads import runs, their diff summaries
+     * and the review queue; imports.manage resolves review items, publishes
+     * imported drafts in bulk, locks fields against re-imports and starts a
+     * run from the panel. Administrator only by default; added after launch,
+     * so a migration grants them to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function imports(): array
+    {
+        return [
+            'imports.view',
+            'imports.manage',
+        ];
+    }
+
+    /**
+     * The public correction and objection queue (W6-C): view it, and close a
+     * request with a note. Fixing the profile itself still needs
+     * doctors.update / facilities.update. Administrator only by default,
+     * since objections need the legal balancing test; added after launch, so
+     * a migration grants them to existing roles too.
+     *
+     * @return list<string>
+     */
+    public static function profileCorrections(): array
+    {
+        return [
+            'profile_corrections.view',
+            'profile_corrections.resolve',
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     public static function guidance(): array
@@ -172,6 +209,20 @@ final class PermissionCatalog
     {
         return [
             'usernames.manage',
+        ];
+    }
+
+    /**
+     * The Лекарска комора licence staging list and the licence specialty
+     * mapping (Filament, W6-B). Administrator only by default; added after
+     * launch, so a migration grants it to the existing role.
+     *
+     * @return list<string>
+     */
+    public static function licences(): array
+    {
+        return [
+            'licences.manage',
         ];
     }
 

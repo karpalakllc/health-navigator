@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\FacilityType;
 use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Import\ImportBookkeeping;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +56,12 @@ class Facility extends Model
         return [TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
+    protected static function booted(): void
+    {
+        // The import rows about this facility go with it (ImportBookkeeping).
+        static::forceDeleted(fn (Facility $facility) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_FACILITY, (int) $facility->getKey()));
+    }
+
     protected function casts(): array
     {
         return [
@@ -65,6 +73,8 @@ class Facility extends Model
             'is_published' => 'boolean',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
+            'import_last_seen_at' => 'datetime',
+            'import_missing_runs' => 'integer',
         ];
     }
 
@@ -86,6 +96,16 @@ class Facility extends Model
         return $this->belongsToMany(Doctor::class)
             ->withPivot(['is_primary'])
             ->withTimestamps();
+    }
+
+    /**
+     * Images taken from the institution's website (logo, cover candidates).
+     *
+     * @return HasMany<FacilityMedia, $this>
+     */
+    public function media(): HasMany
+    {
+        return $this->hasMany(FacilityMedia::class)->orderBy('kind')->orderBy('position');
     }
 
     /**

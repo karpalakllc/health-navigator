@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic test data: every name below is invented. -->
+<Lekari>
+  <Lekar>
+    <ArhivskiBroj>10-1/1</ArhivskiBroj>
+    <TipDogovor>ПЗЗ - Општа медицина</TipDogovor>
+    <TipDogovorID>1</TipDogovorID>
+    <DanocenBroj>4000000000001</DanocenBroj>
+    <ShifraZU>9000001</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ ТЕСТ МЕДИКА</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ ТЕСТ МЕДИКА</RabotnaEdinica>
+    <Dejnost>ОПШТА МЕДИЦИНА</Dejnost>
+    <Specijalnosti></Specijalnosti>
+    <Adresa>УЛ. ИЗМИСЛЕНА 1</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900001</Faksimil>
+    <Ime>ПРВАНА</Ime>
+    <Prezime>ПРИМЕРОВСКА</Prezime>
+    <ValidenOd>2025-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-01-01T00:00:00</ValidenDo>
+    <ClenNaTim>СЕСТРА НЕВИДЛИВА</ClenNaTim>
+    <RedovnaZamena>
+      <Ime>ЗАМЕНА</Ime>
+      <Prezime>НЕВИДЛИВА</Prezime>
+      <Faksimil>900099</Faksimil>
+      <StatusValidnostID>1</StatusValidnostID>
+    </RedovnaZamena>
+    <PricinaOtsustvo>
+      <StatusValidnostID>28</StatusValidnostID>
+      <ProconaOtsustvo>ТАЈНА ПРИЧИНА</ProconaOtsustvo>
+    </PricinaOtsustvo>
+    <VZamenaIme>ВРЕМЕНА</VZamenaIme>
+    <VZamenaPrezime>НЕВИДЛИВА</VZamenaPrezime>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>10-2/1</ArhivskiBroj>
+    <TipDogovor>ПЗЗ - Стоматологија</TipDogovor>
+    <TipDogovorID>2</TipDogovorID>
+    <DanocenBroj>4000000000002</DanocenBroj>
+    <ShifraZU>9000002</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ ЗАБКО ДЕНТ</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ ЗАБКО ДЕНТ</RabotnaEdinica>
+    <Dejnost>СТОМАТОЛОГИЈА</Dejnost>
+    <Specijalnosti>ОПШТA СТОМАТОЛОГИЈА</Specijalnosti>
+    <Adresa>УЛ. ЗАБНА 2</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900002</Faksimil>
+    <Ime>ДРУГО</Ime>
+    <Prezime>ЗАБАРОВ</Prezime>
+    <ValidenOd>2025-02-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-02-01T00:00:00</ValidenDo>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>10-3/1</ArhivskiBroj>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000003</DanocenBroj>
+    <ShifraZU>9000003</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА ТЕСТ</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ АПТЕКА ТЕСТ</RabotnaEdinica>
+    <Dejnost>АПТЕКА</Dejnost>
+    <Specijalnosti>ФАРМАЦЕВТ</Specijalnosti>
+    <Adresa>УЛ. ЛЕКОВИТА 3</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900003</Faksimil>
+    <Ime>ТРЕТА</Ime>
+    <Prezime>АПТЕКАРОВА</Prezime>
+    <ValidenOd>2025-03-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-03-01T00:00:00</ValidenDo>
+  </Lekar>
+</Lekari>

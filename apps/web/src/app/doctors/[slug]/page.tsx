@@ -9,6 +9,7 @@ import {
   ProfileContactList,
   type ContactInfo,
 } from "@/components/directory/profile-contact";
+import { LicenceStatusTag } from "@/components/directory/licence-status";
 import { ProfileHeader } from "@/components/directory/profile-header";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
@@ -17,6 +18,7 @@ import {
   ProfileTagList,
 } from "@/components/directory/profile-parts";
 import { DoctorClaimLink } from "@/components/doctor-dashboard/doctor-claim-link";
+import { ProfileCorrectionLinks } from "@/components/corrections/profile-correction-links";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
@@ -205,6 +207,7 @@ export default async function DoctorDetailPage({
                   ) : (
                     <Tag>{t("doctors.notAcceptingPatients")}</Tag>
                   )}
+                  <LicenceStatusTag valid={doctor.has_valid_licence} />
                   {doctor.years_experience ? (
                     <Tag icon="award">
                       {tFormat("doctors.yearsExperience", {
@@ -324,7 +327,9 @@ export default async function DoctorDetailPage({
               hideWhenEmpty
             />
 
-            <DoctorClaimLink slug={slug} />
+            <ProfileCorrectionLinks subject="doctor" slug={slug}>
+              <DoctorClaimLink slug={slug} />
+            </ProfileCorrectionLinks>
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}

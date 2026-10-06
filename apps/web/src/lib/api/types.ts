@@ -213,6 +213,12 @@ export type DoctorDetail = {
     is_primary: boolean;
   }[];
   review_summary: ReviewSummary;
+  /**
+   * The Лекарска комора list shows a licence valid today. Status only: the
+   * licence number and expiry date are never in the payload. False also when
+   * we simply do not know (dentists, profiles without a match).
+   */
+  has_valid_licence: boolean;
 };
 
 export type FacilityType = "clinic" | "hospital" | "laboratory";

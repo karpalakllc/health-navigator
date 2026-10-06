@@ -173,4 +173,28 @@ describe("TransparencyContent", () => {
       screen.getByRole("region", { name: t("integrity.moderationTitle") }),
     ).toBeInTheDocument();
   });
+
+  it("names the data sources, what is not taken, and how to get an error fixed", async () => {
+    const { container } = render(<TransparencyContent stats={null} />);
+
+    const sources = screen.getByRole("region", {
+      name: t("dataSources.title"),
+    });
+    expect(sources).toHaveAttribute("id", "izvori");
+    expect(sources).toHaveTextContent("ФЗОМ");
+    expect(sources).toHaveTextContent("Лекарска комора");
+    expect(sources).toHaveTextContent(t("dataSources.excluded3"));
+    // Logos and cover photos come from the institutions' own websites and
+    // are removed on request.
+    expect(sources).toHaveTextContent(t("dataSources.websitesName"));
+    expect(sources).toHaveTextContent("на барање на установата");
+    // The statutory 15 days (ЗЗЛП чл. 20) — a deadline, not "as a rule".
+    expect(sources).toHaveTextContent("во рок од 15 дена");
+    expect(sources).not.toHaveTextContent("по правило");
+    expect(sources).toHaveTextContent("30 дена");
+    expect(
+      within(sources).getByRole("link", { name: t("dataSources.privacyLink") }),
+    ).toHaveAttribute("href", "/privacy#zdravstveni-rabotnici");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
 });

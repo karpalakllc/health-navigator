@@ -126,13 +126,38 @@ https://azlp.mk/en/contact/, read 2026-10-06).
 - **AZLP's FAQ** says publicly available data still needs a lawful basis under
   чл. 10. "It was public" is not enough on its own. **Write and keep a
   documented balancing test.**
-- **Sources:** the Лекарска комора publishes PDFs of doctors with valid
-  licences (name, surname, licence number, specialty; updated every four
-  months, last on 2.7.2026). That is a good source to verify against. The
-  register of health institutions is public by law (ЗЗЗ чл. 67). The register
-  of health workers kept by the Институт за јавно здравје (ЗЗЗ чл. 116) holds
-  ЕМБГ and addresses and is **not** public. Never use it as a source.
-- **Information duty (чл. 18):** writing to every listed doctor is arguably
+- **Sources:** two public official sources are imported (runbook:
+  [`docs/data-import.md`](../data-import.md)):
+  - **ФЗОМ „Шифрарник на лекари“**: two XML files the Fund publishes and
+    regenerates daily, listing doctors with a ФЗО contract (name, specialty,
+    institution, work unit, address, town, facsimile number, contract
+    dates). It is the seed for who works where.
+  - **Лекарска комора list of doctors with valid licences**: PDFs (name,
+    surname, licence number, specialty, expiry; updated every four months,
+    last on 2.7.2026). Used to verify the licence.
+
+  The register of health institutions is public by law (ЗЗЗ чл. 67). The
+  register of health workers kept by the Институт за јавно здравје (ЗЗЗ
+  чл. 116) holds ЕМБГ and addresses and is **not** public. Never use it as a
+  source. Private clinic websites and aggregators are not copied (database
+  maker's right, ЗАПСП чл. 118–128; photos and bios are copyrighted).
+
+  **Owner decision 2026-10-07 (implemented in W6, open for counsel):** from
+  each institution's **own** website, a hand-run import
+  (`import:institutions-json`) takes the facility's contact details, its
+  logo, cover photos of the building or premises, and the physicians and
+  dentists it lists with their specialty (as hidden drafts, licence to be
+  verified before publishing). Every image keeps its source URL and is
+  removed in one click on the institution's request, never to be
+  re-imported; photos of people and bios are not taken; the website only
+  fills gaps on a register record. This departs from the line above for
+  logos and photos: **counsel to confirm** the basis (trademark use to
+  identify the institution; copyright in the cover photos — licence,
+  implied consent or takedown-on-request as the mitigation).
+- **Information duty (чл. 18):** the privacy page names both sources (and
+  the institutions' own websites), says
+  they are publicly available (чл. 18(2) т. 6) and lists what is not taken.
+  Writing to every listed doctor is arguably
   disproportionate effort (чл. 18(5) т. 2). The fallback is a public notice,
   which is the "За здравствените работници во именикот" section of the privacy
   page. It names the sources, the basis and the rights. **Recommendation:**
@@ -148,6 +173,61 @@ https://azlp.mk/en/contact/, read 2026-10-06).
   within 15 days (чл. 20); (3) for objections, record the balancing, decide
   within 30 days, give reasons; (4) remove private data at once; (5) always
   remove when the person no longer practises, or the listing is wrong.
+  **Implemented (W6-C):** every profile has „Пријави грешка во профилот“
+  (anyone; 15-day due date) and doctor profiles „Барање за приговор /
+  отстранување“ (the listed doctor, with a contact for verification; 30-day
+  due date). Both land in one admin queue with the due date fixed at
+  receipt; closing needs a staff note and is audit-logged. Replies with
+  reasons (and the АЗЛП / court mention for a refusal) are sent by staff.
+
+#### 2.1.1 Balancing test for the source imports (recorded 2026-10-06)
+
+Legitimate interest (чл. 10(1) indent 6) needs a purpose, necessity and a
+balancing of interests. This is the written record AZLP's FAQ asks for.
+Counsel should confirm it.
+
+1. **Purpose.** A complete, neutral public directory so patients can find
+   which doctor works where and in which specialty, and so reviews attach to
+   the right person. Without a complete list, the directory favours whoever
+   signs up, which harms neutrality (§6).
+2. **Necessity and minimisation.** Only professional facts patients need are
+   taken: name, specialty, workplace, address, town; and whether the licence
+   is valid.
+   - **Not imported:** pharmacists (not doctors; a separate vertical), the
+     team nurse's name (`ClenNaTim`: outside our purpose), absence reasons
+     (`PricinaOtsustvo` / `StatusValidnostID`: can reveal sick or maternity
+     leave, i.e. health data), substitution links (`RedovnaZamena`), ЕМБГ,
+     any private phone or e-mail.
+   - **Internal only:** the ФЗО facsimile number (printed on prescriptions;
+     a professional identifier) and the licence number and expiry. They are
+     used to match records and avoid duplicates, never displayed, never in
+     the public API or exports. The public profile may show only that the
+     licence is valid.
+   - Raw downloads are kept privately, the newest few per source, for audit
+     of what was imported.
+3. **The professionals' interests.** Professional role, reduced expectation of
+   privacy in it; the same facts ЗЗЗ чл. 279 lets institutions publish
+   themselves; both sources are published by public bodies for the public.
+   Risks: errors (wrong workplace, a doctor who left), and being listed
+   against one's will. "Public" alone is not a basis; the minimisation above
+   and the safeguards below are what tip the balance.
+4. **Safeguards.** New profiles from an import stay hidden until staff
+   review and publish them; an import never deletes or unpublishes, and a
+   doctor missing from the source twice goes to staff review; editor locks
+   survive re-imports; correction (15 days) and objection (30 days, reasons,
+   АЗЛП) on every profile; the platform stays neutral: no paid ranking or
+   paid review handling (§5.4, §6), which is what makes refusing a removal
+   defensible.
+5. **Outcome.** The interest prevails for the professional facts listed,
+   with these safeguards. It does not for the excluded fields. Revisit when
+   a new source or field is added.
+6. **Reuse of the sources.** ФЗОМ's files are published for public use
+   (Закон за користење на податоците од јавниот сектор, 27/2014, as
+   amended — reuse conditions not verified); the Комора's list is published
+   by the holder of the public licensing power. Whether either can assert the
+   database maker's right against reuse is untested in MK; ask both in
+   writing (FOI drafts in the source research) and name them as sources on
+   the site (done on `/transparency` and the privacy page).
 
 ### 2.2 Health data in reviews, the forum and guidance
 
@@ -512,9 +592,12 @@ gives no hidden advantage.
 
 - **Privacy:** operator; anonymous use; guidance (anonymous, 90 days); account
   data (private name, public display name); activity events (180 days); health
-  data rules; a section for listed health professionals (data, sources, basis,
-  correction within 15 days, objection and removal with balancing and reasons
-  within 30 days, report and reply); cookies and storage (exact names and
+  data rules; a section for listed health professionals (data, sources — ФЗОМ
+  and the Лекарска комора by name — what is not taken, review before
+  publication, basis with the balancing, correction within 15 days through
+  „Пријави грешка во профилот“, objection and removal with balancing and
+  reasons within 30 days, report and reply); the data kept for a correction
+  or objection request (one year after closing); cookies and storage (exact names and
   durations); processors and transfers; retention; security; rights with MK
   deadlines; AZLP contact; minimum age (14).
 - **Terms:** operator imprint (e-commerce чл. 7); informational purpose;
@@ -553,6 +636,9 @@ gives no hidden advantage.
 8. Is the directory a "медиум" under the Закон за медиуми (right of reply)? See §4.
 9. Does relying on чл. 18(5) т. 2 (public notice instead of individual
    letters to listed doctors) hold?
+10. Is the balancing test in §2.1.1 sufficient for importing the ФЗОМ and
+    Лекарска комора lists, and may either body assert the database maker's
+    right (ЗАПСП чл. 118–128) against this reuse?
 
 ### Placeholders in the pages
 

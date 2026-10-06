@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Import\ImportBookkeeping;
+use App\Support\Import\NameKey;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
@@ -58,12 +60,43 @@ class Doctor extends Model
     protected static function booted(): void
     {
         static::saving(function (Doctor $doctor): void {
+            // Matching keys for imports (App\Support\Import\NameKey), kept
+            // current whoever renames the doctor.
+            if ($doctor->isDirty('full_name') || $doctor->name_key === null) {
+                $doctor->name_key = NameKey::for((string) $doctor->full_name);
+                $doctor->name_key_sorted = NameKey::sorted((string) $doctor->full_name);
+            }
+
             if ($doctor->is_featured && $doctor->is_sponsored) {
                 throw ValidationException::withMessages([
                     'is_featured' => [self::EXCLUSIVE_FLAGS_MESSAGE],
                 ]);
             }
         });
+
+        // A deleted profile (soft or hard) is never re-created by an import
+        // (ImportSuppression); restoring it lifts that again. A suppression
+        // from an upheld objection stays until staff lift it.
+        static::deleting(function (Doctor $doctor): void {
+            ImportSuppression::forDoctor($doctor, ImportSuppression::REASON_DELETED, self::actingStaff());
+        });
+
+        static::forceDeleted(fn (Doctor $doctor) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_DOCTOR, (int) $doctor->getKey()));
+
+        static::restored(function (Doctor $doctor): void {
+            ImportSuppression::query()->active()
+                ->where('doctor_id', $doctor->getKey())
+                ->where('reason', ImportSuppression::REASON_DELETED)
+                ->get()
+                ->each(fn (ImportSuppression $suppression) => $suppression->lift(self::actingStaff()));
+        });
+    }
+
+    private static function actingStaff(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
     }
 
     /**
@@ -99,7 +132,12 @@ class Doctor extends Model
         return LogOptions::defaults()
             ->useLogName('doctor_profile')
             ->logAll()
-            ->logExcept(['id', 'reviews_count', 'rating_avg'])
+            // Import bookkeeping: derived name keys, seen/missing counters,
+            // and the ФЗО facsimile (an internal matching key, kept out of
+            // every log and export).
+            ->logExcept(['id', 'reviews_count', 'rating_avg', 'name_key', 'name_key_sorted', 'import_last_seen_at', 'import_missing_runs', 'fzo_facsimile',
+                // Internal licence keys (docs/data-inventory.md): never in the log.
+                'licence_number', 'licence_valid_until', 'licence_specialty_raw', 'licence_source', 'licence_checked_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -115,7 +153,27 @@ class Doctor extends Model
             'is_featured' => 'boolean',
             'is_sponsored' => 'boolean',
             'years_experience' => 'integer',
+            'licence_valid_until' => 'date',
+            'licence_checked_at' => 'datetime',
+            'import_last_seen_at' => 'datetime',
+            'import_missing_runs' => 'integer',
         ];
+    }
+
+    /**
+     * „Лиценца: важечка“ — the only licence fact a public profile shows.
+     * The number stays internal; the expiry date is not shown either: the
+     * list is refreshed every four months, so a date would look precise
+     * while being up to four months stale, and a status checked against
+     * today's date is right on the day it is read.
+     */
+    public function hasValidLicence(): bool
+    {
+        return $this->licence_number !== null
+            && $this->licence_valid_until !== null
+            && $this->licence_valid_until->endOfDay()->isFuture()
+            // Off the last complete Комора list: not shown as valid.
+            && ! KomoraLicence::query()->where('licence_number', $this->licence_number)->whereNotNull('missing_since')->exists();
     }
 
     /**

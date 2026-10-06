@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
 use App\Support\DeploymentEnvironment;
+use App\Support\Import\Contracts\DoctorLicenceSink;
+use App\Support\Import\EloquentDoctorLicenceSink;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
@@ -24,7 +26,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Licence matchers (Лекарска комора) hand their results to the import core.
+        $this->app->bind(DoctorLicenceSink::class, EloquentDoctorLicenceSink::class);
     }
 
     public function boot(): void
