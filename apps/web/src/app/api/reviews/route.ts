@@ -6,12 +6,15 @@ import { isSlug, pathSegment } from "@/lib/api/path";
 import { guardJson } from "@/lib/auth/request-guard";
 import { t } from "@/i18n/t";
 import { readUpstream } from "@/lib/api/upstream";
+import { aspectsForUpstream } from "@/lib/review-integrity";
 
 type ReviewPayload = {
   kind?: "doctor" | "facility" | "pharmacy";
   slug?: string;
   rating?: number;
   body?: string | null;
+  /** Optional aspect sub-ratings, {code: 1–5}; the API validates them. */
+  aspects?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -70,6 +73,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         rating: body.rating,
         body: body.body,
+        aspects: aspectsForUpstream(body.aspects),
       }),
     }),
   );

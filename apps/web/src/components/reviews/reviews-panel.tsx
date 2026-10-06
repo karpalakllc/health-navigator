@@ -15,7 +15,7 @@ import { Tag } from "@/components/ui/tag";
 import { loginHref } from "@/lib/auth/login-href";
 import type {
   PaginatedEnvelope,
-  PublicReview,
+  ReviewListItem,
   ViewerReview,
 } from "@/lib/api/types";
 import { t, tCount, tFormat } from "@/i18n/t";
@@ -23,7 +23,7 @@ import { t, tCount, tFormat } from "@/i18n/t";
 type ReviewsPanelProps = {
   kind: "doctor" | "facility" | "pharmacy";
   slug: string;
-  initial: PaginatedEnvelope<PublicReview>;
+  initial: PaginatedEnvelope<ReviewListItem>;
   viewerReview: ViewerReview | null | undefined;
   isLoggedIn: boolean;
   page: number;

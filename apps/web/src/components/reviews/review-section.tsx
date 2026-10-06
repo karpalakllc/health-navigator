@@ -5,6 +5,7 @@ import {
   fetchFacilityReviews,
   fetchPharmacyReviews,
 } from "@/lib/api/reviews";
+import { ReviewInsights } from "@/components/reviews/review-insights";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import {
   ReviewSummaryBlock,
@@ -81,6 +82,10 @@ export async function ReviewSection({
         slug={slug}
         isLoggedIn={isLoggedIn}
         canWrite={!viewerReview || viewerReview.status === "rejected"}
+      />
+      <ReviewInsights
+        aspects={reviews.meta.aspects}
+        trend={reviews.meta.trend}
       />
       <ReviewsPanel
         kind={kind}

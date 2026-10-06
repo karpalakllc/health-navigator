@@ -1,9 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { tagTones, type TagTone } from "@/components/ui/tag-tones";
 import { cn } from "@/lib/cn";
+import { t } from "@/i18n/t";
+
+/** Where „Повеќе“ in every badge explanation leads: how results are ordered. */
+export const DISCLOSURE_MORE_HREF = "/transparency#redosled";
 
 /**
  * A label that must explain itself („Истакнат“, „Спонзорирано“): the tag plus
@@ -20,6 +25,8 @@ import { cn } from "@/lib/cn";
  * - The explanation is absolutely positioned under the tag: opening it never
  *   moves the layout. Its container is a polite live region that is empty
  *   while closed, so a screen reader announces the text when it appears.
+ * - The explanation ends with „Повеќе“, a link to the transparency page's
+ *   „how results are ordered“ section; Tab from the pinned button reaches it.
  */
 export function DisclosureBadge({
   label,
@@ -138,7 +145,13 @@ export function DisclosureBadge({
       >
         {open ? (
           <span className="block w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-line bg-white px-4 py-3 text-left text-[0.9375rem] font-normal leading-[1.375rem] text-ink shadow-card">
-            {explanation}
+            {explanation}{" "}
+            <Link
+              href={DISCLOSURE_MORE_HREF}
+              className="link-underline font-semibold text-ink"
+            >
+              {t("integrity.disclosureMore")}
+            </Link>
           </span>
         ) : null}
       </span>
