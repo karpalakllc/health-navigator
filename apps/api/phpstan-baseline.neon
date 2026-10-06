@@ -1057,12 +1057,6 @@ parameters:
 			path: app/Support/SentryEventScrubber.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Support/UgcMailer.php
-
-		-
 			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\Doctor\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
 			identifier: generics.lessTypes
 			count: 1

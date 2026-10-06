@@ -83,7 +83,7 @@ final class UgcMailer
         }
 
         foreach ($reporters as $user) {
-            if (! $user instanceof User || $user->isAnonymised()) {
+            if ($user->isAnonymised()) {
                 continue;
             }
 
@@ -128,7 +128,7 @@ final class UgcMailer
         };
 
         // A deleted account's address is a non-deliverable placeholder.
-        if (! $user instanceof User || $user->email === null || $user->isAnonymised()) {
+        if (! $user instanceof User || $user->isAnonymised()) {
             return;
         }
 

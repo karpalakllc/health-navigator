@@ -72,7 +72,7 @@ class SendContentReportAlertCommand extends Command
     /**
      * Everyone who can open the queue, plus the optional shared inbox.
      *
-     * @return Collection<int, string>
+     * @return Collection<int, non-empty-string>
      */
     private function recipients(): Collection
     {
