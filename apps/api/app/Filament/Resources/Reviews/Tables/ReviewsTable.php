@@ -46,8 +46,19 @@ class ReviewsTable
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('resubmitted_at')
+                    ->label('Resent')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->tooltip('Edited and resent by the author after a refusal (once only). A second refusal is final.')
+                    ->sortable()
+                    ->toggleable(),
             ])
-            ->defaultSort('created_at', 'desc')
+            // A resent review queues by when it came back, not by when it
+            // was first written (which would sink it below newer ones).
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw('coalesce(resubmitted_at, created_at) desc')
+                ->orderByDesc('id'))
             ->modifyQueryUsing(fn ($query) => $query->with(['user', 'reviewable']))
             ->filters([
                 SelectFilter::make('status')
