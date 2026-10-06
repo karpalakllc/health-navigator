@@ -52,6 +52,21 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
    `public` media disk, `LOG_LEVEL=debug`) do not fail it but should be read.
    Add `--json` for machine-readable output in a deploy script.
 7. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
+   **Guidance flow (once, fresh environment only):** the Macedonian symptom
+   guidance flow (`/guidance`) ships as data in `TriageSeeder`, which
+   `platform:bootstrap` does **not** run, so a fresh environment has no guidance
+   flow to serve. Right after bootstrap, before anyone
+   edits guidance content in the admin panel, run it once:
+   `php artisan db:seed --class=TriageSeeder --force`.
+   **Never run it again on an environment that is in use:** it rewrites the
+   flow's title and intro, every red flag, step, option and outcome it knows
+   (by code) back to the shipped copy, and **deletes all of the flow's rules**
+   before recreating its own — admin edits to those rows are lost and any rule
+   added in the panel disappears. (The flow is found by its shipped title; if
+   an admin renamed it, re-seeding creates a second published flow instead.)
+   Copy changes after go-live are made in the
+   admin panel (or by a reviewed migration), not by re-seeding. To check
+   whether a flow already exists: `php artisan tinker --execute="echo App\\Models\\TriageFlow::count();"`.
 8. When `MEDIA_DISK=public` (persistent volume, not object storage): `php artisan storage:link` once, or uploaded logos and avatars 404.
 9. Start a **queue worker** (see below).
 10. Add **scheduler** cron (see below).
