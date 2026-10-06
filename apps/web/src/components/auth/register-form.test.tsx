@@ -125,6 +125,73 @@ describe("RegisterForm", () => {
     expect(screen.queryByText("ignored")).not.toBeInTheDocument();
   });
 
+  it("marks every field the API rejected, not just the first", async () => {
+    mockFetch({
+      status: 422,
+      body: {
+        message: "Е-адресата мора да биде валидна. (и уште 2 грешки)",
+        errors: {
+          email: ["Е-адресата мора да биде валидна."],
+          password: [
+            "Лозинката мора да има најмалку 10 знаци.",
+            "Потврдата на лозинката не се совпаѓа.",
+          ],
+          name: ["Името е задолжително."],
+        },
+      },
+    });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit({ password: "kratka" });
+
+    // The summary stays the single alert.
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "(и уште 2 грешки)",
+    );
+
+    const expected: Array<[string, string]> = [
+      [t("auth.registerName"), "Името е задолжително."],
+      [t("auth.email"), "Е-адресата мора да биде валидна."],
+      [t("auth.password"), "Лозинката мора да има најмалку 10 знаци."],
+    ];
+    for (const [label, message] of expected) {
+      const field = screen.getByLabelText(label);
+      expect(field).toHaveAttribute("aria-invalid", "true");
+      expect(field).toHaveAccessibleDescription(message);
+      // The message is not folded into the field's name.
+      expect(field).toHaveAccessibleName(label);
+    }
+
+    const confirmation = screen.getByLabelText(
+      t("auth.registerPasswordConfirm"),
+    );
+    expect(confirmation).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("moves focus to the check-your-inbox heading after registering", async () => {
+    mockFetch({ status: 202, body: { data: {} } });
+    render(<RegisterForm registrationsEnabled />);
+
+    await fillAndSubmit();
+
+    expect(
+      await screen.findByRole("heading", { name: t("auth.verifyCheckInbox") }),
+    ).toHaveFocus();
+  });
+
+  it("stretches the password fields to the form width", () => {
+    render(<RegisterForm registrationsEnabled />);
+
+    for (const label of [
+      t("auth.password"),
+      t("auth.registerPasswordConfirm"),
+    ]) {
+      expect(screen.getByLabelText(label).className.split(/\s+/)).toContain(
+        "w-full",
+      );
+    }
+  });
+
   it("has no serious accessibility violations", async () => {
     const { container } = render(<RegisterForm registrationsEnabled />);
 
