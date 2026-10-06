@@ -41,8 +41,10 @@ partial="$file.partial"
 trap 'rm -f "$partial"' EXIT
 
 started=$(date +%s)
+# --no-password: never wait at a password prompt (cron, CI); a missing or
+# wrong DB_PASSWORD fails at once instead.
 PGPASSWORD="${DB_PASSWORD:-}" pg_dump \
-  --host="$DB_HOST" --port="$DB_PORT" --username="$DB_USERNAME" \
+  --host="$DB_HOST" --port="$DB_PORT" --username="$DB_USERNAME" --no-password \
   --dbname="$DB_DATABASE" \
   --format=custom --compress=6 \
   --no-owner --no-acl \
