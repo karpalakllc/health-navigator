@@ -35,6 +35,10 @@ class DoctorListResource extends JsonResource
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'years_experience' => $this->years_experience,
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
+            // Columns of the row already loaded: the card's „Јави се“ and
+            // open-now line cost no extra query.
+            'phone' => $this->phone,
+            'office_hours' => $this->office_hours ?? [],
             'is_featured' => (bool) $this->is_featured,
             'is_sponsored' => (bool) $this->is_sponsored,
             'primary_specialty' => $primary

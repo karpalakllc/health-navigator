@@ -24,6 +24,10 @@ class PharmacyListResource extends JsonResource
             'city' => $this->city,
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'cover_url' => MediaUrl::resolve($this->cover_path),
+            // Columns of the row already loaded: the card's „Јави се“ and
+            // open-now line cost no extra query.
+            'phone' => $this->phone,
+            'office_hours' => $this->office_hours ?? [],
             'is_featured' => (bool) $this->is_featured,
             'review_summary' => ReviewSummary::for($this->resource),
         ];

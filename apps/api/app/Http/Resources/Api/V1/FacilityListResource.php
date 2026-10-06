@@ -25,6 +25,10 @@ class FacilityListResource extends JsonResource
             'city' => $this->city,
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'cover_url' => MediaUrl::resolve($this->cover_path),
+            // Columns of the row already loaded: the card's „Јави се“ and
+            // open-now line cost no extra query.
+            'phone' => $this->phone,
+            'office_hours' => $this->office_hours ?? [],
             'has_emergency_services' => (bool) $this->has_emergency_services,
             'is_featured' => (bool) $this->is_featured,
             'departments_count' => (int) ($this->departments_count ?? 0),
