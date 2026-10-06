@@ -101,4 +101,21 @@ class AdminRememberMeTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_a_throttled_web_route_does_not_consume_a_remember_cookie(): void
+    {
+        $admin = $this->administrator(AppAuthentication::make()->generateSecret());
+        $admin->forceFill(['remember_token' => 'issued-before-the-form-lost-the-checkbox'])->save();
+
+        // Livewire's upload endpoint carries ThrottleRequests, a priority
+        // middleware that keys its limit on $request->user(). Sorted ahead of a
+        // plainly appended IgnoreRememberMeCookie, it let the guard sign the
+        // cookie's holder in before the cookie was dropped.
+        $this->withCookie(
+            $this->recallerName(),
+            $admin->getKey().'|issued-before-the-form-lost-the-checkbox|'.$admin->getAuthPassword(),
+        )->post(route('livewire.upload-file'));
+
+        $this->assertGuest();
+    }
 }
