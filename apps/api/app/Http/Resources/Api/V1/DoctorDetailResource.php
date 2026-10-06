@@ -36,6 +36,9 @@ class DoctorDetailResource extends JsonResource
             'is_featured' => (bool) $this->is_featured,
             'is_sponsored' => (bool) $this->is_sponsored,
             'city' => $this->city,
+            // „Лиценца: важечка“: a status only, never the number or the
+            // ФЗО facsimile (internal matching keys).
+            'has_valid_licence' => $this->resource->hasValidLicence(),
             'phone' => $this->phone,
             'email' => $this->email,
             'specialties' => $this->specialties

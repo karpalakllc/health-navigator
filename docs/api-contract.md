@@ -309,6 +309,10 @@ nobody can hold an account locked by merely sending traffic.
   breaks ties between equally relevant hits (needs `php artisan
   search:reindex` once to push the setting). Every item carries `is_featured`;
   doctors also carry `is_sponsored`, which must stay visibly labelled.
+- `GET /doctors/{slug}` carries `has_valid_licence` (boolean): the doctor's
+  Лекарска комора licence is on file and not expired today („Лиценца:
+  важечка“). The licence number, its expiry date and the ФЗО facsimile
+  number are internal and never in any payload (docs/data-import.md).
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.

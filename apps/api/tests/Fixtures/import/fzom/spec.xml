@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic test data: every name below is invented. -->
+<Lekari>
+  <Lekar>
+    <ArhivskiBroj>20-1/1</ArhivskiBroj>
+    <TipDogovor>Болничка здравствена заштита ЈЗУ (Општи болници)</TipDogovor>
+    <TipDogovorID>16</TipDogovorID>
+    <DanocenBroj>4000000000010</DanocenBroj>
+    <ShifraZU>9000010</ShifraZU>
+    <ZdravstvenaUstanova>ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО</ZdravstvenaUstanova>
+    <RabotnaEdinica>ОДДЕЛ ЗА ИНТЕРНИ БОЛЕСТИ</RabotnaEdinica>
+    <Dejnost>ИНТЕРНА МЕДИЦИНА</Dejnost>
+    <Specijalnosti>ИНТЕРНА МЕДИЦИНА, КАРДИОЛОГИЈА</Specijalnosti>
+    <Adresa>БУЛ. БОЛНИЧКИ 10</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900010</Faksimil>
+    <Ime>ЧЕТВРТИ</Ime>
+    <Prezime>СРЦЕВСКИ</Prezime>
+    <ValidenOd>2024-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2028-01-01T00:00:00</ValidenDo>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>20-2/1</ArhivskiBroj>
+    <TipDogovor>Болничка здравствена заштита ЈЗУ (Општи болници)</TipDogovor>
+    <TipDogovorID>16</TipDogovorID>
+    <DanocenBroj>4000000000010</DanocenBroj>
+    <ShifraZU>9000010</ShifraZU>
+    <ZdravstvenaUstanova>ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО</ZdravstvenaUstanova>
+    <RabotnaEdinica>ОДДЕЛ ЗА ИНТЕРНИ БОЛЕСТИ</RabotnaEdinica>
+    <Dejnost>ИНТЕРНА МЕДИЦИНА</Dejnost>
+    <Specijalnosti>ОПШТА МЕДИЦИНА</Specijalnosti>
+    <Adresa>БУЛ. БОЛНИЧКИ 10</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900001</Faksimil>
+    <Ime>ПРВАНА</Ime>
+    <Prezime>ПРИМЕРОВСКА</Prezime>
+    <ValidenOd>2025-06-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-06-01T00:00:00</ValidenDo>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>20-3/1</ArhivskiBroj>
+    <TipDogovor>Специјалистичко - консултативна здравствена заштита ЈЗУ (Здравствени домови)</TipDogovor>
+    <TipDogovorID>12</TipDogovorID>
+    <DanocenBroj>4000000000011</DanocenBroj>
+    <ShifraZU>9000011</ShifraZU>
+    <ZdravstvenaUstanova>ЈЗУ ЗДРАВСТВЕН ДОМ ТЕСТОВО</ZdravstvenaUstanova>
+    <RabotnaEdinica>ЗДРАВСТВЕН ДОМ ТЕСТОВО</RabotnaEdinica>
+    <Dejnost>ПСИХОЛОГИЈА</Dejnost>
+    <Specijalnosti>ДИПЛОМИРАН ПСИХОЛОГ</Specijalnosti>
+    <Adresa>УЛ. ДОМСКА 11</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900011</Faksimil>
+    <Ime>ПЕТА</Ime>
+    <Prezime>ДУШЕВНА</Prezime>
+    <ValidenOd>2025-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-01-01T00:00:00</ValidenDo>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>20-4/1</ArhivskiBroj>
+    <TipDogovor>Специјалистичко - консултативна здравствена заштита ЈЗУ (Здравствени домови)</TipDogovor>
+    <TipDogovorID>12</TipDogovorID>
+    <DanocenBroj>4000000000011</DanocenBroj>
+    <ShifraZU>9000011</ShifraZU>
+    <ZdravstvenaUstanova>ЈЗУ ЗДРАВСТВЕН ДОМ ТЕСТОВО</ZdravstvenaUstanova>
+    <RabotnaEdinica>ЗДРАВСТВЕН ДОМ ТЕСТОВО</RabotnaEdinica>
+    <Dejnost>РЕТКА ДЕЈНОСТ</Dejnost>
+    <Specijalnosti>НЕПОЗНАТА НОВА СПЕЦИЈАЛНОСТ</Specijalnosti>
+    <Adresa>УЛ. ДОМСКА 11</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>900012</Faksimil>
+    <Ime>ШЕСТИ</Ime>
+    <Prezime>РЕТКОВСКИ</Prezime>
+    <ValidenOd>2025-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-01-01T00:00:00</ValidenDo>
+  </Lekar>
+</Lekari>
