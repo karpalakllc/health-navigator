@@ -39,11 +39,19 @@ final class SentryEventScrubber
     /** Matches password, current_password, reset_token, signature, new_email, triage answers, ... */
     private const SENSITIVE_KEY = '/pass(word)?|token|secret|signature|api_?key|authori[sz]ation|e-?mail|^hash$|^answers$|^values$/i';
 
-    /** Two-factor material: recovery codes and the model's app_authentication_* columns. */
-    private const TWO_FACTOR_KEY = '/^recovery_?codes?$|^app_authentication_/i';
+    /**
+     * Two-factor material: recovery codes, the model's app_authentication_*
+     * columns, and `encrypted` — the encrypted secret Filament's set-up action
+     * carries in its arguments while the new authenticator is being confirmed.
+     */
+    private const TWO_FACTOR_KEY = '/^recovery_?codes?$|^app_authentication_|^encrypted$/i';
 
-    /** A parent under which a plain `code` is a one-time password (Filament's login challenge). */
-    private const TWO_FACTOR_PARENT = '/^multi_?factor$/i';
+    /**
+     * A parent under which a plain `code` is a one-time password: the login
+     * challenge (multiFactor) and the panel's actions (mountedActions.N.data.code
+     * when setting up or disabling app authentication).
+     */
+    private const TWO_FACTOR_PARENT = '/^multi_?factor$|^mounted_?actions$/i';
 
     /** Patterns redacted from free text (exception messages, log messages, breadcrumbs). */
     private const SENSITIVE_TEXT = [

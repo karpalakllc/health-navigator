@@ -81,6 +81,54 @@ class SentryEventScrubberTest extends TestCase
         $this->assertStringContainsString('app.filament.pages.auth.login', $component['snapshot']);
     }
 
+    public function test_mounted_action_codes_and_encrypted_arguments_are_dropped(): void
+    {
+        // Setting up app authentication from the profile mounts an action whose
+        // form takes the code and whose arguments carry the encrypted secret.
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/livewire/update',
+            'data' => [
+                'components' => [[
+                    'snapshot' => json_encode([
+                        'data' => [
+                            'mountedActions' => [[[
+                                'name' => 'setUpAppAuthentication',
+                                'arguments' => [['encrypted' => 'eyJpdiI6InNldC11cC1zZWNyZXQifQ'], ['s' => 'arr']],
+                                'data' => [['code' => '246810'], ['s' => 'arr']],
+                            ], ['s' => 'arr']]],
+                        ],
+                        'memo' => ['name' => 'filament.pages.edit-profile'],
+                    ]),
+                    'updates' => [
+                        'mountedActions.0.data.code' => '135790',
+                        'mountedActions.0.data.label' => 'kept',
+                    ],
+                    'calls' => [],
+                ]],
+            ],
+        ]);
+
+        $component = SentryEventScrubber::beforeSend($event)?->getRequest()['data']['components'][0];
+
+        $this->assertSame(SentryEventScrubber::FILTERED, $component['updates']['mountedActions.0.data.code']);
+        $this->assertSame('kept', $component['updates']['mountedActions.0.data.label']);
+        $this->assertStringNotContainsString('246810', $component['snapshot']);
+        $this->assertStringNotContainsString('eyJpdiI6InNldC11cC1zZWNyZXQifQ', $component['snapshot']);
+        $this->assertStringContainsString('setUpAppAuthentication', $component['snapshot']);
+    }
+
+    public function test_a_code_outside_two_factor_context_is_kept(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://api.example/api/v1/x', 'data' => ['code' => 'MK', 'encrypted' => 'opaque']]);
+
+        $data = SentryEventScrubber::beforeSend($event)?->getRequest()['data'];
+
+        $this->assertSame('MK', $data['code']);
+        $this->assertSame(SentryEventScrubber::FILTERED, $data['encrypted']);
+    }
+
     public function test_two_factor_keys_are_dropped_wherever_they_sit(): void
     {
         $event = Event::createEvent();
