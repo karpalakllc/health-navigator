@@ -21,7 +21,6 @@ export type PublicSettings = {
   footer_disclaimer_text: string;
   copyright_name: string;
   profile_avatar_min_messages: number;
-  site_font_family: "geist" | "inter" | "system";
   forum_rules_enabled: boolean;
   forum_rules_title: string | null;
   forum_rules_body: string | null;
@@ -46,7 +45,6 @@ export const publicSettingsDefaults: PublicSettings = {
   placeholder_doctor_url: null,
   placeholder_facility_url: null,
   placeholder_pharmacy_url: null,
-  site_font_family: "geist",
   forum_rules_enabled: true,
   forum_rules_title: null,
   forum_rules_body: null,
