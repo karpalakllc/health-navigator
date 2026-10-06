@@ -46,24 +46,21 @@ export function SiteNav({
       {links.map((link) => {
         const active =
           pathname === link.href || pathname.startsWith(`${link.href}/`);
-        const isForum = link.href === "/forum";
 
+        // Only the current section is coloured. Форум used to be primary on
+        // every page, so it read as the active item next to the real one.
         return (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex items-center rounded-lg px-3 font-medium transition",
               vertical ? "w-full py-3" : "h-10 justify-center",
-              isForum &&
-                !active &&
-                "text-primary/85 hover:bg-primary/8 hover:text-primary",
-              isForum && active && "bg-primary/12 text-primary",
-              !isForum &&
-                (active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"),
+              active
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
             {t(link.labelKey)}

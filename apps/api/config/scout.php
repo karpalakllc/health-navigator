@@ -153,11 +153,11 @@ return [
             // search:reindex`. Keyed by model so the index name (SCOUT_PREFIX
             // included) comes from the model's searchableAs(), as for its data.
             Doctor::class => [
-                'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names'],
+                'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names', 'specialty_names_latin'],
                 'filterableAttributes' => ['city'],
             ],
             Facility::class => [
-                'searchableAttributes' => ['name', 'city', 'description', 'type'],
+                'searchableAttributes' => ['name', 'city', 'description', 'type', 'department_names', 'department_names_latin'],
                 'filterableAttributes' => ['city', 'type'],
             ],
             ForumTopic::class => [

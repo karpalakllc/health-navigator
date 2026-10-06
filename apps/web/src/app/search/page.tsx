@@ -1,14 +1,9 @@
 import { DirectoryHero } from "@/components/design/directory-hero";
 import { TrustRibbon } from "@/components/design/trust-ribbon";
-import {
-  FilterField,
-  FilterForm,
-  SEARCH_QUERY_HINT,
-  filterInputClassName,
-} from "@/components/directory/filter-form";
 import { HubLinkCard } from "@/components/ui/hub-link-card";
 import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-sections";
 import { AdvancedSearchTrigger } from "@/components/search/advanced-search-trigger";
+import { SearchQueryForm } from "@/components/search/search-query-form";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeroBleed } from "@/components/design/page-hero-bleed";
@@ -46,6 +41,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             badge={t("search.directoryBadge")}
             title={t("search.unifiedTitle")}
             description={`„${qRaw.trim()}“${cityTrim ? ` · ${cityTrim}` : ""}`}
+            filters={<SearchQueryForm q={qRaw} city={params.city} />}
           />
         </PageHeroBleed>
 
@@ -67,31 +63,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           title={t("search.title")}
           description={t("search.hubIntro")}
           filters={
-            <div className="filters-card filters-card-nested p-4 sm:p-5">
-              <FilterForm
-                searchHint={SEARCH_QUERY_HINT}
-                action="/search"
-                method="get"
-                fieldsClassName="sm:grid-cols-2"
-              >
-                <FilterField label={t("search.nameLabel")}>
-                  <input
-                    name="q"
-                    defaultValue={params.q ?? ""}
-                    className={filterInputClassName}
-                    autoComplete="off"
-                  />
-                </FilterField>
-                <FilterField label={t("search.cityLabel")}>
-                  <input
-                    name="city"
-                    defaultValue={params.city ?? ""}
-                    className={filterInputClassName}
-                    autoComplete="off"
-                  />
-                </FilterField>
-              </FilterForm>
-            </div>
+            <SearchQueryForm q={params.q} city={params.city} autoFocus />
           }
         />
         <TrustRibbon

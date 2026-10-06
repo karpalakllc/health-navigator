@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DoctorCard } from "@/components/directory/doctor-card";
 import { cn } from "@/lib/cn";
 import type { DoctorListItem } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function DoctorsResultsSection({
   doctors,
@@ -23,7 +23,7 @@ export function DoctorsResultsSection({
             {t("doctors.resultsTitle")}
           </h2>
           <p className="mt-1 text-muted-foreground">
-            {tFormat("doctors.resultsCount", { count: String(total) })}
+            {tCount("doctors.resultsCount", total)}
           </p>
         </div>
         <div

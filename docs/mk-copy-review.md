@@ -271,6 +271,70 @@ These two were wrong and are now fixed. Confirm the corrections are right.
 
 ---
 
+## H. Symptom guidance flow and walkthrough fixes — new, please review
+
+The seeded symptom-guidance questionnaire (`apps/api/database/seeders/TriageSeeder.php`)
+was entirely **English**, including the emergency screen. It is now Macedonian.
+This is a **translation only**: question codes, rules and clinical meaning are
+unchanged (see `docs/triage-safety.md`). The triage tables have one text per
+field and no language column, so there is no English copy kept beside it.
+
+**Every row in H1 is safety-relevant**; the red flags and the emergency outcome
+(rows 3–7, 25–26, 31) matter most.
+
+### H1. Guidance flow (seeded content)
+
+| # | Macedonian | English original | Where it appears |
+|---|------------|------------------|------------------|
+| 1 | Општи насоки за симптоми | General symptom guidance | Flow title |
+| 2 | Одговорете на неколку општи прашања за да видите информативни следни чекори. Ова не е медицински совет и не може да поставува дијагнози. | Answer a few general questions to see informational next steps. This is not medical advice and cannot diagnose conditions. | Intro text before the questions |
+| 3 | **Силна болка или притисок во градите** | Severe chest pain or pressure | Red flag |
+| 4 | **Сериозно отежнато дишење** | Severe difficulty breathing | Red flag |
+| 5 | **Обилно крварење што не престанува** | Heavy bleeding that does not stop | Red flag |
+| 6 | **Ненадејна збунетост или неможност да се разбуди** | Sudden confusion or inability to wake | Red flag. Is "неможност да се разбуди" natural, or is "не може да се разбуди" better? |
+| 7 | **Мисли за самоповредување или самоубиство** | Thoughts of self-harm or suicide | Red flag |
+| 8 | Возрасна група | Age group | Question |
+| 9 | Помлади од 18 години | Under 18 | Option |
+| 10 | 18–64 години | 18–64 | Option |
+| 11 | 65 години или постари | 65 or older | Option |
+| 12 | Што најдобро го опишува она што ве загрижува? | What best describes your concern? | Question |
+| 13 | Општи симптоми (болка, температура, замор) | General symptoms (pain, fever, fatigue) | Option |
+| 14 | Повреда или незгода | Injury or accident | Option |
+| 15 | Стрес или психичка благосостојба | Stress or wellbeing | Option |
+| 16 | Колку се изразени симптомите денес? | How would you describe the severity today? | Question |
+| 17 | Благи — се забележуваат, но се поднесливи | Mild — noticeable but manageable | Option |
+| 18 | Умерени — ги попречуваат секојдневните активности | Moderate — interfering with daily activities | Option |
+| 19 | Силни — многу тешко се поднесуваат | Severe — very difficult to manage | Option |
+| 20 | Колку долго ги имате овие симптоми? | How long have you had these symptoms? | Question |
+| 21 | Помалку од 24 часа | Less than 24 hours | Option |
+| 22 | 1–7 дена | 1–7 days | Option |
+| 23 | Повеќе од една недела | More than a week | Option |
+| 24 | Броеви за итни случаи | Emergency numbers | Outcome link label |
+| 25 | **Веднаш побарајте итна помош** | Seek emergency care now | Emergency outcome title |
+| 26 | **Според вашите одговори, треба веднаш да ја повикате службата за итна помош. Не ја користете оваа веб-страница наместо итна медицинска помош.** | Based on your answers, you should contact emergency services immediately. Do not use this website instead of urgent care. | Emergency outcome text |
+| 27 | Размислете за преглед наскоро | Consider care soon | Outcome title |
+| 28 | Вашите одговори упатуваат дека можеби е разумно наскоро да разговарате со здравствен работник, особено ако симптомите се влошат. | Your answers suggest it may be reasonable to speak with a healthcare professional soon, especially if symptoms worsen. | Outcome text |
+| 29 | Општи информации | General information | Outcome title (same as A24) |
+| 30 | Според оваа листа за проверка, вашите одговори не упатуваат на непосредна итна состојба. Следете ги симптомите и побарајте стручен совет ако и понатаму сте загрижени. | Your answers do not suggest an immediate emergency on this checklist. Continue to monitor symptoms and seek professional advice if you remain concerned. | Outcome text |
+| 31 | Назад на почетната страница / Прегледајте лекари / Прегледајте установи | Return home / Browse doctors / Browse facilities | Outcome link labels |
+
+### H2. New interface strings (`apps/web/src/i18n/mk.ts`)
+
+| # | Macedonian | Intended meaning | Where it appears |
+|---|------------|------------------|------------------|
+| 1 | **Повикај 194 (Брза помош)** | Call 194 (ambulance) | Tap-to-call button on the emergency outcome. Singular imperative, as on a button — or should it be "Повикајте"? |
+| 2 | **112 — единствен број за итни случаи** | 112 — single emergency number | Second tap-to-call button |
+| 3 | Вратете се на … за нова сесија. | Go back to [Symptom guidance] for a new session | Under a guidance result; was "за нов сесија" with the link text doubled |
+| 4 | Прескокни до содржината | Skip to content | Keyboard skip link, first Tab on every page |
+| 5 | Име, специјалност или поим | Name, specialty or term | Query field label on /search |
+| 6 | Име или специјалност / Внесете име на лекар или специјалност | Name or specialty / Enter a doctor's name or a specialty | Doctors filter (the field now also matches specialties) |
+| 7 | Име или одделение / Внесете име на установа или одделение | Name or department | Facilities filter (the field now also matches departments) |
+| 8 | Најмалку 2 знаци за пребарување. | At least 2 characters to search | Hint under search fields (was "… по име.") |
+| 9 | Исто така: {names} | Also: … | Doctor card, other specialties after the primary one |
+| 10 | 1 тема, 1 установа, 1 лекар, 1 профил, 1 аптека, 1 производ, 1 одделение, 1 одговор, пред 1 ден, 1 запис во категоријата. | Singular forms | Counts ending in 1 (except 11) now use the singular; e.g. "1 теми" → "1 тема", "21 одговори" → "21 одговор". Confirm 21/101 take the singular in these phrases |
+
+---
+
 ## Not in scope here
 
 - **The existing UI copy** in `apps/web/src/i18n/mk.ts` — around 700 strings written

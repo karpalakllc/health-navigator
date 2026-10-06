@@ -1,11 +1,7 @@
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount, tFormat } from "@/i18n/t";
 
 export function formatForumReplyCount(count: number): string {
-  if (count === 1) {
-    return t("forum.replyCountOne");
-  }
-
-  return tFormat("forum.repliesCount", { count });
+  return tCount("forum.repliesCount", count);
 }
 
 export function formatForumDateTime(iso: string | null | undefined): string {
@@ -62,7 +58,7 @@ export function formatForumLastActivity(
   const diffDays = Math.round(diffHours / 24);
 
   if (diffDays < 7) {
-    return tFormat("forum.activityDaysAgo", { count: String(diffDays) });
+    return tCount("forum.activityDaysAgo", diffDays);
   }
 
   return formatForumDateTime(iso);

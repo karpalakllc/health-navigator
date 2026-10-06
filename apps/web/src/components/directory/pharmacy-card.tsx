@@ -59,7 +59,7 @@ function PharmacyCardBody({
           name={pharmacy.name}
           className="h-[62px] w-[62px] shrink-0 rounded-[1.25rem] border border-border"
           imageClassName="h-full w-full rounded-[1.25rem] object-cover"
-          fallbackClassName="h-full w-full rounded-[1.25rem] text-lg"
+          fallbackClassName="rounded-[1.25rem] text-lg"
         />
         <div className="min-w-0">
           <h2 className="text-lg font-extrabold tracking-tight text-foreground">

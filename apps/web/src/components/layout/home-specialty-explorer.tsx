@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import type { Specialty } from "@/lib/api/types";
-import { tFormat } from "@/i18n/t";
+import { tCount } from "@/i18n/t";
 
 const specialtyIcons = [
   {
@@ -71,9 +71,7 @@ export function HomeSpecialtyExplorer({
                 </span>
                 <h3 className="font-extrabold text-foreground">{s.name}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {tFormat("home.specialtyDoctorCount", {
-                    count: String(s.doctors_count),
-                  })}
+                  {tCount("home.specialtyDoctorCount", s.doctors_count)}
                 </p>
               </article>
             </Link>

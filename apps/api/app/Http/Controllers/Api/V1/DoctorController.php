@@ -32,7 +32,7 @@ class DoctorController extends Controller
         }
 
         if (! empty($validated['q'])) {
-            $query->searchName($validated['q']);
+            $query->searchNameOrSpecialty($validated['q']);
         }
 
         if (! empty($validated['featured'])) {

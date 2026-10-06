@@ -16,6 +16,9 @@ export function FilterInputWrap({
     <div
       className={cn(
         "flex items-center gap-3 rounded-[1.125rem] border border-border bg-[#fbfcfc] px-4",
+        // The control inside drops its own outline, so the wrap shows focus
+        // (same ring as filterInputClassName).
+        "transition-[border-color,box-shadow] duration-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/35",
         compact ? "min-h-[52px]" : "min-h-14",
         className,
       )}

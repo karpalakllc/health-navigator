@@ -115,7 +115,7 @@ export function FacilitiesFilterBar({
           </FilterField>
 
           <FilterField
-            label={t("search.nameLabel")}
+            label={t("facilities.queryLabel")}
             hint={t("search.queryHint")}
           >
             <FilterInputWrap

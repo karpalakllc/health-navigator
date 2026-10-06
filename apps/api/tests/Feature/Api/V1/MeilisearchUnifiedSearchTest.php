@@ -5,12 +5,14 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\FacilityType;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
+use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ForumCategory;
 use App\Models\ForumTopic;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -329,5 +331,30 @@ class MeilisearchUnifiedSearchTest extends TestCase
             'city IN ["Скопје \\"Центар\\""]',
             $this->engine->lastSearch('doctors')['params']['filter'] ?? null,
         );
+    }
+
+    public function test_doctors_and_facilities_match_specialty_and_department_names_in_either_script(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $department = Department::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+
+        $doctor = Doctor::factory()->create(['slug' => 'cardio-doc', 'full_name' => 'д-р Ана Петровска']);
+        $doctor->specialties()->attach($cardiology->id, ['is_primary' => true]);
+        $hospital = Facility::factory()->create(['slug' => 'city-hospital', 'name' => 'Градска болница', 'type' => FacilityType::Hospital]);
+        $hospital->departments()->attach($department->id);
+        Doctor::factory()->create(['slug' => 'other-doc', 'full_name' => 'д-р Марко Стојанов']);
+
+        // Attaching a relation fires no model event; reindex as search:reindex would.
+        $doctor->refresh()->searchable();
+        $hospital->refresh()->searchable();
+
+        foreach (['кардио', 'kardio'] as $q) {
+            $this->getJson('/api/v1/search?q='.urlencode($q))
+                ->assertOk()
+                ->assertJsonPath('data.doctors.meta.total', 1)
+                ->assertJsonPath('data.doctors.data.0.slug', 'cardio-doc')
+                ->assertJsonPath('data.facilities.meta.total', 1)
+                ->assertJsonPath('data.facilities.data.0.slug', 'city-hospital');
+        }
     }
 }

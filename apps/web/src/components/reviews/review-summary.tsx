@@ -1,6 +1,6 @@
 import type { ReviewSummary } from "@/lib/api/types";
 import { StarRating } from "@/components/ui/star-rating";
-import { t } from "@/i18n/t";
+import { isMacedonianOne, t } from "@/i18n/t";
 
 export function ReviewSummaryBlock({ summary }: { summary: ReviewSummary }) {
   if (summary.count === 0) {
@@ -9,8 +9,9 @@ export function ReviewSummaryBlock({ summary }: { summary: ReviewSummary }) {
     );
   }
 
-  const countLabel =
-    summary.count === 1 ? t("reviews.countOne") : t("reviews.count");
+  const countLabel = isMacedonianOne(summary.count)
+    ? t("reviews.countOne")
+    : t("reviews.count");
   const average = summary.average_rating ?? 0;
 
   return (

@@ -246,4 +246,44 @@ class DoctorTest extends TestCase
     {
         $this->getJson('/api/v1/doctors?per_page=100')->assertUnprocessable();
     }
+
+    public function test_name_query_also_matches_specialty_names_in_either_script(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $hidden = Specialty::factory()->create(['name' => 'Кардиохирургија', 'slug' => 'kardiohirurgija', 'is_published' => false]);
+
+        $cardiologist = Doctor::factory()->create(['slug' => 'cardio-doc', 'full_name' => 'д-р Ана Петровска']);
+        $cardiologist->specialties()->attach($cardiology->id, ['is_primary' => false]);
+        $hiddenOnly = Doctor::factory()->create(['slug' => 'hidden-doc', 'full_name' => 'д-р Марко Стојанов']);
+        $hiddenOnly->specialties()->attach($hidden->id, ['is_primary' => true]);
+        Doctor::factory()->create(['slug' => 'other-doc', 'full_name' => 'д-р Елена Илиевска']);
+
+        foreach (['кардиолог', 'kardio', 'Петровска'] as $q) {
+            $this->getJson('/api/v1/doctors?q='.urlencode($q))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.slug', 'cardio-doc');
+        }
+    }
+
+    public function test_list_items_name_every_published_specialty_primary_first(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $pediatrics = Specialty::factory()->create(['name' => 'Педијатрија', 'slug' => 'pedijatrija']);
+        $hidden = Specialty::factory()->create(['slug' => 'skriena', 'is_published' => false]);
+
+        $doctor = Doctor::factory()->create(['slug' => 'marko']);
+        // Secondary attached first, so the order comes from is_primary, not ids.
+        $doctor->specialties()->attach($cardiology->id, ['is_primary' => false]);
+        $doctor->specialties()->attach($pediatrics->id, ['is_primary' => true]);
+        $doctor->specialties()->attach($hidden->id, ['is_primary' => false]);
+
+        $this->getJson('/api/v1/doctors?specialty=kardiologija')
+            ->assertOk()
+            ->assertJsonPath('data.0.primary_specialty.slug', 'pedijatrija')
+            ->assertJsonPath('data.0.specialties', [
+                ['slug' => 'pedijatrija', 'name' => 'Педијатрија'],
+                ['slug' => 'kardiologija', 'name' => 'Кардиологија'],
+            ]);
+    }
 }

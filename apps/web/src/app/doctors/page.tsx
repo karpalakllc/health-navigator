@@ -10,7 +10,7 @@ import { Pagination } from "@/components/directory/pagination";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
   t("doctors.title"),
@@ -65,9 +65,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
           stat={
             <span className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-white/90 bg-white/[0.86] px-4 text-sm font-extrabold text-[#4f5b67] shadow-[0_14px_40px_rgb(16_30_36_/_0.07)]">
               <UsersIcon />
-              {tFormat("doctors.resultsCount", {
-                count: String(doctors.meta.total),
-              })}
+              {tCount("doctors.resultsCount", doctors.meta.total)}
             </span>
           }
           filters={
@@ -114,9 +112,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
                 {t("doctors.resultsTitle")}
               </h2>
               <p className="mt-1 text-muted-foreground">
-                {tFormat("doctors.resultsCount", {
-                  count: String(doctors.meta.total),
-                })}
+                {tCount("doctors.resultsCount", doctors.meta.total)}
               </p>
             </div>
             <EmptyState

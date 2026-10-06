@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FacilityCard } from "@/components/directory/facility-card";
 import { cn } from "@/lib/cn";
 import type { FacilityListItem } from "@/lib/api/types";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function FacilitiesResultsSection({
   facilities,
@@ -23,7 +23,7 @@ export function FacilitiesResultsSection({
             {t("facilities.resultsTitle")}
           </h2>
           <p className="mt-1 text-muted-foreground">
-            {tFormat("facilities.resultsCount", { count: String(total) })}
+            {tCount("facilities.resultsCount", total)}
           </p>
         </div>
         <div

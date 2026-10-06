@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ProductListItem } from "@/lib/api/types";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 const GRADIENTS = [
   "from-[hsl(213_80%_52%)] via-[hsl(199_72%_48%)] to-[hsl(160_52%_42%)]",
@@ -66,9 +66,7 @@ export function HomeShowcaseProductCard({
               )}
               {product.offer_count > 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  {tFormat("products.offerCount", {
-                    count: String(product.offer_count),
-                  })}
+                  {tCount("products.offerCount", product.offer_count)}
                 </p>
               ) : null}
             </div>

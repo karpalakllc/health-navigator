@@ -5,7 +5,7 @@ import { useSitePlaceholders } from "@/components/layout/site-placeholders-provi
 import { cn } from "@/lib/cn";
 import type { FacilityListItem } from "@/lib/api/types";
 import { facilityKindLabel } from "@/lib/facility-labels";
-import { t, tFormat } from "@/i18n/t";
+import { t, tCount } from "@/i18n/t";
 
 export function HomeFacilityCard({
   facility,
@@ -62,9 +62,10 @@ export function HomeFacilityCard({
             ) : null}
             {facility.departments_count > 0 ? (
               <span className="rounded-full bg-[#f1f4f6] px-3 py-1 text-xs font-bold text-[#5d6771]">
-                {tFormat("facilities.departmentCount", {
-                  count: String(facility.departments_count),
-                })}
+                {tCount(
+                  "facilities.departmentCount",
+                  facility.departments_count,
+                )}
               </span>
             ) : null}
             {facility.type === "clinic" && facility.departments_count === 0 ? (

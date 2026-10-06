@@ -19,12 +19,15 @@ const STAR_PATH =
 function StarIcon({
   className,
   filled,
+  "data-fill": dataFill,
 }: {
   className?: string;
   filled: boolean;
+  "data-fill"?: string;
 }) {
   return (
     <svg
+      data-fill={dataFill}
       className={className}
       viewBox="0 0 24 24"
       fill={filled ? "currentColor" : "none"}
@@ -44,8 +47,12 @@ export function StarRating({
   size = "sm",
   tone = "primary",
 }: StarRatingProps) {
-  const clamped = Math.min(max, Math.max(0, Math.round(value)));
+  // Nearest half star: 4.5 draws four and a half, not five (it used to round
+  // to whole stars, so every 4.5 average looked like a perfect score).
+  const halves = Math.min(max * 2, Math.max(0, Math.round(value * 2)));
   const filledTone = tone === "amber" ? "text-amber-500" : "text-primary";
+  const emptyClass = `shrink-0 text-muted-foreground/40 ${iconSize[size]}`;
+  const filledClass = `shrink-0 ${filledTone} ${iconSize[size]}`;
 
   return (
     <span
@@ -53,17 +60,38 @@ export function StarRating({
       role="img"
       aria-label={ratingLabel(value, max)}
     >
-      {Array.from({ length: max }, (_, index) => (
-        <StarIcon
-          key={index}
-          filled={index < clamped}
-          className={
-            index < clamped
-              ? `shrink-0 ${filledTone} ${iconSize[size]}`
-              : `shrink-0 text-muted-foreground/40 ${iconSize[size]}`
-          }
-        />
-      ))}
+      {Array.from({ length: max }, (_, index) => {
+        const fill =
+          halves >= (index + 1) * 2
+            ? "full"
+            : halves === index * 2 + 1
+              ? "half"
+              : "empty";
+
+        if (fill === "half") {
+          return (
+            <span
+              key={index}
+              data-fill="half"
+              className={`relative inline-flex shrink-0 ${iconSize[size]}`}
+            >
+              <StarIcon filled={false} className={emptyClass} />
+              <span className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
+                <StarIcon filled className={filledClass} />
+              </span>
+            </span>
+          );
+        }
+
+        return (
+          <StarIcon
+            key={index}
+            filled={fill === "full"}
+            data-fill={fill}
+            className={fill === "full" ? filledClass : emptyClass}
+          />
+        );
+      })}
     </span>
   );
 }

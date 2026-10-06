@@ -3,9 +3,9 @@ import { tFormat } from "@/i18n/t";
 /**
  * Accessible text for a star rating, e.g. "4,5 / 5".
  *
- * The stars themselves are drawn rounded to whole stars, but the label must not
- * be: a 4.5 average announced as "5 / 5" overstates it. One decimal, with the
- * Macedonian decimal comma, and no trailing ",0".
+ * The stars themselves are drawn to the nearest half star, but the label must
+ * not be rounded at all: a 4.5 average announced as "5 / 5" overstates it.
+ * One decimal, with the Macedonian decimal comma, and no trailing ",0".
  */
 export function ratingLabel(value: number, max = 5): string {
   const clamped = Math.min(max, Math.max(0, value));

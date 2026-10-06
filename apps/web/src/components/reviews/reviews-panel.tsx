@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FilterInputWrap } from "@/components/directory/filter-input-wrap";
 import { Pagination } from "@/components/directory/pagination";
 import Link from "next/link";
+import { loginHref } from "@/lib/auth/login-href";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewList } from "@/components/reviews/review-list";
 import { StarRating } from "@/components/ui/star-rating";
@@ -140,7 +141,7 @@ export function ReviewsPanel({
       {!isLoggedIn ? (
         <div className="flex min-h-[54px] items-center rounded-full border border-border bg-white/80 px-[18px] text-[0.95rem] text-[#5a6773]">
           <Link
-            href="/login"
+            href={loginHref(`${basePath}#reviews`)}
             className="font-bold text-primary hover:underline"
           >
             {t("nav.login")}
