@@ -235,7 +235,8 @@ export const mk = {
     tooShort: "Напишете најмалку {min} знаци.",
     emailRequired: "Внесете ја вашата е-пошта.",
     emailInvalid: "Внесете валидна е-пошта, на пример ime@primer.mk.",
-    errorSummaryTitle: "Формуларот не е испратен. Поправете ги означените полиња.",
+    errorSummaryTitle:
+      "Формуларот не е испратен. Поправете ги означените полиња.",
     removeFilter: "Отстрани филтер: {label}",
     featured: "Истакнат",
     verified: "Верификуван",

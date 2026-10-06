@@ -23,7 +23,10 @@ export function ProductOffersTable({ offers }: { offers: ProductOffer[] }) {
   const sorted = [...offers].sort((a, b) => a.price - b.price);
 
   return (
-    <table role="table" className="w-full border-collapse type-body max-sm:block">
+    <table
+      role="table"
+      className="w-full border-collapse type-body max-sm:block"
+    >
       <thead role="rowgroup" className="max-sm:sr-only">
         <tr role="row" className="type-meta text-ink-2">
           <th

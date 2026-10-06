@@ -81,7 +81,6 @@ export function ReviewForm({ kind, slug, onSubmitted }: ReviewFormProps) {
       as="form"
       id="review-form"
       aria-labelledby={titleId}
-      noValidate
       onSubmit={handleSubmit}
       className="flex flex-col gap-5"
     >

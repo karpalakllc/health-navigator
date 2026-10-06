@@ -23,7 +23,9 @@ describe("ProductOffersTable", () => {
 
     const table = screen.getByRole("table");
     expect(
-      within(table).getAllByRole("columnheader").map((th) => th.textContent),
+      within(table)
+        .getAllByRole("columnheader")
+        .map((th) => th.textContent),
     ).toEqual([t("products.pharmacyColumn"), t("products.priceColumn")]);
 
     // Cheapest first, the pharmacy is the row header, the best price tagged.

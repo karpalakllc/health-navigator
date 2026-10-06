@@ -39,9 +39,7 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
 
   function reject(errors: Partial<Record<ResetField, string>>) {
     setFieldErrors(errors);
-    focusField(
-      errors.password ? "reset-password" : "reset-password-confirm",
-    );
+    focusField(errors.password ? "reset-password" : "reset-password-confirm");
   }
 
   async function handleSubmit(event: React.FormEvent) {

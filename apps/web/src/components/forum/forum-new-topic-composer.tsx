@@ -128,7 +128,11 @@ export function ForumNewTopicComposer({
         padding="none"
         className="max-lg:bg-transparent max-lg:shadow-none lg:p-8"
       >
-        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+        >
           <Select
             label={t("forum.category")}
             value={categorySlug}

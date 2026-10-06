@@ -134,9 +134,9 @@ describe("ResetPasswordForm", () => {
     ).toHaveAccessibleDescription(
       `${t("ui.errorPrefix")} ${t("auth.passwordMismatch")}`,
     );
-    expect(screen.getByLabelText(t("auth.password"))).toHaveAccessibleDescription(
-      new RegExp(t("auth.passwordTooWeak")),
-    );
+    expect(
+      screen.getByLabelText(t("auth.password")),
+    ).toHaveAccessibleDescription(new RegExp(t("auth.passwordTooWeak")));
     expect(router.push).not.toHaveBeenCalled();
   });
 

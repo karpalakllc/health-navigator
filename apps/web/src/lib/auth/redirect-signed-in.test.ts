@@ -6,9 +6,8 @@ const getShellSession = vi.fn();
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/auth/header-session", () => ({ getShellSession }));
 
-const { redirectSignedInToAccount } = await import(
-  "@/lib/auth/redirect-signed-in"
-);
+const { redirectSignedInToAccount } =
+  await import("@/lib/auth/redirect-signed-in");
 
 describe("redirectSignedInToAccount", () => {
   beforeEach(() => {

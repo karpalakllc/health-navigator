@@ -291,9 +291,9 @@ describe("RegisterForm", () => {
         within(summary).getByRole("link", { name: label }),
       ).toHaveAttribute("href", `#${field.id}`);
     }
-    expect(screen.getByLabelText(t("auth.registerDisplayName"))).not.toHaveAttribute(
-      "aria-invalid",
-    );
+    expect(
+      screen.getByLabelText(t("auth.registerDisplayName")),
+    ).not.toHaveAttribute("aria-invalid");
   });
 
   it("links every rejected field from the error summary", async () => {

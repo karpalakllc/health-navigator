@@ -30,7 +30,12 @@ describe("client checks", () => {
 });
 
 describe("mapApiFieldErrors", () => {
-  const fields = ["name", "email", "password", "password_confirmation"] as const;
+  const fields = [
+    "name",
+    "email",
+    "password",
+    "password_confirmation",
+  ] as const;
   const options = {
     passwordField: "password",
     confirmationField: "password_confirmation",
@@ -83,9 +88,9 @@ describe("mapApiFieldErrors", () => {
     const leaked =
       "Оваа лозинка се појавила во протекување на податоци. Изберете друга лозинка.";
 
-    expect(mapApiFieldErrors({ password: [leaked] }, fields, options)).toEqual(
-      { password: leaked },
-    );
+    expect(mapApiFieldErrors({ password: [leaked] }, fields, options)).toEqual({
+      password: leaked,
+    });
   });
 
   it("returns nothing for a missing or malformed bag", () => {

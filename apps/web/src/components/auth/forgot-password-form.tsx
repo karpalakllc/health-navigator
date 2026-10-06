@@ -79,7 +79,11 @@ export function ForgotPasswordForm() {
       {success ? (
         <PrivacyNote />
       ) : (
-        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+        >
           <TextField
             id={FORGOT_EMAIL_ID}
             label={t("auth.email")}

@@ -83,15 +83,15 @@ describe("ForumNewTopicComposer", () => {
 
   it("preselects a known default category and ignores an unknown one", () => {
     const { unmount } = renderComposer("koza");
-    expect(
-      screen.getByLabelText(requiredLabel("forum.category")),
-    ).toHaveValue("koza");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "koza",
+    );
     unmount();
 
     renderComposer("nepostoi");
-    expect(
-      screen.getByLabelText(requiredLabel("forum.category")),
-    ).toHaveValue("srce");
+    expect(screen.getByLabelText(requiredLabel("forum.category"))).toHaveValue(
+      "srce",
+    );
   });
 
   it("asks for one consent covering rules, diagnosis and emergencies", () => {
@@ -132,9 +132,7 @@ describe("ForumNewTopicComposer", () => {
     expect(title).toHaveAccessibleDescription(
       new RegExp("Напишете најмалку 5 знаци"),
     );
-    expect(body).toHaveAccessibleDescription(
-      new RegExp(t("ui.fieldRequired")),
-    );
+    expect(body).toHaveAccessibleDescription(new RegExp(t("ui.fieldRequired")));
     expect(title).toHaveFocus();
 
     // Fixing the title clears its error as the person types.

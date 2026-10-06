@@ -153,7 +153,9 @@ export function ReplyForm({
                     : t("forum.replySuccess")}
                 </span>
                 {success === "pending" ? (
-                  <span className="type-meta">{t("forum.replyPendingHint")}</span>
+                  <span className="type-meta">
+                    {t("forum.replyPendingHint")}
+                  </span>
                 ) : null}
               </span>
             </>
