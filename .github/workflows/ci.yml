@@ -165,3 +165,70 @@ jobs:
           # robots.txt and every canonical URL. Any value works here; only the
           # deployed build needs the real origin.
           NEXT_PUBLIC_SITE_URL: https://ci.invalid
+
+  e2e:
+    # Browser suite (apps/web/e2e) against the real stack: the Laravel API on
+    # PostgreSQL and a production build of the web app, both started by
+    # Playwright's webServer config. The suite resets and seeds its own database
+    # (E2ESeeder), and every API and web setting comes from
+    # apps/web/e2e/support/env.ts, so no .env or data step is needed here.
+    name: E2E (Playwright, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: zdravje_e2e
+          POSTGRES_USER: zdravje
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: pdo_pgsql, pgsql
+          coverage: none
+      - name: Composer cache directory
+        id: composer-cache
+        working-directory: apps/api
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php8.5-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.5-
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: composer install --no-interaction --prefer-dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Install Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: E2E suite
+        # CI=true (set by Actions): one retry, recorded with a trace.
+        working-directory: apps/web
+        run: npm run e2e
+      - name: Upload report and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          # <repo>/.e2e-output: report/ (HTML) and results/ (traces, screenshots).
+          path: .e2e-output/
+          include-hidden-files: true
+          retention-days: 14
