@@ -92,13 +92,20 @@ export function useLiveFilters({
       }
     }
 
+    // Back/Forward: the URL is the truth again, so the half-typed text goes
+    // too and the input shows the restored filters.
+    function onPopState() {
+      cancelTyping();
+      setDraft({});
+    }
+
     document.addEventListener("click", onClick, true);
-    window.addEventListener("popstate", cancelTyping);
+    window.addEventListener("popstate", onPopState);
 
     return () => {
       cancelTyping();
       document.removeEventListener("click", onClick, true);
-      window.removeEventListener("popstate", cancelTyping);
+      window.removeEventListener("popstate", onPopState);
     };
   }, []);
 

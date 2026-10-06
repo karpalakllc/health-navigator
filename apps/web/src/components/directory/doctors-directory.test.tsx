@@ -230,6 +230,39 @@ describe("Doctors filter sheet", () => {
     }
   });
 
+  it("drops the half-typed text on Back so the input shows the URL again", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      render(
+        <DoctorsDirectory
+          specialties={specialties}
+          applied={{ ...none, q: "Ана" }}
+          total={3}
+        >
+          <p>резултати</p>
+        </DoctorsDirectory>,
+      );
+      const input = screen.getAllByRole("searchbox", {
+        name: t("doctors.queryLabel"),
+      })[0];
+      await user.type(input, " Пет");
+      expect(input).toHaveValue("Ана Пет");
+
+      act(() => {
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(700));
+
+      expect(input).toHaveValue("Ана");
+      expect(router.replace).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("„Исчисти“ resets the sheet's filters but keeps the query", async () => {
     const { user, sheet } = await openSheet({
       q: "Ана",
