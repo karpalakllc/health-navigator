@@ -146,6 +146,9 @@ Then in `apps/api/.env`: `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_H
 2. Optional analytics: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. For self-hosted Plausible also
    set `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` and `NEXT_PUBLIC_PLAUSIBLE_HOST` to the same
    origin — the script loads from the first, the CSP allows the beacon only to the second.
+   The script must be a **manual** build (`script.manual.js`, or a `script.manual.*.js`
+   variant): the web app sends pageviews itself with the query string stripped, and
+   refuses to load any other build, since those report full URLs (`?q=` searches) on their own.
 3. Set Sentry: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT`.
    For readable production stack traces also set `SENTRY_ORG`, `SENTRY_PROJECT` and
    `SENTRY_AUTH_TOKEN` in the **build** environment so source maps are uploaded.
