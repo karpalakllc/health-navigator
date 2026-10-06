@@ -102,6 +102,20 @@ describe("forumTopicJsonLd", () => {
     expect(schemaProblems(data!)).toEqual([]);
   });
 
+  it("skips removed-reply placeholders (no author, no text)", () => {
+    const data = forumTopicJsonLd({
+      topic,
+      posts: [{ id: 99, removed: true }, posts[1]],
+      url,
+      category,
+    });
+
+    expect(data?.comment).toEqual([
+      expect.objectContaining({ url: `${url}#post-12` }),
+    ]);
+    expect(schemaProblems(data!)).toEqual([]);
+  });
+
   it("is not emitted without a publication date, and skips undated replies", () => {
     expect(
       forumTopicJsonLd({

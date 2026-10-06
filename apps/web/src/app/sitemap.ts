@@ -54,6 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/privacy",
     "/terms",
     "/disclaimer",
+    // „Транспарентност“ (W5-I): moderation statistics and ordering rules.
+    "/transparency",
     // Optional modules answer 503 while switched off, so their URLs are only
     // advertised while they are on.
     ...(settings.public_forum ? ["/forum"] : []),

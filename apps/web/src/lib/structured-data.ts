@@ -212,6 +212,22 @@ function replyCounter(count: number) {
   };
 }
 
+type CommentSource = Pick<
+  ForumPost,
+  "id" | "body" | "author_name" | "published_at"
+>;
+
+/**
+ * A reply taken down by moderation, kept in the thread as a placeholder
+ * ({ id, removed: true, … }). Its author and text are gone, so it is not a
+ * Comment. Structural on purpose: the list may hold either shape.
+ */
+type RemovedPlaceholder = { id: number; removed: boolean };
+
+function isRemoved(post: object): post is RemovedPlaceholder {
+  return "removed" in post && (post as { removed?: unknown }).removed === true;
+}
+
 /**
  * A forum topic as Google's DiscussionForumPosting, replies as Comment.
  *
@@ -233,7 +249,8 @@ export function forumTopicJsonLd(input: {
     | "replies_count"
     | "tags"
   >;
-  posts: Pick<ForumPost, "id" | "body" | "author_name" | "published_at">[];
+  /** Replies on this page; removed-reply placeholders are skipped. */
+  posts: readonly (CommentSource | RemovedPlaceholder)[];
   url: string;
   category: { name: string; url: string };
 }): Record<string, unknown> | null {
@@ -244,6 +261,7 @@ export function forumTopicJsonLd(input: {
   }
 
   const comments = posts
+    .filter((post): post is CommentSource => !isRemoved(post))
     .filter((post) => post.published_at)
     .map((post) => ({
       "@type": "Comment",

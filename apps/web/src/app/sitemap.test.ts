@@ -55,6 +55,7 @@ describe("sitemap", () => {
   it("does not advertise the noindex search page", async () => {
     const list = await urls();
 
+    expect(list).toContain("https://zdravje.test/transparency");
     expect(list).toContain("https://zdravje.test/doctors");
     expect(list.some((url) => url.includes("/search"))).toBe(false);
   });
