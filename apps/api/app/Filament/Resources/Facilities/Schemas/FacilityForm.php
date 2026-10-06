@@ -54,6 +54,9 @@ class FacilityForm
                             ->native(false)
                             ->prefixIcon(Heroicon::OutlinedTag),
                         OptimizedImageUpload::avatar('avatar_url', 'facilities')
+                            ->label('Logo')
+                            ->columnSpanFull(),
+                        OptimizedImageUpload::cover('cover_path', 'facilities/covers')
                             ->columnSpanFull(),
                         Textarea::make('description')
                             ->rows(4)

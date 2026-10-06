@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\ReviewStatus;
+use App\Filament\Support\OptimizedImageUpload;
 use App\Models\ClinicalInterest;
 use App\Models\Department;
 use App\Models\Doctor;
@@ -13,13 +14,14 @@ use App\Models\Review;
 use App\Models\User;
 use App\Support\RoleCatalog;
 use App\Support\Slug;
+use Database\Seeders\Concerns\AttachesDemoImages;
 use Database\Seeders\Concerns\SeedsLocalDemoData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class RichDemoSeeder extends Seeder
 {
-    use SeedsLocalDemoData;
+    use AttachesDemoImages, SeedsLocalDemoData;
 
     public function run(): void
     {
@@ -31,6 +33,7 @@ class RichDemoSeeder extends Seeder
 
         /** @var array{doctors: array<string, array<string, mixed>>, facilities: array<string, array<string, mixed>>, extra_members: array<int, array<string, string>>} $data */
         $data = require database_path('seeders/data/rich-profiles.php');
+        $attachImages = $this->shouldAttachDemoImages();
 
         foreach ($data['doctors'] as $slug => $profile) {
             $doctor = Doctor::query()->where('slug', $slug)->first();
@@ -45,10 +48,14 @@ class RichDemoSeeder extends Seeder
                 $profile['languages'],
                 $profile['clinical_interests'],
                 $profile['procedures'],
-                $profile['avatar_url'],
+                $profile['photo'],
             );
 
             $doctor->update($profile);
+
+            if ($attachImages && isset($data['doctors'][$slug]['photo'])) {
+                $this->attachDemoImage($doctor, 'avatar_url', $data['doctors'][$slug]['photo'], 'doctors');
+            }
         }
 
         foreach ($data['facilities'] as $slug => $profile) {
@@ -60,9 +67,20 @@ class RichDemoSeeder extends Seeder
 
             $this->syncFacilityProfileDepartments($facility, $profile);
 
-            unset($profile['departments'], $profile['avatar_url']);
+            unset($profile['departments'], $profile['cover']);
 
             $facility->update($profile);
+
+            if ($attachImages && isset($data['facilities'][$slug]['cover'])) {
+                $this->attachDemoImage(
+                    $facility,
+                    'cover_path',
+                    $data['facilities'][$slug]['cover'],
+                    $facility->isPharmacy() ? 'pharmacies/covers' : 'facilities/covers',
+                    OptimizedImageUpload::COVER_MAX_WIDTH,
+                    OptimizedImageUpload::COVER_MAX_HEIGHT,
+                );
+            }
         }
 
         foreach ($data['extra_members'] as $member) {
@@ -84,6 +102,10 @@ class RichDemoSeeder extends Seeder
         }
 
         $this->seedShowcaseReviews();
+
+        if ($attachImages) {
+            $this->pruneUnusedDemoImages();
+        }
     }
 
     /**

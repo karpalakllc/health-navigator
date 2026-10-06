@@ -30,6 +30,8 @@ class PharmacyDetailResource extends JsonResource
             'email' => $this->email,
             'website' => $this->website,
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
+            'cover_url' => MediaUrl::resolve($this->cover_path),
+            'is_featured' => (bool) $this->is_featured,
             'office_hours' => $this->office_hours ?? [],
             'review_summary' => ReviewSummary::for($this->resource),
         ];

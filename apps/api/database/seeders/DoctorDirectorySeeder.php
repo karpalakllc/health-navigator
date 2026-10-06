@@ -121,6 +121,38 @@ class DoctorDirectorySeeder extends Seeder
                 'specialty_slugs' => ['dermatologija'],
                 'primary' => 'dermatologija',
             ],
+            [
+                'full_name' => 'д-р Јована Велковска',
+                'slug' => 'jovana-velkovska',
+                'title' => 'д-р',
+                'city' => 'Битола',
+                'specialty_slugs' => ['pedijatrija'],
+                'primary' => 'pedijatrija',
+            ],
+            [
+                'full_name' => 'д-р Љупчо Ангеловски',
+                'slug' => 'ljupcho-angelovski',
+                'title' => 'д-р',
+                'city' => 'Охрид',
+                'specialty_slugs' => ['kardiologija'],
+                'primary' => 'kardiologija',
+            ],
+            [
+                'full_name' => 'д-р Катерина Ѓорѓиевска',
+                'slug' => 'katerina-gjorgjievska',
+                'title' => 'д-р',
+                'city' => 'Скопје',
+                'specialty_slugs' => ['dermatologija', 'ginekologija'],
+                'primary' => 'dermatologija',
+            ],
+            [
+                'full_name' => 'д-р Никола Цветков',
+                'slug' => 'nikola-cvetkov',
+                'title' => 'д-р',
+                'city' => 'Прилеп',
+                'specialty_slugs' => ['ortopedija'],
+                'primary' => 'ortopedija',
+            ],
         ];
 
         foreach ($doctors as $definition) {

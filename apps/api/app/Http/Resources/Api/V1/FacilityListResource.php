@@ -24,6 +24,7 @@ class FacilityListResource extends JsonResource
             'type' => $this->type->value,
             'city' => $this->city,
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
+            'cover_url' => MediaUrl::resolve($this->cover_path),
             'has_emergency_services' => (bool) $this->has_emergency_services,
             'is_featured' => (bool) $this->is_featured,
             'departments_count' => (int) ($this->departments_count ?? 0),

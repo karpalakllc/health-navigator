@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DeletesReplacedMedia;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
@@ -19,7 +20,7 @@ use Laravel\Scout\Searchable;
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -50,6 +51,17 @@ class Doctor extends Model
     public static function taxonomyCacheGroups(): array
     {
         return [TaxonomyCache::SPECIALTIES];
+    }
+
+    /**
+     * The uploaded photo. Despite its name the column holds a media-disk path
+     * (or, on legacy rows, an external URL); MediaUrl resolves either.
+     *
+     * @return list<string>
+     */
+    protected function mediaPathColumns(): array
+    {
+        return ['avatar_url'];
     }
 
     protected function casts(): array
@@ -217,6 +229,9 @@ class Doctor extends Model
             'title' => $this->title,
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,
+            // Sortable (config/scout.php): unified search breaks relevance ties
+            // with it, as the SQL path orders featured first.
+            'is_featured' => (bool) $this->is_featured,
             'specialty_names' => $this->specialties->pluck('name')->all(),
             // Meilisearch does not transliterate: "kardio" must find "Кардиологија"
             // as the SQL path (ScriptInsensitiveSearch) does.
