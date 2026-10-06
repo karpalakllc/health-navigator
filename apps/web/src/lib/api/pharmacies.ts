@@ -1,4 +1,4 @@
-import { apiGet, apiGetPaginated } from "@/lib/api/client";
+import { apiGet, apiGetPaginated, directoryCache } from "@/lib/api/client";
 import type {
   PharmacyDetail,
   PharmacyListItem,
@@ -28,7 +28,10 @@ function toQuery(params: Record<string, string | number | undefined>): string {
 }
 
 export async function fetchPharmacies(params: PharmacyListParams = {}) {
-  return apiGetPaginated<PharmacyListItem>(`/pharmacies${toQuery(params)}`);
+  return apiGetPaginated<PharmacyListItem>(
+    `/pharmacies${toQuery(params)}`,
+    directoryCache(params),
+  );
 }
 
 export async function fetchPharmacy(slug: string): Promise<PharmacyDetail> {

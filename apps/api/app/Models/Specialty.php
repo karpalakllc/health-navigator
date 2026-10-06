@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\SpecialtyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Specialty extends Model
 {
     /** @use HasFactory<SpecialtyFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, InvalidatesTaxonomyCache, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -22,6 +24,14 @@ class Specialty extends Model
         'sort_order',
         'is_published',
     ];
+
+    /**
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::SPECIALTIES];
+    }
 
     protected function casts(): array
     {

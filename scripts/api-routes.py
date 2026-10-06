@@ -23,6 +23,7 @@ ALIAS = {
     "EnsureRegistrationsEnabled": "registrations",
     "EnsureEmailIsVerified": "verified",
     "OptionalSanctumAuth": "auth.sanctum.optional",
+    "SetPublicCacheHeaders": "cache.public",
     "ValidateSignature": "signed",
     "Authenticate": "auth",
     "ThrottleRequests": "throttle",

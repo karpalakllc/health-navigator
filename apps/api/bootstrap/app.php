@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\IgnoreRememberMeCookie;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
+use App\Http\Middleware\SetPublicCacheHeaders;
 use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Http\Responses\ApiResponse;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'registrations' => EnsureRegistrationsEnabled::class,
             'maintenance' => EnsureNotInMaintenance::class,
             'auth.sanctum.optional' => OptionalSanctumAuth::class,
+            'cache.public' => SetPublicCacheHeaders::class,
             // Overrides the framework alias so refusals use this API's envelope.
             'verified' => EnsureEmailIsVerified::class,
         ]);

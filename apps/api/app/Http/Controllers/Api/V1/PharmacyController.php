@@ -11,7 +11,6 @@ use App\Http\Resources\Api\V1\PharmacyShelfProductResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
-use App\Support\ReviewSummary;
 use App\Support\ScriptInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 
@@ -21,7 +20,7 @@ class PharmacyController extends Controller
     {
         $validated = $request->validated();
 
-        $query = ReviewSummary::eagerLoad(Facility::query())
+        $query = Facility::query()
             ->published()
             ->pharmacy()
             ->orderBy('name');
@@ -59,7 +58,8 @@ class PharmacyController extends Controller
         $query = PharmacyCatalog::availableProductsRelation($pharmacy);
 
         if (! empty($validated['q'])) {
-            ScriptInsensitiveSearch::whereColumnMatches($query, 'products.name', $validated['q']);
+            // The relation's underlying builder: the helper takes an Eloquent Builder.
+            ScriptInsensitiveSearch::whereColumnMatches($query->getQuery(), 'products.name', $validated['q']);
         }
 
         if (! empty($validated['category'])) {
@@ -82,7 +82,7 @@ class PharmacyController extends Controller
 
     protected function findPublishedPharmacy(string $slug): Facility
     {
-        return ReviewSummary::eagerLoad(Facility::query())
+        return Facility::query()
             ->published()
             ->pharmacy()
             ->where('slug', $slug)

@@ -24,9 +24,13 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class);
     Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
     Route::get('/search', SearchController::class);
-    Route::get('/departments', [DepartmentController::class, 'index']);
-    Route::get('/specialties', [SpecialtyController::class, 'index']);
-    Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+    // Anonymous, identical-for-everyone taxonomies: shared caches may keep them
+    // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
+    Route::middleware('cache.public')->group(function (): void {
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/specialties', [SpecialtyController::class, 'index']);
+        Route::get('/specialties/{slug}', [SpecialtyController::class, 'show']);
+    });
     Route::get('/doctors', [DoctorController::class, 'index']);
     // Optional auth so meta.viewer_review resolves: without it a signed-in user who
     // has already reviewed a profile is shown the submission form, then told they
@@ -52,7 +56,8 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::middleware('module:forum')->group(function (): void {
-        Route::get('/forum/categories', [ForumController::class, 'indexCategories']);
+        Route::get('/forum/categories', [ForumController::class, 'indexCategories'])
+            ->middleware('cache.public');
         Route::get('/forum/topics/recent', [ForumController::class, 'recentTopics']);
         Route::get('/forum/topics', [ForumController::class, 'searchTopics']);
         Route::get('/forum/categories/{category}/topics', [ForumController::class, 'indexTopics']);

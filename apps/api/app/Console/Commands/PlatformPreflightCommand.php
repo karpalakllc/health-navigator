@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
 use App\Http\Middleware\TrustWebTierClientIp;
 use App\Support\DeploymentEnvironment;
+use App\Support\TrigramSearchIndexes;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Facades\Filament;
 use Illuminate\Console\Command;
@@ -85,6 +86,7 @@ class PlatformPreflightCommand extends Command
         $this->checkSeeding();
         $this->checkMedia();
         $this->checkSearch();
+        $this->checkDatabaseExtensions();
         $this->checkMonitoring();
     }
 
@@ -349,6 +351,25 @@ class PlatformPreflightCommand extends Command
 
         if (blank(config('scout.meilisearch.key'))) {
             $this->addError('scout.meilisearch.key', 'SCOUT_DRIVER is meilisearch but MEILISEARCH_KEY is not set.');
+        }
+    }
+
+    /**
+     * The one check that reads the database rather than config(): whether
+     * pg_trgm exists cannot be known from configuration. A warning, not an
+     * error — search still works without it, only unindexed
+     * (docs/performance.md).
+     */
+    private function checkDatabaseExtensions(): void
+    {
+        $connection = (string) config('database.default');
+
+        if (config("database.connections.{$connection}.driver") !== 'pgsql') {
+            return;
+        }
+
+        if (! TrigramSearchIndexes::extensionInstalled()) {
+            $this->addWarning('database.pg_trgm', 'The pg_trgm extension is not installed (or the database is unreachable), so directory and forum searches (ILIKE \'%term%\') fall back to sequential scans. Allow pg_trgm on the managed database, then re-run `php artisan migrate` or create the indexes from 2026_10_10_120001_add_trigram_search_indexes.');
         }
     }
 

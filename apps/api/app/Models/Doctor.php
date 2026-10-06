@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\TaxonomyCache;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +17,7 @@ use Laravel\Scout\Searchable;
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use HasFactory, Searchable, SoftDeletes;
+    use HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -37,6 +39,16 @@ class Doctor extends Model
         'is_published',
         'published_at',
     ];
+
+    /**
+     * GET /specialties embeds published-doctor counts.
+     *
+     * @return list<string>
+     */
+    public static function taxonomyCacheGroups(): array
+    {
+        return [TaxonomyCache::SPECIALTIES];
+    }
 
     protected function casts(): array
     {

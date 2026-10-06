@@ -1,4 +1,4 @@
-import { apiGet, apiGetPaginated } from "@/lib/api/client";
+import { apiGet, apiGetPaginated, directoryCache } from "@/lib/api/client";
 import type { ProductDetail, ProductListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
 
@@ -25,7 +25,11 @@ function toQuery(params: Record<string, string | number | undefined>): string {
 }
 
 export async function fetchProducts(params: ProductListParams = {}) {
-  return apiGetPaginated<ProductListItem>(`/products${toQuery(params)}`);
+  // category is free text in the API (an ILIKE match), so it is uncached too.
+  return apiGetPaginated<ProductListItem>(
+    `/products${toQuery(params)}`,
+    directoryCache(params, ["q", "category"]),
+  );
 }
 
 export async function fetchProduct(slug: string): Promise<ProductDetail> {

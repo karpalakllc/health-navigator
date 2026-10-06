@@ -24,6 +24,7 @@ use App\Support\Forum\ForumContentModeration;
 use App\Support\ForumAuthorCounts;
 use App\Support\MeilisearchGateway;
 use App\Support\Slug;
+use App\Support\TaxonomyCache;
 use App\Support\UgcMailer;
 use App\Support\UniqueSlug;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,14 +87,16 @@ class ForumController extends Controller
 
     public function indexCategories(): JsonResponse
     {
-        $categories = ForumCategory::query()
-            ->published()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->withCount(['topics' => fn ($query) => $query->approved()])
-            ->get();
+        $payload = TaxonomyCache::remember(TaxonomyCache::FORUM_CATEGORIES, 'index', fn () => ForumCategoryResource::collection(
+            ForumCategory::query()
+                ->published()
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->withCount(['topics' => fn ($query) => $query->approved()])
+                ->get(),
+        )->resolve());
 
-        return ApiResponse::success(ForumCategoryResource::collection($categories));
+        return ApiResponse::success($payload);
     }
 
     public function indexTopics(string $category, ListForumTopicsRequest $request): JsonResponse

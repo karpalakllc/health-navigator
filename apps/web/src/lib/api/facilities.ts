@@ -1,4 +1,8 @@
-import { apiGetPaginated, type ApiCacheOptions } from "@/lib/api/client";
+import {
+  apiGetPaginated,
+  directoryCache,
+  type ApiCacheOptions,
+} from "@/lib/api/client";
 import { apiGetServer } from "@/lib/api/server";
 import type { FacilityDetail, FacilityListItem } from "@/lib/api/types";
 import { pathSegment } from "@/lib/api/path";
@@ -42,7 +46,7 @@ export async function fetchFacilities(
 ) {
   return apiGetPaginated<FacilityListItem>(
     `/facilities${toQuery(params)}`,
-    options,
+    options ?? directoryCache(params),
   );
 }
 

@@ -46,7 +46,10 @@ return [
     |
     */
 
-    'queue' => env('SCOUT_QUEUE', false),
+    // On by default: indexing must not run inside the admin's save request.
+    // Needs the queue worker that mail already requires; the test suite and
+    // E2E run QUEUE_CONNECTION=sync, so jobs still execute inline there.
+    'queue' => env('SCOUT_QUEUE', true),
 
     /*
     |--------------------------------------------------------------------------
