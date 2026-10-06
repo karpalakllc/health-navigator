@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -49,6 +50,8 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return [
             'email_verified_at' => 'datetime',
             'registration_contested_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'anonymised_at' => 'datetime',
             'password' => 'hashed',
             'user_kind' => UserKind::class,
             // Ciphertext under APP_KEY; the recovery codes inside are also hashed.
@@ -87,6 +90,11 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      */
     public function publicName(): string
     {
+        // Rendered, not stored: the row of a deleted account keeps no name.
+        if ($this->isAnonymised()) {
+            return __('api.account.deleted_user_name');
+        }
+
         if (filled($this->display_name)) {
             return (string) $this->display_name;
         }
@@ -110,6 +118,10 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($this->isSuspended() || $this->isAnonymised()) {
+            return false;
+        }
+
         if ($this->can('admin.access')) {
             return true;
         }
@@ -200,6 +212,51 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function isClient(): bool
     {
         return $this->user_kind === UserKind::Client;
+    }
+
+    /**
+     * Set by staff (Filament Clients → Suspend). A suspended account cannot sign
+     * in, and its API tokens are refused until it is unsuspended
+     * (AppServiceProvider); its content stays unless moderated separately.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * The member deleted their account (App\Actions\AnonymiseUser): the row
+     * remains only so their public content keeps an author.
+     */
+    public function isAnonymised(): bool
+    {
+        return $this->anonymised_at !== null;
+    }
+
+    public function suspend(User $by, string $reason): void
+    {
+        $this->forceFill([
+            'suspended_at' => now(),
+            'suspension_reason' => $reason,
+            'suspended_by_id' => $by->getKey(),
+        ])->save();
+    }
+
+    public function unsuspend(): void
+    {
+        $this->forceFill([
+            'suspended_at' => null,
+            'suspension_reason' => null,
+            'suspended_by_id' => null,
+        ])->save();
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function suspendedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suspended_by_id');
     }
 
     public function isForumModerator(): bool

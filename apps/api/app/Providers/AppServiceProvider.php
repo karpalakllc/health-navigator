@@ -42,10 +42,18 @@ class AppServiceProvider extends ServiceProvider
         // a constant two permission queries per token-authenticated request
         // (Spatie resolves admin.access through the user's roles and direct
         // permissions; the permission list itself is cached).
+        //
+        // Suspension (D7) works the same way: a suspended account's tokens are
+        // refused from the next request on, without being deleted, so that
+        // unsuspending restores the member's sessions. The flag is a column on
+        // the already-loaded tokenable, so it costs no extra query, and it is
+        // checked first.
         Sanctum::authenticateAccessTokensUsing(
             fn (PersonalAccessToken $token, bool $isValid): bool => $isValid
                 && ! ($token->tokenable instanceof User
-                    && $token->tokenable->requiresMultiFactorAuthentication()),
+                    && ($token->tokenable->isSuspended()
+                        || $token->tokenable->isAnonymised()
+                        || $token->tokenable->requiresMultiFactorAuthentication())),
         );
 
         // Pushed here rather than in bootstrap/app.php: it joins the api group

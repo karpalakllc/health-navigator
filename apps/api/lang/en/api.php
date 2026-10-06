@@ -36,6 +36,17 @@ return [
         'throttled' => 'Too many failed attempts. Please try again in :seconds seconds.',
         'email_unverified' => 'Please confirm your email address before continuing. Check your inbox or request a new link.',
         'staff_use_admin' => 'This account is protected by two-factor authentication. Sign in through the administration panel.',
+        'account_suspended' => 'This account is temporarily disabled. If you think this is a mistake, please contact us.',
+    ],
+
+    'account' => [
+        'deleted_user_name' => 'Deleted user',
+        'password_incorrect' => 'The password is incorrect.',
+        'staff_cannot_delete' => 'Team accounts cannot be deleted here. Please contact an administrator.',
+        'deleted' => 'The account has been deleted.',
+        'export_throttled' => 'You downloaded a copy recently. Please try again later.',
+        'token_revoked' => 'The device has been signed out.',
+        'tokens_revoked' => 'Other devices have been signed out.',
     ],
 
     'registration' => [

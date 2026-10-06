@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Clients\Pages;
 
 use App\Filament\Resources\Clients\ClientUserResource;
 use App\Filament\Support\SetPasswordAction;
+use App\Filament\Support\SuspendAccountActions;
 use Filament\Resources\Pages\EditRecord;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -15,9 +16,12 @@ class EditClientUser extends EditRecord
     {
         return [
             SetPasswordAction::make(),
+            SuspendAccountActions::suspend(),
+            SuspendAccountActions::unsuspend(),
             // No DeleteAction: UserPolicy::delete refuses clients because their
             // reviews and forum content reference them with restrictOnDelete.
-            // Erasure needs anonymisation, which is tracked separately.
+            // Members erase their own account by anonymisation
+            // (DELETE /api/v1/me, App\Actions\AnonymiseUser).
         ];
     }
 
