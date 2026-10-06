@@ -21,6 +21,9 @@ class PendingModerationOverview extends StatsOverviewWidget
 {
     protected static ?int $sort = -2;
 
+    // Filament polls every 5s by default; a queue count does not need that.
+    protected ?string $pollingInterval = '60s';
+
     protected ?string $heading = 'Moderation queue';
 
     protected ?string $description = 'Pending user content awaiting staff review. Click a stat to open the filtered queue.';

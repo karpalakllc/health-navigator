@@ -12,6 +12,9 @@ class AnalyticsSummaryStats extends StatsOverviewWidget
 
     protected static ?int $sort = 1;
 
+    // Day-level trends and directory totals: reloading the page is enough.
+    protected ?string $pollingInterval = null;
+
     /**
      * @return array<Stat>
      */
