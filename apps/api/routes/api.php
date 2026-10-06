@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
+use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -169,4 +171,31 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);
         Route::delete('/tokens/{token}', [TokenController::class, 'destroy'])->whereNumber('token');
     });
+
+    // „Мој профил“ (W5-C): the doctor profile staff linked to this account.
+    // Practice details save at once; identity, qualifications, specialties
+    // and workplaces become a change request for staff; one reply per
+    // published review, pre-moderated by default. Per-account windows, as
+    // for reports above.
+    Route::middleware(['auth:sanctum', 'verified', 'throttle:120,1,api-doctor-dashboard'])
+        ->prefix('me/doctor')
+        ->group(function (): void {
+            Route::get('/', [DoctorDashboardController::class, 'show']);
+            Route::get('/reviews', [DoctorDashboardController::class, 'reviews']);
+            Route::middleware('throttle:60,60,api-doctor-dashboard-writes')->group(function (): void {
+                Route::patch('/', [DoctorDashboardController::class, 'update']);
+                Route::post('/avatar', [DoctorDashboardController::class, 'updateAvatar']);
+                Route::post('/change-requests', [DoctorDashboardController::class, 'storeChangeRequest']);
+                Route::delete('/change-requests/{changeRequest}', [DoctorDashboardController::class, 'withdrawChangeRequest'])
+                    ->whereNumber('changeRequest');
+                Route::put('/reviews/{review}/reply', [DoctorDashboardController::class, 'upsertReply'])
+                    ->whereNumber('review');
+                Route::delete('/reviews/{review}/reply', [DoctorDashboardController::class, 'destroyReply'])
+                    ->whereNumber('review');
+            });
+        });
+
+    // „Ова е мој профил“: a member asks staff to link them to a profile.
+    Route::post('/doctors/{slug}/claim-requests', [DoctorClaimController::class, 'store'])
+        ->middleware(['auth:sanctum', 'verified', 'throttle:5,1440,api-doctor-claims']);
 });

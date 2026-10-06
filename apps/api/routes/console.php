@@ -38,3 +38,10 @@ Schedule::command('queue:prune-failed --hours=720')
     ->dailyAt('04:30')
     ->onOneServer()
     ->withoutOverlapping();
+
+// Audit log retention (docs/data-inventory.md): entries older than
+// activitylog.clean_after_days (365) are deleted.
+Schedule::command('activitylog:clean --force')
+    ->dailyAt('04:45')
+    ->onOneServer()
+    ->withoutOverlapping();

@@ -191,7 +191,7 @@ class ContentReport extends Model
 
         $reporterIds = (clone $open)->pluck('user_id')->unique()->all();
 
-        $open->update([
+        $closed = $open->update([
             'status' => $outcome->value,
             'resolved_by_id' => $moderator->getKey(),
             'resolved_at' => now(),
@@ -201,6 +201,19 @@ class ContentReport extends Model
         $this->refresh();
 
         $content = $this->reportable;
+
+        // Audit log: the decision on the item, by whom, closing how many
+        // reports. Neither the reporters nor their notes are copied.
+        $entry = activity('reports')
+            ->causedBy($moderator)
+            ->event($outcome->value)
+            ->withProperties([
+                'reportable_type' => $this->reportable_type,
+                'reportable_id' => $this->reportable_id,
+                'reports_closed' => $closed,
+            ]);
+
+        ($content instanceof Model ? $entry->performedOn($content) : $entry)->log('report_resolved');
 
         if ($content instanceof Model && $reporterIds !== []) {
             DB::afterCommit(fn () => UgcMailer::notifyReportResolved(

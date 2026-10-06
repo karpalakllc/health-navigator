@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\ReviewResponseSource;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
@@ -36,14 +37,15 @@ class PublicReviewResource extends JsonResource
     }
 
     /**
-     * The reviewed doctor's or facility's official response (entered by staff
-     * on their behalf), or null. Plain text; clients render it as text.
+     * The reviewed doctor's or facility's reply, or null: entered by staff on
+     * their behalf (`source` staff) or written by the linked doctor (`source`
+     * doctor, shown only once approved). Plain text; clients render it as text.
      *
-     * @return array{body: string, responder_name: string|null, responded_at: string|null}|null
+     * @return array{body: string, responder_name: string|null, responded_at: string|null, source: string}|null
      */
     private function officialResponse(): ?array
     {
-        if (! $this->hasResponse()) {
+        if (! $this->hasPublicResponse()) {
             return null;
         }
 
@@ -57,6 +59,7 @@ class PublicReviewResource extends JsonResource
                 default => null,
             },
             'responded_at' => $this->response_at?->toIso8601String(),
+            'source' => ($this->response_source ?? ReviewResponseSource::Staff)->value,
         ];
     }
 }

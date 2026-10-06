@@ -16,6 +16,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -204,6 +205,14 @@ class DoctorForm
 
                                 return $url ? "Public: {$url}" : null;
                             }),
+                        // Set with the „Assign account“ header action, not here.
+                        TextEntry::make('owner_summary')
+                            ->label('Managed by (member account)')
+                            ->state(fn (?Doctor $record): string => $record?->owner
+                                ? $record->owner->email.' · since '.$record->owner_linked_at?->format('Y-m-d')
+                                : '—')
+                            ->visible(fn (?Doctor $record): bool => $record?->owner_user_id !== null)
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

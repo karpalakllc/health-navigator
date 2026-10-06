@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Actions\DoctorAccount\ForgetDoctorAccountData;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
@@ -39,6 +40,7 @@ final class AnonymiseUser
 
     public function __construct(
         private readonly ImageOptimizer $images,
+        private readonly ForgetDoctorAccountData $doctorAccount,
     ) {}
 
     public function handle(User $user): void
@@ -77,6 +79,7 @@ final class AnonymiseUser
             $locked->syncRoles([]);
             $locked->syncPermissions([]);
             $locked->moderatedForumCategories()->detach();
+            $this->doctorAccount->handle($locked);
 
             DB::table('sessions')->where('user_id', $locked->getKey())->delete();
             DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))

@@ -7,6 +7,7 @@ use App\Filament\Resources\Doctors\Concerns\SyncsDoctorFacilities;
 use App\Filament\Resources\Doctors\Concerns\SyncsDoctorSpecialties;
 use App\Filament\Resources\Doctors\Concerns\SyncsDoctorTaxonomies;
 use App\Filament\Resources\Doctors\DoctorResource;
+use App\Filament\Support\DoctorOwnerActions;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -25,6 +26,8 @@ class EditDoctor extends EditRecord
     {
         return [
             $this->getPublicPreviewAction(),
+            DoctorOwnerActions::assign(),
+            DoctorOwnerActions::remove(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),

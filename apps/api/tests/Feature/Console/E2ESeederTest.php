@@ -74,6 +74,22 @@ class E2ESeederTest extends TestCase
         $this->assertSame(E2ESeeder::ATTEMPTS, Review::query()->where('body', 'like', 'Рецензија за пријава %')->approved()->count());
     }
 
+    public function test_reseeding_returns_the_doctor_claim_profiles_to_unmanaged(): void
+    {
+        $this->seed(E2ESeeder::class);
+
+        $doctor = Doctor::query()->where('slug', E2ESeeder::DOCTOR_CLAIM_SLUG_PREFIX.'-0')->sole();
+        $account = User::query()->where('email', 'doctor-0@e2e.test')->sole();
+        $review = $doctor->reviews()->approved()->sole();
+        $doctor->forceFill(['owner_user_id' => $account->id])->save();
+        $review->replyAsDoctor($account, 'Благодарам.', true);
+
+        $this->seed(E2ESeeder::class);
+
+        $this->assertNull($doctor->fresh()->owner_user_id);
+        $this->assertNull($review->fresh()->response_body);
+    }
+
     public function test_each_staff_account_has_its_own_totp_secret(): void
     {
         $this->seed(E2ESeeder::class);

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Reviews\Schemas;
 
+use App\Enums\ReviewResponseSource;
+use App\Enums\ReviewResponseStatus;
 use App\Enums\ReviewStatus;
 use App\Filament\Support\ReviewableLabel;
 use App\Models\Review;
@@ -42,6 +44,19 @@ class ReviewInfolist
                 TextEntry::make('responseBy.name')
                     ->label('Response entered by')
                     ->visible(fn (Review $record): bool => $record->hasResponse()),
+                TextEntry::make('response_source')
+                    ->label('Response written by')
+                    ->formatStateUsing(fn (?ReviewResponseSource $state): string => $state === ReviewResponseSource::Doctor ? 'The doctor (linked account)' : 'Staff')
+                    ->visible(fn (Review $record): bool => $record->hasResponse()),
+                TextEntry::make('response_status')
+                    ->label('Response status')
+                    ->badge()
+                    ->formatStateUsing(fn (?ReviewResponseStatus $state): string => ucfirst($state->value ?? 'approved'))
+                    ->visible(fn (Review $record): bool => $record->hasResponse()),
+                TextEntry::make('response_rejection_note')
+                    ->label('Reply rejection reason')
+                    ->visible(fn (Review $record): bool => filled($record->response_rejection_note))
+                    ->columnSpanFull(),
                 TextEntry::make('response_at')
                     ->label('Response date')
                     ->dateTime()

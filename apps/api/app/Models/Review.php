@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Enums\ReviewResponseSource;
+use App\Enums\ReviewResponseStatus;
 use App\Enums\ReviewStatus;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\ReviewAggregates;
@@ -15,11 +17,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Review extends Model
 {
     /** @use HasFactory<ReviewFactory> */
-    use HasFactory, InvalidatesTaxonomyCache;
+    use HasFactory, InvalidatesTaxonomyCache, LogsActivity;
+
+    /**
+     * Audit log: moderation decisions and every change to the reply under the
+     * review. Creation is not logged, and neither the review text nor the
+     * author is copied into the log (both may describe someone's health).
+     *
+     * @var list<string>
+     */
+    protected static array $recordEvents = ['updated', 'deleted'];
 
     protected $fillable = [
         'user_id',
@@ -83,6 +96,25 @@ class Review extends Model
         return [TaxonomyCache::HOME_HIGHLIGHTS];
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('reviews')
+            ->logOnly([
+                'status',
+                'moderated_by_id',
+                'rejection_note',
+                'response_body',
+                'response_by_id',
+                'response_source',
+                'response_status',
+                'response_moderated_by_id',
+                'response_rejection_note',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
     protected function casts(): array
     {
         return [
@@ -92,6 +124,9 @@ class Review extends Model
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
             'response_at' => 'datetime',
+            'response_source' => ReviewResponseSource::class,
+            'response_status' => ReviewResponseStatus::class,
+            'response_moderated_at' => 'datetime',
         ];
     }
 
@@ -205,6 +240,8 @@ class Review extends Model
      * Attach (or replace) the official response of the reviewed doctor or
      * facility, entered by staff on their behalf. Stored as plain text: any
      * markup is stripped, line breaks are kept (at most one blank line).
+     * Public at once. Staff text is a staff response, also when it edits a
+     * doctor's own reply.
      */
     public function respond(User $staff, string $body): void
     {
@@ -212,6 +249,51 @@ class Review extends Model
             'response_body' => self::plainResponse($body),
             'response_by_id' => $staff->getKey(),
             'response_at' => now(),
+            'response_source' => ReviewResponseSource::Staff,
+            'response_status' => ReviewResponseStatus::Approved,
+            'response_moderated_by_id' => $staff->getKey(),
+            'response_moderated_at' => now(),
+            'response_rejection_note' => null,
+        ])->save();
+    }
+
+    /**
+     * The linked doctor's own reply (DoctorDashboardController). One per
+     * review: writing again replaces it. It waits for staff approval while
+     * doctor_replies_require_moderation is on, and an edit of an approved
+     * reply waits again, so unreviewed text is never public.
+     */
+    public function replyAsDoctor(User $doctorAccount, string $body, bool $requiresModeration): void
+    {
+        $this->forceFill([
+            'response_body' => self::plainResponse($body),
+            'response_by_id' => $doctorAccount->getKey(),
+            'response_at' => now(),
+            'response_source' => ReviewResponseSource::Doctor,
+            'response_status' => $requiresModeration ? ReviewResponseStatus::Pending : ReviewResponseStatus::Approved,
+            'response_moderated_by_id' => null,
+            'response_moderated_at' => null,
+            'response_rejection_note' => null,
+        ])->save();
+    }
+
+    public function approveDoctorReply(User $staff): void
+    {
+        $this->forceFill([
+            'response_status' => ReviewResponseStatus::Approved,
+            'response_moderated_by_id' => $staff->getKey(),
+            'response_moderated_at' => now(),
+            'response_rejection_note' => null,
+        ])->save();
+    }
+
+    public function rejectDoctorReply(User $staff, string $note): void
+    {
+        $this->forceFill([
+            'response_status' => ReviewResponseStatus::Rejected,
+            'response_moderated_by_id' => $staff->getKey(),
+            'response_moderated_at' => now(),
+            'response_rejection_note' => $note,
         ])->save();
     }
 
@@ -221,12 +303,55 @@ class Review extends Model
             'response_body' => null,
             'response_by_id' => null,
             'response_at' => null,
+            'response_source' => null,
+            'response_status' => null,
+            'response_moderated_by_id' => null,
+            'response_moderated_at' => null,
+            'response_rejection_note' => null,
         ])->save();
     }
 
+    /** A reply exists, in any state (staff tools act on it). */
     public function hasResponse(): bool
     {
         return filled($this->response_body);
+    }
+
+    /** A reply the public may see: only once approved. */
+    public function hasPublicResponse(): bool
+    {
+        return $this->hasResponse() && $this->response_status === ReviewResponseStatus::Approved;
+    }
+
+    public function hasDoctorReply(): bool
+    {
+        return $this->hasResponse() && $this->response_source === ReviewResponseSource::Doctor;
+    }
+
+    public function hasPendingDoctorReply(): bool
+    {
+        return $this->hasDoctorReply() && $this->response_status === ReviewResponseStatus::Pending;
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function responseModeratedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'response_moderated_by_id');
+    }
+
+    /**
+     * Doctor replies waiting for staff (the „Doctor replies“ queue).
+     *
+     * @param  Builder<Review>  $query
+     * @return Builder<Review>
+     */
+    public function scopeWithPendingDoctorReply(Builder $query): Builder
+    {
+        return $query->whereNotNull('response_body')
+            ->where('response_source', ReviewResponseSource::Doctor)
+            ->where('response_status', ReviewResponseStatus::Pending);
     }
 
     public static function plainResponse(string $body): string

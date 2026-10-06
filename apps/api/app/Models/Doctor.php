@@ -11,17 +11,21 @@ use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, InvalidatesTaxonomyCache, LogsActivity, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',
@@ -84,9 +88,26 @@ class Doctor extends Model
         return ['avatar_url'];
     }
 
+    /**
+     * Audit log: every attribute change — staff edits, featured/sponsored and
+     * publication toggles, the linked doctor's own edits, account assignment —
+     * with who made it. The denormalised review aggregates are written by a
+     * query and left out here too: they are counts, not decisions.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('doctor_profile')
+            ->logAll()
+            ->logExcept(['id', 'reviews_count', 'rating_avg'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
     protected function casts(): array
     {
         return [
+            'owner_linked_at' => 'datetime',
             'office_hours' => 'array',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
@@ -139,6 +160,48 @@ class Doctor extends Model
         return $this->belongsToMany(Facility::class)
             ->withPivot(['is_primary'])
             ->withTimestamps();
+    }
+
+    /**
+     * The member account that manages this profile („Мој профил“), assigned by
+     * staff (App\Actions\DoctorAccount\AssignDoctorOwner).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function ownerLinkedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_linked_by_id');
+    }
+
+    /**
+     * @return HasMany<DoctorChangeRequest, $this>
+     */
+    public function changeRequests(): HasMany
+    {
+        return $this->hasMany(DoctorChangeRequest::class);
+    }
+
+    public function isOwnedBy(?User $user): bool
+    {
+        return $user !== null
+            && $this->owner_user_id !== null
+            && (int) $this->owner_user_id === (int) $user->getKey();
+    }
+
+    /**
+     * The profile an account manages, if any (at most one, by a unique index).
+     */
+    public static function managedBy(User $user): ?self
+    {
+        return static::query()->where('owner_user_id', $user->getKey())->first();
     }
 
     /**
