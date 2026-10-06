@@ -519,7 +519,6 @@
 @layer utilities {
   .surface-glass,
   .surface-glass-strong,
-  .how-card,
   .content-card,
   .directory-card,
   .trust-badge-compact {
@@ -578,16 +577,6 @@
     display: none;
   }
 
-  .rail-scroll-x {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .rail-scroll-x::-webkit-scrollbar {
-    display: none;
-  }
-
   .icon-soft-red {
     background: var(--color-apricot);
     color: var(--color-ink);
@@ -599,8 +588,7 @@
   }
 
   .btn-gradient-primary,
-  .btn-gradient-teal,
-  .step-no-gradient {
+  .btn-gradient-teal {
     background: var(--color-ink);
     color: var(--color-white);
     box-shadow: none;
@@ -609,12 +597,6 @@
   .btn-gradient-primary:hover,
   .btn-gradient-teal:hover {
     background: var(--color-action-hover);
-  }
-
-  .forum-band-gradient {
-    background: var(--color-apricot);
-    color: var(--color-ink);
-    box-shadow: none;
   }
 
   .glass {
@@ -627,7 +609,6 @@
     transition: box-shadow 150ms var(--ease-out-soft);
   }
 
-  .text-gradient,
   .heading-accent {
     color: inherit;
   }
