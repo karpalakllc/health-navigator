@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\IgnoreRememberMeCookie;
 use App\Http\Middleware\OptionalSanctumAuth;
 use App\Http\Middleware\SetApiLocale;
 use App\Http\Middleware\SetSecurityHeaders;
@@ -85,6 +86,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SetApiLocale::class,
             EnsureNotInMaintenance::class,
         ]);
+
+        // The panel's own stack has it too; this covers the web group, which
+        // carries Livewire's update endpoint (where the panel's forms submit).
+        $middleware->web(append: [IgnoreRememberMeCookie::class]);
 
         // Baseline limit for every v1 route; the named limiters stay layered on top.
         $middleware->throttleApi('api');
