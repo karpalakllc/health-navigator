@@ -44,6 +44,31 @@ class E2ESeederTest extends TestCase
         $this->runSeederDirectly();
     }
 
+    public function test_refuses_a_shared_development_box(): void
+    {
+        // Not deployed as far as DeploymentEnvironment is concerned, but
+        // reachable by others; a published staff password does not belong there.
+        $this->app->detectEnvironment(fn () => 'development');
+
+        $this->expectException(RuntimeException::class);
+
+        $this->runSeederDirectly();
+    }
+
+    public function test_each_staff_account_has_its_own_totp_secret(): void
+    {
+        $this->seed(E2ESeeder::class);
+
+        $admin = User::query()->where('email', E2ESeeder::ADMIN_EMAIL)->firstOrFail();
+        $moderator = User::query()->where('email', E2ESeeder::STAFF_MODERATOR_EMAIL)->firstOrFail();
+
+        // Filament's replay guard keys the last used step on the secret, so a
+        // shared one would reject the second account's code in the same step.
+        $this->assertSame(E2ESeeder::ADMIN_TOTP_SECRET, $admin->app_authentication_secret);
+        $this->assertSame(E2ESeeder::STAFF_MODERATOR_TOTP_SECRET, $moderator->app_authentication_secret);
+        $this->assertNotSame($admin->app_authentication_secret, $moderator->app_authentication_secret);
+    }
+
     /** Not through db:seed, which stops to confirm in production. */
     private function runSeederDirectly(): void
     {

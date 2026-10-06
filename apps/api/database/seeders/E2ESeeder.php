@@ -17,7 +17,6 @@ use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
-use App\Support\DeploymentEnvironment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -27,11 +26,11 @@ use RuntimeException;
  * migration: `php artisan migrate:fresh --seed --seeder=E2ESeeder`.
  *
  * Every value the browser specs assert on is a constant here, mirrored in
- * apps/web/e2e/fixtures.ts — change both together.
+ * apps/web/e2e/support/fixtures.ts — change both together.
  *
  * Unlike the demo seeders, SEED_LOCAL_DEMO does not unlock this one: it creates
- * staff accounts with a published password, so it refuses to run anywhere
- * DeploymentEnvironment counts as deployed, and it throws rather than warns so
+ * staff accounts with a published password, so it refuses to run outside
+ * `local` and `testing` (not even on a shared `development` box), and it throws rather than warns so
  * a misconfigured E2E run fails instead of testing an empty database.
  *
  * Accounts that a spec changes (a password reset, a review, a new topic) come
@@ -52,11 +51,20 @@ class E2ESeeder extends Seeder
     public const MEMBER_EMAIL = 'member@e2e.test';
 
     /**
-     * Base32 TOTP secret for the staff accounts, for when the admin panel
-     * requires app authentication (staff 2FA). The admin spec derives the
-     * current code from it (apps/web/e2e/support/totp.ts).
+     * Base32 TOTP secrets for the staff accounts' app authentication (staff
+     * 2FA). The admin spec derives the current code from them
+     * (apps/web/e2e/support/totp.ts).
+     *
+     * One per account, never shared: Filament's replay guard remembers the last
+     * accepted 30-second step per secret, so two accounts on one secret could
+     * not both sign in within the same step.
      */
-    public const STAFF_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
+    public const ADMIN_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
+
+    public const STAFF_MODERATOR_TOTP_SECRET = 'KRUGKIDROVUWG2ZA';
+
+    /** Environments it may run in: a developer's machine and the test suite. */
+    public const ENVIRONMENTS = ['local', 'testing'];
 
     /** Copies per mutable account: Playwright's retry index is 0 or 1 (CI retries once). */
     public const ATTEMPTS = 3;
@@ -91,9 +99,11 @@ class E2ESeeder extends Seeder
 
     public function run(): void
     {
-        if (DeploymentEnvironment::isDeployed()) {
+        // Narrower than DeploymentEnvironment::NON_DEPLOYED: a shared
+        // `development` box is reachable by others, and this publishes a password.
+        if (! app()->environment(self::ENVIRONMENTS)) {
             throw new RuntimeException(
-                'E2ESeeder only runs in '.implode(', ', DeploymentEnvironment::NON_DEPLOYED)
+                'E2ESeeder only runs in '.implode(', ', self::ENVIRONMENTS)
                 .' (APP_ENV='.app()->environment().'). It seeds accounts with a known password.'
             );
         }
@@ -132,15 +142,15 @@ class E2ESeeder extends Seeder
     private function seedUsers(): void
     {
         $staff = [
-            $this->user(self::ADMIN_EMAIL, 'E2E Администратор', UserRole::Admin, UserKind::Staff),
-            $this->user(self::STAFF_MODERATOR_EMAIL, 'E2E Модератор', UserRole::Moderator, UserKind::Staff),
+            self::ADMIN_TOTP_SECRET => $this->user(self::ADMIN_EMAIL, 'E2E Администратор', UserRole::Admin, UserKind::Staff),
+            self::STAFF_MODERATOR_TOTP_SECRET => $this->user(self::STAFF_MODERATOR_EMAIL, 'E2E Модератор', UserRole::Moderator, UserKind::Staff),
         ];
 
         // Only once the schema has app authentication. Set through the model so
         // the attribute's encrypted cast applies.
         if (Schema::hasColumn('users', 'app_authentication_secret')) {
-            foreach ($staff as $user) {
-                $user->forceFill(['app_authentication_secret' => self::STAFF_TOTP_SECRET])->save();
+            foreach ($staff as $secret => $user) {
+                $user->forceFill(['app_authentication_secret' => $secret])->save();
             }
         }
         $this->user(self::COMMUNITY_MODERATOR_EMAIL, 'E2E Форум модератор', UserRole::Member, UserKind::Client);
