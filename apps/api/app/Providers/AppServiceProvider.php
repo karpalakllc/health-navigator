@@ -7,6 +7,7 @@ use App\Models\TriageFlow;
 use App\Models\User;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
+use App\Support\DeploymentEnvironment;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
@@ -51,13 +52,14 @@ class AppServiceProvider extends ServiceProvider
         // after SetApiLocale, so its 422 message is already localised.
         $this->app->make(Router::class)->pushMiddlewareToGroup('api', RejectInvalidUtf8::class);
 
-        // Applies to registration and password reset. The breach check is production-only:
-        // it calls the Have I Been Pwned range API, fails open on network error, and we do
-        // not want an outbound dependency in local dev or the test suite.
+        // Applies to registration, password reset and the bootstrap admin. The breach
+        // check runs in every deployed environment (staging accounts are real ones
+        // too): it calls the Have I Been Pwned range API and fails open on network
+        // error. Local dev and the test suite skip it to stay offline.
         Password::defaults(function () {
             $rule = Password::min(10)->letters()->numbers();
 
-            return app()->isProduction() ? $rule->uncompromised() : $rule;
+            return DeploymentEnvironment::isDeployed() ? $rule->uncompromised() : $rule;
         });
 
         // Baseline abuse ceiling for every v1 route.
