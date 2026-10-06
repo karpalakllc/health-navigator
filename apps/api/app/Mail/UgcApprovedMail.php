@@ -19,6 +19,8 @@ class UgcApprovedMail extends Mailable implements ShouldQueue
         public readonly string $contentTitle,
         public readonly string $actionUrl,
         public readonly string $actionLabel,
+        // $contentLabel is a masculine noun (одговор): the template agrees with it.
+        public readonly bool $masculine = false,
     ) {}
 
     public function envelope(): Envelope

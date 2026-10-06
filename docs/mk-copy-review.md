@@ -142,7 +142,7 @@ Shown under a form field when the entry is wrong. `:attribute` is replaced by th
 | 25 | Полето :attribute мора да содржи барем една голема и една мала буква. |  | Password rule: must mix upper and lower case |
 | 26 | Полето :attribute мора да содржи барем една бројка. |  | Password rule: must contain a digit |
 | 27 | Полето :attribute мора да содржи барем еден специјален знак. |  | Password rule: must contain a symbol |
-| 28 | Оваа :attribute се појавила во протекување на податоци. Изберете друга лозинка. |  | Shown when the chosen password appears in a known breach list. Note :attribute is feminine here (*лозинка*) — check the agreement reads naturally |
+| 28 | Оваа лозинка се појавила меѓу податоци протечени од други сервиси. Изберете друга лозинка. |  | Shown when the chosen password appears in a known breach list. Now spells out *лозинка* instead of `:attribute`, so the agreement no longer depends on the field name |
 
 ## E. Field names
 
@@ -198,13 +198,13 @@ Full messages rather than fragments, so read them as a whole.
 >
 > Здраво!
 >
-> Некој ја користеше оваа е-адреса за да отвори сметка на Zdravje360.
+> Некој ја искористи оваа е-адреса за да отвори сметка на Zdravje360.
 >
 > **[ Потврди ја е-адресата ]**
 >
-> Линкот истекува за 60 минути.
+> Линкот важи 60 минути.
 >
-> Ако не сте вие, слободно игнорирајте ја оваа порака — сметката нема да биде активирана.
+> Ако тоа не сте биле вие, слободно игнорирајте ја оваа порака — сметката нема да биде активирана.
 
 *Note: worded so it works whether or not the reader expected it — the sign-up form
 deliberately does not confirm whether an address is already registered.*
@@ -225,7 +225,7 @@ deliberately does not confirm whether an address is already registered.*
 >
 > **[ Промени ја лозинката ]**
 >
-> Ако не сте вие, не треба да преземате ништо — сметката е недопрена и никој не добил пристап.
+> Ако тоа не сте биле вие, не треба ништо да преземате — сметката е недопрена и никој не добил пристап.
 
 ### Welcome email — sent after the address is confirmed
 
@@ -233,30 +233,30 @@ deliberately does not confirm whether an address is already registered.*
 >
 > # Добредојдовте, {име}
 >
-> Вашата сметка на **Zdravje360** е подготвена. Можете да оставате рецензии и да учествувате на форумот (содржината се модерира пред објава).
+> Вашата сметка на **Zdravje360** е подготвена. Можете да оставате рецензии и да учествувате во форумот (содржината се модерира пред објава).
 >
 > **[ Најави се ]**
 >
-> Содржината на платформата е само информативна и не ја заменува совет од лиценциран здравствен работник. При медицинска итност повикајте **194** или **112**.
+> Содржината на платформата е само информативна и не го заменува советот од лиценциран здравствен работник. При медицинска итност повикајте **194** или **112**.
 
 ### Password reset email
 
-> **Subject:** Ресетирајте ја лозинката — Zdravje360
+> **Subject:** Промена на лозинката — Zdravje360
 >
 > Здраво!
 >
-> Добивме барање за ресетирање на лозинката за вашата сметка.
+> Добивме барање за промена на лозинката на вашата сметка.
 >
 > **[ Постави нова лозинка ]**
 >
-> Линкот истекува за 60 минути.
+> Линкот важи 60 минути.
 >
-> Ако не сте побарале ресетирање, игнорирајте ја оваа порака.
+> Ако не сте побарале промена на лозинката, игнорирајте ја оваа порака — вашата лозинка останува иста.
 
-**One known gap:** these emails render inside Laravel's default wrapper, which is
-still English — the "Regards", the trouble-clicking-the-button line, and the
-copyright footer. That needs translating too; tell me if you want it done in the
-same pass.
+**The wrapper is now Macedonian too** (second pass, see `docs/mk-copy-review-2.md`):
+„Поздрав,“, the footer „© 2026 Zdravje360. Сите права задржани.“ and, under every
+button, „Ако копчето „…“ не работи, копирајте ја адресата подолу и залепете ја во
+вашиот прелистувач:“.
 
 ---
 
@@ -341,9 +341,14 @@ field and no language column, so there is no English copy kept beside it.
 
 ---
 
+## Second pass
+
+A full pass over `mk.ts`, the mail and the validation messages is in
+`docs/mk-copy-review-2.md` — every change with before/after, a glossary and the
+open questions. Rows above were updated where that pass changed them.
+
 ## Not in scope here
 
-- **The existing UI copy** in `apps/web/src/i18n/mk.ts` — around 700 strings written
-  before this work. I have not reviewed it. Given what turned up in the emergency
-  line, it is worth reading in full at some point, but it is a separate job.
+- ~~The existing UI copy in `mk.ts`~~ — reviewed in the second pass (not yet by a
+  native speaker).
 - **The admin panel**, which is English by your decision.

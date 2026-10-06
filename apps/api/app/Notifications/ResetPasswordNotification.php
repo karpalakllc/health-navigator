@@ -43,11 +43,11 @@ class ResetPasswordNotification extends BaseResetPassword implements ShouldQueue
         $expire = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
 
         return (new MailMessage)
-            ->subject('Ресетирајте ја лозинката — Zdravje360')
+            ->subject('Промена на лозинката — Zdravje360')
             ->greeting('Здраво!')
-            ->line('Добивме барање за ресетирање на лозинката за вашата сметка.')
+            ->line('Добивме барање за промена на лозинката на вашата сметка.')
             ->action('Постави нова лозинка', $url)
-            ->line("Линкот истекува за {$expire} минути.")
-            ->line('Ако не сте побарале ресетирање, игнорирајте ја оваа порака.');
+            ->line("Линкот важи {$expire} минути.")
+            ->line('Ако не сте побарале промена на лозинката, игнорирајте ја оваа порака — вашата лозинка останува иста.');
     }
 }
