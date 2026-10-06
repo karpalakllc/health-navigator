@@ -7,14 +7,9 @@ import { ResultsGrid } from "@/components/directory/results-grid";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchLanguages, knownLanguage } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
-
-export const metadata: Metadata = pageMetadata(
-  t("doctors.title"),
-  t("doctors.description"),
-);
 
 type DoctorsPageProps = {
   searchParams: Promise<{
@@ -27,6 +22,14 @@ type DoctorsPageProps = {
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: DoctorsPageProps): Promise<Metadata> {
+  return pageMetadata(t("doctors.title"), t("doctors.description"), {
+    path: listCanonicalPath("/doctors", await searchParams),
+  });
+}
 
 export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const params = await searchParams;

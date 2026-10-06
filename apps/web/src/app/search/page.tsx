@@ -16,6 +16,7 @@ import { t, tFormat } from "@/i18n/t";
 export const metadata: Metadata = pageMetadata(
   t("search.title"),
   t("search.description"),
+  { path: "/search" },
 );
 
 type SearchPageProps = {

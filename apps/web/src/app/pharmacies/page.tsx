@@ -8,17 +8,9 @@ import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await fetchPublicSettings();
-
-  return pageMetadata(t("pharmacies.title"), t("pharmacies.description"), {
-    noIndex: !settings.public_pharmacies,
-  });
-}
 
 type PharmaciesPageProps = {
   searchParams: Promise<{
@@ -27,6 +19,17 @@ type PharmaciesPageProps = {
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: PharmaciesPageProps): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("pharmacies.title"), t("pharmacies.description"), {
+    path: listCanonicalPath("/pharmacies", await searchParams),
+    noIndex: !settings.public_pharmacies,
+  });
+}
 
 export default async function PharmaciesPage({
   searchParams,

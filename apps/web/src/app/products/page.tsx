@@ -9,17 +9,9 @@ import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
-import { pageMetadata } from "@/lib/metadata";
+import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await fetchPublicSettings();
-
-  return pageMetadata(t("products.title"), t("products.description"), {
-    noIndex: !settings.public_products,
-  });
-}
 
 type ProductsPageProps = {
   searchParams: Promise<{
@@ -29,6 +21,17 @@ type ProductsPageProps = {
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: ProductsPageProps): Promise<Metadata> {
+  const settings = await fetchPublicSettings();
+
+  return pageMetadata(t("products.title"), t("products.description"), {
+    path: listCanonicalPath("/products", await searchParams),
+    noIndex: !settings.public_products,
+  });
+}
 
 export default async function ProductsPage({
   searchParams,

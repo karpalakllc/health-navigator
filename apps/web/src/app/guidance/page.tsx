@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchPublicSettings();
 
   return pageMetadata(t("guidance.title"), t("guidance.description"), {
+    path: "/guidance",
     noIndex: !settings.public_guidance,
   });
 }

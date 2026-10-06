@@ -6,6 +6,7 @@ import { t } from "@/i18n/t";
 export const metadata: Metadata = pageMetadata(
   t("legal.disclaimerTitle"),
   t("disclaimerPage.intro"),
+  { path: "/disclaimer" },
 );
 
 export default function DisclaimerPage() {
