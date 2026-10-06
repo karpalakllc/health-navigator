@@ -44,11 +44,12 @@ See [env.staging.example](./env.staging.example) and [env.production.example](./
 5. `php artisan config:cache` and `php artisan route:cache`.
 6. **Required:** `php artisan platform:preflight`. It checks the cached
    configuration — APP_KEY, debug off, https URLs, `TRUSTED_PROXIES`, mail
-   transport, queue and cache drivers, secure session cookie, CORS origins, token
-   expiry, the admin address, demo seeding, Meilisearch credentials, object-storage
-   media credentials — and exits
-   non-zero on any error. Do not migrate or send traffic until it passes. Warnings
-   (Sentry DSN, the local `public` media disk) do not fail it but should be read.
+   transport, queue and cache drivers, secure and encrypted session, CORS origins,
+   token expiry, the admin address and any `PLATFORM_ADMIN_PASSWORD` left set (it
+   must pass the password rule), demo seeding, Meilisearch credentials,
+   object-storage media credentials — and exits non-zero on any error. Do not
+   migrate or send traffic until it passes. Warnings (Sentry DSN, the local
+   `public` media disk, `LOG_LEVEL=debug`) do not fail it but should be read.
    Add `--json` for machine-readable output in a deploy script.
 7. First deploy on a fresh database: `php artisan platform:bootstrap` (migrations, RBAC, default site settings, admin user). Set **`PLATFORM_ADMIN_EMAIL`** and **`PLATFORM_ADMIN_PASSWORD`** first — the command creates the admin from them and fails with a clear error if the password is unset. Subsequent deploys: `php artisan migrate --force` only.
 8. When `MEDIA_DISK=public` (persistent volume, not object storage): `php artisan storage:link` once, or uploaded logos and avatars 404.

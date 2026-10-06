@@ -8,6 +8,7 @@ use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsE
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -18,6 +19,10 @@ class PlatformPreflightCommandTest extends TestCase
         parent::setUp();
 
         $this->app['env'] = 'production';
+
+        // Password::defaults() checks Have I Been Pwned in a deployed environment.
+        Http::preventStrayRequests();
+        Http::fake(['api.pwnedpasswords.com/*' => Http::response('')]);
 
         // A configuration that passes every check; each test breaks one thing.
         config([
@@ -37,6 +42,11 @@ class PlatformPreflightCommandTest extends TestCase
             'session.lifetime' => 60,
             'session.same_site' => 'lax',
             'session.http_only' => true,
+            'session.encrypt' => true,
+            'logging.default' => 'stack',
+            'logging.channels.stack.channels' => ['stderr'],
+            'logging.channels.stderr.level' => 'info',
+            'zdravje.admin.password' => null,
             'cors.allowed_origins' => ['https://zdravje360.mk'],
             'sanctum.expiration' => 43_200,
             'zdravje.admin.email' => 'ops@zdravje360.mk',
@@ -107,6 +117,9 @@ class PlatformPreflightCommandTest extends TestCase
             'cross-site session cookie' => [['session.same_site' => 'none'], 'session.same_site'],
             'unset same-site' => [['session.same_site' => null], 'session.same_site'],
             'script-readable session cookie' => [['session.http_only' => false], 'session.http_only'],
+            'unencrypted session payload' => [['session.encrypt' => false], 'session.encrypt'],
+            'example admin password' => [['zdravje.admin.password' => 'password'], 'zdravje.admin.password'],
+            'weak admin password' => [['zdravje.admin.password' => 'short1'], 'zdravje.admin.password'],
             'no cors origins' => [['cors.allowed_origins' => []], 'cors.allowed_origins'],
             'localhost cors origin' => [['cors.allowed_origins' => ['https://zdravje360.mk', 'http://localhost:3000']], 'cors.allowed_origins'],
             'wildcard cors origin' => [['cors.allowed_origins' => ['*']], 'cors.allowed_origins'],
@@ -138,6 +151,13 @@ class PlatformPreflightCommandTest extends TestCase
 
         $this->assertSame([$check], array_values(array_unique($result['errors'])));
         $this->assertSame(1, $result['exit']);
+    }
+
+    public function test_a_strong_admin_password_is_accepted(): void
+    {
+        config(['zdravje.admin.password' => 'kettle7-orbit-lantern-quiet']);
+
+        $this->assertSame([], $this->preflight()['errors']);
     }
 
     public function test_strict_same_site_is_accepted(): void
@@ -187,6 +207,12 @@ class PlatformPreflightCommandTest extends TestCase
                 'filesystems.disks.s3.url' => null,
             ], 'filesystems.disks.s3.url'],
             'unrecognised cache store' => [['cache.default' => 'octane'], 'cache.default'],
+            'debug logging' => [['logging.channels.stderr.level' => 'debug'], 'logging.level'],
+            'debug logging in a nested stack' => [[
+                'logging.channels.stack.channels' => ['stderr', 'inner'],
+                'logging.channels.inner' => ['driver' => 'stack', 'channels' => ['daily']],
+                'logging.channels.daily.level' => 'DEBUG',
+            ], 'logging.level'],
         ];
     }
 
