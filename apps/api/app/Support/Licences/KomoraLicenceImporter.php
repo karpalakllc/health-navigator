@@ -2,6 +2,9 @@
 
 namespace App\Support\Licences;
 
+use App\Enums\ImportReviewKind;
+use App\Models\Doctor;
+use App\Models\ImportReviewItem;
 use App\Models\KomoraLicence;
 use App\Models\LicenceSpecialtyMapping;
 use App\Support\Import\Contracts\DoctorLicenceSink;
@@ -23,8 +26,10 @@ use RuntimeException;
  *
  * A licence that is no longer on the list is marked missing_since (only
  * after a complete, cleanly parsed list, so a failed download or an
- * unreadable line never looks like a lapsed licence). Nothing is ever
- * unpublished here: lapsed and expired licences are for staff to review.
+ * unreadable line never looks like a lapsed licence); a profile it was
+ * attached to stops showing „Лиценца: важечка“ and is queued as missing.
+ * Nothing is ever unpublished here: lapsed and expired licences are for
+ * staff to review.
  * A staging row that stays off the next complete list too, attached to no
  * profile, is deleted (retention).
  */
@@ -59,6 +64,7 @@ final class KomoraLicenceImporter
             'expired' => 0,
             'unmapped_specialties' => 0,
             'missing_from_list' => 0,
+            'attached_off_list' => 0,
             'pruned_off_list' => 0,
         ];
 
@@ -121,10 +127,36 @@ final class KomoraLicenceImporter
         });
 
         if ($completeList && $parsed->failures === []) {
+            // Licences attached to a profile that left the list: the profile
+            // stops showing „Лиценца: важечка“ (Doctor::hasValidLicence())
+            // and staff get a review item; nothing is unpublished.
+            $offList = KomoraLicence::query()
+                ->where('last_seen_at', '<', $startedAt)
+                ->whereNull('missing_since')
+                ->whereNotNull('doctor_id')
+                ->get();
+
             $counts['missing_from_list'] = KomoraLicence::query()
                 ->where('last_seen_at', '<', $startedAt)
                 ->whereNull('missing_since')
                 ->update(['missing_since' => $listDate->toDateString()]);
+
+            foreach ($offList as $licence) {
+                $doctor = Doctor::query()->find($licence->doctor_id);
+
+                if ($doctor === null) {
+                    continue;
+                }
+
+                $counts['attached_off_list']++;
+                ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Missing, 'licence-off-list:'.$licence->licence_number,
+                    'Licence no longer on the Комора list: '.$doctor->full_name, [
+                        'reason' => 'licence_off_list',
+                        'licence_number' => $licence->licence_number,
+                        'list_date' => $listDate->toDateString(),
+                        'published' => (bool) $doctor->is_published,
+                    ], $doctor, $importRunId);
+            }
 
             // Retention (docs/data-inventory.md): a licence already missing
             // from the previous complete list and attached to no profile is

@@ -216,7 +216,10 @@ matches it to a profile:
   `komora_licences` with the matching outcome (**Data import → Licences
   (Комора)**, filters for expired and off-the-list). A licence absent from a
   complete, cleanly parsed list is marked *missing since*; nothing is
-  unpublished. Still absent from the next complete list and attached to no
+  unpublished. If it was attached to a profile, that profile stops showing
+  „Лиценца: важечка“ at once and a *missing* review item „Licence no longer
+  on the Комора list“ is queued (`attached_off_list`); back on a later list,
+  the status returns. Still absent from the next complete list and attached to no
   profile, its staging row is deleted (`pruned_off_list`); an attached one
   stays as the review signal.
 

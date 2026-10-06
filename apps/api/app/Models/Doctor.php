@@ -166,7 +166,9 @@ class Doctor extends Model
     {
         return $this->licence_number !== null
             && $this->licence_valid_until !== null
-            && $this->licence_valid_until->endOfDay()->isFuture();
+            && $this->licence_valid_until->endOfDay()->isFuture()
+            // Off the last complete Комора list: not shown as valid.
+            && ! KomoraLicence::query()->where('licence_number', $this->licence_number)->whereNotNull('missing_since')->exists();
     }
 
     /**

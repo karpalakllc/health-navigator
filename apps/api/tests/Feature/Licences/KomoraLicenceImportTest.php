@@ -2,14 +2,17 @@
 
 namespace Tests\Feature\Licences;
 
+use App\Enums\ImportReviewKind;
 use App\Enums\ImportRunStatus;
 use App\Events\ImportRunFinished;
 use App\Models\Doctor;
+use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
 use App\Models\KomoraLicence;
 use App\Models\LicenceSpecialtyMapping;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Import\Contracts\LicenceReviewReason;
+use App\Support\Import\EloquentDoctorLicenceSink;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
 use App\Support\Licences\KomoraLicenceImporter;
 use App\Support\Licences\LicenceParseResult;
@@ -334,5 +337,31 @@ class KomoraLicenceImportTest extends TestCase
         $this->assertSame(ImportRunStatus::Failed, $run->status);
         $this->assertStringContainsString('No licence rows', (string) $run->error);
         Event::assertDispatched(ImportRunFinished::class, fn (ImportRunFinished $event): bool => $event->source === 'komora' && ! $event->succeeded);
+    }
+
+    public function test_a_licence_that_left_a_complete_list_no_longer_shows_as_valid_and_is_queued(): void
+    {
+        $sink = new EloquentDoctorLicenceSink;
+        $import = fn (array $rows, string $listDate) => (new KomoraLicenceImporter($this->candidates, $sink))
+            ->import(new LicenceParseResult($rows, []), CarbonImmutable::parse($listDate), false, true);
+        $doctor = Doctor::query()->findOrFail($this->doctors['Ана Тестовска']);
+        $doctor->forceFill(['is_published' => true, 'published_at' => now()])->save();
+
+        $import($this->list(), '2026-07-02');
+        $this->assertTrue($doctor->refresh()->hasValidLicence());
+
+        $this->travel(1)->days();
+        $counts = $import(array_slice($this->list(), 1), '2026-11-02');
+
+        $this->assertSame(1, $counts['attached_off_list']);
+        $this->assertFalse($doctor->refresh()->hasValidLicence(), 'Off a complete list: no „Лиценца: важечка“.');
+        $this->assertFalse($this->getJson('/api/v1/doctors/'.$doctor->slug)->assertOk()->json('data.has_valid_licence'));
+        $this->assertSame(1, ImportReviewItem::query()->open()
+            ->where('kind', ImportReviewKind::Missing)->where('subject_type', 'doctor')->where('subject_id', $doctor->getKey())->count());
+
+        // Back on the next list: valid again.
+        $this->travel(1)->days();
+        $import($this->list(), '2027-03-02');
+        $this->assertTrue($doctor->refresh()->hasValidLicence());
     }
 }
