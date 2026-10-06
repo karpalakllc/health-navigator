@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
@@ -16,6 +16,13 @@ import {
 import { t, tFormat, type MessageKey } from "@/i18n/t";
 
 type Errors = { field?: string; message?: string; contact?: string };
+
+/** Form order: focus goes to the first of these that has an error. */
+const FIELD_ORDER = ["field", "message", "contact"] as const;
+
+function firstInvalid(errors: Errors): (typeof FIELD_ORDER)[number] | null {
+  return FIELD_ORDER.find((name) => errors[name]) ?? null;
+}
 
 type ApiPayload = {
   data?: { message?: string };
@@ -51,8 +58,40 @@ export function ProfileCorrectionForm({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const honeypot = useRef<HTMLInputElement>(null);
-  const errorId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  const successRef = useRef<HTMLParagraphElement>(null);
+  // Where focus goes after a refused submit: a field name or the form-level
+  // error. The counter makes a repeat of the same target move focus again.
+  const [focusRequest, setFocusRequest] = useState<{
+    target: string;
+    n: number;
+  } | null>(null);
   const honeypotId = useId();
+
+  useEffect(() => {
+    if (focusRequest === null) {
+      return;
+    }
+
+    const form = formRef.current;
+    const target =
+      focusRequest.target === "error"
+        ? form?.querySelector<HTMLElement>('[role="alert"][tabindex="-1"]')
+        : form?.querySelector<HTMLElement>(`[name="${focusRequest.target}"]`);
+    target?.focus();
+  }, [focusRequest]);
+
+  // The form is replaced by the confirmation: focus would otherwise drop to
+  // the page body.
+  useEffect(() => {
+    if (sent !== null) {
+      successRef.current?.focus();
+    }
+  }, [sent]);
+
+  function requestFocus(target: string) {
+    setFocusRequest((previous) => ({ target, n: (previous?.n ?? 0) + 1 }));
+  }
 
   function validate(): Errors {
     const local: Errors = {};
@@ -83,7 +122,11 @@ export function ProfileCorrectionForm({
     const local = validate();
     setErrors(local);
 
-    if (local.field || local.message || local.contact) {
+    const invalid = firstInvalid(local);
+
+    if (invalid !== null) {
+      requestFocus(invalid);
+
       return;
     }
 
@@ -106,11 +149,13 @@ export function ProfileCorrectionForm({
       const payload = (await response.json().catch(() => null)) as ApiPayload;
 
       if (!response.ok) {
-        setErrors({
+        const server: Errors = {
           field: payload?.errors?.field?.[0],
           message: payload?.errors?.message?.[0],
           contact: payload?.errors?.contact?.[0],
-        });
+        };
+        setErrors(server);
+        requestFocus(firstInvalid(server) ?? "error");
         setError(
           response.status === 429
             ? t("corrections.throttled")
@@ -133,6 +178,7 @@ export function ProfileCorrectionForm({
       setError(
         t(objection ? "corrections.objectionError" : "corrections.error"),
       );
+      requestFocus("error");
     } finally {
       setPending(false);
     }
@@ -141,9 +187,12 @@ export function ProfileCorrectionForm({
   return (
     <div className="flex flex-col gap-5">
       {/* Mounted from the start so the confirmation is announced. */}
-      <FormSuccess>{sent}</FormSuccess>
+      <FormSuccess ref={successRef} tabIndex={-1}>
+        {sent}
+      </FormSuccess>
       {sent ? null : (
         <form
+          ref={formRef}
           noValidate
           onSubmit={handleSubmit}
           className="relative flex flex-col gap-5"
@@ -228,7 +277,7 @@ export function ProfileCorrectionForm({
               defaultValue=""
             />
           </div>
-          {error ? <FormError id={errorId}>{error}</FormError> : null}
+          {error ? <FormError tabIndex={-1}>{error}</FormError> : null}
           <Button
             type="submit"
             loading={pending}

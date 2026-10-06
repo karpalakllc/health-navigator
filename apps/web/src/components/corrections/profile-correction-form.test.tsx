@@ -228,3 +228,114 @@ describe("ProfileCorrectionLinks", () => {
     ).toBeNull();
   });
 });
+
+describe("ProfileCorrectionForm (focus)", () => {
+  it("moves focus to the first invalid field when the form is not ready", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    render(
+      <ProfileCorrectionForm
+        subject="doctor"
+        slug="ana-petrovska"
+        type="correction"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: t("corrections.submit") }),
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText(t("corrections.fieldLabel"), { exact: false }),
+    ).toHaveFocus();
+
+    await user.selectOptions(
+      screen.getByLabelText(t("corrections.fieldLabel"), { exact: false }),
+      "name",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("corrections.submit") }),
+    );
+    expect(
+      screen.getByLabelText(t("corrections.messageLabel"), { exact: false }),
+    ).toHaveFocus();
+  });
+
+  it("moves focus to the field the server refused, else to the error", async () => {
+    mockFetch(
+      {
+        status: 422,
+        body: { message: "Invalid.", errors: { contact: ["Лоша адреса."] } },
+      },
+      { status: 500, body: {} },
+    );
+    const user = userEvent.setup();
+    render(
+      <ProfileCorrectionForm
+        subject="doctor"
+        slug="ana-petrovska"
+        type="objection"
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(t("corrections.objectionMessageLabel"), {
+        exact: false,
+      }),
+      "Јас сум овој лекар и барам отстранување.",
+    );
+    await user.type(
+      screen.getByLabelText(t("corrections.objectionContactLabel"), {
+        exact: false,
+      }),
+      "070 123 456",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("corrections.objectionSubmit") }),
+    );
+
+    await screen.findByRole("alert");
+    expect(
+      screen.getByLabelText(t("corrections.objectionContactLabel"), {
+        exact: false,
+      }),
+    ).toHaveFocus();
+
+    await user.click(
+      screen.getByRole("button", { name: t("corrections.objectionSubmit") }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      t("corrections.objectionError"),
+    );
+    expect(screen.getByRole("alert")).toHaveFocus();
+  });
+
+  it("moves focus to the confirmation once sent", async () => {
+    mockFetch({ status: 201, body: { data: { message: "Ви благодариме." } } });
+    const user = userEvent.setup();
+    render(
+      <ProfileCorrectionForm
+        subject="doctor"
+        slug="ana-petrovska"
+        type="correction"
+      />,
+    );
+
+    await user.selectOptions(
+      screen.getByLabelText(t("corrections.fieldLabel"), { exact: false }),
+      "name",
+    );
+    await user.type(
+      screen.getByLabelText(t("corrections.messageLabel"), { exact: false }),
+      "Презимето е погрешно напишано.",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("corrections.submit") }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Ви благодариме.",
+    );
+    expect(screen.getByRole("status")).toHaveFocus();
+  });
+});

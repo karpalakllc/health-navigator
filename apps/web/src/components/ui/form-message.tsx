@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
@@ -12,15 +12,19 @@ export function FormError({
   children,
   id,
   className,
+  tabIndex,
 }: {
   children: ReactNode;
   id?: string;
   className?: string;
+  /** -1 lets a form move focus here when no single field is to blame. */
+  tabIndex?: number;
 }) {
   return (
     <p
       id={id}
       role="alert"
+      tabIndex={tabIndex}
       className={cn(
         "flex items-start gap-2 type-body font-semibold text-ink",
         className,
@@ -48,16 +52,23 @@ export function FormSuccess({
   children,
   className,
   tone = "success",
+  ref,
+  tabIndex,
 }: {
   children?: ReactNode;
   className?: string;
   tone?: "success" | "muted";
+  /** With tabIndex -1: a form that unmounts on success moves focus here. */
+  ref?: Ref<HTMLParagraphElement>;
+  tabIndex?: number;
 }) {
   const filled =
     children !== null && children !== undefined && children !== false;
 
   return (
     <p
+      ref={ref}
+      tabIndex={tabIndex}
       role="status"
       aria-live="polite"
       className={
