@@ -48,6 +48,7 @@ class ActivityResource extends Resource
         'reviews' => 'Reviews and replies',
         'reports' => 'Reports',
         'accounts' => 'Accounts',
+        'verification' => 'Verification',
     ];
 
     public static function canCreate(): bool
@@ -62,7 +63,7 @@ class ActivityResource extends Resource
         }
 
         $subject = $record->subject;
-        $name = $subject instanceof Model ? ($subject->getAttribute('full_name') ?? $subject->getAttribute('email')) : null;
+        $name = $subject instanceof Model ? ($subject->getAttribute('full_name') ?? $subject->getAttribute('email') ?? $subject->getAttribute('name')) : null;
 
         return class_basename($record->subject_type).' #'.$record->subject_id.(is_string($name) && $name !== '' ? ' · '.$name : '');
     }
