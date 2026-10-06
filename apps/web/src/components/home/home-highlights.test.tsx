@@ -1,0 +1,303 @@
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
+import { HomeCities } from "@/components/home/home-cities";
+import { HomeRecentReviews } from "@/components/home/home-recent-reviews";
+import { HomeRecentlyViewed } from "@/components/home/home-recently-viewed";
+import { HomeSpecialties } from "@/components/home/home-specialties";
+import type { HomeReview } from "@/lib/api/home";
+import {
+  RECENTLY_VIEWED_KEY,
+  recordRecentlyViewed,
+} from "@/lib/recently-viewed";
+import { t } from "@/i18n/t";
+import { seriousA11yViolations } from "../../../test/axe";
+
+describe("HomeSpecialties („Популарни специјалности“)", () => {
+  const specialties = [
+    { slug: "kardiologija", name: "Кардиологија", doctors_count: 12 },
+    { slug: "pedijatrija", name: "Педијатрија", doctors_count: 1 },
+    ...Array.from({ length: 6 }, (_, i) => ({
+      slug: `s-${i}`,
+      name: `Специјалност ${i}`,
+      doctors_count: 2,
+    })),
+  ];
+
+  it("links each specialty to the filtered doctor directory with its count", async () => {
+    const { container } = render(<HomeSpecialties specialties={specialties} />);
+
+    const section = screen.getByRole("region", {
+      name: t("homeSections.specialtiesTitle"),
+    });
+    expect(
+      within(section).getByRole("link", { name: "Кардиологија 12 лекари" }),
+    ).toHaveAttribute("href", "/doctors?specialty=kardiologija");
+    // Macedonian singular.
+    expect(
+      within(section).getByRole("link", { name: "Педијатрија 1 лекар" }),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByRole("link", {
+        name: t("homeSections.specialtiesAll"),
+      }),
+    ).toHaveAttribute("href", "/doctors");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("shows six on phones and the rest from the sm breakpoint", () => {
+    render(<HomeSpecialties specialties={specialties} />);
+
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(8);
+    expect(
+      items.filter((li) => li.className.includes("max-sm:hidden")),
+    ).toHaveLength(2);
+  });
+
+  it("renders nothing without data", () => {
+    const { container } = render(<HomeSpecialties specialties={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("HomeCities („Пребарај по град“)", () => {
+  it("renders city chips that open the doctor directory filtered by city", async () => {
+    const { container } = render(
+      <HomeCities
+        cities={[
+          { name: "Скопје", doctors_count: 21 },
+          { name: "Битола", doctors_count: 3 },
+        ]}
+      />,
+    );
+
+    const section = screen.getByRole("region", {
+      name: t("homeSections.citiesTitle"),
+    });
+    expect(
+      within(section).getByRole("link", { name: "Скопје 21 лекар" }),
+    ).toHaveAttribute("href", `/doctors?city=${encodeURIComponent("Скопје")}`);
+    expect(
+      within(section).getByRole("link", { name: "Битола 3 лекари" }),
+    ).toBeInTheDocument();
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("renders nothing without data", () => {
+    const { container } = render(<HomeCities cities={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("HomeRecentReviews („Најнови рецензии“)", () => {
+  const now = new Date("2026-10-06T08:00:00Z");
+  const review = (overrides: Partial<HomeReview>): HomeReview => ({
+    id: 1,
+    rating: 5,
+    excerpt: "Многу љубезен пристап.",
+    author_name: "Марија од Битола",
+    published_at: "2026-10-04T08:00:00Z",
+    target: {
+      kind: "doctor",
+      slug: "ana-petrovska",
+      name: "д-р Ана Петровска",
+    },
+    ...overrides,
+  });
+
+  it("shows author display name, stars, excerpt, relative date and the profile link", async () => {
+    const { container } = render(
+      <HomeRecentReviews
+        now={now}
+        reviews={[
+          review({}),
+          review({
+            id: 2,
+            rating: 4,
+            author_name: "Петар Г.",
+            published_at: "2026-10-06T07:00:00Z",
+            target: {
+              kind: "pharmacy",
+              slug: "apteka-ohrid",
+              name: "Аптека Охрид",
+            },
+          }),
+        ]}
+      />,
+    );
+
+    const section = screen.getByRole("region", {
+      name: t("homeSections.reviewsTitle"),
+    });
+    const cards = within(section).getAllByRole("article");
+    expect(cards).toHaveLength(2);
+
+    const first = within(cards[0]!);
+    expect(first.getByText("Марија од Битола")).toBeInTheDocument();
+    expect(first.getByText("Многу љубезен пристап.")).toBeInTheDocument();
+    expect(first.getByRole("img", { name: "5,0 / 5" })).toBeInTheDocument();
+    expect(first.getByText("пред 2 дена")).toHaveAttribute(
+      "datetime",
+      "2026-10-04T08:00:00Z",
+    );
+    expect(first.getByRole("link")).toHaveAttribute(
+      "href",
+      "/doctors/ana-petrovska#reviews",
+    );
+    expect(first.getByRole("link")).toHaveAccessibleName("д-р Ана Петровска");
+
+    const second = within(cards[1]!);
+    expect(second.getByText("денес")).toBeInTheDocument();
+    expect(second.getByRole("link")).toHaveAttribute(
+      "href",
+      "/pharmacies/apteka-ohrid#reviews",
+    );
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("skips reviews without a target and hides when nothing is left", () => {
+    const { container } = render(
+      <HomeRecentReviews now={now} reviews={[review({ target: null })]} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the fourth card for desktop only", () => {
+    render(
+      <HomeRecentReviews
+        now={now}
+        reviews={[1, 2, 3, 4].map((id) => review({ id }))}
+      />,
+    );
+    const items = screen.getAllByRole("listitem");
+    expect(items[3]!.className).toContain("max-lg:hidden");
+    expect(items[2]!.className).not.toContain("max-lg:hidden");
+  });
+});
+
+describe("HomeRecentlyViewed („Последно прегледани“)", () => {
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => window.localStorage.clear());
+
+  const entry = {
+    kind: "doctor" as const,
+    slug: "ana-petrovska",
+    name: "д-р Ана Петровска",
+    subtitle: "Кардиологија · Скопје",
+    avatarUrl: null,
+  };
+
+  it("is hidden when this device has viewed nothing", () => {
+    render(<HomeRecentlyViewed />);
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("lists stored profiles newest first, linking to each profile", async () => {
+    recordRecentlyViewed(entry);
+    recordRecentlyViewed({
+      kind: "facility",
+      slug: "klinika-ana",
+      name: "Клиника Ана",
+      subtitle: null,
+      avatarUrl: null,
+    });
+
+    const { container } = render(<HomeRecentlyViewed />);
+
+    const section = screen.getByRole("region", {
+      name: t("homeSections.recentTitle"),
+    });
+    const links = within(section).getAllByRole("link");
+    expect(links.map((l) => l.getAttribute("href"))).toEqual([
+      "/facilities/klinika-ana",
+      "/doctors/ana-petrovska",
+    ]);
+    // No subtitle stored: the kind stands in.
+    expect(links[0]).toHaveTextContent(t("homeSections.kindFacility"));
+    expect(links[1]).toHaveTextContent("Кардиологија · Скопје");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("updates when a profile is recorded while the page is open", () => {
+    render(<HomeRecentlyViewed />);
+    expect(screen.queryByRole("region")).toBeNull();
+
+    act(() => {
+      recordRecentlyViewed(entry);
+    });
+
+    expect(
+      screen.getByRole("link", { name: /д-р Ана Петровска/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("„Исчисти“ empties the list, announces it and keeps focus in place", async () => {
+    const user = userEvent.setup();
+    recordRecentlyViewed(entry);
+    render(<HomeRecentlyViewed />);
+
+    await user.click(
+      screen.getByRole("button", { name: t("homeSections.recentClearLabel") }),
+    );
+
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(window.localStorage.getItem(RECENTLY_VIEWED_KEY)).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      t("homeSections.recentCleared"),
+    );
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it("renders nothing, without throwing, when storage is blocked", () => {
+    recordRecentlyViewed(entry);
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+
+    render(<HomeRecentlyViewed />);
+
+    expect(screen.queryByRole("region")).toBeNull();
+  });
+});
+
+describe("RecordRecentlyViewed", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it("stores the visited profile on mount and renders nothing", () => {
+    const { container } = render(
+      <RecordRecentlyViewed
+        kind="pharmacy"
+        slug="apteka-ohrid"
+        name="Аптека Охрид"
+        subtitle="Аптека · Охрид"
+        avatarUrl="https://media.example/logo.webp"
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    const stored = JSON.parse(
+      window.localStorage.getItem(RECENTLY_VIEWED_KEY) ?? "[]",
+    );
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      kind: "pharmacy",
+      slug: "apteka-ohrid",
+      name: "Аптека Охрид",
+      subtitle: "Аптека · Охрид",
+      avatarUrl: "https://media.example/logo.webp",
+    });
+  });
+
+  it("does not throw when storage refuses the write", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+
+    expect(() =>
+      render(<RecordRecentlyViewed kind="doctor" slug="x" name="д-р Икс" />),
+    ).not.toThrow();
+  });
+});

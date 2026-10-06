@@ -861,6 +861,39 @@ export const mk = {
     toc: "Содржина на страницата",
     related: "Поврзани страници",
   },
+  // Home sections fed by GET /home/highlights, plus the on-device
+  // „Последно прегледани“ list.
+  homeSections: {
+    specialtiesTitle: "Популарни специјалности",
+    specialtiesAll: "Сите специјалности",
+    specialtyDoctors: "{count} лекари",
+    specialtyDoctorsOne: "{count} лекар",
+    citiesTitle: "Пребарај по град",
+    citiesLead: "Лекари со профил во секој град.",
+    // The visible chip shows only the number; this completes its name.
+    cityDoctorsUnit: "лекари",
+    cityDoctorsUnitOne: "лекар",
+    reviewsTitle: "Најнови рецензии",
+    reviewFor: "Рецензија за",
+    recentTitle: "Последно прегледани",
+    recentLead: "Зачувано само на овој уред.",
+    recentClear: "Исчисти",
+    recentClearLabel: "Исчисти ја листата последно прегледани",
+    recentCleared: "Листата последно прегледани е исчистена.",
+    kindDoctor: "Лекар",
+    kindFacility: "Установа",
+    kindPharmacy: "Аптека",
+    agoToday: "денес",
+    agoYesterday: "вчера",
+    agoDays: "пред {count} дена",
+    agoDaysOne: "пред {count} ден",
+    agoWeeks: "пред {count} недели",
+    agoWeeksOne: "пред {count} недела",
+    agoMonths: "пред {count} месеци",
+    agoMonthsOne: "пред {count} месец",
+    agoYears: "пред {count} години",
+    agoYearsOne: "пред {count} година",
+  },
 } as const;
 
 export type MkMessages = typeof mk;

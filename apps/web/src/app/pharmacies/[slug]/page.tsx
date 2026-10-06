@@ -10,6 +10,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
   ProfileSection,
@@ -144,6 +145,15 @@ export default async function PharmacyDetailPage({
 
   return (
     <>
+      <RecordRecentlyViewed
+        kind="pharmacy"
+        slug={pharmacy.slug}
+        name={pharmacy.name}
+        subtitle={[t("pharmacies.kind"), pharmacy.city]
+          .filter(Boolean)
+          .join(" · ")}
+        avatarUrl={pharmacy.avatar_url}
+      />
       <JsonLd
         data={placeJsonLd(
           "Pharmacy",
