@@ -82,45 +82,9 @@ export const mk = {
     copyright: "© {year} {name}. Сите права задржани.",
   },
   home: {
-    title: "Здравствени информации за Северна Македонија",
-    titleHighlight: "со доверба",
-    subtitle:
-      "Пребарувајте лекари и установи, истражувајте аптеки и споредете референтни цени. Содржината е само информативна.",
-    heroBadge: "Здравствена навигација за Северна Македонија",
-    heroTitleLead:
-      "Најдете го вистинскиот доктор, цени во аптеки и следен чекор —",
-    heroTitleAccent: "брзо.",
-    heroSubtitle:
-      "Информативни профили, насоки за симптоми (не се дијагноза), споредба на референтни цени и форум под модерација — на едно место.",
     searchPlaceholder: "Пребарајте лекар, установа или производ…",
-    searchPlaceholderUnified:
-      "Пребарајте симптоми, доктори, производи или аптеки…",
-    searchPlaceholderDoctors: "Име на лекар или специјалност…",
-    searchPlaceholderProducts: "Име на производ или категорија…",
-    searchPlaceholderPharmacies: "Име на аптека или град…",
-    searchPlaceholderSymptoms:
-      "Насоките се водени прашања — изберете „Симптоми“ и продолжете",
-    searchButton: "Пребарај",
-    searchScopesAria: "Тип пребарување",
-    searchScopeAll: "Сите",
-    searchScopeSymptoms: "Симптоми",
-    searchScopeDoctors: "Доктори",
-    searchScopeProducts: "Производи",
-    searchScopePharmacies: "Аптеки",
-    searchSymptomsHint:
-      "Кратки насоки за размислување за следни чекори. Не се дијагноза и не заменуваат лекар.",
-    searchSymptomsCta: "Започни насоки",
-    productSpotlightTitle: "Производи од каталогот",
-    productSpotlightDescription:
-      "Референтни цени по аптеки од администриран каталог — не се понуди за купување на страницата.",
-    productSpotlightViewAll: "Погледни ги сите",
     productSpotlightCta: "Погледни цени",
-    quickActions: "Брз пристап",
-    quickActionsTitle: "Започнете од она што ви треба",
-    quickActionsDescription:
-      "Изберете категорија и продолжете кон поконкретна здравствена информација.",
     featuredDoctors: "Истакнати лекари",
-    searchLink: "Пребарување низ директориумите",
     doctorsTitle: "Лекари",
     doctorsDesc: "Преглед на специјалисти со филтри по град и специјалност.",
     facilitiesTitle: "Установи",
@@ -129,45 +93,17 @@ export const mk = {
     pharmaciesDesc: "Локации на аптеки и листа на производи.",
     productsTitle: "Производи",
     productsDesc: "Споредба на информативни цени во аптеките.",
-    guidanceCardDesc: "Општи чекори за размислување — не е дијагноза.",
-    forumDesc: "Прашања и дискусија под модерација.",
     trustAriaLabel: "Клучни пораки за доверба и безбедност",
     trustModerated: "Форумот и рецензиите се проверуваат пред објава.",
     trustInformational:
       "Содржината е информативна и не ја заменува совет од лиценциран здравствен работник.",
     trustEmergency: "При медицинска итност повикајте 194 или 112 веднаш.",
     trustLocal: "Создадено за корисници и установи во Македонија.",
-    tickerSearch: "Пребарај по град, специјалност или симптом",
-    tickerDoctors: "Најди лекар што прима нови пациенти",
-    tickerFacilities: "Спореди јавни и приватни установи",
-    tickerPharmacies: "Провери информации за аптеки и производи",
-    tickerForum: "Читај модерирани искуства и прашања",
-    featuredDoctorsDesc:
-      "Рејтинзите се базирани на одобрени кориснички рецензии и се прикажуваат како дополнителен сигнал, не како медицинска препорака.",
-    featuredDoctorsViewAll: "Погледни ги сите",
     viewProfile: "Погледни профил",
     availableToday: "Достапен денес",
-    featuredFacilitiesTitle: "Болници и клиники",
-    featuredFacilitiesDescription:
-      "Прегледајте јавни и приватни установи со основни информации, локација и одделенија.",
-    featuredFacilitiesViewAll: "Погледни ги сите",
-    topRatedTitle: "Најдобро оценети профили на платформата",
-    topRatedDescription:
-      "Лекари со највисок просек на одобрени рецензии од членовите на Zdravje360.",
-    topRatedDisclaimer:
-      "Оценките се субјективни и одразуваат искуства на корисниците; не се државна или медицинска верификација.",
     topRatedViewAll: "Сите лекари",
-    specialtiesTitle: "Истражете по специјалност",
-    specialtiesDescription:
-      "Започнете од специјалност, па потоа споредете профили, установи и информации.",
     specialtyDoctorCount: "{count} лекари",
     specialtyDoctorCountOne: "{count} лекар",
-    clinicalTeasersTitle: "Болници и клиники",
-    clinicalTeasersDescription: "Клинички установи во директориумот.",
-    clinicalHospitalsTitle: "Болници",
-    clinicalHospitalsDesc: "Пребарајте болници по име и град.",
-    clinicalClinicsTitle: "Клиники",
-    clinicalClinicsDesc: "Пребарајте клиники и здравствени центри.",
     howItWorksEyebrow: "Како функционира",
     howItWorksTitle: "Од пребарување до подобра одлука",
     howItWorksDescription:
@@ -184,17 +120,7 @@ export const mk = {
     howStep4Title: "Симптоми и форум",
     howStep4Body:
       "Насоките за симптоми се општи и информативни. Форумот е за дискусија под модерација.",
-    communityTitle: "Заедница и насоки",
-    communityDescription:
-      "Дискусија под модерација и кратки општи чекори за размислување за симптоми — не се дијагноза.",
-    communityForumTitle: "Форум",
-    communityForumDesc:
-      "Прашања и дискусија од заедницата. Објавите се проверуваат пред објава.",
     communityForumCta: "Отвори форум",
-    communityGuidanceTitle: "Насоки за симптоми",
-    communityGuidanceDesc:
-      "Општи информации за следни чекори. Не ја заменува негата од лекар.",
-    communityGuidanceCta: "Започни насоки",
     forumBandEyebrow: "Форум и искуства",
     forumBandTitle: "Заедница со правила, не хаос од коментари",
     forumBandDescription:
@@ -213,17 +139,37 @@ export const mk = {
     transparencyItem3Title: "Локална релевантност",
     transparencyItem3Body:
       "Платформата е создадена за Северна Македонија, не е генерички глобален директориум.",
-    faqEyebrow: "Чести прашања",
-    faqTitle: "Што најчесто ги интересира корисниците",
-    faq1Question: "Дали Здравје360 е замена за лекар?",
-    faq1Answer:
-      "Не. Платформата е информативна и помага со ориентација, но не поставува дијагноза и не заменува медицински совет.",
-    faq2Question: "Како функционираат рецензиите?",
-    faq2Answer:
-      "Рецензиите се модерираат пред објава и служат како дополнителен сигнал, а не како медицинска потврда.",
-    faq3Question: "Дали платформата е само за Скопје?",
-    faq3Answer:
-      "Не. Платформата е наменета за корисници и установи низ цела Северна Македонија.",
+    // D2a home: hero, directory tiles, guidance card, community, specialties.
+    heroHeading: "Како можеме да ви помогнеме денес?",
+    heroLead:
+      "Пронајдете лекари, установи и модерирани искуства — на македонски.",
+    heroSearchPrompt: "Пребарај лекар или установа",
+    profileShort: "Профил",
+    quickLinksAria: "Брзи пребарувања",
+    tilesTitle: "Што ви треба?",
+    tileDoctorsCount: "{count} профили",
+    tileDoctorsCountOne: "{count} профил",
+    tileFacilitiesCount: "{count} установи",
+    tileFacilitiesCountOne: "{count} установа",
+    tilePharmaciesCount: "{count} аптеки",
+    tilePharmaciesCountOne: "{count} аптека",
+    tileProductsCount: "{count} производи",
+    tileProductsCountOne: "{count} производ",
+    tileForumCount: "{count} теми",
+    tileForumCountOne: "{count} тема",
+    tileGuidanceSub: "Каде да се обратам?",
+    guideTitle: "Не сте сигурни каде да се обратите?",
+    guideBody:
+      "Одговорете на неколку кратки прашања и ќе ви покажеме дали е доволна грижа дома, аптека, матичен лекар или итна помош. Не е дијагноза.",
+    guideCta: "Започни",
+    guideEmergencyLead: "Итно? Повикајте",
+    communityHeading: "Од заедницата",
+    communityAll: "Сите теми",
+    communityUnanswered: "Без одговор",
+    popularSpecialties: "Популарни специјалности",
+    trustRowModerated: "Рецензиите и објавите се проверуваат пред објава",
+    trustRowInformational: "Информативно — не е дијагноза ни замена за лекар",
+    trustRowLocal: "Создадено за корисници и установи во Македонија",
   },
   errors: {
     title: "Нешто тргна наопаку",
@@ -389,7 +335,6 @@ export const mk = {
     modalTitle: "Напредно пребарување",
     modalSubtitle:
       "Изберете тип директориум и отворете листа со филтри. Или користете го полето погоре за пребарување низ сите делови одеднаш.",
-    unifiedTitle: "Резултати од пребарувањето",
     unifiedHint:
       "Приказ до 5 ставки по категорија (лекари, установи, форум и останато). Користете ги линковите за цели филтрирани листи.",
     sectionDoctors: "Лекари",
@@ -412,12 +357,21 @@ export const mk = {
     queryLabel: "Име, специјалност или поим",
     cityLabel: "Град (лекари, установи, аптеки)",
     queryHint: "Најмалку 2 знаци за пребарување.",
-    viewMatching: "Преглед на",
-    matching: "што одговара на пребарувањето",
     directoryBadge: "Пребарување",
-    trustUnified: "Едно пребарување низ лекари, установи, аптеки и производи.",
-    trustFilters: "За поединечен тип користете напредно пребарување.",
-    trustInformational: "Резултатите се информативни, не медицинска препорака.",
+    // D2a /search: heading, section chips, empty and error states.
+    resultsFor: "Резултати за „{q}“",
+    resultsSummary: "{count} резултати",
+    resultsSummaryOne: "{count} резултат",
+    cityFilter: "Град: {city}",
+    sectionsNav: "Категории во резултатите",
+    emptyTitle: "Нема резултати за „{q}“",
+    emptyBody:
+      "Проверете го правописот, пробајте пократок поим или отстранете го градот. Можете да пребарувате и во еден директориум.",
+    errorTitle: "Пребарувањето моментално не е достапно",
+    errorBody:
+      "Не успеавме да ги вчитаме резултатите. Обидете се повторно за неколку минути.",
+    retry: "Обиди повторно",
+    hubDirectories: "Пребарајте во еден директориум",
   },
   filters: {
     search: "Пребарај",

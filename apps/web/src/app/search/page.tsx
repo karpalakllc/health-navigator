@@ -1,16 +1,17 @@
-import { DirectoryHero } from "@/components/design/directory-hero";
-import { TrustRibbon } from "@/components/design/trust-ribbon";
-import { HubLinkCard } from "@/components/ui/hub-link-card";
-import { SEARCH_DIRECTORY_SECTIONS } from "@/components/layout/search-directory-sections";
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import {
+  HomeDirectoryTiles,
+  type HomeTile,
+} from "@/components/home/home-directory-tiles";
 import { AdvancedSearchTrigger } from "@/components/search/advanced-search-trigger";
 import { SearchQueryForm } from "@/components/search/search-query-form";
+import { enabledDirectorySections } from "@/components/search/search-states";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
-import { PageShell } from "@/components/ui/page-shell";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
+import type { IconName } from "@/components/ui/icons";
 import { directorySearchHref, normalizeSearchQuery } from "@/lib/search";
 import { pageMetadata } from "@/lib/metadata";
-import { t } from "@/i18n/t";
-import type { Metadata } from "next";
+import { t, tFormat } from "@/i18n/t";
 
 export const metadata: Metadata = pageMetadata(
   t("search.title"),
@@ -24,7 +25,12 @@ type SearchPageProps = {
   }>;
 };
 
-const sections = SEARCH_DIRECTORY_SECTIONS;
+const SECTION_ICONS: Record<string, IconName> = {
+  "/doctors": "stethoscope",
+  "/facilities": "building",
+  "/pharmacies": "pill",
+  "/products": "package",
+};
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
@@ -35,126 +41,79 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   if (qNormalized) {
     return (
-      <>
-        <PageHeroBleed>
-          <DirectoryHero
-            badge={t("search.directoryBadge")}
-            title={t("search.unifiedTitle")}
-            description={`„${qRaw.trim()}“${cityTrim ? ` · ${cityTrim}` : ""}`}
-            filters={<SearchQueryForm q={qRaw} city={params.city} />}
-          />
-        </PageHeroBleed>
-
-        <PageShell className="gap-8 pb-16">
-          <div className="flex flex-wrap items-center gap-3">
-            <AdvancedSearchTrigger />
-          </div>
-          <UnifiedSearchResults q={qNormalized} city={city} />
-        </PageShell>
-      </>
+      <SearchLayout
+        eyebrow={t("search.directoryBadge")}
+        title={tFormat("search.resultsFor", { q: qRaw.trim() })}
+        form={<SearchQueryForm q={qRaw} city={params.city} />}
+      >
+        <UnifiedSearchResults q={qNormalized} city={city} />
+      </SearchLayout>
     );
   }
 
-  return (
-    <>
-      <PageHeroBleed>
-        <DirectoryHero
-          badge={t("search.directoryBadge")}
-          title={t("search.title")}
-          description={t("search.hubIntro")}
-          filters={
-            <SearchQueryForm q={params.q} city={params.city} autoFocus />
-          }
-        />
-        <TrustRibbon
-          items={[
-            {
-              text: t("search.trustUnified"),
-              icon: <SearchIcon />,
-              tone: "teal",
-            },
-            {
-              text: t("search.trustFilters"),
-              icon: <GridIcon />,
-              tone: "teal",
-            },
-            {
-              text: t("search.trustInformational"),
-              icon: <InfoIcon />,
-              tone: "red",
-            },
-          ]}
-        />
-      </PageHeroBleed>
+  const sections = await enabledDirectorySections();
+  const tiles: HomeTile[] = sections.map((section, index) => ({
+    href: directorySearchHref(section.basePath, params.q, params.city),
+    label: t(section.titleKey),
+    icon: SECTION_ICONS[section.basePath] ?? "search",
+    sub: t(section.descKey),
+    feature: index === 0,
+  }));
 
-      <PageShell className="gap-8 pb-16">
-        <div className="flex flex-wrap gap-3">
+  return (
+    <SearchLayout
+      title={t("search.title")}
+      intro={t("search.hubIntro")}
+      form={<SearchQueryForm q={params.q} city={params.city} autoFocus />}
+    >
+      <div className="flex flex-col gap-6">
+        <HomeDirectoryTiles
+          tiles={tiles}
+          title={t("search.hubDirectories")}
+          headingId="search-directories-title"
+        />
+        <div>
           <AdvancedSearchTrigger />
         </div>
-
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {sections.map((section) => (
-            <li key={section.basePath}>
-              <HubLinkCard
-                href={directorySearchHref(
-                  section.basePath,
-                  params.q,
-                  params.city,
-                )}
-                title={t(section.titleKey)}
-                description={`${t("search.viewMatching")} ${t(section.titleKey).toLowerCase()} ${t("search.matching")}`}
-              />
-            </li>
-          ))}
-        </ul>
-      </PageShell>
-    </>
+      </div>
+    </SearchLayout>
   );
 }
 
-function SearchIcon() {
+/** Apricot band with the h1 and the always-visible query form, then content. */
+function SearchLayout({
+  eyebrow,
+  title,
+  intro,
+  form,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+  form: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-3-3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function GridIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 10v6M12 7h.01" strokeLinecap="round" />
-    </svg>
+    <div className="mx-auto w-full max-w-[1240px] pb-14 lg:px-6 lg:pb-20">
+      <section
+        aria-labelledby="search-title"
+        className="mx-3 mt-1 rounded-sheet bg-apricot px-5 pb-5 pt-7 lg:mx-0 lg:mt-6 lg:px-14 lg:pb-10 lg:pt-12"
+      >
+        {eyebrow ? (
+          <p className="mb-2 font-ui text-[0.9375rem] font-semibold leading-[1.375rem] text-ink lg:text-base lg:leading-6">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 id="search-title" className="type-h1 break-words text-ink">
+          {title}
+        </h1>
+        {intro ? (
+          <p className="type-body measure mt-3 text-ink">{intro}</p>
+        ) : null}
+        <div className="mt-5 lg:mt-8">{form}</div>
+      </section>
+      <div className="mt-8 px-5 lg:mt-14 lg:px-0">{children}</div>
+    </div>
   );
 }

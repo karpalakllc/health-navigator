@@ -28,12 +28,6 @@ const CONTRAST =
   "backgrounds; WCAG AA needs 4.5:1 for body-size text.";
 
 const KNOWN: Record<string, Record<string, string>> = {
-  home: {
-    "color-contrast": CONTRAST,
-    "aria-required-children":
-      'The hero search box (home-hero-search-client.tsx) is role="tablist" ' +
-      "but also wraps the input and submit button, which are not tabs.",
-  },
   doctors: {
     "color-contrast": CONTRAST,
   },
