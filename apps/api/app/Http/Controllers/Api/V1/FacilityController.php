@@ -52,6 +52,10 @@ class FacilityController extends Controller
             $query->where('is_featured', true);
         }
 
+        if (! empty($validated['verified'])) {
+            $query->verified();
+        }
+
         $perPage = $validated['per_page'] ?? 15;
 
         $query->withCount(['departments' => fn ($relation) => $relation->published()]);

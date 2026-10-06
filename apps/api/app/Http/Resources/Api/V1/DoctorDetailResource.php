@@ -34,6 +34,9 @@ class DoctorDetailResource extends JsonResource
             'office_hours' => $this->office_hours ?? [],
             'accepts_new_patients' => (bool) $this->accepts_new_patients,
             'is_featured' => (bool) $this->is_featured,
+            // „Верифициран“ / „Неверифициран“: status and public basis label
+            // only — the evidence behind it stays internal.
+            'verification' => $this->publicVerification(),
             'is_sponsored' => (bool) $this->is_sponsored,
             'city' => $this->city,
             // „Лиценца: важечка“: a status only, never the number or the
