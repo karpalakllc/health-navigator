@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\FacilityType;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
+use App\Jobs\ReindexTaxonomyMembers;
 use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\Facility;
@@ -16,6 +17,7 @@ use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Tests\Support\FakeMeilisearchEngine;
 use Tests\TestCase;
 
@@ -356,5 +358,83 @@ class MeilisearchUnifiedSearchTest extends TestCase
                 ->assertJsonPath('data.facilities.meta.total', 1)
                 ->assertJsonPath('data.facilities.data.0.slug', 'city-hospital');
         }
+    }
+
+    /**
+     * Doctor documents embed specialty names, and Scout re-indexes a doctor
+     * only when the doctor is saved: a renamed, unpublished or deleted
+     * specialty used to stay searchable under its old name.
+     */
+    public function test_specialty_changes_reindex_their_doctors(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $doctors = Doctor::factory()->count(3)->create();
+        $outsider = Doctor::factory()->create();
+        foreach ($doctors as $doctor) {
+            $doctor->specialties()->attach($cardiology->id, ['is_primary' => true]);
+            $doctor->refresh()->searchable();
+        }
+        $outsider->refresh()->searchable();
+
+        $names = fn (Doctor $doctor): array => $this->engine->indexes['doctors'][$doctor->id]['specialty_names'];
+
+        $cardiology->update(['name' => 'Кардиохирургија']);
+        foreach ($doctors as $doctor) {
+            $this->assertSame(['Кардиохирургија'], $names($doctor));
+        }
+        $this->assertSame([], $names($outsider));
+
+        $cardiology->update(['is_published' => false]);
+        $this->assertSame([], $names($doctors[0]));
+
+        $cardiology->update(['is_published' => true]);
+        $this->assertSame(['Кардиохирургија'], $names($doctors[0]));
+
+        $cardiology->delete();
+        $this->assertSame([], $names($doctors[0]));
+
+        $cardiology->restore();
+        $this->assertSame(['Кардиохирургија'], $names($doctors[0]));
+    }
+
+    public function test_department_changes_reindex_their_facilities(): void
+    {
+        $department = Department::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $hospital = Facility::factory()->create(['type' => FacilityType::Hospital]);
+        $hospital->departments()->attach($department->id);
+        $hospital->refresh()->searchable();
+
+        $names = fn (): array => $this->engine->indexes['facilities'][$hospital->id]['department_names'];
+
+        $department->update(['name' => 'Ортопедија']);
+        $this->assertSame(['Ортопедија'], $names());
+
+        $department->update(['is_published' => false]);
+        $this->assertSame([], $names());
+
+        $department->update(['is_published' => true]);
+        $department->delete();
+        $this->assertSame([], $names());
+    }
+
+    public function test_taxonomy_reindexing_is_queued_and_skips_unrelated_edits(): void
+    {
+        $specialty = Specialty::factory()->create();
+        $department = Department::factory()->create();
+
+        Queue::fake();
+
+        $specialty->update(['sort_order' => 9, 'description' => 'x']);
+        $department->update(['sort_order' => 9]);
+        Queue::assertNothingPushed();
+
+        $specialty->update(['name' => 'Ново име']);
+        $department->delete();
+
+        Queue::assertPushed(ReindexTaxonomyMembers::class, 2);
+        Queue::assertPushed(
+            ReindexTaxonomyMembers::class,
+            fn (ReindexTaxonomyMembers $job): bool => $job->taxonomy === Specialty::class && $job->taxonomyId === $specialty->id,
+        );
     }
 }

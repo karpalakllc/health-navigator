@@ -320,7 +320,10 @@ to cache for them.
 
 `SCOUT_QUEUE` now defaults to `true` (`config/scout.php`, `.env.example`), so
 Meilisearch updates no longer run inside the admin's save request. It needs the
-queue worker that mail already requires. `phpunit.xml` pins
+queue worker that mail already requires. Renaming, (un)publishing, deleting or
+restoring a specialty or department queues `ReindexTaxonomyMembers`, which
+re-sends its doctors' / facilities' documents in chunks of 500 (those
+documents embed the taxonomy names). `phpunit.xml` pins
 `SCOUT_QUEUE=false` and the suite/E2E run `QUEUE_CONNECTION=sync`, so tests
 index inline.
 

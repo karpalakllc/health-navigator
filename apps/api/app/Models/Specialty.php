@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Models\Concerns\ReindexesSearchMembers;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
 use Database\Factories\SpecialtyFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Specialty extends Model
 {
     /** @use HasFactory<SpecialtyFactory> */
-    use HasFactory, InvalidatesTaxonomyCache, SoftDeletes;
+    use HasFactory, InvalidatesTaxonomyCache, ReindexesSearchMembers, SoftDeletes;
 
     protected $fillable = [
         'name',
