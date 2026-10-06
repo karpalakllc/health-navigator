@@ -129,9 +129,11 @@ mechanism for the Next.js web client and future mobile clients.
   anonymisation: name, display name, email (replaced with a non-deliverable
   placeholder, so the address can register again), password, avatar (file
   removed), roles, community-moderation scopes, tokens, panel sessions and
-  reset links are cleared; reviews and forum content stay public with the
-  author shown as `Избришан корисник` (`author.member_since` `null`, counts
-  `0`). Wrong password: `422` on `password`. Staff accounts: `403`, code
+  reset links are cleared; published reviews and forum content stay public
+  with the author shown as `Избришан корисник` (`author.member_since` `null`,
+  counts `0`, `is_topic_author` `false`); pending reviews, topics and replies
+  are withdrawn (rejected, no mail); the notes on the member's reports are
+  cleared. Wrong password: `422` on `password`. Staff accounts: `403`, code
   `account.staff_cannot_delete`. 5 attempts per hour.
 - `GET /me/tokens` lists the caller's active tokens (`id, name, created_at,
   last_used_at, expires_at, is_current`), current first. `name` is the login's

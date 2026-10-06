@@ -343,7 +343,7 @@ Treat any of these appearing in a diff as a prompt to check `infra/deploy.md` in
 | `CLIENT_IP_HEADER` | a caller-supplied header, so every caller picks its own bucket |
 | `APP_URL` | in production, **every** request 400s; verification links read as invalid |
 | `NEXT_PUBLIC_SITE_URL` | localhost baked into `robots.txt`, the sitemap and every canonical URL |
-| `MAIL_*` | queued mail fails into `failed_jobs`; nobody is told |
+| `MAIL_*` | queued mail fails into `failed_jobs`; the failed-job alert to `PLATFORM_ALERT_EMAIL` fails too when it is the same mailer (logged, and in Sentry) |
 | `MEDIA_DISK` | uploads vanish on redeploy |
 
 ---

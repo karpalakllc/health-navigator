@@ -2,30 +2,40 @@
 
 How Zdravje360 handles reports of reviews and forum content, takedown requests,
 and the right of reply for reviewed doctors and facilities. This is the
-operating process; the public terms (`apps/web/src/content/legal/terms.tsx`) are
-still a draft and must be aligned with it by legal counsel before launch.
+operating process. The public terms (`apps/web/src/content/legal/terms.tsx`,
+„Модерација и пријавување“) describe exactly this; they are still a draft for
+legal review, and the two must change together.
 
 ## What can be reported, and by whom
 
 - **Content:** published reviews (doctor, facility, pharmacy profiles), forum
   topics (the opening post) and forum replies. Pending or already hidden
   content cannot be reported; the API answers 404, as the public page does.
-- **Who:** any signed-in account with a verified email. On the web the
-  „Пријави“ link sits at the end of each review and post; signed-out visitors
-  are sent to sign in and brought back.
+- **Who:** any signed-in account with a verified email, about someone else's
+  content (reporting your own is refused; the web does not offer it). On the
+  web the „Пријави“ link sits at the end of each review and post; signed-out
+  visitors, and anyone whose session has expired, are sent to sign in and
+  brought back.
 - **Reasons** (`reason` codes): `spam` (spam or advertising), `abuse` (abuse or
   harassment), `false_information`, `personal_data` (someone's personal or
   health data), `other`. An optional note of up to 500 characters (plain text).
 - **Limits:** one report per account per item — a repeat is accepted but
   changes nothing (idempotent). At most 10 reports per 10 minutes and 40 a day
   per account.
-- The reporter is not told the outcome, and the author is never told who
+- The reporter is emailed the outcome once the report is resolved („Вашата
+  пријава е прегледана“: the content was removed, or it stays up). The mail is
+  neutral and never names the moderator. The author is never told who
   reported them.
 
 ## The queue
 
 Admin panel → **Community → Reports** (open reports first, oldest first; the
-menu badge shows how many are open). Visible to roles holding
+menu badge shows how many are open). Staff are told without opening the panel:
+`reports:alert-staff` runs every 10 minutes and emails one summary of the
+reports that arrived since the last run (counts by reason, the open total and
+a link to the queue; no reporter, no note, no reported text) to everyone with
+`content_reports.view`, plus `REPORT_ALERT_EMAIL` when set. The daily
+moderation digest (07:00) also counts open reports. Visible to roles holding
 `content_reports.view`; resolving needs `content_reports.resolve`. Both are
 held by the built-in **Administrator** and **Moderator** roles. **Forum
 Moderators** (community members scoped to categories) do not see the queue,
@@ -41,30 +51,32 @@ that item at once:
   hold up (a negative but honest review is not a reason to remove it).
 - **Hide content** — unpublishes the item through the same rejection path as
   pre-moderation: status `rejected`, `moderated_by_id` / `moderated_at` set,
-  the moderator's note stored as `rejection_note`. Also requires the right to
+  the reason stored as `rejection_note`. The reason is **required**: it starts
+  as a general one and can be picked from a list of common reasons or typed. Also requires the right to
   moderate that content (`reviews.update` for reviews; forum moderation for
   topics and replies). Effects:
   - the item disappears from every public list, profile, topic page and search
     (forum topics leave the Meilisearch index on save);
   - review averages and counts are recomputed; a hidden reply no longer counts
     in the topic's reply total;
-  - the author receives the „Содржината не е објавена“ email with the note —
-    this is the **statement of reasons**. If the moderator leaves the note
-    empty, a neutral default is used. Write notes in Macedonian, without
-    naming the reporter.
+  - the author receives the „Содржината е отстранета“ email with the reason —
+    this is the **statement of reasons**. Write reasons in Macedonian, without
+    naming the reporter;
+  - every reporter of the item receives the outcome email.
+
+There is no interim or partial hide: a report ends as kept or removed. Two
+moderators resolving the same item at once cannot remove it twice (the item
+is re-read under a row lock).
 
 Who resolved each report and when is stored on the report
 (`resolved_by_id`, `resolved_at`); reports are never deleted from the panel.
 
 ## Turnaround
 
-| Report | Target |
-|--------|--------|
-| `personal_data` (someone's identity or health information), threats, harassment | same working day |
-| everything else | within 3 working days |
-
-When unsure, hide first and review with a second moderator; a hidden item can
-be restored by approving it again from Reviews or Forum.
+The terms promise one goal: **every report reviewed within 24 hours.** Take
+`personal_data` (someone's identity or health information), threats and
+harassment first. When unsure, hide and review with a second moderator; a
+hidden item can be restored by approving it again from Reviews or Forum.
 
 ## Contested reviews (doctor or facility disagrees)
 

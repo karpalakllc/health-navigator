@@ -21,11 +21,11 @@ The product facts used here come from the code and
 |---|---|---|---|
 | R1 | **Prior AZLP approval for health data (ЗЗЛП чл. 84).** Processing "data concerning health" needs the Agency's prior approval, even with explicit consent. The forum (health questions), reviews that describe treatment, and the anonymous guidance answers may all count. | High | Get counsel's view first. Then either (a) apply to AZLP for approval, or (b) document why each flow is outside чл. 84 (guidance is anonymous; forum content is made public by the data subject, чл. 13(2) т. 5). Do this before launch. |
 | R2 | **Paid „Спонзорирано“ doctor placement.** It meets the statutory definition of advertising health services (ЗЗЗ чл. 2 т. 28). It is risky under чл. 277 (misleading or comparative advertising). The Лекарска комора code (чл. 18, 85, 87) forbids doctors' self-promotion, so paying doctors face disciplinary risk. | Medium–high | Do not sell doctor sponsorship until counsel and, informally, the Комора have answered. If it is sold, follow the neutrality rules in §5.4. Replace the current hover text that ties sponsorship to good reviews (done in `featured-disclosure.md`; WP2 implements it). |
-| R3 | **„Истакнат“ ranks first everywhere** (lists and search sort `is_featured` first). Unpaid editorial ranking is lawful, but it must not be bought or look like a quality verdict (consumer law чл. 71(1) т. 11–12, чл. 75(5)). | Medium | Write and publish objective featuring criteria. Keep a log of who was featured and why. Keep a hard rule that featuring is never linked to payment or any commercial relationship. The toggletip and terms explain this. |
+| R3 | **„Истакнат“ ranks first in lists** (directory lists sort `is_featured` first; search results are ordered by relevance, with featured only as a later tie-break). Unpaid editorial ranking is lawful, but it must not be bought or look like a quality verdict (consumer law чл. 71(1) т. 11–12, чл. 75(5)). | Medium | Write and publish objective featuring criteria. Keep a log of who was featured and why. Keep a hard rule that featuring is never linked to payment or any commercial relationship. The toggletip and terms explain this. |
 | R4 | **Defamation via reviews:** factual allegations of crimes (bribes, malpractice). | Medium | Use the content policy in §4.4: opinion yes, factual accusation of a crime no. Pre-moderation (already in place) plus the report button and staff-posted official reply. |
-| R5 | **Notice-and-takedown speed.** The hosting safe harbour (Закон за електронска трговија чл. 17) requires acting "веднаш / брзо" once notified. The defamation law gives the editor of an electronic publication a defence only if offending information is removed **within 24 hours** of becoming aware (ЗГОНК чл. 11(2)). Pre-moderation makes "unaware" hard to argue. | Medium–high | Hide reported content that is plausibly insulting or defamatory within 24 hours, then decide (we suggest within 72 hours) and reinstate protected opinions. Log every notice and decision for at least a year. Fill the turnaround placeholder in the terms. |
+| R5 | **Notice-and-takedown speed.** The hosting safe harbour (Закон за електронска трговија чл. 17) requires acting "веднаш / брзо" once notified. The defamation law gives the editor of an electronic publication a defence only if offending information is removed **within 24 hours** of becoming aware (ЗГОНК чл. 11(2)). Pre-moderation makes "unaware" hard to argue. | Medium–high | Review every report within 24 hours (the terms now state this as the goal; staff are emailed about new reports every 10 minutes) and remove content that breaks the rules or the law. The product has no interim hide: a report is resolved keep or remove. Log every notice and decision for at least a year (reports are never deleted). |
 | R6 | **Transfers to processors outside MK** (Sentry in the US, the email provider, hosting). Transfers to EU, EEA or NATO countries are outside the transfer chapter, but each must be **notified to AZLP 15 days in advance** (ЗЗЛП чл. 48(3) plus the transfer rulebook). | Medium | Choose EU regions where possible (e.g. Sentry EU). Sign a DPA with each processor (чл. 32). File the чл. 48(3) notifications. |
-| R7 | **No self-service account deletion or export; reviews and posts are kept indefinitely; rejected content is kept.** Deadlines are short: erasure within 30 days (чл. 21), rectification within 15 days (чл. 20). | Medium | Handle requests by email within those deadlines (the privacy page says so). Build self-service deletion. Set a retention period for rejected content. |
+| R7 | **Reviews and posts are kept indefinitely; rejected content is kept.** Self-service deletion (anonymisation) and export now exist under Account → „Ваши податоци“. Deadlines are short: erasure within 30 days (чл. 21), rectification within 15 days (чл. 20). | Medium | Handle other requests by email within those deadlines (the privacy page says so). Set a retention period for rejected content. |
 | R8 | **DPO, records of processing, DPIA, high-risk notice.** Health-related content probably triggers the DPIA list (Сл. весник 122/20, т. 3) and removes the under-50-employees exemption from records of processing (чл. 34(5)). A DPO is arguably mandatory (чл. 41(1)(в)). | Medium | Appoint a DPO (an external contract is allowed, чл. 41(6)), notify AZLP, write the records of processing and a DPIA before launch, and check whether a чл. 71 high-risk notice is needed. |
 | R9 | **Operator identification:** Закон за електронска трговија чл. 7 requires the provider's name, address, registration and e-mail to be easy to find. | Low (easy) | Fill the placeholders in privacy and terms (list in §8). |
 | R10 | **No terms acceptance or age check at sign-up.** The children's consent age is 14 (ЗЗЛП чл. 12). | Low–medium | Add a "I accept the terms and confirm I am at least [age]" checkbox to registration. The pages leave the age as a placeholder for the owner (we suggest 16 for a health forum; the legal floor is 14). |
@@ -201,12 +201,13 @@ answer seems to predate the NATO exemption. Be conservative.
   All are purged on a schedule. Expired tokens are pruned daily (24 h grace,
   `routes/console.php`). Password-reset rows are replaced, not pruned.
 - Reviews and posts, including **rejected ones**, are kept indefinitely.
-  `failed_jobs` is never pruned. **Recommendation:** set a period, e.g.
-  12 months for rejected content, and prune `failed_jobs`.
-- No self-service deletion or export. Requests are handled by email (the
-  privacy page says so). Note that `restrict` foreign keys block deleting a
-  user who has content. Plan for anonymising the author ("Поранешен член")
-  rather than deleting reviews, and say so once that is built.
+  **Recommendation:** set a period, e.g. 12 months for rejected content.
+  `failed_jobs` is pruned after 30 days (`queue:prune-failed --hours=720`).
+- Self-service deletion and export are built (Account → „Ваши податоци“).
+  Deletion anonymises the account in place (`restrict` foreign keys keep the
+  row): published reviews and posts stay under „Избришан корисник“, pending
+  ones are withdrawn, report notes are cleared. Other requests are handled by
+  email (the privacy page says so).
 
 ---
 
@@ -346,10 +347,10 @@ counsel checks.
   route. Capture: who reports (role), which content, the disputed sentence,
   why it is false or insulting.
 - **Within 24 hours** of a plausible report of insult, defamation or
-  third-party health data: hide pending review (ЗГОНК чл. 11). **Decide within
-  72 hours**; reinstate protected opinions; tell the reporter and the author
-  the outcome with reasons. The terms say "24 hours" for hiding and leave the
-  decision turnaround as a placeholder for the owner.
+  third-party health data: act (ЗГОНК чл. 11). The product resolves a report
+  as keep or remove (no interim hide); the terms state a 24-hour review goal.
+  The author gets the reason, the reporter gets the outcome (both by email;
+  the reporter is never named to the author, the moderator never to either).
 - For a doctor's complaint about a review's factual basis, follow the Jameda
   VI ZR 34/15 model: forward the complaint to the author, ask for a
   description of the visit (without health detail being published), and
