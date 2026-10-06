@@ -25,6 +25,8 @@ use RuntimeException;
  * after a complete, cleanly parsed list, so a failed download or an
  * unreadable line never looks like a lapsed licence). Nothing is ever
  * unpublished here: lapsed and expired licences are for staff to review.
+ * A staging row that stays off the next complete list too, attached to no
+ * profile, is deleted (retention).
  */
 final class KomoraLicenceImporter
 {
@@ -57,6 +59,7 @@ final class KomoraLicenceImporter
             'expired' => 0,
             'unmapped_specialties' => 0,
             'missing_from_list' => 0,
+            'pruned_off_list' => 0,
         ];
 
         $rows = [];
@@ -122,6 +125,16 @@ final class KomoraLicenceImporter
                 ->where('last_seen_at', '<', $startedAt)
                 ->whereNull('missing_since')
                 ->update(['missing_since' => $listDate->toDateString()]);
+
+            // Retention (docs/data-inventory.md): a licence already missing
+            // from the previous complete list and attached to no profile is
+            // of no further use — deleted. One still attached stays as the
+            // review signal until staff deal with the profile.
+            $counts['pruned_off_list'] = KomoraLicence::query()
+                ->whereNotNull('missing_since')
+                ->where('missing_since', '<', $listDate->toDateString())
+                ->whereNull('doctor_id')
+                ->delete();
         }
 
         return $counts;

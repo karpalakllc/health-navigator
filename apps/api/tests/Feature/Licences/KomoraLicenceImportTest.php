@@ -67,10 +67,10 @@ class KomoraLicenceImportTest extends TestCase
      * @param  list<array{reference: string, reason: string}>  $failures
      * @return array<string, int>
      */
-    private function import(array $rows, bool $dryRun = false, array $failures = [], bool $complete = true): array
+    private function import(array $rows, bool $dryRun = false, array $failures = [], bool $complete = true, string $listDate = '2026-07-02'): array
     {
         return (new KomoraLicenceImporter($this->candidates, $this->sink))
-            ->import(new LicenceParseResult($rows, $failures), CarbonImmutable::parse('2026-07-02'), $dryRun, $complete);
+            ->import(new LicenceParseResult($rows, $failures), CarbonImmutable::parse($listDate), $dryRun, $complete);
     }
 
     /**
@@ -170,6 +170,31 @@ class KomoraLicenceImportTest extends TestCase
         $this->travel(1)->days();
         $this->import($this->list());
         $this->assertNull($missing->fresh()?->missing_since);
+    }
+
+    public function test_an_unattached_licence_off_two_complete_lists_is_deleted_and_an_attached_one_kept(): void
+    {
+        $this->import($this->list());
+        $this->travel(1)->days();
+        // 0000001 is attached to a profile, 0000002 (namesakes) is not; both leave the list.
+        $second = $this->import(array_slice($this->list(), 2), listDate: '2026-11-02');
+        $this->assertSame(2, $second['missing_from_list']);
+        $this->assertSame(0, $second['pruned_off_list']);
+
+        // The same list again (a forced re-run) prunes nothing.
+        $this->travel(1)->days();
+        $this->assertSame(0, $this->import(array_slice($this->list(), 2), listDate: '2026-11-02')['pruned_off_list']);
+
+        $this->travel(1)->days();
+        $third = $this->import(array_slice($this->list(), 2), listDate: '2027-03-02');
+
+        $this->assertSame(1, $third['pruned_off_list']);
+        $this->assertNull(KomoraLicence::query()->where('licence_number', '0000002')->first());
+        $this->assertNotNull(KomoraLicence::query()->where('licence_number', '0000001')->first()?->doctor_id);
+        $this->assertNotNull(KomoraLicence::query()->where('licence_number', '0000003')->first());
+
+        // A partial list never prunes.
+        $this->assertSame(0, $this->import(array_slice($this->list(), 2), complete: false, listDate: '2027-07-02')['pruned_off_list']);
     }
 
     public function test_a_partial_or_partly_unreadable_list_never_marks_licences_missing(): void

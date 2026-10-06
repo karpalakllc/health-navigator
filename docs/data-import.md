@@ -107,7 +107,7 @@ Read the counts before applying:
 - Комора: `rows_parsed`, `parse_failures` (page references only, never the
   text), `attached`, `already_attached`, `locked`, `conflict`, `ambiguous`,
   `no_match`, `specialty_mismatch`, `expired`, `unmapped_specialties`,
-  `missing_from_list`.
+  `missing_from_list`, `pruned_off_list`.
 
 ### Trying it on real data locally
 
@@ -185,7 +185,9 @@ matches it to a profile:
   `komora_licences` with the matching outcome (**Data import → Licences
   (Комора)**, filters for expired and off-the-list). A licence absent from a
   complete, cleanly parsed list is marked *missing since*; nothing is
-  unpublished.
+  unpublished. Still absent from the next complete list and attached to no
+  profile, its staging row is deleted (`pruned_off_list`); an attached one
+  stays as the review signal.
 
 The number and expiry date stay internal. A public profile shows only
 `has_valid_licence` („Лиценца: важечка“) — a status checked against today's

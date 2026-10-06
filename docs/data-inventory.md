@@ -46,11 +46,12 @@ public API exposes only what is listed under "Public".
 | `cache` / Redis | Rate-limiter keys derived from IP address and, for login lockout, email + IP; per-account limiter keys; mail cooldown keys | Abuse prevention | The limiter window: IP-keyed limits at most one hour (symptom guidance), most only a minute; per-account limits (reviews, forum, reports) up to a day | Not exposed |
 | `jobs` / Redis queue | Queued mail jobs carry recipient address and name and the mail's content (e.g. review/topic title, rejection note) | Sending mail out of request | Until processed | Not exposed |
 | `failed_jobs` | Payload of any job that failed — for mail jobs, as above | Retry/debugging; each failure also alerts the operators (`NotifyOnFailedJob`) | **30 days**: `queue:prune-failed --hours=720` runs daily at 04:30 | Server operators only |
-| `site_settings`, directory tables (`doctors`, `facilities` — pharmacies included, …) | Doctors' professional profile data (name, specialties, workplace, photo) — public by design. From the source imports (W6, §1a): the ФЗО facsimile number, the Комора licence number and expiry, facility ФЗО codes and tax numbers — **internal keys, never public** (the public profile may show only whether the licence is valid) | Directory | Until edited | Public, except the internal keys |
+| `site_settings`, directory tables (`doctors`, `facilities` — pharmacies included, …) | Doctors' professional profile data (name, specialties, workplace, photo) — public by design. Facility logo and cover photos taken from the institution's own website (W6, §1a; source URL kept in `facility_media`). Internal keys from the source imports (W6, §1a), **never public**: on `doctors` — `fzo_facsimile` (ФЗО facsimile number), `licence_number`, `licence_valid_until`, `licence_specialty_raw`, `licence_source`, `licence_checked_at` (Комора licence), `name_key` / `name_key_sorted` (normalised name for matching), `import_source`, `import_last_seen_at`, `import_missing_runs`; on `facilities` — `fzo_code`, `tax_number` (ЕДБ, a legal entity's number), `ownership`, `import_source`, `import_last_seen_at`, `import_missing_runs`; on `doctor_facility` / `doctor_specialty` — `source` (which import made the link), `work_unit`, `contract_type` | Directory; matching and deduplication across imports | Until edited or the profile is deleted (the internal keys go with the profile) | Public, except the internal keys: the public profile shows only whether the licence is currently valid (`has_valid_licence`), never the number, the expiry date or the facsimile number; none of the keys are in an API resource, an export, the sitemap or `llms.txt`. Panel: `doctors.*` / `facilities.*`; the doctor and facility pages do not show the keys — the licence number appears only in Licences (Комора) and licence review items (`licences.manage` / `imports.view`) |
 
 ## 1a. Directory source imports (W6)
 
-Doctor and facility data is imported from two public official sources
+Doctor and facility data is imported from two public official sources, and
+facility details and images from the institutions' own websites
 (runbook: [`docs/data-import.md`](data-import.md); balancing test: research
 memo §2.1.1):
 
@@ -62,12 +63,26 @@ memo §2.1.1):
 
 Never imported: pharmacists, nurses' names (`ClenNaTim`), absence reasons
 (`PricinaOtsustvo` / `StatusValidnostID`), substitution links
-(`RedovnaZamena`), ЕМБГ, private phones or e-mails. The import code's own
-tables (raw source records, field provenance, import runs, review queue) and
-the raw snapshots on the private import disk (newest few per source) are
-documented with that code; they hold the same professional data plus the
-internal keys and are never public. New profiles from an import stay hidden
-until staff publish them.
+(`RedovnaZamena`), ЕМБГ, private phones or e-mails, photos of people. From
+institutions' own websites (by hand, `import:institutions-json`) we take
+facility contact details, the logo and cover photos, and the names and
+specialties of listed physicians and dentists; an institution can ask for an
+image to be removed (one click for staff, never re-imported). New profiles
+from an import stay hidden until staff publish them.
+
+| Table | Personal data held | Purpose | Retention | Access |
+|---|---|---|---|---|
+| `import_runs` | `source`, dry run or apply, status, `counts` (numbers only), `source_meta` (file names, sizes, hashes, ETag / Last-Modified), `error` (message only, never a stack trace), `triggered_by_id` (staff member who started it from the panel, else null), `diff_path` | Audit of every import run | Indefinite (small; the record of what each run did) | Panel `imports.view` (Import runs). Never public |
+| Diff summary CSV per run (private import disk, `imports/runs/{id}/diff.csv`) | One line per create / update / conflict / missing: our record id, the doctor's or facility's name, field, old and new value. No facsimile, licence or tax numbers | Staff check what a run changed; rollback | Kept with the run; **not pruned automatically yet** (§6) | Panel `imports.view` (download). Never public |
+| `source_records` | One row per source record: `source`, `external_key` (e.g. `doctor:<facsimile>` — internal), the record as read after filtering (`payload`: name, specialty wording, contracts / workplace; for websites the page URL), `hash`, first / last seen, the profile it feeds | Idempotent re-imports; provenance | As long as the source lists the record; a record that leaves the source is kept (the profile is not deleted either); deleted with nothing else (no prune) | Not in the panel or the API |
+| `field_provenance` | Per profile field: which source wrote it, the value it wrote, when, the source record, the page URL (websites), and the editor lock (`locked`, `locked_by_id`, `locked_at`) | „Staff edits win“: detect conflicts, keep locks across re-imports | With the profile | Panel: Import locks on the doctor / facility edit page (`imports.manage` to lock) |
+| `import_review_items` | `title` (usually the person's or facility's name), `details` (the imported values; for a licence row also the licence number, name, specialty, expiry and list page — internal), the profile it is about, status, `resolved_by_id`, `resolved_at`, `resolution` | The review queue (new drafts, changes, conflicts, missing, unmatched) | Indefinite: closed items are the record of the decision; **no automatic prune yet** (§6) | Panel `imports.view` / `imports.manage` (Import review). Never public |
+| `facility_media` | Per facility image from its website: `kind` (logo / cover), `source`, `source_url`, `content_hash`, stored `path`, `status` (incl. removed), `removed_by_id`, `removed_at` | Where each image came from; one-click takedown that a re-import respects | With the facility (cascade). A removed image's file is deleted at once; the row stays without the file so the image is never imported again | Logo and the chosen cover are public on a published facility profile; the rest panel only (`facilities.update` / `imports.manage`, Website images) |
+| `specialty_aliases` | No personal data: a source's specialty wording → our specialty / excluded | Turning ФЗОМ and website wording into our specialties | Indefinite (configuration) | Panel `imports.view` / `imports.manage` (Specialty aliases) |
+| `licence_specialty_mappings` | No personal data: Комора / ФЗОМ specialty wording → group; `reviewed_by_id` (staff), `notes` | Whether a licence's specialty fits a doctor | Indefinite (configuration) | Panel `licences.manage` (Licence specialty mapping) |
+| `komora_licences` | One row per licence number on the Лекарска комора list: `licence_number` (internal), `full_name`, `name_key`, `specialty`, `valid_until`, the list date and page, first / last seen, `missing_since`, matching `outcome`, `doctor_id`, `candidate_doctor_ids` | Staging of the licence list: what matching decided, licences that expired or left the list | **Only the current list plus what is still attached.** A licence absent from a complete list is marked `missing_since`; if it is still absent from the next complete list and attached to no profile, `import:komora-licences` deletes it. A row still attached to a profile stays as the review signal until staff deal with the profile. Partial or partly unreadable lists never mark or delete anything | Panel `licences.manage` (Licences (Комора)). Never public |
+| `komora_licence_downloads` | No personal data in the row: list file URL, label, status, ETag / Last-Modified, SHA-256, size, list date, `storage_path`. The raw PDF it points to holds the whole published list (names, specialties, licence numbers) | Conditional requests; audit of what was downloaded | Raw files: the newest three downloads only (`KOMORA_KEEP_SNAPSHOTS`), on the private disk; older files are deleted and the row's `storage_path` cleared. Rows: indefinite (metadata only) | Server operators only |
+| Raw ФЗОМ snapshots (private import disk, `imports/snapshots/fzom/…`) | The two published XML files as downloaded (they include the fields we never import) | Audit of what a run read | The newest three runs (`IMPORT_SNAPSHOT_RETENTION`); never in git or public storage | Server operators only |
 
 ## 2. Data in the browser
 
@@ -125,6 +140,9 @@ No other cookies or storage are set for analytics (Plausible is cookieless).
 - `analytics_events` still links logins, registrations and contributions to a
   user id for 180 days (list in §1); deletion unlinks them.
 - Password-reset rows are not pruned on a schedule.
+- Import diff CSVs and closed import review items (names of doctors, and
+  licence numbers on licence items) are kept indefinitely; a retention period
+  (e.g. one year after the run / the decision) is still to be set.
 - Reviews and forum posts are kept indefinitely, also after moderation
   rejection.
 - API error events sent to Sentry can include non-credential request
