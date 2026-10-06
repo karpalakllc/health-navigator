@@ -18,6 +18,7 @@ use App\Models\Specialty;
 use App\Models\User;
 use App\Support\RoleCatalog;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -70,7 +71,7 @@ class E2ESeeder extends Seeder
     public const ATTEMPTS = 3;
 
     /** @var list<string> each becomes "{prefix}-{attempt}@e2e.test" */
-    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset'];
+    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported'];
 
     public const SPECIALTY_SLUG = 'e2e-kardiologija';
 
@@ -115,6 +116,7 @@ class E2ESeeder extends Seeder
         $this->seedDirectory();
         $this->seedForum();
         $this->seedReviews();
+        $this->seedReportableReviews();
     }
 
     /**
@@ -341,5 +343,36 @@ class E2ESeeder extends Seeder
                 'published_at' => null,
             ],
         );
+    }
+
+    /**
+     * One published facility review per attempt, written by "reported-{n}", for
+     * the report spec to report, hide and see disappear (e2e/report.spec.ts).
+     * Re-seeding puts it back up and clears its reports and votes.
+     */
+    private function seedReportableReviews(): void
+    {
+        $facility = Facility::query()->where('slug', self::FACILITY_SLUG)->firstOrFail();
+
+        for ($attempt = 0; $attempt < self::ATTEMPTS; $attempt++) {
+            $author = User::query()->where('email', "reported-{$attempt}@e2e.test")->firstOrFail();
+
+            $review = Review::query()->updateOrCreate(
+                ['user_id' => $author->id, 'reviewable_type' => Facility::class, 'reviewable_id' => $facility->id],
+                [
+                    'rating' => 2,
+                    'body' => "Рецензија за пријава {$attempt} (E2E).",
+                    'status' => ReviewStatus::Approved,
+                    'published_at' => now()->subDays(1 + $attempt),
+                    'moderated_by_id' => null,
+                    'moderated_at' => null,
+                    'rejection_note' => null,
+                ],
+            );
+
+            $review->reports()->delete();
+            DB::table('review_helpful_votes')->where('review_id', $review->id)->delete();
+            $review->forceFill(['helpful_count' => 0])->save();
+        }
     }
 }
