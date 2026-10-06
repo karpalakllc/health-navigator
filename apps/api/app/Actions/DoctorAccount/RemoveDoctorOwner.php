@@ -3,6 +3,8 @@
 namespace App\Actions\DoctorAccount;
 
 use App\Enums\DoctorChangeRequestStatus;
+use App\Enums\ReviewResponseSource;
+use App\Enums\ReviewResponseStatus;
 use App\Models\Doctor;
 use App\Models\DoctorChangeRequest;
 use App\Models\Review;
@@ -12,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  * Unlink the managing account from a doctor profile: staff „Remove account“,
  * and account deletion (AnonymiseUser). What the account still had waiting is
  * withdrawn with it — pending change requests, and doctor replies not yet
- * approved — so nothing it wrote can be published after it lost the profile.
+ * approved or refused — so nothing it wrote can be published after it lost
+ * the profile, and refused text does not linger.
  * Approved replies stay; they were reviewed and are the doctor's public word.
  */
 final class RemoveDoctorOwner
@@ -42,8 +45,12 @@ final class RemoveDoctorOwner
                     'status' => DoctorChangeRequestStatus::Withdrawn,
                 ])->save());
 
+            // Refused replies too: their text never became public, and it is
+            // the part most likely to be what should not have been written.
             $locked->reviews()
-                ->withPendingDoctorReply()
+                ->whereNotNull('response_body')
+                ->where('response_source', ReviewResponseSource::Doctor)
+                ->whereIn('response_status', [ReviewResponseStatus::Pending, ReviewResponseStatus::Rejected])
                 ->where('response_by_id', $ownerId)
                 ->get()
                 ->each(fn (Review $review) => $review->removeResponse());

@@ -114,17 +114,18 @@ class Review extends Model
     {
         return LogOptions::defaults()
             ->useLogName('reviews')
+            // Decisions, not the reasons' text: a refusal note is written to
+            // the member (or doctor) and stays on the row, where account
+            // deletion can reach it — the log would keep it for a year.
             ->logOnly([
                 'status',
                 'moderated_by_id',
-                'rejection_note',
                 'resubmission_count',
                 'response_body',
                 'response_by_id',
                 'response_source',
                 'response_status',
                 'response_moderated_by_id',
-                'response_rejection_note',
             ])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();

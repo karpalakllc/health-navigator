@@ -4,14 +4,15 @@ namespace App\Actions\DoctorAccount;
 
 use App\Enums\DoctorClaimRequestStatus;
 use App\Models\Doctor;
+use App\Models\DoctorChangeRequest;
 use App\Models\DoctorClaimRequest;
 use App\Models\User;
 
 /**
  * Account deletion (App\Actions\AnonymiseUser) for the doctor-account parts:
  * the profile the account managed is unlinked (withdrawing what it had
- * waiting, RemoveDoctorOwner), and its „Ова е мој профил“ requests lose their
- * free text and contact details. Decided requests stay as the record of the
+ * waiting, RemoveDoctorOwner), its „Ова е мој профил“ requests lose their
+ * free text and contact details, and its profile change requests their note. Decided requests stay as the record of the
  * decision; open ones are closed. Approved change requests keep their diff:
  * it describes the public profile, not the member.
  */
@@ -44,5 +45,11 @@ final class ForgetDoctorAccountData
         DoctorClaimRequest::query()
             ->where('user_id', $user->getKey())
             ->update(['message' => '', 'contact' => '', 'updated_at' => now()]);
+
+        // The note to staff on each profile change request; the diff stays.
+        DoctorChangeRequest::query()
+            ->where('user_id', $user->getKey())
+            ->whereNotNull('message')
+            ->update(['message' => null, 'updated_at' => now()]);
     }
 }

@@ -130,6 +130,23 @@ class ActivityLogTest extends TestCase
         $this->assertStringNotContainsString('"user_id"', (string) $raw);
     }
 
+    public function test_refusal_notes_are_not_copied_into_the_log(): void
+    {
+        $moderator = User::factory()->moderator()->create();
+        $review = Review::factory()->approved()->create(['reviewable_type' => Doctor::class, 'reviewable_id' => Doctor::factory()]);
+        $this->actingAs($moderator);
+
+        $review->forceFill(['status' => 'rejected', 'moderated_by_id' => $moderator->id, 'rejection_note' => 'Го спомнувате името на медицинската сестра.'])->save();
+        $review->replyAsDoctor(User::factory()->create(), 'Благодариме.', true);
+        $review->rejectDoctorReply($moderator, 'Потврдува дека авторот е пациент.');
+
+        $this->assertSame('rejected', $this->latestFor($review)->attribute_changes['attributes']['response_status']);
+
+        $raw = json_encode(Activity::query()->get()->toArray(), JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString('медицинската сестра', (string) $raw);
+        $this->assertStringNotContainsString('авторот е пациент', (string) $raw);
+    }
+
     public function test_resolving_a_report_is_logged_against_the_content(): void
     {
         $moderator = User::factory()->moderator()->create();
