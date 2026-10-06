@@ -2,7 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { cn } from "@/lib/cn";
+import { buttonClassName } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icons";
 import { t } from "@/i18n/t";
 
 const PROTECTED_PREFIXES = ["/account"];
@@ -16,9 +17,12 @@ function isProtectedPath(pathname: string): boolean {
 export function LogoutButton({
   className,
   onLoggedOut,
+  withIcon = false,
 }: {
   className?: string;
   onLoggedOut?: () => void;
+  /** Leading log-out icon (the account page's sign-out row). */
+  withIcon?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,9 +55,10 @@ export function LogoutButton({
       type="button"
       onClick={handleLogout}
       disabled={pending}
-      className={cn("btn btn-secondary btn-md", className)}
+      className={buttonClassName({ variant: "secondary", className })}
     >
-      {pending ? t("nav.signingOut") : t("nav.logout")}
+      {withIcon ? <Icon name="log-out" size={20} /> : null}
+      <span>{pending ? t("nav.signingOut") : t("nav.logout")}</span>
     </button>
   );
 }

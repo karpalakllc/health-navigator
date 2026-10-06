@@ -1,6 +1,7 @@
-import Link from "next/link";
-import { PageShell } from "@/components/ui/page-shell";
+import { AuthPage } from "@/components/auth/auth-page";
 import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -27,52 +28,53 @@ export default async function VerifyEmailPage({
       ? {
           title: t("auth.verifiedTitle"),
           body: t("auth.verifiedBody"),
+          ok: true,
           showResend: false,
         }
       : status === "verified_set_password"
         ? {
             title: t("auth.verifiedSetPasswordTitle"),
             body: t("auth.verifiedSetPasswordBody"),
+            ok: true,
             showResend: false,
           }
         : status === "already"
           ? {
               title: t("auth.verifiedAlreadyTitle"),
               body: t("auth.verifiedAlreadyBody"),
+              ok: true,
               showResend: false,
             }
           : {
               title: t("auth.verifiedInvalidTitle"),
               body: t("auth.verifiedInvalidBody"),
+              ok: false,
               showResend: true,
             };
 
   return (
-    <PageShell className="max-w-xl py-16">
-      <div className="grid gap-4 rounded-2xl border border-border bg-card p-6">
-        <h1 className="text-2xl font-semibold text-foreground">{copy.title}</h1>
-        <p className="text-sm text-muted-foreground">{copy.body}</p>
+    <AuthPage title={copy.title}>
+      <div className="flex flex-col gap-6">
+        {copy.ok ? (
+          <Notice tone="success">{copy.body}</Notice>
+        ) : (
+          <p className="type-body text-ink">{copy.body}</p>
+        )}
 
         {copy.showResend ? (
           <ResendVerificationForm />
         ) : status === "verified_set_password" ? (
           // No password to sign in with yet; this is where a lost reset mail
           // is re-requested.
-          <Link
-            href="/forgot-password"
-            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
+          <Button href="/forgot-password" size="lg" fullWidth>
             {t("auth.verifiedSetPasswordLink")}
-          </Link>
+          </Button>
         ) : (
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
+          <Button href="/login" size="lg" fullWidth>
             {t("auth.signIn")}
-          </Link>
+          </Button>
         )}
       </div>
-    </PageShell>
+    </AuthPage>
   );
 }

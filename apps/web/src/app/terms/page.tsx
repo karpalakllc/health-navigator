@@ -1,5 +1,9 @@
 import { LegalPage } from "@/components/legal/legal-page";
-import { TermsContent, termsLastUpdated } from "@/content/legal/terms";
+import {
+  TermsContent,
+  termsLastUpdated,
+  termsSections,
+} from "@/content/legal/terms";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -9,7 +13,11 @@ export const metadata = pageMetadata(t("legal.termsTitle"), undefined, {
 
 export default function TermsPage() {
   return (
-    <LegalPage titleKey="legal.termsTitle" lastUpdated={termsLastUpdated}>
+    <LegalPage
+      titleKey="legal.termsTitle"
+      lastUpdated={termsLastUpdated}
+      sections={termsSections}
+    >
       <TermsContent />
     </LegalPage>
   );

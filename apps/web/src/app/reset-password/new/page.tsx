@@ -1,11 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { AuthTrustAside } from "@/components/auth/auth-trust-aside";
+import { AuthPage } from "@/components/auth/auth-page";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { AuthSplitLayout } from "@/components/design/auth-split-layout";
-import { DirectoryHero } from "@/components/design/directory-hero";
-import { PageShell } from "@/components/ui/page-shell";
-import { PageHeroBleed } from "@/components/design/page-hero-bleed";
 import { decodeResetCookie, RESET_COOKIE } from "@/lib/auth/reset-token";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
@@ -29,31 +25,11 @@ export default async function ResetPasswordPage() {
   }
 
   return (
-    <>
-      <PageHeroBleed className="lg:hidden">
-        <DirectoryHero
-          badge={t("auth.loginAsideTitle")}
-          title={t("auth.resetPasswordTitle")}
-          description={t("auth.resetPasswordDescription")}
-        />
-      </PageHeroBleed>
-
-      <PageShell className="pb-16">
-        <AuthSplitLayout aside={<AuthTrustAside />}>
-          <div className="hidden lg:block">
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              {t("auth.resetPasswordTitle")}
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              {t("auth.resetPasswordDescription")}
-            </p>
-          </div>
-          <ResetPasswordForm
-            email={credentials.email}
-            token={credentials.token}
-          />
-        </AuthSplitLayout>
-      </PageShell>
-    </>
+    <AuthPage
+      title={t("auth.resetPasswordTitle")}
+      description={t("auth.resetPasswordDescription")}
+    >
+      <ResetPasswordForm email={credentials.email} token={credentials.token} />
+    </AuthPage>
   );
 }

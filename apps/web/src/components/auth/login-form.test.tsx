@@ -42,6 +42,21 @@ describe("LoginForm", () => {
     ).toHaveAttribute("href", "/forgot-password");
   });
 
+  it("confirms a password reset when sent back with ?reset=1", () => {
+    setSearchParams({ reset: "1" });
+    render(<LoginForm />);
+
+    expect(screen.getByText(t("auth.resetPasswordDone"))).toBeVisible();
+  });
+
+  it("says nothing about a reset on a plain visit", () => {
+    render(<LoginForm />);
+
+    expect(
+      screen.queryByText(t("auth.resetPasswordDone")),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not submit an empty form", async () => {
     const fetch = mockFetch({ status: 200, body: {} });
     render(<LoginForm />);

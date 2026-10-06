@@ -1,14 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthFormCard } from "@/components/auth/auth-form-card";
-import { PasswordInput } from "@/components/auth/password-input";
-import { filterInputClassName } from "@/components/directory/filter-form";
-import { Button } from "@/components/ui/button";
-import { t } from "@/i18n/t";
+import { PasswordField } from "@/components/auth/password-input";
+import { TextField } from "@/components/auth/text-field";
+import { Button, TextLink } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
+import { Icon } from "@/components/ui/icons";
+import { t } from "@/i18n/t";
 
 type ResetPasswordFormProps = {
   email: string;
@@ -60,64 +59,54 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
   }
 
   return (
-    <AuthFormCard>
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">{t("auth.email")}</span>
-          <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            readOnly
-            value={email}
-            className={filterInputClassName}
-          />
-        </label>
-        <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">
-            {t("auth.password")}
-          </span>
-          <PasswordInput
-            id="reset-password"
-            name="password"
-            autoComplete="new-password"
-            required
-            value={password}
-            onChange={setPassword}
-          />
-        </label>
-        <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-foreground">
-            {t("auth.registerPasswordConfirm")}
-          </span>
-          <PasswordInput
-            id="reset-password-confirm"
-            name="password_confirmation"
-            autoComplete="new-password"
-            required
-            value={passwordConfirmation}
-            onChange={setPasswordConfirmation}
-          />
-        </label>
+    <div className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <TextField
+          label={t("auth.email")}
+          type="email"
+          name="email"
+          autoComplete="email"
+          readOnly
+          value={email}
+        />
+        <PasswordField
+          id="reset-password"
+          label={t("auth.password")}
+          hint={t("auth.passwordRules")}
+          name="password"
+          autoComplete="new-password"
+          required
+          value={password}
+          onChange={setPassword}
+        />
+        <PasswordField
+          id="reset-password-confirm"
+          label={t("auth.registerPasswordConfirm")}
+          name="password_confirmation"
+          autoComplete="new-password"
+          required
+          value={passwordConfirmation}
+          onChange={setPasswordConfirmation}
+        />
         {error ? <FormError>{error}</FormError> : null}
         <Button
           type="submit"
+          size="lg"
+          fullWidth
+          loading={pending}
           disabled={pending}
-          className="min-h-[44px] w-full sm:w-auto"
         >
           {pending
             ? t("auth.resetPasswordSaving")
             : t("auth.resetPasswordSubmit")}
         </Button>
       </form>
-      <p className="mt-4 text-sm text-muted-foreground">
-        <Link
-          href="/login"
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
+      <p className="border-t border-line pt-4">
+        <TextLink href="/login">
+          <Icon name="arrow-left" size={20} />
           {t("auth.backToLogin")}
-        </Link>
+        </TextLink>
       </p>
-    </AuthFormCard>
+    </div>
   );
 }
