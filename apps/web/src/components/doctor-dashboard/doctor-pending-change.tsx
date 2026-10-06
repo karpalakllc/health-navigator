@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChangeList } from "@/components/doctor-dashboard/change-list";
+import { useChangeRequestAnnounce } from "@/components/doctor-dashboard/change-request-area";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { Tag } from "@/components/ui/tag";
@@ -20,6 +21,7 @@ export function DoctorPendingChange({
   request: DoctorChangeRequest;
 }) {
   const router = useRouter();
+  const announce = useChangeRequestAnnounce();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const date = formatMkDate(request.created_at);
@@ -40,6 +42,9 @@ export function DoctorPendingChange({
         return;
       }
 
+      // The refresh brings the form back in place of this request; the
+      // surrounding ChangeRequestArea keeps the confirmation and focus.
+      announce(t("doctorDashboard.withdrawn"));
       router.refresh();
     } catch {
       setError(t("doctorDashboard.withdrawError"));

@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useChangeRequestAnnounce } from "@/components/doctor-dashboard/change-request-area";
 import { OptionChecklist } from "@/components/doctor-dashboard/option-checklist";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
-import { FormError, FormSuccess } from "@/components/ui/form-message";
+import { FormError } from "@/components/ui/form-message";
 import type {
   DoctorDashboard,
   DoctorLink,
@@ -33,6 +34,7 @@ export function DoctorChangeRequestForm({
   options: DoctorDashboard["options"];
 }) {
   const router = useRouter();
+  const announce = useChangeRequestAnnounce();
   const [fullName, setFullName] = useState(doctor.full_name);
   const [title, setTitle] = useState(doctor.title ?? "");
   const [subspecialty, setSubspecialty] = useState(doctor.subspecialty ?? "");
@@ -57,7 +59,6 @@ export function DoctorChangeRequestForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RequestErrors>({});
-  const [sent, setSent] = useState(false);
 
   const nameOf = (list: { id: number; name: string }[], id: number) =>
     list.find((option) => option.id === id)?.name ?? String(id);
@@ -66,7 +67,6 @@ export function DoctorChangeRequestForm({
     event.preventDefault();
     setError(null);
     setFieldErrors({});
-    setSent(false);
     setPending(true);
 
     try {
@@ -110,8 +110,10 @@ export function DoctorChangeRequestForm({
         return;
       }
 
-      setSent(true);
       setMessage("");
+      // The refresh replaces this form with the pending request; the
+      // surrounding ChangeRequestArea keeps the confirmation and focus.
+      announce(t("doctorDashboard.requestSent"));
       router.refresh();
     } catch {
       setError(t("doctorDashboard.requestError"));
@@ -245,9 +247,6 @@ export function DoctorChangeRequestForm({
         onChange={(event) => setMessage(event.target.value)}
       />
       {error ? <FormError>{error}</FormError> : null}
-      <FormSuccess>
-        {sent ? t("doctorDashboard.requestSent") : null}
-      </FormSuccess>
       <Button
         type="submit"
         variant="secondary"

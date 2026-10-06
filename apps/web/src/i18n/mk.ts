@@ -1215,6 +1215,7 @@ export const mk = {
     withdraw: "Повлечи го барањето",
     withdrawing: "Се повлекува…",
     withdrawError: "Барањето не е повлечено. Обидете се повторно.",
+    withdrawn: "Барањето е повлечено. Можете да испратите ново.",
     historyTitle: "Претходни одлуки",
     statusApproved: "Прифатено",
     statusRejected: "Одбиено",

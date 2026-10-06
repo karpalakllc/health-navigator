@@ -3,10 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ChangeList } from "@/components/doctor-dashboard/change-list";
 import { DoctorChangeRequestForm } from "@/components/doctor-dashboard/doctor-change-request-form";
+import { ChangeRequestArea } from "@/components/doctor-dashboard/change-request-area";
 import { DoctorClaimForm } from "@/components/doctor-dashboard/doctor-claim-form";
+import { DoctorPendingChange } from "@/components/doctor-dashboard/doctor-pending-change";
 import { DoctorPracticeForm } from "@/components/doctor-dashboard/doctor-practice-form";
 import { OfficialResponse } from "@/components/reviews/review-list";
 import type {
+  DoctorChangeRequest,
   DoctorDashboard,
   ManagedDoctor,
 } from "@/lib/api/doctor-dashboard-types";
@@ -127,8 +130,12 @@ describe("DoctorChangeRequestForm", () => {
   it("sends the sensitive fields for review", async () => {
     const fetch = mockFetch({ status: 201, body: { data: {} } });
     const user = userEvent.setup();
+    // On the page the form sits in ChangeRequestArea, which shows the
+    // confirmation (the form itself is replaced by the refresh).
     const { container } = render(
-      <DoctorChangeRequestForm doctor={doctor} options={options} />,
+      <ChangeRequestArea>
+        <DoctorChangeRequestForm doctor={doctor} options={options} />
+      </ChangeRequestArea>,
     );
 
     expect(await seriousA11yViolations(container)).toEqual([]);
@@ -285,5 +292,67 @@ describe("OfficialResponse", () => {
         name: tFormat("reviewResponse.title", { name: "д-р Ана Петровска" }),
       }),
     ).toBeVisible();
+  });
+});
+
+describe("ChangeRequestArea", () => {
+  const request: DoctorChangeRequest = {
+    id: 4,
+    status: "pending",
+    changes: { city: { old: "Скопје", new: "Битола" } },
+    message: null,
+    rejection_reason: null,
+    created_at: "2026-10-06T10:00:00+02:00",
+    reviewed_at: null,
+  };
+
+  it("keeps focus and the confirmation when the refresh swaps the form for the pending request", async () => {
+    mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ChangeRequestArea>
+        <DoctorChangeRequestForm doctor={doctor} options={options} />
+      </ChangeRequestArea>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: t("doctorDashboard.submitRequest") }),
+    );
+    const sent = await screen.findByText(t("doctorDashboard.requestSent"));
+    expect(sent).toHaveFocus();
+
+    // router.refresh(): the server now renders the pending request instead.
+    rerender(
+      <ChangeRequestArea>
+        <DoctorPendingChange request={request} />
+      </ChangeRequestArea>,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      t("doctorDashboard.requestSent"),
+    );
+    expect(screen.getByText(t("doctorDashboard.requestSent"))).toHaveFocus();
+  });
+
+  it("says the request was withdrawn and keeps focus when the form comes back", async () => {
+    mockFetch({ status: 200, body: { data: {} } });
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ChangeRequestArea>
+        <DoctorPendingChange request={request} />
+      </ChangeRequestArea>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: t("doctorDashboard.withdraw") }),
+    );
+    const done = await screen.findByText(t("doctorDashboard.withdrawn"));
+    expect(done).toHaveFocus();
+
+    rerender(
+      <ChangeRequestArea>
+        <DoctorChangeRequestForm doctor={doctor} options={options} />
+      </ChangeRequestArea>,
+    );
+    expect(screen.getByText(t("doctorDashboard.withdrawn"))).toHaveFocus();
   });
 });
