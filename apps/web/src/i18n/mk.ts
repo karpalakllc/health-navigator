@@ -221,6 +221,17 @@ export const mk = {
     verified: "Верификуван",
     loading: "Се вчитува…",
   },
+  // Toggletips on „Истакнат“ / „Спонзорирано“ (DisclosureBadge). Verbatim
+  // from docs/legal/featured-disclosure.md (draft pending legal review): say
+  // who chose the entry and whether anyone paid; never claim quality.
+  disclosure: {
+    featuredWhy: "Зошто е истакнато?",
+    featuredInfo:
+      "Профилот го избра тимот на Zdravje360 без никакво плаќање и затоа е прикажан прв; тоа не е оцена за квалитетот на лекувањето.",
+    sponsoredWhy: "Што значи спонзорирано?",
+    sponsoredInfo:
+      "Овој лекар плаќа за соработка со Zdravje360; плаќањето не влијае на рецензиите, оценката ниту на редоследот во листите и пребарувањето.",
+  },
   auth: {
     // Verify-then-activate registration (audit M1): signup does not create a
     // session, so the UI has to explain the inbox step.
@@ -450,8 +461,6 @@ export const mk = {
     noFacilities: "Нема поврзани установи.",
     acceptingPatients: "Прима нови пациенти",
     sponsored: "Спонзорирано",
-    sponsoredHoverExplanation:
-      "Овој лекар учествува во партнерската програма на платформата и затоа профилот е истакнат. Спонзориран пласман го нудиме само кај профили што пациентите ги оценуваат добро — ако рецензиите се слаби или недоверливи, ваквата ознака ја повлекуваме. За нас е важно да не ве водиме во заблуда.",
     yearsExperience: "{years} год. искуство",
     education: "Образование",
     languages: "Јазици",

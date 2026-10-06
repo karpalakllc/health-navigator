@@ -384,7 +384,7 @@ export default function DesignSystemPage() {
             <Tag tone="white">На праска</Tag>
           </span>
         </Row>
-        <Row label="FeaturedTag · VerifiedTag · SponsoredBadge (tooltip)">
+        <Row label="FeaturedTag · VerifiedTag · SponsoredBadge (toggletip)">
           <FeaturedTag />
           <VerifiedTag />
           <VerifiedTag>Здравствен работник</VerifiedTag>
