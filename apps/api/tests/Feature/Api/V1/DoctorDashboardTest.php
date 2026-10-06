@@ -236,8 +236,11 @@ class DoctorDashboardTest extends TestCase
         $this->getJson('/api/v1/doctors/ana-petrovska')
             ->assertJsonPath('data.full_name', 'д-р Ана Петровска-Ристовска')
             ->assertJsonPath('data.title', 'проф. д-р');
+        // A private mail: greeted by their name, like every other content mail,
+        // not by the public username.
         Mail::assertQueued(DoctorChangeRequestDecidedMail::class, fn (DoctorChangeRequestDecidedMail $mail): bool => $mail->approved
-            && $mail->hasTo($account->email));
+            && $mail->hasTo($account->email)
+            && $mail->recipientName === $account->name);
     }
 
     public function test_specialty_and_workplace_changes_are_requests_too(): void

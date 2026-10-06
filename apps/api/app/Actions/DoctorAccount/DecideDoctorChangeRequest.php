@@ -90,7 +90,7 @@ final class DecideDoctorChangeRequest
         }
 
         Mail::to($recipient)->queue(new DoctorChangeRequestDecidedMail(
-            recipientName: $recipient->publicName(),
+            recipientName: $recipient->name,
             doctorName: (string) $request->doctor?->full_name,
             approved: $request->status === DoctorChangeRequestStatus::Approved,
             reason: $request->rejection_reason,
