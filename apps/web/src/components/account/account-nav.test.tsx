@@ -17,6 +17,8 @@ describe("AccountSubNav", () => {
       "/account",
       "/account/reviews",
       "/account/forum",
+      "/account/devices",
+      "/account/data",
     ]);
     expect(
       within(nav).getByRole("link", { name: t("nav.myReviews") }),
