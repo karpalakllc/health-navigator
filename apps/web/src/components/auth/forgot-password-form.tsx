@@ -7,7 +7,7 @@ import { PrivacyNote } from "@/components/auth/privacy-note";
 import { filterInputClassName } from "@/components/directory/filter-form";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n/t";
-import { FormError } from "@/components/ui/form-message";
+import { FormError, FormSuccess } from "@/components/ui/form-message";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -49,11 +49,15 @@ export function ForgotPasswordForm() {
 
   return (
     <AuthFormCard>
+      {/*
+        The status region stays mounted across the swap from form to
+        confirmation, so the confirmation is announced (see FormSuccess).
+      */}
+      <FormSuccess tone="muted">
+        {success ? t("auth.forgotPasswordSuccess") : null}
+      </FormSuccess>
       {success ? (
-        <div className="grid gap-2">
-          <p role="status" className="text-sm text-muted-foreground">
-            {t("auth.forgotPasswordSuccess")}
-          </p>
+        <div className="mt-2">
           <PrivacyNote />
         </div>
       ) : (
