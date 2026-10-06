@@ -39,7 +39,13 @@ final class ImportReviewActions
             return false;
         }
 
-        DB::transaction(function () use ($subject, $item, $by): void {
+        return DB::transaction(function () use ($subject, $item, $by): bool {
+            // Claim the item first: a second click, or a stale item in the
+            // same bulk selection, publishes and counts nothing.
+            if (! $item->resolve(ImportReviewStatus::Resolved, 'published', $by)) {
+                return false;
+            }
+
             if (! $subject->is_published) {
                 $subject->forceFill(['is_published' => true, 'published_at' => $subject->published_at ?? now()])->save();
             }
@@ -54,13 +60,16 @@ final class ImportReviewActions
             }
 
             $this->closeAllNew($item, $by, 'published');
-        });
 
-        return true;
+            return true;
+        });
     }
 
     /**
-     * Conflict: take the value the source has.
+     * Conflict: take the value the source has — unless the field has been
+     * locked since, or the profile no longer holds the value the conflict
+     * was raised against (someone edited it again): then staff decide on the
+     * profile itself.
      */
     public function acceptIncoming(ImportReviewItem $item, User $by): bool
     {
@@ -72,9 +81,24 @@ final class ImportReviewActions
             return false;
         }
 
+        $locked = (bool) FieldProvenance::query()
+            ->where('subject_type', $item->subject_type)
+            ->where('subject_id', $subject->getKey())
+            ->where('field', $field)
+            ->value('locked');
+
+        if ($locked || (array_key_exists('current', (array) $item->details)
+            && self::plain($subject->getAttribute($field)) !== self::plain($item->details['current']))) {
+            return false;
+        }
+
         $incoming = $item->details['incoming'] ?? null;
 
-        DB::transaction(function () use ($subject, $item, $field, $incoming, $by): void {
+        return DB::transaction(function () use ($subject, $item, $field, $incoming, $by): bool {
+            if (! $item->resolve(ImportReviewStatus::Resolved, 'accepted_incoming', $by)) {
+                return false;
+            }
+
             $subject->setAttribute($field, $incoming);
             $subject->save();
 
@@ -84,10 +108,17 @@ final class ImportReviewActions
                 ['source' => $item->source, 'value' => $incoming, 'observed_at' => now()],
             );
 
-            $item->resolve(ImportReviewStatus::Resolved, 'accepted_incoming', $by);
+            return true;
         });
+    }
 
-        return true;
+    private static function plain(mixed $value): ?string
+    {
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        }
+
+        return $value === null || $value === '' ? null : (string) $value;
     }
 
     /**
@@ -103,8 +134,11 @@ final class ImportReviewActions
             return false;
         }
 
+        if (! $item->resolve(ImportReviewStatus::Resolved, 'kept_current_and_locked', $by)) {
+            return false;
+        }
+
         ProvenanceWriter::setLock($subject, $field, true, $by);
-        $item->resolve(ImportReviewStatus::Resolved, 'kept_current_and_locked', $by);
 
         return true;
     }
@@ -116,15 +150,13 @@ final class ImportReviewActions
     {
         $subject = $item->subject();
 
-        if ($subject === null) {
+        if ($subject === null || ! $item->resolve(ImportReviewStatus::Resolved, 'hidden', $by)) {
             return false;
         }
 
         if ($subject->is_published) {
             $subject->forceFill(['is_published' => false])->save();
         }
-
-        $item->resolve(ImportReviewStatus::Resolved, 'hidden', $by);
 
         return true;
     }
@@ -143,9 +175,6 @@ final class ImportReviewActions
             ->get()
             ->each(fn (ImportReviewItem $open) => $open->resolve(ImportReviewStatus::Resolved, $resolution, $by));
 
-        if ($item->status === ImportReviewStatus::Open) {
-            $item->resolve(ImportReviewStatus::Resolved, $resolution, $by);
-        }
     }
 
     /**

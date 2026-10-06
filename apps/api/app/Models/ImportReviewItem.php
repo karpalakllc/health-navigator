@@ -119,14 +119,26 @@ class ImportReviewItem extends Model
         };
     }
 
-    public function resolve(ImportReviewStatus $status, string $resolution, ?User $by): void
+    /**
+     * Closes the item if it is still open. Returns false when someone (or an
+     * earlier action of the same bulk run) closed it first: the caller must
+     * then do nothing, so a decision is never applied or counted twice.
+     */
+    public function resolve(ImportReviewStatus $status, string $resolution, ?User $by): bool
     {
-        $this->forceFill([
-            'status' => $status,
+        $now = now();
+        $values = [
+            'status' => $status->value,
             'resolution' => $resolution,
             'resolved_by_id' => $by?->getKey(),
-            'resolved_at' => now(),
-        ])->save();
+            'resolved_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        $claimed = static::query()->whereKey($this->getKey())->open()->update($values) === 1;
+        $this->refresh();
+
+        return $claimed;
     }
 
     /**

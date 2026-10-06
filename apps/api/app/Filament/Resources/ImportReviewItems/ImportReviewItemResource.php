@@ -190,7 +190,7 @@ class ImportReviewItemResource extends Resource
             ->modalDescription(fn (ImportReviewItem $record): string => sprintf('Replace "%s" with "%s".', $record->details['current'] ?? '—', $record->details['incoming'] ?? '—'))
             ->action(function (ImportReviewItem $record): void {
                 if (self::open($record) && ! app(ImportReviewActions::class)->acceptIncoming($record, self::actor())) {
-                    Notification::make()->title('This field cannot be set from the review queue; edit the profile.')->warning()->send();
+                    Notification::make()->title('Not applied: the field is locked, the profile changed since, or this field cannot be set from the review queue. Edit the profile.')->warning()->send();
                 }
             });
     }
