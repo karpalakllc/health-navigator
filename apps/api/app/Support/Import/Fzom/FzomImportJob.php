@@ -40,9 +40,10 @@ final class FzomImportJob
             $previous = $this->previousMeta();
             $files = [];
             $meta = ['files' => []];
+            $folder = $this->fetcher->newSnapshotFolder();
 
             foreach ((array) config('import.fzom.files') as $label => $url) {
-                $result = $this->fetcher->fetch(FzomImporter::SOURCE, (string) $label, (string) $url, $previous[$label] ?? null);
+                $result = $this->fetcher->fetch(FzomImporter::SOURCE, (string) $label, (string) $url, $previous[$label] ?? null, $folder);
                 $files[(string) $label] = $result['local_path'];
                 $meta['files'][$label] = array_diff_key($result, ['local_path' => true]);
             }

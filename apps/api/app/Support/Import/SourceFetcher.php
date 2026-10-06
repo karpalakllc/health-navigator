@@ -32,7 +32,7 @@ class SourceFetcher
      * @param  array{etag?: string|null, last_modified?: string|null, snapshot?: string|null}|null  $previous
      * @return array{status: int, snapshot: string, local_path: string, etag: string|null, last_modified: string|null, sha256: string, bytes: int, url: string}
      */
-    public function fetch(string $source, string $label, string $url, ?array $previous): array
+    public function fetch(string $source, string $label, string $url, ?array $previous, ?string $snapshotFolder = null): array
     {
         $this->assertAllowedByRobots($url);
 
@@ -75,7 +75,7 @@ class SourceFetcher
             throw new RuntimeException("{$label}: larger than import.max_download_bytes.");
         }
 
-        $snapshot = $this->snapshotDirectory($source).'/'.now()->format('Ymd-His').'-'.Str::lower(Str::random(6)).'/'.$label.'.'.(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'bin');
+        $snapshot = $this->snapshotDirectory($source).'/'.($snapshotFolder ?? $this->newSnapshotFolder()).'/'.$label.'.'.(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'bin');
         $disk->put($snapshot, $body);
 
         return [
@@ -103,6 +103,14 @@ class SourceFetcher
         foreach (array_slice($directories, $keep) as $directory) {
             $disk->deleteDirectory($directory);
         }
+    }
+
+    /**
+     * One folder per run, sortable by time: retention keeps the newest.
+     */
+    public function newSnapshotFolder(): string
+    {
+        return now()->format('Ymd-His').'-'.Str::lower(Str::random(6));
     }
 
     public function snapshotDirectory(string $source): string
