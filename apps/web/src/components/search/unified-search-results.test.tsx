@@ -137,6 +137,43 @@ describe("UnifiedSearchResults (/search)", () => {
     expect(chips).toEqual(expect.arrayContaining(["py-2.5", "-my-2.5"]));
   });
 
+  it("offers matching specialties as shortcuts into the doctor list, same city", async () => {
+    fetchUnifiedSearch.mockResolvedValue(
+      result({
+        specialties: [
+          { slug: "kardiologija", name: "Кардиологија", doctors_count: 4 },
+        ],
+        forum_topics: {
+          data: [
+            {
+              slug: "srce",
+              title: "Кардиолог во Скопје?",
+              author_name: "Ана М.",
+              replies_count: 0,
+              last_post_at: null,
+              published_at: null,
+              category: { slug: "srce", name: "Срце" },
+            },
+          ],
+          meta: { current_page: 1, per_page: 5, total: 1, last_page: 1 },
+        },
+        grand_total: 1,
+      }),
+    );
+
+    await renderResults("кардио", "Скопје");
+
+    const nav = screen.getByRole("navigation", {
+      name: t("homeSearch.resultsSpecialties"),
+    });
+    expect(
+      within(nav).getByRole("link", { name: /Кардиологија/ }),
+    ).toHaveAttribute(
+      "href",
+      `/doctors?city=${encodeURIComponent("Скопје")}&specialty=kardiologija`,
+    );
+  });
+
   it("shows the empty state when no vertical has hits", async () => {
     fetchUnifiedSearch.mockResolvedValue(result());
 

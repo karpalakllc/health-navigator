@@ -408,12 +408,13 @@ describe("RecordRecentlyViewed", () => {
 });
 
 describe("HomeHero phone search placeholder", () => {
-  it("uses the short prompt so it is not clipped at 360–390px", () => {
-    render(<HomeHero quickLinks={[]} />);
+  it("uses a short prompt so it is not clipped beside the city at 360–390px", () => {
+    render(<HomeHero />);
 
     expect(
       screen.getByRole("searchbox", { name: t("nav.searchWhat") }),
-    ).toHaveAttribute("placeholder", t("nav.searchWhatPlaceholderShort"));
-    expect(t("nav.searchWhatPlaceholderShort").length).toBeLessThanOrEqual(20);
+    ).toHaveAttribute("placeholder", t("homeSearch.placeholder"));
+    // The pill shares its row with „📍 Град ▾“ now: ~13 characters fit.
+    expect(t("homeSearch.placeholder").length).toBeLessThanOrEqual(13);
   });
 });

@@ -13,13 +13,15 @@ import { HomeForumTransparency } from "@/components/layout/home-forum-transparen
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
 import type { ForumCategory, ForumTopicSearchItem } from "@/lib/api/forum";
 import { fetchForumCategories, fetchForumRecentTopics } from "@/lib/api/forum";
-import type { DoctorListItem } from "@/lib/api/types";
+import type { DoctorListItem, Specialty } from "@/lib/api/types";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { EMPTY_HOME_HIGHLIGHTS, fetchHomeHighlights } from "@/lib/api/home";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
 import { fetchProducts } from "@/lib/api/products";
 import { fetchPublicSettings } from "@/lib/api/settings";
+import { fetchLocationCities, type LocationCity } from "@/lib/api/locations";
+import { fetchSpecialties } from "@/lib/api/specialties";
 import { pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
 
@@ -31,7 +33,6 @@ export const metadata: Metadata = pageMetadata(
 
 const TOP_RATED_MIN_REVIEWS = 2;
 const FEATURED_LIMIT = 6;
-const QUICK_LINKS = 3;
 const COMMUNITY_TOPICS = 3;
 
 /** A list endpoint's total, or undefined when the module is off or it fails. */
@@ -77,6 +78,8 @@ export default async function Home() {
     facilitiesTotal,
     pharmaciesTotal,
     productsTotal,
+    allSpecialties,
+    knownCities,
   ] = await Promise.all([
     settle(
       true,
@@ -109,6 +112,10 @@ export default async function Home() {
     totalOf(true, () => fetchFacilities({ per_page: 1 })),
     totalOf(pharmaciesOn, () => fetchPharmacies({ per_page: 1 })),
     totalOf(productsOn, () => fetchProducts({ per_page: 1 })),
+    // „Сите специјалности“ in the hero, and the cities that hold listings
+    // (the city picker sends a municipality without any to its town).
+    settle(true, fetchSpecialties, [] as Specialty[]),
+    settle(true, fetchLocationCities, [] as LocationCity[]),
   ]);
 
   const doctors = mergeHomeDoctors(topRated, featured, FEATURED_LIMIT);
@@ -139,11 +146,15 @@ export default async function Home() {
   return (
     <div className="mx-auto w-full max-w-[1240px] lg:px-6">
       <HomeHero
-        quickLinks={highlights.specialties.slice(0, QUICK_LINKS).map((s) => ({
-          href: `/doctors?specialty=${encodeURIComponent(s.slug)}`,
-          label: s.name,
-        }))}
+        specialties={highlights.specialties}
+        allSpecialties={allSpecialties}
         stats={heroStats}
+        modules={{
+          pharmacies: pharmaciesOn,
+          products: productsOn,
+          forum: forumOn,
+        }}
+        knownCities={knownCities}
       />
 
       <div data-reveal="">
@@ -160,15 +171,25 @@ export default async function Home() {
         className="px-5 pt-10 lg:px-0 lg:pt-20"
       />
 
-      <div data-reveal="">
-        <HomeSpecialties
-          specialties={highlights.specialties}
-          className="px-5 pt-10 lg:px-0 lg:pt-20"
-        />
-      </div>
+      {/* Sand band: what to look for (specialties) and who (featured
+          doctors), white cards on a warm surface. */}
+      <div
+        data-band="discover"
+        className="mx-3 mt-10 rounded-sheet bg-sand py-8 lg:mx-0 lg:mt-20 lg:px-10 lg:py-12"
+      >
+        <div data-reveal="">
+          <HomeSpecialties
+            specialties={highlights.specialties}
+            className="px-5 lg:px-0"
+          />
+        </div>
 
-      <div data-reveal="">
-        <HomeFeaturedDoctorsRail doctors={doctors} className="pt-10 lg:pt-20" />
+        <div data-reveal="">
+          <HomeFeaturedDoctorsRail
+            doctors={doctors}
+            className="pt-10 lg:pt-14"
+          />
+        </div>
       </div>
 
       <div data-reveal="">
@@ -178,34 +199,22 @@ export default async function Home() {
         />
       </div>
 
-      {/* Mobile: guidance, then community. Desktop: community (7) beside
-          guidance (5). */}
+      {hasCommunity ? (
+        <div data-reveal="" className="mt-10 lg:mt-20">
+          <HomeCommunity topics={topics} totalTopics={forumTotal} />
+        </div>
+      ) : null}
+
+      {/* Cities beside the guidance teaser (7/5); stacked on phones. */}
       <div
         data-reveal=""
-        className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-0 lg:px-0"
+        className="mt-10 grid gap-10 px-5 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-6 lg:px-0"
       >
-        {hasCommunity ? (
-          <HomeCommunity
-            topics={topics}
-            className="order-2 lg:order-1 lg:col-span-7"
-          />
-        ) : null}
-        <div
-          className={
-            hasCommunity
-              ? "order-1 flex flex-col gap-10 lg:order-2 lg:col-span-5 lg:pt-[52px]"
-              : "order-1 grid gap-10 lg:col-span-12 lg:grid-cols-2 lg:gap-6"
-          }
-        >
-          {guidanceOn ? <HomeGuidanceCard /> : null}
-        </div>
-      </div>
-
-      <div data-reveal="">
         <HomeCities
           cities={highlights.cities}
-          className="mt-10 px-5 lg:mt-20 lg:px-0"
+          className={guidanceOn ? "lg:col-span-7" : "lg:col-span-12"}
         />
+        {guidanceOn ? <HomeGuidanceCard className="lg:col-span-5" /> : null}
       </div>
 
       <div data-reveal="">

@@ -1,5 +1,6 @@
 import { FeaturedMark } from "@/components/directory/cover-media";
 import { DirectoryAvatar } from "@/components/directory/directory-avatar";
+import { HomeCarousel } from "@/components/home/home-carousel";
 import { Button, TextLink } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
@@ -15,9 +16,6 @@ import { t, tFormat } from "@/i18n/t";
  * data (no duty roster, no opening hours on list items), so the home shows the
  * closest real rail instead: featured / top-rated doctors from /doctors.
  */
-
-/** Cards shown side by side on desktop; the phone rail scrolls through all. */
-const DESKTOP_CARDS = 3;
 
 function doctorMeta(doctor: DoctorListItem): string {
   return [doctor.primary_specialty?.name, doctor.city]
@@ -130,10 +128,11 @@ function FeaturedDoctorCard({ doctor }: { doctor: DoctorListItem }) {
 }
 
 /**
- * „Истакнати лекари“. Phones and tablets: a horizontal rail that snaps card
- * by card, with the next card peeking in and room around the cards so their
- * shadows and focus rings are not clipped. Desktop: the first three cards in
- * a row. Either way a grid whose five rows the cards share (see above).
+ * „Истакнати лекари“ as a carousel (HomeCarousel): cards of one width that
+ * snap one by one, the next card peeking in, a „1 од 6“ line with dots and,
+ * from md, previous/next buttons. Phones show one card and a peek; desktop
+ * three side by side. Either way a grid whose five rows the cards share
+ * (see above), so names, ratings and buttons line up across cards.
  */
 export function HomeFeaturedDoctorsRail({
   doctors,
@@ -161,26 +160,23 @@ export function HomeFeaturedDoctorsRail({
         }
         className="items-center px-5 lg:px-0"
       />
-      <ul
-        data-rail=""
-        className={cn(
-          "scroll-row mt-1 grid snap-x snap-mandatory scroll-px-5 auto-cols-[min(17.5rem,calc(100vw-5.5rem))] grid-flow-col grid-rows-[repeat(5,auto)] gap-x-3 overflow-x-auto px-5 pb-6 pt-2 sm:auto-cols-[18.5rem]",
-          "lg:mt-4 lg:grid-flow-row lg:grid-cols-3 lg:gap-x-6 lg:overflow-visible lg:px-0 lg:pb-0",
+      <HomeCarousel
+        listClassName={cn(
+          "mt-1 grid snap-x snap-mandatory scroll-px-5 auto-cols-[min(18rem,calc(100vw-5rem))] grid-flow-col grid-rows-[repeat(5,auto)] gap-x-3 px-5 pb-6 pt-2 sm:auto-cols-[18.5rem]",
+          "lg:-mx-3 lg:mt-3 lg:scroll-px-3 lg:auto-cols-[calc((100%-3rem)/3)] lg:gap-x-6 lg:px-3",
         )}
+        controlsClassName="px-5 lg:px-0"
       >
-        {doctors.map((doctor, index) => (
+        {doctors.map((doctor) => (
           <li
             key={doctor.slug}
-            className={cn(
-              "row-span-5 grid snap-start grid-rows-subgrid",
-              index >= DESKTOP_CARDS && "lg:hidden",
-            )}
+            className="row-span-5 grid snap-start grid-rows-subgrid"
           >
             <FeaturedDoctorCard doctor={doctor} />
           </li>
         ))}
-      </ul>
-      <div className="px-5 lg:hidden">
+      </HomeCarousel>
+      <div className="mt-4 px-5 lg:hidden">
         <TextLink href="/doctors" trailingIcon="arrow-right">
           {t("home.topRatedViewAll")}
         </TextLink>

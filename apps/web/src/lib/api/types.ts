@@ -62,6 +62,8 @@ export type UnifiedSearchResult = {
   pharmacies: PaginatedEnvelope<PharmacyListItem>;
   products: PaginatedEnvelope<ProductListItem>;
   forum_topics: PaginatedEnvelope<ForumTopicSearchItem>;
+  /** Specialties whose name matches: shortcuts to /doctors?specialty=. */
+  specialties?: Array<Pick<Specialty, "slug" | "name" | "doctors_count">>;
   grand_total: number;
 };
 
