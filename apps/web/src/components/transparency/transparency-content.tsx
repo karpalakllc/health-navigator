@@ -39,6 +39,30 @@ const PAYMENT: MessageKey[] = [
   "integrity.payment3",
 ];
 
+const DATA_SOURCES: Array<{
+  icon: IconName;
+  name: MessageKey;
+  body: MessageKey;
+}> = [
+  {
+    icon: "building",
+    name: "dataSources.fzomName",
+    body: "dataSources.fzomBody",
+  },
+  {
+    icon: "award",
+    name: "dataSources.komoraName",
+    body: "dataSources.komoraBody",
+  },
+  { icon: "user", name: "dataSources.ownName", body: "dataSources.ownBody" },
+];
+
+const NOT_TAKEN: MessageKey[] = [
+  "dataSources.excluded1",
+  "dataSources.excluded2",
+  "dataSources.excluded3",
+];
+
 const CRITERIA: MessageKey[] = [
   "integrity.criteria1",
   "integrity.criteria2",
@@ -137,6 +161,8 @@ export function TransparencyContent({
           <CheckList items={CRITERIA} />
         </TextCard>
       </div>
+
+      <DataSources />
 
       <p className="type-body text-ink-2">
         <Link href="/terms#moderacija" className="link-underline text-ink">
@@ -394,6 +420,65 @@ function MonthTable({
         </table>
       </div>
     </details>
+  );
+}
+
+/**
+ * „Извори на податоци“ (W6-C): where directory profiles come from, what is
+ * deliberately not taken, and how to get an error fixed. Must match the
+ * privacy policy's section for listed health professionals.
+ */
+function DataSources() {
+  return (
+    <TextCard id="izvori" title={t("dataSources.title")}>
+      <p className="measure type-reading text-ink">{t("dataSources.lead")}</p>
+      <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-3 lg:gap-6">
+        {DATA_SOURCES.map((source) => (
+          <li key={source.name} className="flex items-start gap-3">
+            <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-apricot text-ink">
+              <Icon name={source.icon} size={24} />
+            </span>
+            <span className="flex flex-col gap-1">
+              <span className="type-body font-semibold text-ink">
+                {t(source.name)}
+              </span>
+              <span className="type-body text-ink">{t(source.body)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h3 className="type-h3 text-ink">{t("dataSources.excludedTitle")}</h3>
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {NOT_TAKEN.map((key) => (
+              <li key={key} className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-chip-tint text-ink">
+                  <Icon name="x" size={18} />
+                </span>
+                <span className="type-body text-ink">{t(key)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-col gap-3">
+          <h3 className="type-h3 text-ink">
+            {t("dataSources.correctionsTitle")}
+          </h3>
+          <p className="type-body text-ink">
+            {t("dataSources.correctionsBody")}
+          </p>
+          <p className="type-body">
+            <Link
+              href="/privacy#zdravstveni-rabotnici"
+              className="link-underline text-ink"
+            >
+              {t("dataSources.privacyLink")}
+            </Link>
+          </p>
+        </div>
+      </div>
+    </TextCard>
   );
 }
 

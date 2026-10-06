@@ -17,6 +17,7 @@ import {
   ProfileTagList,
 } from "@/components/directory/profile-parts";
 import { DoctorClaimLink } from "@/components/doctor-dashboard/doctor-claim-link";
+import { ProfileCorrectionLinks } from "@/components/corrections/profile-correction-links";
 import { ReviewSection } from "@/components/reviews/review-section";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
@@ -324,7 +325,9 @@ export default async function DoctorDetailPage({
               hideWhenEmpty
             />
 
-            <DoctorClaimLink slug={slug} />
+            <ProfileCorrectionLinks subject="doctor" slug={slug}>
+              <DoctorClaimLink slug={slug} />
+            </ProfileCorrectionLinks>
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}

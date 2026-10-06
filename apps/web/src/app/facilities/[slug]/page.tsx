@@ -17,6 +17,7 @@ import {
 } from "@/components/directory/profile-parts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ReviewSection } from "@/components/reviews/review-section";
+import { ProfileCorrectionLinks } from "@/components/corrections/profile-correction-links";
 import { FeaturedTag, Tag } from "@/components/ui/tag";
 import { Monogram } from "@/components/ui/user-avatar";
 import { fetchFacility } from "@/lib/api/facilities";
@@ -267,6 +268,8 @@ export default async function FacilityDetailPage({
               headingId="facility-forum-heading"
               hideWhenEmpty
             />
+
+            <ProfileCorrectionLinks subject="facility" slug={slug} />
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}
