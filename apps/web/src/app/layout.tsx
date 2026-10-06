@@ -35,7 +35,10 @@ const geologica = Geologica({
 const sourceSans = Source_Sans_3({
   variable: "--font-source-sans",
   subsets: ["latin", "cyrillic"],
-  style: ["normal", "italic"],
+  // Upright only: nothing on the site sets italic, and the italic faces were
+  // two more preloaded files (~47 KB) on every first visit, competing with
+  // the page for a mobile connection.
+  style: ["normal"],
   display: "swap",
 });
 
