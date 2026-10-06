@@ -1,14 +1,9 @@
 import { getSessionToken } from "@/lib/auth/session";
-import type {
-  PaginatedEnvelope,
-  PublicReview,
-  ReviewSummary,
-} from "@/lib/api/types";
+import type { ReviewRatingCounts, ReviewSummary } from "@/lib/api/types";
 import {
   fetchDoctorReviews,
   fetchFacilityReviews,
   fetchPharmacyReviews,
-  type ReviewListParams,
 } from "@/lib/api/reviews";
 import { ReviewsPanel } from "@/components/reviews/reviews-panel";
 import {
@@ -31,57 +26,25 @@ const FETCHERS = {
   pharmacy: fetchPharmacyReviews,
 } as const;
 
-/** The API's default page size for review lists (ReviewController). */
-const DEFAULT_PAGE_SIZE = 15;
-
-function countRatings(
-  page: PaginatedEnvelope<PublicReview>,
-): RatingDistribution {
-  const counts: RatingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  for (const review of page.data) {
-    const stars = Math.round(review.rating) as keyof RatingDistribution;
-    if (stars in counts) counts[stars]++;
-  }
-  return counts;
-}
-
 /**
- * How many reviews gave each star. When the unfiltered first page will hold
- * every review we count it; otherwise five one-row requests read each
- * rating's total — started at once, alongside the review list itself, not
- * after it. A failure only hides the bars, never the page.
+ * How many reviews gave each star, from the list's own `meta.rating_counts`
+ * (approved reviews, whatever the filter or page). An API without the field
+ * just hides the bars; it no longer costs five extra requests.
  */
-async function ratingDistribution(
-  kind: ReviewSectionProps["kind"],
-  slug: string,
-  summary: ReviewSummary,
-  firstPage: Promise<PaginatedEnvelope<PublicReview>> | null,
-): Promise<RatingDistribution | null> {
-  if (summary.count === 0) {
+export function ratingDistribution(
+  counts: ReviewRatingCounts | undefined,
+): RatingDistribution | null {
+  if (!counts) {
     return null;
   }
 
-  try {
-    if (firstPage && summary.count <= DEFAULT_PAGE_SIZE) {
-      const page = await firstPage;
-      if (page.meta.total <= page.data.length) {
-        return countRatings(page);
-      }
-    }
-
-    const totals = await Promise.all(
-      ([5, 4, 3, 2, 1] as const).map((rating) =>
-        FETCHERS[kind](slug, {
-          rating,
-          per_page: 1,
-        } satisfies ReviewListParams),
-      ),
-    );
-    const [five, four, three, two, one] = totals.map((r) => r.meta.total);
-    return { 5: five, 4: four, 3: three, 2: two, 1: one };
-  } catch {
-    return null;
-  }
+  return {
+    1: counts["1"] ?? 0,
+    2: counts["2"] ?? 0,
+    3: counts["3"] ?? 0,
+    4: counts["4"] ?? 0,
+    5: counts["5"] ?? 0,
+  };
 }
 
 export async function ReviewSection({
@@ -96,17 +59,9 @@ export async function ReviewSection({
   const { page, sort } = reviewParams;
   const rating = reviewParams.rating ? String(reviewParams.rating) : "";
 
-  const reviewsRequest = FETCHERS[kind](slug, reviewParams);
-  const unfilteredFirstPage = !reviewParams.rating && page === 1;
-  const [reviews, distribution] = await Promise.all([
-    reviewsRequest,
-    ratingDistribution(
-      kind,
-      slug,
-      summary,
-      unfilteredFirstPage ? reviewsRequest : null,
-    ),
-  ]);
+  const reviews = await FETCHERS[kind](slug, reviewParams);
+  const distribution =
+    summary.count > 0 ? ratingDistribution(reviews.meta.rating_counts) : null;
   const isLoggedIn = Boolean(token);
   const viewerReview = reviews.meta.viewer_review;
 

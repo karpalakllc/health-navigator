@@ -1,10 +1,16 @@
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaginatedEnvelope, PublicReview } from "@/lib/api/types";
+import { t, tFormat } from "@/i18n/t";
 
 const fetchDoctorReviews = vi.fn();
 
 vi.mock("@/lib/auth/session", () => ({
   getSessionToken: async () => null,
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/lib/api/reviews", () => ({
@@ -13,65 +19,85 @@ vi.mock("@/lib/api/reviews", () => ({
   fetchPharmacyReviews: vi.fn(),
 }));
 
-const { ReviewSection } = await import("@/components/reviews/review-section");
+const { ReviewSection, ratingDistribution } =
+  await import("@/components/reviews/review-section");
 
 function envelope(
   total: number,
   data: Partial<PublicReview>[] = [],
+  ratingCounts?: PaginatedEnvelope<PublicReview>["meta"]["rating_counts"],
 ): PaginatedEnvelope<PublicReview> {
   return {
     data: data as PublicReview[],
-    meta: { current_page: 1, last_page: 1, per_page: 15, total },
-  } as PaginatedEnvelope<PublicReview>;
+    meta: {
+      current_page: 1,
+      last_page: 1,
+      per_page: 15,
+      total,
+      rating_counts: ratingCounts,
+    },
+  };
 }
-
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("ReviewSection", () => {
   beforeEach(() => {
     fetchDoctorReviews.mockReset();
   });
 
-  it("asks for the rating totals alongside the review list, not after it", async () => {
-    let resolveList: (value: PaginatedEnvelope<PublicReview>) => void = () =>
-      undefined;
-    fetchDoctorReviews.mockImplementation(
-      (_slug: string, params: { rating?: number }) =>
-        params.rating
-          ? Promise.resolve(envelope(params.rating))
-          : new Promise((resolve) => {
-              resolveList = resolve;
-            }),
+  it("makes one request and draws the histogram from meta.rating_counts", async () => {
+    fetchDoctorReviews.mockResolvedValue(
+      envelope(40, [], { "1": 2, "2": 0, "3": 3, "4": 10, "5": 25 }),
     );
 
-    const pending = ReviewSection({
-      kind: "doctor",
-      slug: "ana",
-      summary: { count: 40, average_rating: 4.2 },
-    });
-    await flush();
+    render(
+      await ReviewSection({
+        kind: "doctor",
+        slug: "ana",
+        summary: { count: 40, average_rating: 4.4 },
+        searchParams: { review_rating: "5" },
+      }),
+    );
 
-    // The list is still loading, yet all five rating requests are out.
-    expect(fetchDoctorReviews).toHaveBeenCalledTimes(6);
+    // No more five `?rating=N&per_page=1` look-ups.
+    expect(fetchDoctorReviews).toHaveBeenCalledTimes(1);
+    expect(fetchDoctorReviews.mock.calls[0][1]).toMatchObject({ rating: 5 });
+
+    const bars = screen.getByRole("list", { name: t("reviews.distribution") });
     expect(
-      fetchDoctorReviews.mock.calls.map(([, params]) => params.rating),
-    ).toEqual([undefined, 5, 4, 3, 2, 1]);
-
-    resolveList(envelope(40));
-    await expect(pending).resolves.toBeTruthy();
+      within(bars).getByText(
+        tFormat("reviews.distributionRow", { stars: 5, count: 25 }),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(bars).getByText(
+        tFormat("reviews.distributionRowOne", { stars: 1, count: 2 }),
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("counts the first page itself when it holds every review", async () => {
-    fetchDoctorReviews.mockResolvedValue(
-      envelope(2, [{ rating: 5 }, { rating: 4 }]),
+  it("leaves the bars out when the API sends no counts", async () => {
+    fetchDoctorReviews.mockResolvedValue(envelope(3, []));
+
+    render(
+      await ReviewSection({
+        kind: "doctor",
+        slug: "ana",
+        summary: { count: 3, average_rating: 4 },
+      }),
     );
 
-    await ReviewSection({
-      kind: "doctor",
-      slug: "ana",
-      summary: { count: 2, average_rating: 4.5 },
-    });
-
     expect(fetchDoctorReviews).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("list", { name: t("reviews.distribution") }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("ratingDistribution", () => {
+  it("maps the string-keyed counts onto stars", () => {
+    expect(
+      ratingDistribution({ "1": 1, "2": 2, "3": 3, "4": 4, "5": 5 }),
+    ).toEqual({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
+    expect(ratingDistribution(undefined)).toBeNull();
   });
 });
