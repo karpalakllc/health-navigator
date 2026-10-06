@@ -74,3 +74,16 @@ export function safeRedirectTarget(
 
   return sameOriginPath(redirect) ?? fallback;
 }
+
+/**
+ * The username chooser, returning to `redirectTo` afterwards: for members who
+ * still have a temporary „clen-…“ name and want to post (the API refuses
+ * public writes until they choose).
+ */
+export function chooseUsernameHref(redirectTo?: string | null): string {
+  const path = redirectTo ? sameOriginPath(redirectTo) : null;
+
+  return path
+    ? `/account/username?redirect=${encodeURIComponent(path)}`
+    : "/account/username";
+}

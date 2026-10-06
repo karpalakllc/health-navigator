@@ -68,6 +68,25 @@ async function consentAll(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("ForumNewTopicComposer", () => {
+  it("asks a member with a temporary name to choose one before writing", () => {
+    render(
+      <ForumNewTopicComposer
+        categories={categories}
+        defaultCategorySlug="srce"
+        settings={settings}
+        mustChooseUsername
+      />,
+    );
+
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: t("usernames.accountNoticeCta") }),
+    ).toHaveAttribute(
+      "href",
+      `/account/username?redirect=${encodeURIComponent("/forum/new?category=srce")}`,
+    );
+  });
+
   it("labels the fields and enforces their minimum lengths", () => {
     renderComposer();
 

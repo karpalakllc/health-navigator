@@ -8,6 +8,7 @@ import { Pagination } from "@/components/directory/pagination";
 import { reviewsBasePath } from "@/components/reviews/review-paths";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewList } from "@/components/reviews/review-list";
+import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
 import { Notice } from "@/components/ui/notice";
@@ -27,6 +28,8 @@ type ReviewsPanelProps = {
   initial: PaginatedEnvelope<ReviewListItem>;
   viewerReview: ViewerReview | null | undefined;
   isLoggedIn: boolean;
+  /** Still a temporary „clen-…“ name: the API refuses reviews and votes. */
+  mustChooseUsername?: boolean;
   page: number;
   sort: string;
   rating: string;
@@ -38,6 +41,7 @@ export function ReviewsPanel({
   initial,
   viewerReview,
   isLoggedIn,
+  mustChooseUsername = false,
   page,
   sort,
   rating,
@@ -156,6 +160,7 @@ export function ReviewsPanel({
       <ReviewList
         reviews={initial.data}
         isLoggedIn={isLoggedIn}
+        mustChooseUsername={mustChooseUsername}
         viewerReviewId={viewerReview?.id ?? null}
         returnTo={`${basePath}#reviews`}
       />
@@ -178,7 +183,15 @@ export function ReviewsPanel({
         <PendingReviewCard review={viewerReview} />
       ) : null}
 
-      {isLoggedIn && (!viewerReview || viewerReview.can_resubmit) ? (
+      {isLoggedIn &&
+      (!viewerReview || viewerReview.can_resubmit) &&
+      mustChooseUsername ? (
+        // „Напиши рецензија“ jumps to #review-form: land on the note.
+        <ChooseUsernameNotice
+          id="review-form"
+          returnTo={`${basePath}#reviews`}
+        />
+      ) : isLoggedIn && (!viewerReview || viewerReview.can_resubmit) ? (
         <ReviewForm
           kind={kind}
           slug={slug}

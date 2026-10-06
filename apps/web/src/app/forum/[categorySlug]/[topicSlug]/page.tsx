@@ -295,6 +295,9 @@ export default async function TopicDetailPage({
                 categorySlug={categorySlug}
                 topicSlug={topicSlug}
                 viewer={viewer}
+                mustChooseUsername={
+                  session?.user?.must_choose_username === true
+                }
               />
             ) : (
               <Card

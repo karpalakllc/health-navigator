@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { loginHref } from "@/lib/auth/login-href";
+import { chooseUsernameHref, loginHref } from "@/lib/auth/login-href";
 import { t, tFormat } from "@/i18n/t";
 
 type ReviewHelpfulButtonProps = {
@@ -11,6 +11,8 @@ type ReviewHelpfulButtonProps = {
   count: number;
   voted: boolean;
   isLoggedIn: boolean;
+  /** Still a temporary „clen-…“ name: the API refuses the vote. */
+  mustChooseUsername?: boolean;
   /** Where sign-in brings a signed-out visitor back to. */
   returnTo: string;
 };
@@ -24,7 +26,8 @@ function helpfulText(count: number): string {
 /**
  * „Корисно (3)“: a toggle (aria-pressed). The count moves at once and is
  * rolled back if the API refuses; the server's count then wins. Signed out,
- * it is a link to sign-in that returns here; a session that expired since the
+ * it is a link to sign-in that returns here (with a temporary username, to
+ * the username chooser); a session that expired since the
  * page rendered goes to the same sign-in.
  */
 export function ReviewHelpfulButton({
@@ -32,6 +35,7 @@ export function ReviewHelpfulButton({
   count: initialCount,
   voted: initialVoted,
   isLoggedIn,
+  mustChooseUsername = false,
   returnTo,
 }: ReviewHelpfulButtonProps) {
   const [count, setCount] = useState(initialCount);
@@ -40,10 +44,11 @@ export function ReviewHelpfulButton({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  if (!isLoggedIn) {
+  // Signed out: sign in first. A temporary „clen-…“ name: choose one first.
+  if (!isLoggedIn || mustChooseUsername) {
     return (
       <Button
-        href={loginHref(returnTo)}
+        href={isLoggedIn ? chooseUsernameHref(returnTo) : loginHref(returnTo)}
         variant="ghost"
         size="sm"
         leadingIcon="thumbs-up"

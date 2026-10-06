@@ -15,6 +15,8 @@ type ReviewListProps = {
   /** Reviews, and a placeholder where a published one was removed. */
   reviews: ReviewListItem[];
   isLoggedIn?: boolean;
+  /** Still a temporary „clen-…“ name: votes go to the username chooser. */
+  mustChooseUsername?: boolean;
   /** The viewer's own review: no „Корисно“ or „Пријави“ on it (the API refuses both). */
   viewerReviewId?: number | null;
   /** Where sign-in returns to from „Корисно“ / „Пријави“. */
@@ -30,6 +32,7 @@ type ReviewListProps = {
 export function ReviewList({
   reviews,
   isLoggedIn = false,
+  mustChooseUsername = false,
   viewerReviewId = null,
   returnTo = "/",
 }: ReviewListProps) {
@@ -96,6 +99,7 @@ export function ReviewList({
                     count={review.helpful_count ?? 0}
                     voted={review.viewer?.has_voted_helpful ?? false}
                     isLoggedIn={isLoggedIn}
+                    mustChooseUsername={mustChooseUsername}
                     returnTo={returnTo}
                   />
                   <ReportButton
