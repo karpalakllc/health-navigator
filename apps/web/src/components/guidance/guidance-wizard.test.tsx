@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidanceWizard } from "@/components/guidance/guidance-wizard";
@@ -115,7 +115,9 @@ describe("GuidanceWizard", () => {
     const user = await startQuestions();
 
     await user.click(screen.getByRole("radio", { name: "18–64 години" }));
-    await user.click(screen.getByRole("button", { name: t("common.next") }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
     await screen.findByRole("heading", {
       name: "Колку се изразени симптомите денес?",
     });
@@ -138,7 +140,9 @@ describe("GuidanceWizard", () => {
     ).toHaveFocus();
 
     await user.click(screen.getByRole("radio", { name: "18–64 години" }));
-    await user.click(screen.getByRole("button", { name: t("common.next") }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
 
     expect(
       await screen.findByRole("heading", {
@@ -151,7 +155,9 @@ describe("GuidanceWizard", () => {
     const user = await startQuestions();
 
     await user.click(screen.getByRole("radio", { name: "18–64 години" }));
-    await user.click(screen.getByRole("button", { name: t("common.next") }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
     await screen.findByRole("heading", {
       name: "Колку се изразени симптомите денес?",
     });
@@ -318,5 +324,275 @@ describe("GuidanceWizard emergency path when the API fails", () => {
 
     expect(await screen.findByText("Server error.")).toBeInTheDocument();
     expect(callLinks()).toHaveLength(2);
+  });
+});
+
+/** A promise the test settles by hand, to hold a request open. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
+const generalInformation: GuidanceOutcome = {
+  outcome_code: "general_information",
+  title: "Општи информации",
+  body: "Следете ги симптомите.",
+  handoffs: [
+    { type: "doctors", label: "Прегледајте лекари", href: "/doctors" },
+    { type: "facilities", label: "Прегледајте установи", href: "/facilities" },
+    { type: "emergency", label: "Броеви за итни случаи" },
+  ],
+};
+
+async function reachLastQuestion(pharmaciesOn?: boolean) {
+  const user = userEvent.setup();
+  render(<GuidanceWizard flow={flow} pharmaciesOn={pharmaciesOn} />);
+  await user.click(screen.getByRole("checkbox"));
+  await user.click(
+    screen.getByRole("button", { name: t("guidance.continue") }),
+  );
+  await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+  await user.click(
+    screen.getByRole("button", { name: t("guidance.continue") }),
+  );
+  await screen.findByRole("heading", { name: "Возрасна група" });
+  await user.click(screen.getByRole("radio", { name: "18–64 години" }));
+  await user.click(
+    screen.getByRole("button", { name: t("guidance.continue") }),
+  );
+  await screen.findByRole("heading", {
+    name: "Колку се изразени симптомите денес?",
+  });
+  await user.click(screen.getByRole("radio", { name: "Благи" }));
+
+  return user;
+}
+
+/**
+ * „Потребна ми е итна помош“ must work at any moment, including while an
+ * ordinary answer is still saving (a slow connection is exactly when someone
+ * may feel worse). Whatever that save does afterwards must not take the
+ * emergency screen away.
+ */
+describe("GuidanceWizard emergency shortcut while a save is pending", () => {
+  it("stays enabled during the save, and a late normal outcome does not replace the emergency screen", async () => {
+    const user = await reachLastQuestion();
+    const normal = deferred<unknown>();
+    api.completeGuidanceSession.mockReturnValue(normal.promise);
+    api.completeGuidanceEmergency.mockReturnValue(new Promise(() => {}));
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.seeGuidance") }),
+    );
+    const shortcut = screen.getByRole("button", {
+      name: t("guidance.emergencyNow"),
+    });
+    expect(shortcut).toBeEnabled();
+    await user.click(shortcut);
+
+    expect(
+      screen.getByRole("heading", {
+        name: t("guidance.emergencyInterimTitle"),
+      }),
+    ).toHaveFocus();
+
+    await act(async () => normal.resolve(generalInformation));
+
+    expect(
+      screen.queryByRole("heading", { name: generalInformation.title }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: t("guidance.emergencyInterimTitle"),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: t("guidance.call194") }),
+    ).toHaveAttribute("href", "tel:194");
+    // The emergency save is still running and still says so.
+    expect(screen.getByRole("status")).toHaveTextContent(t("guidance.saving"));
+  });
+
+  it("keeps the emergency outcome when the earlier save fails afterwards", async () => {
+    const user = await reachLastQuestion();
+    const normal = deferred<unknown>();
+    api.completeGuidanceSession.mockReturnValue(normal.promise);
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.seeGuidance") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+    await screen.findByRole("heading", { name: emergency.title });
+
+    await act(async () =>
+      normal.reject(new GuidanceApiError("Server error.", 500)),
+    );
+
+    expect(screen.queryByText("Server error.")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: emergency.title }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: t("guidance.call194") }),
+    ).toHaveAttribute("href", "tel:194");
+  });
+
+  it("does not move on to the next question when the save lands after the shortcut", async () => {
+    const user = await startQuestions();
+    const save = deferred<void>();
+    api.saveGuidanceAnswers.mockReturnValue(save.promise);
+    api.completeGuidanceEmergency.mockReturnValue(new Promise(() => {}));
+
+    await user.click(screen.getByRole("radio", { name: "18–64 години" }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+    await act(async () => save.resolve());
+
+    expect(
+      screen.queryByRole("heading", {
+        name: "Колку се изразени симптомите денес?",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: t("guidance.emergencyInterimTitle"),
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("GuidanceWizard outcome care ladder", () => {
+  async function finishWith(outcome: GuidanceOutcome, pharmaciesOn = true) {
+    api.completeGuidanceSession.mockResolvedValue(outcome);
+    const user = await reachLastQuestion(pharmaciesOn);
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.seeGuidance") }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: outcome.title }),
+    ).toHaveFocus();
+
+    return user;
+  }
+
+  function ladder() {
+    return screen.getByRole("list", { name: t("guidance.ladderTitle") });
+  }
+
+  function currentRungs() {
+    return within(ladder())
+      .getAllByRole("listitem")
+      .filter((rung) => rung.getAttribute("aria-current") === "step");
+  }
+
+  it("lists the four care levels in order, from home care to emergency", async () => {
+    await finishWith(generalInformation);
+
+    expect(ladder().tagName).toBe("OL");
+    expect(
+      within(ladder())
+        .getAllByRole("listitem")
+        .map((rung) => within(rung).getByRole("heading").textContent),
+    ).toEqual([
+      `1. ${t("guidance.ladderHomeTitle")}`,
+      `2. ${t("guidance.ladderPharmacyTitle")}`,
+      `3. ${t("guidance.ladderGpTitle")}`,
+      `4. ${t("guidance.ladderEmergencyTitle")}`,
+    ]);
+  });
+
+  it("marks only the outcome's level as the current step, in words as well as colour", async () => {
+    await finishWith({ ...generalInformation, outcome_code: "seek_care_soon" });
+
+    const current = currentRungs();
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveTextContent(t("guidance.ladderGpTitle"));
+    expect(current[0]).toHaveTextContent(t("guidance.ladderYourResult"));
+    expect(screen.getAllByText(t("guidance.ladderYourResult"))).toHaveLength(1);
+  });
+
+  it("marks home care for the general-information outcome", async () => {
+    await finishWith(generalInformation);
+
+    expect(currentRungs()).toHaveLength(1);
+    expect(currentRungs()[0]).toHaveTextContent(t("guidance.ladderHomeTitle"));
+  });
+
+  it("marks no level for an outcome code it does not know", async () => {
+    await finishWith({ ...generalInformation, outcome_code: "custom_admin" });
+
+    expect(currentRungs()).toHaveLength(0);
+    expect(
+      screen.queryByText(t("guidance.ladderYourResult")),
+    ).not.toBeInTheDocument();
+  });
+
+  it("links the levels into the directory and to 194/112", async () => {
+    await finishWith(generalInformation);
+
+    expect(
+      screen.getByRole("link", { name: t("guidance.ladderPharmacyLink") }),
+    ).toHaveAttribute("href", "/pharmacies");
+    expect(
+      screen.getByRole("link", { name: t("guidance.ladderGpLink") }),
+    ).toHaveAttribute("href", "/doctors");
+    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
+      "href",
+      "tel:194",
+    );
+    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
+      "href",
+      "tel:112",
+    );
+    // The doctors handoff repeats the ladder and is dropped; the rest stay.
+    expect(
+      screen.queryByRole("link", { name: "Прегледајте лекари" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Прегледајте установи" }),
+    ).toHaveAttribute("href", "/facilities");
+  });
+
+  it("does not link to pharmacies when that directory is switched off", async () => {
+    await finishWith(generalInformation, false);
+
+    expect(
+      screen.queryByRole("link", { name: t("guidance.ladderPharmacyLink") }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(ladder()).getByText(t("guidance.ladderPharmacyTitle")),
+    ).toBeInTheDocument();
+  });
+
+  it("starts a new check from the beginning, with a new session", async () => {
+    const user = await finishWith(generalInformation);
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.restart") }),
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: t("guidance.title") }),
+    ).toHaveFocus();
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+    expect(api.startGuidanceSession).toHaveBeenCalledTimes(2);
   });
 });

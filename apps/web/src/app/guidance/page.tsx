@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { GuidanceWizard } from "@/components/guidance/guidance-wizard";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
-import { PageHeader } from "@/components/directory/page-header";
-import { PageShell } from "@/components/ui/page-shell";
+import { guidancePageClass } from "@/components/guidance/guidance-layout";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { fetchGuidanceFlow } from "@/lib/api/guidance-flow";
 import { fetchPublicSettings } from "@/lib/api/settings";
@@ -40,24 +39,27 @@ export default async function GuidancePage() {
   }
 
   return (
-    <PageShell>
-      <PageHeader
-        title={t("guidance.title")}
-        description={t("guidance.description")}
-      />
-
+    <div className={guidancePageClass}>
       {unavailable || !flow ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <h1 className="type-h1 text-ink">{t("guidance.title")}</h1>
+            <p className="type-reading measure text-ink">
+              {t("guidance.description")}
+            </p>
+          </div>
           <GuidanceSafetyNotice />
-          <p className="text-sm text-muted-foreground">
-            {t("guidance.unavailable")}
-          </p>
+          <p className="type-reading text-ink">{t("guidance.unavailable")}</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-sm md:p-8">
-          <GuidanceWizard flow={flow} />
-        </div>
+        // The wizard renders the page's h1 itself: the intro shows it in the
+        // hero, later steps keep it for screen readers only, so the emergency
+        // screen has nothing above it but the header.
+        <GuidanceWizard
+          flow={flow}
+          pharmaciesOn={isModuleOn(settings, "public_pharmacies")}
+        />
       )}
-    </PageShell>
+    </div>
   );
 }
