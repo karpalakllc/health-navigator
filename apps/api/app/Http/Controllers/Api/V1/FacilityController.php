@@ -31,7 +31,7 @@ class FacilityController extends Controller
         }
 
         if (! empty($validated['q'])) {
-            $query->searchName($validated['q']);
+            $query->searchNameOrDepartment($validated['q']);
         }
 
         if (array_key_exists('has_emergency', $validated) && $validated['has_emergency'] !== null) {

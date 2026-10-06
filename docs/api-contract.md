@@ -183,7 +183,9 @@ nobody can hold an account locked by merely sending traffic.
 
 - `per_page` is capped at **50** on every list endpoint (`/search` caps at 10
   per vertical). `page` starts at 1.
-- List `q` filters match **name/title only**; `city` is a separate parameter.
+- List `q` filters match **name/title only**, except doctors (name or a
+  published specialty name) and clinical facilities (name or a published
+  department name), on `/search` too; `city` is a separate parameter.
   Minimum query length is 2 characters, matching `SearchQuery::normalize`.
 - Review lists accept `sort` (`newest|oldest|rating_high|rating_low`) and
   `rating` (1–5), and return `meta.viewer_review` when the caller has one.

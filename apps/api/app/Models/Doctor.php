@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -131,6 +132,23 @@ class Doctor extends Model
     }
 
     /**
+     * Public free-text search: the name, or the name of a published specialty,
+     * so "кардиолог" / "kardio" finds cardiologists, not only doctors named so.
+     *
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    public function scopeSearchNameOrSpecialty(Builder $query, string $term): Builder
+    {
+        return $query->where(function (Builder $inner) use ($term): void {
+            ScriptInsensitiveSearch::whereColumnMatches($inner, 'doctors.full_name', $term)
+                ->orWhereHas('specialties', function (Builder $specialtyQuery) use ($term): void {
+                    $specialtyQuery->published()->searchName($term);
+                });
+        });
+    }
+
+    /**
      * @param  Builder<Doctor>  $query
      * @return Builder<Doctor>
      */
@@ -170,6 +188,11 @@ class Doctor extends Model
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,
             'specialty_names' => $this->specialties->pluck('name')->all(),
+            // Meilisearch does not transliterate: "kardio" must find "Кардиологија"
+            // as the SQL path (ScriptInsensitiveSearch) does.
+            'specialty_names_latin' => $this->specialties
+                ->map(fn (Specialty $specialty): string => MacedonianSearchVariants::cyrillicToLatin($specialty->name))
+                ->all(),
         ];
     }
 

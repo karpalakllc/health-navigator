@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FacilityType;
+use App\Support\MacedonianSearchVariants;
 use App\Support\ScriptInsensitiveSearch;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -153,6 +154,23 @@ class Facility extends Model
     }
 
     /**
+     * Public free-text search for clinical facilities: the name, or the name of
+     * a published department, so "кардиологија" finds hospitals that have one.
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    public function scopeSearchNameOrDepartment(Builder $query, string $term): Builder
+    {
+        return $query->where(function (Builder $inner) use ($term): void {
+            ScriptInsensitiveSearch::whereColumnMatches($inner, 'facilities.name', $term)
+                ->orWhereHas('departments', function (Builder $departmentQuery) use ($term): void {
+                    $departmentQuery->published()->searchName($term);
+                });
+        });
+    }
+
+    /**
      * Pharmacies are indexed too: unified search filters the clinical and
      * pharmacy verticals on the filterable `type` attribute.
      */
@@ -168,6 +186,9 @@ class Facility extends Model
      */
     public function toSearchableArray(): array
     {
+        $this->loadMissing(['departments' => fn ($relation) => $relation->published()]);
+        $departmentNames = $this->departments->pluck('name');
+
         return [
             'id' => $this->id,
             'slug' => $this->slug,
@@ -175,6 +196,11 @@ class Facility extends Model
             'type' => $this->type?->value,
             'city' => $this->city,
             'description' => $this->description,
+            'department_names' => $departmentNames->all(),
+            // Meilisearch does not transliterate; the SQL path matches Latin too.
+            'department_names_latin' => $departmentNames
+                ->map(fn (string $name): string => MacedonianSearchVariants::cyrillicToLatin($name))
+                ->all(),
         ];
     }
 

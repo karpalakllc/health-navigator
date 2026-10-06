@@ -246,4 +246,23 @@ class DoctorTest extends TestCase
     {
         $this->getJson('/api/v1/doctors?per_page=100')->assertUnprocessable();
     }
+
+    public function test_name_query_also_matches_specialty_names_in_either_script(): void
+    {
+        $cardiology = Specialty::factory()->create(['name' => 'Кардиологија', 'slug' => 'kardiologija']);
+        $hidden = Specialty::factory()->create(['name' => 'Кардиохирургија', 'slug' => 'kardiohirurgija', 'is_published' => false]);
+
+        $cardiologist = Doctor::factory()->create(['slug' => 'cardio-doc', 'full_name' => 'д-р Ана Петровска']);
+        $cardiologist->specialties()->attach($cardiology->id, ['is_primary' => false]);
+        $hiddenOnly = Doctor::factory()->create(['slug' => 'hidden-doc', 'full_name' => 'д-р Марко Стојанов']);
+        $hiddenOnly->specialties()->attach($hidden->id, ['is_primary' => true]);
+        Doctor::factory()->create(['slug' => 'other-doc', 'full_name' => 'д-р Елена Илиевска']);
+
+        foreach (['кардиолог', 'kardio', 'Петровска'] as $q) {
+            $this->getJson('/api/v1/doctors?q='.urlencode($q))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.slug', 'cardio-doc');
+        }
+    }
 }

@@ -88,7 +88,7 @@ final class UnifiedSearch
         }
 
         if ($q !== null && $q !== '') {
-            $query->searchName($q);
+            $query->searchNameOrSpecialty($q);
         }
 
         return $query->paginate($perPage);
@@ -109,7 +109,7 @@ final class UnifiedSearch
         }
 
         if ($q !== null && $q !== '') {
-            $query->searchName($q);
+            $query->searchNameOrDepartment($q);
         }
 
         return $query->paginate($perPage);
