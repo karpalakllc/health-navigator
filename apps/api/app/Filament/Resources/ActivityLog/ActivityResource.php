@@ -49,6 +49,7 @@ class ActivityResource extends Resource
         'reports' => 'Reports',
         'accounts' => 'Accounts',
         'verification' => 'Verification',
+        'name_cleanup' => 'Name cleanup',
     ];
 
     public static function canCreate(): bool
