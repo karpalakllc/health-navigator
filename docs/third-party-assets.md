@@ -53,3 +53,14 @@ repository (they live on the media disk of the running app). An institution
 can ask for any image to be removed: staff remove it in one click on the
 facility page (**Website images → Remove image**), and a removed image is never
 imported again (`docs/data-import.md` §6).
+
+## Public CA certificate for the ФЗОМ download
+
+`apps/api/resources/tls/import-extra-ca.crt` is the public intermediate CA
+certificate **GeoTrust TLS RSA CA G1** (issued by DigiCert Global Root G2;
+valid 2017-11-02 – 2027-11-02; SHA-256
+`C0:6E:30:7F:7C:FC:1D:32:FA:72:A4:C0:33:C8:7B:90:01:9A:F2:16:F0:77:5D:64:97:8A:2E:CA:6C:8A:23:0E`).
+DigiCert publishes it for anyone to install; it carries no licence terms.
+Only the import fetchers trust it, in addition to the system store, because
+arhiva.fzo.org.mk omits it from its chain (`docs/data-import.md` §3, TLS).
+Replace it when it expires or when ФЗОМ's certificate changes issuer.

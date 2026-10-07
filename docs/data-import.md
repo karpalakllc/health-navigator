@@ -111,6 +111,25 @@ php artisan import:institutions-json /path/<slice>/institutions.json --dry-run
 php artisan import:institutions-json /path/<slice>/institutions.json
 ```
 
+**TLS.** `arhiva.fzo.org.mk` sends its certificate with the wrong
+intermediate (GeoTrust EV RSA CA G2 instead of GeoTrust TLS RSA CA G1), so
+PHP's curl cannot build the chain („unable to get local issuer
+certificate“; browsers fetch the missing one by themselves). The import
+fetchers (ФЗОМ and Комора only — nothing else in the app) therefore trust
+the system store **plus** the PEM file in `IMPORT_CA_BUNDLE` (default
+`resources/tls/import-extra-ca.crt`, relative to `apps/api`), combined into
+one cached file under `storage/framework/cache`
+(`App\Support\Import\SourcePolicy::tlsOptions()`). Verification is never
+turned off: a missing or unreadable bundle stops the run. The shipped file
+is the public intermediate GeoTrust TLS RSA CA G1 (issuer DigiCert Global
+Root G2; SHA-256 `C0:6E:30:7F:7C:FC:1D:32:FA:72:A4:C0:33:C8:7B:90:01:9A:F2:16:F0:77:5D:64:97:8A:2E:CA:6C:8A:23:0E`;
+valid until **2027-11-02**), taken from the AIA URL in ФЗОМ's certificate
+and checked against DigiCert's copy and the leaf's key identifier on
+2026-10-07. ФЗОМ's own certificate expires **2026-11-12**: after it is
+renewed, check the chain again (`openssl s_client -connect
+arhiva.fzo.org.mk:443 -showcerts`) and replace the file if the issuer
+changed (`ImportCaBundleTest` fails once the shipped one expires).
+
 A downloaded Комора list counts as unchanged only when its files are the
 same (sha256) as those of the last **successful apply**: a dry run or a
 failed apply does not use a new list up, so "dry run first, then apply"

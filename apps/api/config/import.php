@@ -86,6 +86,14 @@ return [
         'max_image_bytes' => (int) env('IMPORT_WEBSITE_MAX_IMAGE_BYTES', 2 * 1024 * 1024),
     ],
 
+    // Extra public CA certificates (PEM) the import fetchers trust in
+    // addition to the system store: intermediates a source host fails to
+    // send. Relative to apps/api. Shipped: the intermediate of
+    // arhiva.fzo.org.mk (resources/tls/import-extra-ca.crt, with its
+    // fingerprint and expiry). Empty = the system store only. Verification
+    // is never turned off.
+    'ca_bundle' => env('IMPORT_CA_BUNDLE', 'resources/tls/import-extra-ca.crt'),
+
     // The verification engine (import:adjudicate, docs/verification.md).
     'verification' => [
         // Re-evaluate every profile right after each successful import apply
