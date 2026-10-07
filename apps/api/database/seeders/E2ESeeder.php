@@ -104,6 +104,14 @@ class E2ESeeder extends Seeder
     public const HIDDEN_FORUM_TOPIC_TITLE = 'Ксилофонска тема во скриена категорија';
 
     /**
+     * W8-A „Прашања без одговор“ (e2e/help.spec.ts): an approved question in
+     * the published category that nobody answers. Specs must not reply to it.
+     */
+    public const HELP_TOPIC_SLUG = 'e2e-help-bez-odgovor';
+
+    public const HELP_TOPIC_TITLE = 'Прашање што чека прв одговор';
+
+    /**
      * Doctor accounts (e2e/doctor-claim.spec.ts): one unmanaged profile per
      * attempt, "{prefix}-{attempt}", for "doctor-{attempt}@e2e.test" to be
      * assigned to, with one published review to reply to.
@@ -129,6 +137,7 @@ class E2ESeeder extends Seeder
         $this->call(TriageSeeder::class);
         $this->seedDirectory();
         $this->seedForum();
+        $this->seedHelpTopic();
         $this->seedReviews();
         $this->seedReportableReviews();
         $this->seedDoctorClaimProfiles();
@@ -347,6 +356,30 @@ class E2ESeeder extends Seeder
         $communityModerator = User::query()->where('email', self::COMMUNITY_MODERATOR_EMAIL)->firstOrFail();
         $communityModerator->syncRoles([RoleCatalog::MEMBER, RoleCatalog::FORUM_MODERATOR]);
         $communityModerator->moderatedForumCategories()->sync([$published->id]);
+    }
+
+    private function seedHelpTopic(): void
+    {
+        $member = User::query()->where('email', self::MEMBER_EMAIL)->firstOrFail();
+        $category = ForumCategory::query()->where('slug', self::FORUM_CATEGORY_SLUG)->firstOrFail();
+
+        $topic = ForumTopic::query()->updateOrCreate(
+            ['forum_category_id' => $category->id, 'slug' => self::HELP_TOPIC_SLUG],
+            [
+                'user_id' => $member->id,
+                'title' => self::HELP_TOPIC_TITLE,
+                'body' => 'Одобрена тема без одговор за E2E тестови (само информативно).',
+                'status' => ForumContentStatus::Approved,
+                'is_locked' => false,
+                'is_pinned' => false,
+                'published_at' => now()->subHours(2),
+                'last_post_at' => now()->subHours(2),
+                'replies_count' => 0,
+            ],
+        );
+
+        // A rerun starts it unanswered again.
+        $topic->posts()->delete();
     }
 
     private function seedReviews(): void

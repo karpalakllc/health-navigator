@@ -7,6 +7,7 @@ use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
 use App\Models\Doctor;
 use App\Models\ForumCategory;
+use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\SiteSetting;
@@ -72,6 +73,24 @@ class E2ESeederTest extends TestCase
         $this->assertSame(ReviewStatus::Approved, $review->status);
         $this->assertSame(0, $review->reports()->count());
         $this->assertSame(E2ESeeder::ATTEMPTS, Review::query()->where('body', 'like', 'Рецензија за пријава %')->approved()->count());
+    }
+
+    public function test_the_help_topic_is_listed_as_unanswered_again_after_reseeding(): void
+    {
+        $this->seed(E2ESeeder::class);
+
+        $topic = ForumTopic::query()->where('slug', E2ESeeder::HELP_TOPIC_SLUG)->sole();
+        ForumPost::factory()->create(['forum_topic_id' => $topic->id]);
+
+        $this->seed(E2ESeeder::class);
+
+        // (The welcome topic is listed too: its only reply is its author's.)
+        $this->assertContains(
+            E2ESeeder::HELP_TOPIC_SLUG,
+            collect($this->getJson('/api/v1/forum/topics/unanswered')->assertOk()->json('data'))
+                ->pluck('slug')
+                ->all(),
+        );
     }
 
     public function test_reseeding_returns_the_doctor_claim_profiles_to_unmanaged(): void

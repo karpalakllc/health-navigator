@@ -47,7 +47,7 @@ class ForumCategory extends Model
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::FORUM_CATEGORIES];
+        return [TaxonomyCache::FORUM_CATEGORIES, TaxonomyCache::FORUM_UNANSWERED];
     }
 
     protected function casts(): array

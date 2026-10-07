@@ -44,13 +44,14 @@ class ForumTopic extends Model
     ];
 
     /**
-     * GET /forum/categories embeds approved-topic counts.
+     * GET /forum/categories embeds approved-topic counts; GET
+     * /forum/topics/unanswered lists topics by status, lock and pin.
      *
      * @return list<string>
      */
     public static function taxonomyCacheGroups(): array
     {
-        return [TaxonomyCache::FORUM_CATEGORIES];
+        return [TaxonomyCache::FORUM_CATEGORIES, TaxonomyCache::FORUM_UNANSWERED];
     }
 
     protected function casts(): array
@@ -174,6 +175,22 @@ class ForumTopic extends Model
     }
 
     /**
+     * No published reply from anyone but the topic's own author: a follow-up
+     * the author adds („уште нешто…“) does not answer their question. Goes by
+     * the replies themselves, not replies_count, which also counts the
+     * author's own and can drift.
+     *
+     * @param  Builder<ForumTopic>  $query
+     * @return Builder<ForumTopic>
+     */
+    public function scopeUnanswered(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('posts', fn (Builder $posts) => $posts
+            ->approved()
+            ->whereColumn('forum_posts.user_id', '<>', 'forum_topics.user_id'));
+    }
+
+    /**
      * @param  Builder<ForumTopic>  $query
      * @return Builder<ForumTopic>
      */
@@ -212,6 +229,9 @@ class ForumTopic extends Model
     public function recordApprovedReply(): void
     {
         $this->increment('replies_count', 1, ['last_post_at' => now()]);
+        // increment() fires no `saved` event, so InvalidatesTaxonomyCache
+        // would not notice that the topic may now be answered.
+        TaxonomyCache::flush(TaxonomyCache::FORUM_UNANSWERED);
     }
 
     /**
@@ -226,6 +246,8 @@ class ForumTopic extends Model
             ->decrement('replies_count');
 
         $this->refresh();
+        // The removed reply may have been its only answer.
+        TaxonomyCache::flush(TaxonomyCache::FORUM_UNANSWERED);
     }
 
     /**

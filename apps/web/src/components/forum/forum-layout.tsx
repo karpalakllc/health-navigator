@@ -31,14 +31,22 @@ export function ForumColumns({
 /** Nothing to list: a calm white card with an optional way back. */
 export function ForumEmpty({
   title,
+  description,
   action,
 }: {
   title: ReactNode;
+  /** A quieter second line. */
+  description?: ReactNode;
   action?: ReactNode;
 }) {
   return (
     <div className="card flex flex-col items-start gap-4 p-6">
-      <p className="type-body text-ink">{title}</p>
+      <div className="flex flex-col gap-1">
+        <p className="type-body text-ink">{title}</p>
+        {description ? (
+          <p className="type-meta text-ink-2">{description}</p>
+        ) : null}
+      </div>
       {action}
     </div>
   );

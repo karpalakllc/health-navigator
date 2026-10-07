@@ -8,11 +8,19 @@ import { HomeHero } from "@/components/home/home-hero";
 import { HomeRecentReviews } from "@/components/home/home-recent-reviews";
 import { HomeRecentlyViewed } from "@/components/home/home-recently-viewed";
 import { HomeSpecialties } from "@/components/home/home-specialties";
+import {
+  HOME_UNANSWERED_LIMIT,
+  HomeUnanswered,
+} from "@/components/home/home-unanswered";
 import { buildHeroStats, buildHomeTiles } from "@/components/home/home-tiles";
 import { HomeForumTransparency } from "@/components/layout/home-forum-transparency";
 import { HomeHowItWorksSection } from "@/components/layout/home-how-it-works-section";
 import type { ForumCategory, ForumTopicSearchItem } from "@/lib/api/forum";
-import { fetchForumCategories, fetchForumRecentTopics } from "@/lib/api/forum";
+import {
+  fetchForumCategories,
+  fetchForumRecentTopics,
+  fetchForumUnansweredTopics,
+} from "@/lib/api/forum";
 import type { DoctorListItem, Specialty } from "@/lib/api/types";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchFacilities } from "@/lib/api/facilities";
@@ -77,6 +85,7 @@ export default async function Home() {
     featured,
     highlights,
     topics,
+    unanswered,
     forumCategories,
     doctorsTotal,
     facilitiesTotal,
@@ -109,6 +118,18 @@ export default async function Home() {
     settle(
       forumOn,
       async () => (await fetchForumRecentTopics(COMMUNITY_TOPICS)).data,
+      [] as ForumTopicSearchItem[],
+    ),
+    // „Помогнете некому“: enough to fill three cards after leaving out the
+    // community band's topics.
+    settle(
+      forumOn,
+      async () =>
+        (
+          await fetchForumUnansweredTopics({
+            per_page: HOME_UNANSWERED_LIMIT + COMMUNITY_TOPICS,
+          })
+        ).data,
       [] as ForumTopicSearchItem[],
     ),
     settle(forumOn, () => fetchForumCategories(), [] as ForumCategory[]),
@@ -217,6 +238,23 @@ export default async function Home() {
       {hasCommunity ? (
         <div data-reveal="" className="mt-10 lg:mt-20">
           <HomeCommunity topics={topics} totalTopics={forumTotal} />
+        </div>
+      ) : null}
+
+      {/* Right after the community band: having seen what people talk
+          about, the visitor is asked to answer someone still waiting. The
+          band's own topics are skipped; nothing left, no section. */}
+      {forumOn ? (
+        <div data-reveal="">
+          <HomeUnanswered
+            topics={unanswered}
+            exclude={
+              hasCommunity
+                ? topics.map((topic) => `${topic.category.slug}/${topic.slug}`)
+                : []
+            }
+            className="px-5 pt-10 lg:px-0 lg:pt-14"
+          />
         </div>
       ) : null}
 

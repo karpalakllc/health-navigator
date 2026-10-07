@@ -10,6 +10,7 @@ import {
 } from "@/components/forum/forum-layout";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
 import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
+import { ForumViewChips } from "@/components/forum/forum-view-chips";
 import {
   ForumTopicList,
   type ForumTopicRowData,
@@ -22,16 +23,23 @@ import {
   fetchForumCategories,
   fetchForumRecentTopics,
   fetchForumTopicSearch,
+  fetchForumUnansweredTopics,
   type ForumTopicSearchItem,
 } from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
+import { forumAnswerHref } from "@/lib/forum/answer-link";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t, tCount } from "@/i18n/t";
 import type { Metadata } from "next";
 
 type ForumPageProps = {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    page?: string;
+    view?: string;
+  }>;
 };
 
 export async function generateMetadata({
@@ -55,6 +63,17 @@ function toRow(topic: ForumTopicSearchItem): ForumTopicRowData {
     lastActivityAt: topic.last_post_at ?? topic.published_at,
   };
 }
+
+/** „Без одговор“ rows: asked when, and an „Одговори“ button. */
+function toUnansweredRow(topic: ForumTopicSearchItem): ForumTopicRowData {
+  return {
+    ...toRow(topic),
+    lastActivityAt: topic.published_at ?? topic.last_post_at,
+    answerHref: forumAnswerHref(topic.category.slug, topic.slug),
+  };
+}
+
+const UNANSWERED_PER_PAGE = 15;
 
 export default async function ForumPage({ searchParams }: ForumPageProps) {
   const settings = await fetchPublicSettings();
@@ -82,6 +101,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
   ]);
 
   const showSearch = searchQuery.length >= 2;
+  const unansweredView = !showSearch && query.view === "unanswered";
   const topics = showSearch
     ? await fetchForumTopicSearch({
         q: searchQuery,
@@ -89,6 +109,19 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         page: Number.isFinite(page) ? page : 1,
       })
     : null;
+
+  // The „Без одговор“ list, or just its count for the chip (one row). The
+  // forum works without it: a failure only drops the count.
+  const unanswered = showSearch
+    ? null
+    : await fetchForumUnansweredTopics(
+        unansweredView
+          ? {
+              page: Number.isFinite(page) ? page : 1,
+              per_page: UNANSWERED_PER_PAGE,
+            }
+          : { per_page: 1 },
+      ).catch(() => null);
 
   const totalTopics = categories.reduce(
     (sum, item) => sum + (item.topics_count ?? 0),
@@ -155,11 +188,55 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
                   }}
                 />
               </section>
+            ) : unansweredView ? (
+              <section
+                aria-labelledby="forum-unanswered-heading"
+                className="flex flex-col gap-4"
+              >
+                <ForumViewChips
+                  current="unanswered"
+                  unansweredCount={unanswered?.meta.total}
+                />
+                <SectionHeader
+                  id="forum-unanswered-heading"
+                  title={t("help.listTitle")}
+                  description={t("help.listLead")}
+                />
+                {!unanswered || unanswered.data.length === 0 ? (
+                  <ForumEmpty
+                    title={t("help.emptyTitle")}
+                    description={t("help.emptyBody")}
+                    action={
+                      <Button href="/forum" variant="secondary">
+                        {t("help.emptyAction")}
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <ForumTopicList
+                    label={t("help.listTitle")}
+                    topics={unanswered.data.map(toUnansweredRow)}
+                  />
+                )}
+                {unanswered ? (
+                  <Pagination
+                    basePath="/forum"
+                    currentPage={unanswered.meta.current_page}
+                    lastPage={unanswered.meta.last_page}
+                    total={unanswered.meta.total}
+                    searchParams={{ view: "unanswered" }}
+                  />
+                ) : null}
+              </section>
             ) : (
               <section
                 aria-labelledby="forum-recent-heading"
                 className="flex flex-col gap-4"
               >
+                <ForumViewChips
+                  current="recent"
+                  unansweredCount={unanswered?.meta.total}
+                />
                 <SectionHeader
                   id="forum-recent-heading"
                   title={t("forum.recentDiscussions")}

@@ -61,6 +61,12 @@ export const facilitySlug = "e2e-klinika-centar";
 export const pharmacySlug = "e2e-apteka-centar";
 export const productSlug = "e2e-paracetamol-500";
 
+/** W8-A: E2ESeeder::HELP_TOPIC_* — an approved question nobody answers. */
+export const help = {
+  topicSlug: "e2e-help-bez-odgovor",
+  topicTitle: "Прашање што чека прв одговор",
+} as const;
+
 export const forum = {
   categorySlug: "e2e-opshto-zdravje",
   categoryName: "Општо здравје",

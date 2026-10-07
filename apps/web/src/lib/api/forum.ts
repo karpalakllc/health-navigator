@@ -187,6 +187,42 @@ export async function fetchForumTopics(
   );
 }
 
+/** Unanswered lists are identical for everyone; the API caches them too. */
+export const FORUM_UNANSWERED_REVALIDATE_SECONDS = 60;
+
+/**
+ * „Прашања без одговор“ (GET /forum/topics/unanswered): visible topics with no
+ * published reply from anyone but their author, newest first; pinned and
+ * locked topics are left out.
+ */
+export async function fetchForumUnansweredTopics(
+  params: {
+    category?: string;
+    q?: string;
+    min_age_hours?: number;
+    page?: number;
+    per_page?: number;
+  } = {},
+  options: ApiCacheOptions = {
+    revalidate: FORUM_UNANSWERED_REVALIDATE_SECONDS,
+  },
+) {
+  const search = new URLSearchParams();
+  if (params.category) search.set("category", params.category);
+  if (params.q) search.set("q", params.q);
+  if (params.min_age_hours) {
+    search.set("min_age_hours", String(params.min_age_hours));
+  }
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  if (params.per_page) search.set("per_page", String(params.per_page));
+  const query = search.toString();
+
+  return apiGetPaginated<ForumTopicSearchItem>(
+    `/forum/topics/unanswered${query ? `?${query}` : ""}`,
+    options,
+  );
+}
+
 /** Tags with at least minTopics visible topics (sitemap, llms.txt). */
 export async function fetchForumTags(
   params: { min_topics?: number; page?: number; per_page?: number } = {},
