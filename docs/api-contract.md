@@ -312,7 +312,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/feedback` | `throttle:api-feedback` |
 | `POST` | `/feedback/reasons` | `throttle:api-feedback` |
-| `POST` | `/feedback/steps` | `throttle:api-funnel` |
+| `POST` | `/feedback/steps` | `statistics.consent`, `throttle:api-funnel` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |
@@ -325,7 +325,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/notifications/unsubscribe` | `throttle:30,1,api-unsubscribe` |
 | `POST` | `/pharmacies/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha`, `module:pharmacies` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
-| `POST` | `/reviews/views` | `auth.sanctum.optional`, `throttle:60,1,api-review-views` |
+| `POST` | `/reviews/views` | `statistics.consent`, `auth.sanctum.optional`, `throttle:60,1,api-review-views` |
 | `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
@@ -333,7 +333,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/triage/v2/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/v2/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-steps` |
 | `POST` | `/triage/v2/sessions/{id}/no-match` | `module:guidance`, `throttle:api-triage-steps` |
-| `POST` | `/ux/events` | `throttle:api-ux-events` |
+| `POST` | `/ux/events` | `statistics.consent`, `throttle:api-ux-events` |
 | `PUT` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/me/notification-preferences` | `auth:sanctum`, `throttle:120,1,api-notifications` |
