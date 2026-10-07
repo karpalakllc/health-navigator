@@ -19,6 +19,7 @@ final readonly class DoctorEvidence
      *                                 attached, and at least as many as there are profiles of the name: how many (else 0)
      * @param  list<WebsiteFact>  $websites  staff-page entries that point at this profile
      * @param  list<string>  $specialtyNames  the profile's specialties (for staff-facing review items)
+     * @param  bool  $fzomStale  the ФЗОМ register is older than the maximum age (nothing from it is current)
      */
     public function __construct(
         public int $doctorId,
@@ -37,6 +38,7 @@ final readonly class DoctorEvidence
         public int $namesakeLicences,
         public array $websites,
         public array $specialtyNames = [],
+        public bool $fzomStale = false,
     ) {}
 
     /**
@@ -51,6 +53,7 @@ final readonly class DoctorEvidence
             $this->licence, $this->stagedMismatch, $this->licenceAmbiguous, $this->namesakeLicences,
             array_map(fn (WebsiteFact $site): WebsiteFact => $site->trusting(), $this->websites),
             $this->specialtyNames,
+            $this->fzomStale,
         );
     }
 }

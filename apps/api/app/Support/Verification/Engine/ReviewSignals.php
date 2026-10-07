@@ -73,7 +73,7 @@ final class ReviewSignals
             $this->pairs[$key]['published'] += $e->published ? 1 : 0;
         }
 
-        $flagged = array_values(array_filter($e->websites, fn (WebsiteFact $site): bool => $site->linked && $site->highConfidence && $site->isFlagged()));
+        $flagged = array_values(array_filter($e->websites, fn (WebsiteFact $site): bool => $site->linked && $site->highConfidence && $site->current() && $site->isFlagged()));
 
         if ($flagged !== [] && $rules->decide($e->withFlaggedSitesTrusted())->isVerified()) {
             foreach ($flagged as $site) {

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Verification;
 
 use App\Enums\ImportReviewKind;
+use App\Enums\ImportRunStatus;
 use App\Events\ImportRunFinished;
 use App\Models\Doctor;
 use App\Models\ImportReviewItem;
@@ -65,5 +66,17 @@ class AdjudicateCommandTest extends TestCase
         config(['import.verification.after_import' => false]);
         ImportRunFinished::dispatch('fzom', true, seen: 10);
         $this->assertSame(1, ImportRun::query()->where('source', 'verification')->count());
+    }
+
+    public function test_the_report_warns_when_the_fzom_register_is_too_old(): void
+    {
+        ImportRun::query()->create([
+            'source' => 'fzom', 'dry_run' => false, 'status' => ImportRunStatus::Succeeded,
+            'started_at' => now()->subDays(100), 'finished_at' => now()->subDays(100), 'source_meta' => ['complete' => true],
+        ]);
+
+        $this->assertSame(0, Artisan::call('import:adjudicate', ['--report' => true]));
+
+        $this->assertStringContainsString('WARNING: the ФЗОМ register is older than 45 days', Artisan::output());
     }
 }

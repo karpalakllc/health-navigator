@@ -9,6 +9,7 @@ final readonly class FacilityEvidence
 {
     /**
      * @param  list<RegisterFact>  $register  ФЗОМ register records behind the profile
+     * @param  bool  $registerStale  the ФЗОМ register is older than the maximum age
      */
     public function __construct(
         public int $facilityId,
@@ -16,5 +17,6 @@ final readonly class FacilityEvidence
         public bool $pharmacy,
         public array $register,
         public bool $fromWebsite,
+        public bool $registerStale = false,
     ) {}
 }

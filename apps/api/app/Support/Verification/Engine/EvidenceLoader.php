@@ -60,14 +60,33 @@ final class EvidenceLoader
     /** @var array<int, true> */
     private array $trustedSites = [];
 
+    /** @var array<int, CarbonImmutable> facility id => when its site was last imported (the institution record) */
+    private array $siteSeen = [];
+
+    /** No website evidence older than this counts (the site was not imported again). */
+    private readonly CarbonImmutable $websiteSince;
+
+    /** ФЗОМ has not been heard from within import.verification.fzom_max_age_days. */
+    private bool $fzomStale = false;
+
     public function __construct(?LicenceSpecialtyMap $map = null)
     {
         $this->map = $map ?? new LicenceSpecialtyMap;
         $this->today = CarbonImmutable::today();
+        $this->websiteSince = CarbonImmutable::now()->subDays(max(1, (int) config('import.verification.website_max_age_days', 180)));
         $this->fzomCurrentSince = $this->fzomSnapshotStart();
         $this->loadList();
         $this->loadSuppressions();
         $this->loadSites();
+    }
+
+    /**
+     * The latest ФЗОМ snapshot is older than the maximum age and no later run
+     * confirmed it (304): nothing from ФЗОМ counts as current.
+     */
+    public function fzomStale(): bool
+    {
+        return $this->fzomStale;
     }
 
     public function siteFlagNote(int $facilityId): ?string
@@ -161,6 +180,7 @@ final class EvidenceLoader
                     ->map(fn (object $record): ?WebsiteFact => $this->websiteFact($record, $linkedFacilities))
                     ->filter()->values()->all(),
                 specialtyNames: $candidate->specialtyNames,
+                fzomStale: $this->fzomStale,
             );
         }
 
@@ -201,6 +221,7 @@ final class EvidenceLoader
                     ->map(fn (object $record): RegisterFact => $this->registerFact($facility, $record))
                     ->values()->all(),
                 fromWebsite: $own->contains('source', InstitutionsJsonImporter::SOURCE) || $facility->import_source === InstitutionsJsonImporter::SOURCE,
+                registerStale: $this->fzomStale,
             );
         }
 
@@ -241,6 +262,7 @@ final class EvidenceLoader
         $facilityId = (int) $match[1];
         $payload = self::payload($record);
         $stated = trim((string) ($payload['specialty'] ?? '')) !== '';
+        $seen = CarbonImmutable::parse($record->last_seen_at);
 
         return new WebsiteFact(
             recordId: (int) $record->id,
@@ -250,6 +272,8 @@ final class EvidenceLoader
             flags: $this->siteFlags[$facilityId] ?? [],
             trusted: isset($this->trustedSites[$facilityId]),
             specialtyIds: $stated ? array_map('intval', (array) ($payload['specialty_ids'] ?? [])) : null,
+            onPage: ! isset($this->siteSeen[$facilityId]) || $seen->gte($this->siteSeen[$facilityId]),
+            recent: $seen->gte($this->websiteSince),
         );
     }
 
@@ -328,7 +352,12 @@ final class EvidenceLoader
     /**
      * Start of the latest successful complete ФЗОМ apply; records it (or a
      * later run) listed are current. Without a complete one, the latest
-     * successful apply of any kind.
+     * successful apply of any kind (an import that never saw the whole
+     * register still tells what it listed).
+     *
+     * Null — nothing from ФЗОМ is current — when ФЗОМ has not been heard from
+     * (an apply, or a 304 confirming the snapshot) within
+     * import.verification.fzom_max_age_days: the register is stale.
      */
     private function fzomSnapshotStart(): ?CarbonImmutable
     {
@@ -341,7 +370,24 @@ final class EvidenceLoader
             ->get();
         $run = $runs->first(fn (ImportRun $run): bool => (bool) ($run->source_meta['complete'] ?? true)) ?? $runs->first();
 
-        return $run?->started_at !== null ? CarbonImmutable::parse($run->started_at) : null;
+        if ($run?->started_at === null) {
+            return null;
+        }
+
+        $heard = ImportRun::query()
+            ->where('source', FzomImporter::SOURCE)
+            ->where('dry_run', false)
+            ->whereIn('status', [ImportRunStatus::Succeeded, ImportRunStatus::NotModified])
+            ->max('started_at');
+        $maxAge = max(1, (int) config('import.verification.fzom_max_age_days', 45));
+
+        if ($heard === null || CarbonImmutable::parse($heard)->lt(CarbonImmutable::now()->subDays($maxAge))) {
+            $this->fzomStale = true;
+
+            return null;
+        }
+
+        return CarbonImmutable::parse($run->started_at);
     }
 
     private function loadList(): void
@@ -384,9 +430,16 @@ final class EvidenceLoader
             ->where('source', InstitutionsJsonImporter::SOURCE)
             ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)
             ->whereNotNull('subject_id')
-            ->get(['subject_id', 'payload'])
+            ->get(['subject_id', 'external_key', 'payload', 'last_seen_at'])
             ->each(function (object $record): void {
                 $payload = self::payload($record);
+
+                if (str_starts_with((string) $record->external_key, 'institution:') && $record->last_seen_at !== null) {
+                    $id = (int) $record->subject_id;
+                    $seen = CarbonImmutable::parse($record->last_seen_at);
+                    $this->siteSeen[$id] = isset($this->siteSeen[$id]) && $this->siteSeen[$id]->gt($seen) ? $this->siteSeen[$id] : $seen;
+                }
+
                 $flags = array_values(array_filter((array) ($payload['source_flags'] ?? []), 'is_string'));
 
                 if ($flags !== []) {

@@ -18,6 +18,15 @@ final class Reason
 
     public const SOURCE_REMOVED = 'source_removed';
 
+    /** The ФЗОМ register was not heard from within import.verification.fzom_max_age_days. */
+    public const STALE_REGISTER = 'stale_register';
+
+    /** The latest import of the institution's site no longer lists the doctor. */
+    public const WEBSITE_REMOVED = 'website_removed';
+
+    /** The site was not imported again within import.verification.website_max_age_days. */
+    public const WEBSITE_OUTDATED = 'website_outdated';
+
     public const NAME_MISMATCH = 'licence_name_differs';
 
     public const SPECIALTY_MISMATCH = 'specialty_mismatch';
@@ -56,6 +65,9 @@ final class Reason
         self::LICENCE_OFF_LIST => 'The attached licence is no longer on the Комора list',
         self::LICENCE_EXPIRED => 'The attached licence has expired',
         self::SOURCE_REMOVED => 'No longer in the latest ФЗОМ snapshot',
+        self::STALE_REGISTER => 'The ФЗОМ register is older than the maximum age: import ФЗОМ again',
+        self::WEBSITE_REMOVED => 'No longer on the institution\'s staff page at its latest import',
+        self::WEBSITE_OUTDATED => 'The institution\'s staff page was not imported again for too long',
         self::NAME_MISMATCH => 'The licence holder\'s name differs from the profile name',
         self::SPECIALTY_MISMATCH => 'Licence specialty does not fit the profile\'s',
         self::NO_SPECIALTY => 'The profile has no specialty to compare with the licence specialist\'s',

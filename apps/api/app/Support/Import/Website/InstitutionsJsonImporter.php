@@ -41,6 +41,10 @@ use Throwable;
  *   ambiguous → review; otherwise a hidden draft queued for licence
  *   verification. Links are only ever added.
  * - Provenance: source "website", source URL per field.
+ * - source_records.last_seen_at = the start of the last run that listed the
+ *   institution or staff-page entry, changed or not: the verification
+ *   engine reads an entry older than its institution's as "no longer on
+ *   the page" (docs/verification.md).
  *
  * A dry run stores no image files (the database is rolled back, files
  * would be orphaned); it counts what would be stored.
@@ -66,6 +70,9 @@ final class InstitutionsJsonImporter
 
     private ?ImportSuppressions $suppressions = null;
 
+    /** @var list<string> external keys this run listed */
+    private array $seenKeys = [];
+
     public function __construct(private readonly ImageOptimizer $images) {}
 
     public function import(ImportContext $context, string $jsonPath): void
@@ -76,6 +83,8 @@ final class InstitutionsJsonImporter
             throw new RuntimeException('Not an institutions.json file: no "institutions" list.');
         }
 
+        $seenAt = now();
+        $this->seenKeys = [];
         $slice = (string) ($data['slice'] ?? basename(dirname($jsonPath)));
         $baseDir = dirname($jsonPath);
         $provenance = new ProvenanceWriter($context);
@@ -110,6 +119,11 @@ final class InstitutionsJsonImporter
         }
 
         $provenance->flushChanges();
+
+        foreach (array_chunk(array_values(array_unique($this->seenKeys)), 1000) as $chunk) {
+            SourceRecord::query()->where('source', self::SOURCE)->whereIn('external_key', $chunk)->toBase()
+                ->update(['last_seen_at' => $seenAt, 'last_run_id' => $context->run->getKey()]);
+        }
     }
 
     /**
@@ -146,6 +160,7 @@ final class InstitutionsJsonImporter
 
         $sourceRecord = SourceRecord::query()->where('source', self::SOURCE)->where('external_key', $key)->first();
         $stored = $writer->sourceRecord($key, FieldProvenance::SUBJECT_FACILITY, $payload, $sourceRecord);
+        $this->seenKeys[] = $key;
         $facility = $sourceRecord?->subject_id !== null ? Facility::withTrashed()->find($sourceRecord->subject_id) : null;
 
         if ($facility !== null && $stored['unchanged']) {
@@ -370,6 +385,7 @@ final class InstitutionsJsonImporter
         }
 
         $stored = $writer->sourceRecord($key, FieldProvenance::SUBJECT_DOCTOR, $payload + ['specialty_ids' => $specialtyIds], $sourceRecord);
+        $this->seenKeys[] = $key;
         $doctor = $sourceRecord?->subject_id !== null ? Doctor::withTrashed()->find($sourceRecord->subject_id) : null;
 
         if ($doctor !== null && $stored['unchanged']) {

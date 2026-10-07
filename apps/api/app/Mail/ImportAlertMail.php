@@ -29,7 +29,7 @@ class ImportAlertMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $what = $this->kind === ImportAlerter::KIND_FAILED ? 'Неуспешен увоз' : 'Голема промена при увоз';
+        $what = self::heading($this->kind);
 
         return new Envelope(
             subject: "{$what}: {$this->sourceLabel} — Zdravje360",
@@ -41,10 +41,21 @@ class ImportAlertMail extends Mailable
         return new Content(
             markdown: 'mail.import-alert',
             with: [
+                'heading' => self::heading($this->kind),
                 'failed' => $this->kind === ImportAlerter::KIND_FAILED,
+                'stale' => $this->kind === ImportAlerter::KIND_STALE_REGISTER,
                 'rows' => $this->rows(),
             ],
         );
+    }
+
+    private static function heading(string $kind): string
+    {
+        return match ($kind) {
+            ImportAlerter::KIND_FAILED => 'Неуспешен увоз',
+            ImportAlerter::KIND_STALE_REGISTER => 'Застарен регистар',
+            default => 'Голема промена при увоз',
+        };
     }
 
     /**

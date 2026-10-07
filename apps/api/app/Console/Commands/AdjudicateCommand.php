@@ -57,6 +57,14 @@ class AdjudicateCommand extends Command
     private function report(ImportRun $run, VerifiedDraftPublisher $publisher): void
     {
         $counts = collect($run->counts ?? []);
+
+        if ($counts->has('warning.fzom_register_stale')) {
+            $this->newLine();
+            $this->warn(sprintf(
+                'WARNING: the ФЗОМ register is older than %d days (no import or 304 since): nothing from ФЗОМ verifies a profile (reason stale_register). Import ФЗОМ again.',
+                max(1, (int) config('import.verification.fzom_max_age_days', 45)),
+            ));
+        }
         $section = fn (string $infix) => $counts
             ->filter(fn ($value, string $key): bool => str_contains($key, $infix))
             ->map(fn ($value, string $key): array => [self::subject($key), substr($key, strpos($key, '.') + 1), $value, Reason::DESCRIPTIONS[substr($key, strpos($key, '.') + 1)] ?? ''])

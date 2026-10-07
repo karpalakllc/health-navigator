@@ -109,6 +109,17 @@ return [
         // and no open review item on them (owner's decision). Off: staff use
         // „Објави ги и неверифицираните од ФЗОМ“ in Import review.
         'auto_publish_fzom_unverified' => (bool) env('IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED', false),
+
+        // ФЗОМ evidence stops verifying when ФЗОМ has not been imported (or
+        // confirmed unchanged with a 304) for this many days: reason
+        // stale_register, a warning in `import:adjudicate --report` and a
+        // mail to the import alert inbox.
+        'fzom_max_age_days' => (int) env('IMPORT_FZOM_MAX_AGE_DAYS', 45),
+
+        // A staff-page entry no import of its site has listed for this many
+        // days stops counting (reason website_outdated). An entry the latest
+        // import of its site no longer lists stops at once (website_removed).
+        'website_max_age_days' => (int) env('IMPORT_WEBSITE_MAX_AGE_DAYS', 180),
     ],
 
 ];

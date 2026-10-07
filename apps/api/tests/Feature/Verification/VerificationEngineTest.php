@@ -25,6 +25,8 @@ use App\Support\Verification\VerificationWriter;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ImportAlertMail;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
 use Tests\TestCase;
@@ -719,5 +721,86 @@ class VerificationEngineTest extends TestCase
             $this->assertTrue($subject->fresh()->is_published);
             $this->assertContains($subject::class.':'.$subject->id, $spy->updated);
         }
+    }
+
+    public function test_a_fzom_register_older_than_the_maximum_age_stops_verifying_and_warns(): void
+    {
+        Mail::fake();
+        config(['data_ops.alerts.email' => 'alerts@example.test', 'import.verification.fzom_max_age_days' => 45]);
+        ImportRun::query()->delete();
+        $snapshot = ImportRun::query()->create([
+            'source' => 'fzom', 'dry_run' => false, 'status' => ImportRunStatus::Succeeded,
+            'started_at' => now()->subDays(60), 'finished_at' => now()->subDays(60), 'source_meta' => ['complete' => true],
+        ]);
+        $facility = $this->facility();
+        $doctor = $this->fzomDoctor('Стар Снимок', $facility);
+        DB::table('source_records')->update(['last_seen_at' => now()->subDays(60)->addMinute()]);
+        $this->licence('Стар Снимок', 'педијатрија', $doctor);
+
+        // A 304 from ФЗОМ last week confirms the 60-day-old snapshot is still the register.
+        ImportRun::query()->create([
+            'source' => 'fzom', 'dry_run' => false, 'status' => ImportRunStatus::NotModified,
+            'started_at' => now()->subDays(7), 'finished_at' => now()->subDays(7),
+        ]);
+        $run = $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+        $this->assertTrue($facility->fresh()->isVerified());
+        $this->assertArrayNotHasKey('warning.fzom_register_stale', $run->counts);
+
+        // Nothing heard from ФЗОМ for 60 days: the register no longer verifies.
+        ImportRun::query()->where('status', ImportRunStatus::NotModified)->delete();
+        $run = $this->adjudicate();
+
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('stale_register', $this->reasons($doctor)['reason']);
+        $this->assertFalse($facility->fresh()->isVerified());
+        $this->assertSame('stale_register', $this->reasons($facility)['reason']);
+        $this->assertSame(1, $run->counts['warning.fzom_register_stale']);
+        Mail::assertSent(ImportAlertMail::class, fn (ImportAlertMail $mail): bool => $mail->kind === 'stale_register');
+        $this->assertNotNull($snapshot->fresh());
+    }
+
+    public function test_a_doctor_gone_from_the_latest_import_of_the_staff_page_loses_the_website_verification(): void
+    {
+        $facility = $this->facility();
+        $this->website($facility);
+        $doctor = $this->websiteDoctor('Ивана Замината', $facility);
+        $this->licence('Ивана Замината', 'педијатрија', $doctor);
+        $stays = $this->websiteDoctor('Петар Останат', $facility);
+        $this->licence('Петар Останат', 'педијатрија', $stays);
+        $this->adjudicate();
+        $this->assertSame(VerificationBasis::LicenceAndWebsite, $doctor->fresh()->verification_basis);
+
+        // The site is imported again a day later; Петар is on the page, Ивана is not.
+        $this->travelTo(now()->addDay());
+        DB::table('source_records')->where('source', 'website')
+            ->where(fn ($query) => $query->where('external_key', 'like', 'institution:%')->orWhere('subject_id', $stays->id))
+            ->update(['last_seen_at' => now()->subMinutes(5)]);
+        DB::table('import_runs')->where('source', 'fzom')->update(['started_at' => now()->subHour()]);
+        DB::table('source_records')->where('source', 'fzom')->update(['last_seen_at' => now()->subMinutes(55)]);
+        $this->adjudicate();
+
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('website_removed', $this->reasons($doctor)['reason']);
+        $this->assertTrue($stays->fresh()->isVerified());
+    }
+
+    public function test_website_evidence_ages_out_when_the_site_is_not_imported_again(): void
+    {
+        config(['import.verification.website_max_age_days' => 180]);
+        $facility = $this->facility();
+        $this->website($facility);
+        $doctor = $this->websiteDoctor('Ана Стара', $facility);
+        $this->licence('Ана Стара', 'педијатрија', $doctor);
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+
+        $this->travelTo(now()->addDays(181));
+        DB::table('import_runs')->where('source', 'fzom')->update(['started_at' => now()->subHour(), 'finished_at' => now()->subHour()]);
+        DB::table('source_records')->where('source', 'fzom')->update(['last_seen_at' => now()->subMinutes(55)]);
+        $this->adjudicate();
+
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('website_outdated', $this->reasons($doctor)['reason']);
     }
 }

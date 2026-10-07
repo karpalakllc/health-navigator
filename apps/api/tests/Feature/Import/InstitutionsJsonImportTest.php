@@ -182,6 +182,25 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertSame(1, $second->count('facilities_unchanged'));
     }
 
+    public function test_each_run_records_which_staff_page_entries_it_saw(): void
+    {
+        $this->travelTo(now()->startOfMinute());
+        $first = now()->toImmutable();
+        $this->runImport($this->dataset());
+
+        $this->travelTo($first->addDays(2));
+        $workers = [
+            ['full_name' => 'Забко Измислен', 'title' => 'д-р', 'role' => 'dentist', 'source_url' => 'https://www.bolnica.invalid/tim'],
+        ];
+        $this->runImport($this->dataset(['workers' => $workers]));
+
+        $seen = fn (string $like): string => (string) SourceRecord::query()->where('source', 'website')->where('external_key', 'like', $like)->value('last_seen_at');
+        // The institution and the unchanged dentist were seen by the second run; the cardiologist was not.
+        $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('institution:%'));
+        $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('worker:%:ЗАБКО ИЗМИСЛЕН'));
+        $this->assertSame($first->toDateTimeString(), $seen('worker:%:ИЗМИСЛЕНА КАРДИОЛОВСКА'));
+    }
+
     public function test_it_matches_an_existing_register_facility_and_only_fills_gaps(): void
     {
         $facility = Facility::factory()->create([

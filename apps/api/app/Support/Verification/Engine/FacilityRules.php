@@ -28,6 +28,7 @@ final class FacilityRules
                 'name_matches' => $current[0]->nameMatches,
                 'town_matches' => $current[0]->townMatches,
             ]),
+            $e->register !== [] && $e->registerStale => Verdict::unverified(Reason::STALE_REGISTER, ['source_record_id' => $e->register[0]->recordId]),
             $e->register !== [] => Verdict::unverified(Reason::SOURCE_REMOVED, ['source_record_id' => $e->register[0]->recordId]),
             $e->pharmacy => Verdict::unverified(Reason::NO_PHARMACY_REGISTER),
             $e->fromWebsite => Verdict::unverified(Reason::NOT_IN_REGISTER),

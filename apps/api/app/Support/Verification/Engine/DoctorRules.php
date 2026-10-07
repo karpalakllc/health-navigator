@@ -114,16 +114,21 @@ final class DoctorRules
         $licence = $e->licence;
         $evidence = ['komora_licence_id' => $licence->komoraLicenceId ?? $e->stagedMismatch?->komoraLicenceId];
         $linkedSites = array_values(array_filter($e->websites, fn (WebsiteFact $site): bool => $site->linked));
+        // Entries that would count if the page still listed them (or recently).
+        $outdated = array_values(array_filter($linkedSites, fn (WebsiteFact $site): bool => $site->highConfidence && ! $site->isFlagged() && ! $site->current()));
 
         return match (true) {
             $licence !== null && ! $licence->onList => Verdict::unverified(Reason::LICENCE_OFF_LIST, $evidence),
             $licence !== null && ! $licence->valid => Verdict::unverified(Reason::LICENCE_EXPIRED, $evidence),
+            $e->fzomRecordId !== null && $e->fzomStale && $sites === [] => Verdict::unverified(Reason::STALE_REGISTER, ['source_record_id' => $e->fzomRecordId]),
             $e->fzomRecordId !== null && ! $e->fzomCurrent && $sites === [] => Verdict::unverified(Reason::SOURCE_REMOVED, ['source_record_id' => $e->fzomRecordId]),
             $licence !== null && ! $licence->nameAgrees => Verdict::unverified(Reason::NAME_MISMATCH, $evidence),
             $e->specialtyNames === [] && ($licence?->holds() || $e->namesakeLicences >= 2) => Verdict::unverified(Reason::NO_SPECIALTY_UNVERIFIABLE, $evidence),
             (($licence !== null && ! $licence->fits) || $e->stagedMismatch !== null) && $e->specialtyNames === [] => Verdict::unverified(Reason::NO_SPECIALTY, $evidence),
             ($licence !== null && ! $licence->fits) || $e->stagedMismatch !== null => Verdict::unverified(Reason::SPECIALTY_MISMATCH, $evidence),
             ($licence !== null || $e->licenceAmbiguous) && ($e->fzomCurrent || $sites !== []) => Verdict::unverified(Reason::AMBIGUOUS_NAME, $evidence),
+            $sites === [] && ! $e->fzomCurrent && array_filter($outdated, fn (WebsiteFact $site): bool => ! $site->onPage) !== [] => Verdict::unverified(Reason::WEBSITE_REMOVED, ['source_record_id' => $outdated[0]->recordId]),
+            $sites === [] && ! $e->fzomCurrent && $outdated !== [] => Verdict::unverified(Reason::WEBSITE_OUTDATED, ['source_record_id' => $outdated[0]->recordId]),
             $sites === [] && array_filter($linkedSites, fn (WebsiteFact $site): bool => $site->isFlagged()) !== [] => Verdict::unverified(Reason::STALE_SOURCE),
             $sites === [] && $linkedSites !== [] => Verdict::unverified(Reason::LOW_CONFIDENCE_SOURCE),
             $e->fzomCurrent && $sites !== [] => Verdict::unverified(Reason::SOURCES_DISAGREE),

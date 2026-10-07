@@ -8,6 +8,7 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
+use App\Support\DataOps\ImportAlerter;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Import\ImportAlreadyRunning;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
@@ -83,6 +84,19 @@ final class VerificationEngine
             }
 
             $loader = new EvidenceLoader;
+
+            // Nothing from ФЗОМ counts while its register is stale: say so in
+            // the report, and once a day to the import alert inbox.
+            if ($loader->fzomStale()) {
+                $add('warning.fzom_register_stale');
+
+                if (! $dryRun) {
+                    app(ImportAlerter::class)->send('fzom', ImportAlerter::KIND_STALE_REGISTER, error: sprintf(
+                        'ФЗОМ не е увезен подолго од %d дена: профилите повеќе не се верификуваат преку ФЗОМ. Увезете го ФЗОМ повторно.',
+                        max(1, (int) config('import.verification.fzom_max_age_days', 45)),
+                    ));
+                }
+            }
             $signals = new ReviewSignals($loader);
             $doctorRules = new DoctorRules;
             $facilityRules = new FacilityRules;
