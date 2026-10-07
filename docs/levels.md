@@ -105,8 +105,12 @@ sends only the level number. Please have a native speaker confirm the titles.
 - Shown: rank, username, current title, and the month's counts (reviews or posts,
   „Корисно“ votes). Never ids, real names, e-mail or avatars.
 - The forum list is withheld while the forum module is off.
-- Cached for 6 hours in the API (`levels:leaderboards:{YYYY-MM}`), 5 minutes as a
-  public HTTP cache, 10 minutes in the web tier; the nightly run clears it.
+- The scores (user ids and numbers, no names) are cached for 6 hours in the API
+  (`levels:leaderboards:v2:{YYYY-MM}`); who may be shown and under which
+  username is decided on every read, so an erased, suspended or renamed member
+  drops out or shows the new name at once in the API. On top come 5 minutes of
+  public HTTP cache and 10 minutes in the web tier; the nightly run clears the
+  scores.
 
 ## Computation
 
