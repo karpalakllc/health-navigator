@@ -191,9 +191,10 @@ export function createTracker({
     const label = el.closest("label");
     labelled = label?.control ?? null;
 
-    // A drag that selected text is reading, not clicking.
+    // A drag that selected text is reading, not clicking. (Double and triple
+    // clicks select words too, but those are clicks: detail > 1.)
     const selection = win.getSelection?.();
-    if (selection && !selection.isCollapsed) return;
+    if (event.detail <= 1 && selection && !selection.isCollapsed) return;
 
     const at = now();
     const rage = isRage(at, event.clientX, event.clientY);

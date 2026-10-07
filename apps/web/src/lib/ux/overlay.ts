@@ -142,7 +142,7 @@ export function mountOverlay({
   panel.setAttribute("role", "region");
   panel.setAttribute("aria-label", text.title);
   panel.style.cssText = [
-    "position:absolute;left:12px;bottom:12px;max-width:min(360px,calc(100vw - 24px))",
+    "position:absolute;left:12px;bottom:calc(12px + var(--tabbar-space, 0px));max-width:min(360px,calc(100vw - 24px))",
     "pointer-events:auto;background:#1f1a17;color:#fff;border-radius:14px",
     "padding:12px 14px;font:14px/1.4 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3)",
   ].join(";");

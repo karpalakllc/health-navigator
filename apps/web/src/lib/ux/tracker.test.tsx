@@ -106,9 +106,13 @@ describe("dead clicks", () => {
     window.getSelection()!.addRange(range);
 
     click(document.getElementById("para")!);
+    // A double click also leaves a selection, but is a click.
+    document
+      .getElementById("para")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 2 }));
     tracker.flush();
 
-    expect(allClicks()).toEqual([]);
+    expect(allClicks().map((c) => c.k)).toEqual(["doctor-card/text"]);
     window.getSelection()!.removeAllRanges();
   });
 });
