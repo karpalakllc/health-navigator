@@ -10,6 +10,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -178,6 +179,12 @@ export default async function PharmacyDetailPage({
               subtitle={[t("pharmacies.kind"), pharmacy.city]
                 .filter(Boolean)
                 .join(" · ")}
+              verification={
+                <VerificationBadge
+                  verification={pharmacy.verification}
+                  kind="pharmacy"
+                />
+              }
               summary={pharmacy.review_summary}
               tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />

@@ -18,6 +18,8 @@ export type DoctorListParams = {
   featured?: boolean;
   sort?: "name" | "rating";
   min_reviews?: number;
+  /** „Само верифицирани“. */
+  verified?: boolean;
   page?: number;
   per_page?: number;
 };
@@ -62,7 +64,7 @@ async function doctorsCache(
       language: languages.map(({ slug }) => slug),
       sort: ["name", "rating"],
     },
-    booleans: ["featured"],
+    booleans: ["featured", "verified"],
     integers: { min_reviews: 10 },
   });
 }

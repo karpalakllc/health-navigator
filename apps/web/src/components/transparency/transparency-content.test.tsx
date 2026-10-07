@@ -197,4 +197,20 @@ describe("TransparencyContent", () => {
     ).toHaveAttribute("href", "/privacy#zdravstveni-rabotnici");
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
+
+  it("explains what „Верифициран“ and „Неверифициран“ mean where the badges link", async () => {
+    const { container } = render(<TransparencyContent stats={null} />);
+
+    const section = screen.getByRole("region", {
+      name: t("verification.sectionTitle"),
+    });
+    // VERIFICATION_MORE_HREF points here.
+    expect(section).toHaveAttribute("id", "verifikacija");
+    expect(section).toHaveTextContent(t("verification.howDoctor"));
+    expect(section).toHaveTextContent(t("verification.howFacility"));
+    expect(section).toHaveTextContent(t("verification.unverifiedBody"));
+    // Not a quality rating, and it does not move anyone up the lists.
+    expect(section).toHaveTextContent("не влијае на редоследот");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
 });

@@ -35,6 +35,9 @@ class FacilityDetailResource extends JsonResource
             'avatar_url' => MediaUrl::resolve($this->avatar_url),
             'cover_url' => MediaUrl::resolve($this->cover_path),
             'is_featured' => (bool) $this->is_featured,
+            // „Верифициран“ / „Неверифициран“: status and public basis label
+            // only — the evidence behind it stays internal.
+            'verification' => $this->publicVerification(),
             'office_hours' => $this->office_hours ?? [],
             'doctors' => $this->doctors
                 ->sortByDesc(fn ($doctor) => $doctor->pivot->is_primary)

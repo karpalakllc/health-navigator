@@ -35,6 +35,7 @@ export function DisclosureBadge({
   tone = "outline",
   icon,
   className,
+  moreHref = DISCLOSURE_MORE_HREF,
 }: {
   label: string;
   explanation: string;
@@ -43,6 +44,8 @@ export function DisclosureBadge({
   tone?: TagTone;
   icon?: IconName;
   className?: string;
+  /** Where „Повеќе“ leads (default: how results are ordered). */
+  moreHref?: string;
 }) {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -147,7 +150,7 @@ export function DisclosureBadge({
           <span className="block w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-line bg-white px-4 py-3 text-left text-[0.9375rem] font-normal leading-[1.375rem] text-ink shadow-card">
             {explanation}{" "}
             <Link
-              href={DISCLOSURE_MORE_HREF}
+              href={moreHref}
               className="link-underline font-semibold text-ink"
             >
               {t("integrity.disclosureMore")}

@@ -21,6 +21,7 @@ export type DoctorsFilterValues = {
   language: string;
   city: string;
   min_reviews: string;
+  verified: string;
   sort: string;
 };
 
@@ -63,6 +64,9 @@ export function DoctorsDirectory({
     applied.min_reviews
       ? { name: "min_reviews", label: t("doctors.hasReviews") }
       : null,
+    applied.verified
+      ? { name: "verified", label: t("verification.filterLabel") }
+      : null,
   ].filter((filter): filter is ActiveFilter => filter !== null);
 
   return (
@@ -79,11 +83,18 @@ export function DoctorsDirectory({
         placeholder: t("doctors.queryLabel"),
       }}
       activeFilters={activeFilters}
-      quickChips={popular.map((s) => ({
-        name: "specialty",
-        value: s.slug,
-        label: s.name,
-      }))}
+      quickChips={[
+        ...popular.map((s) => ({
+          name: "specialty",
+          value: s.slug,
+          label: s.name,
+        })),
+        {
+          name: "verified",
+          value: "1",
+          label: t("verification.filterLabel"),
+        },
+      ]}
       sort={{
         name: "sort",
         options: [
@@ -137,6 +148,13 @@ export function DoctorsDirectory({
             onChange={(value) => set("city", value, { debounce: true })}
           />
           <FilterGroup legend={t("directory.availability")}>
+            <SwitchRow
+              name="verified"
+              icon="shield-check"
+              label={t("verification.filterLabel")}
+              checked={values.verified === "1"}
+              onChange={(checked) => set("verified", checked ? "1" : "")}
+            />
             <SwitchRow
               name="min_reviews"
               label={t("doctors.hasReviews")}

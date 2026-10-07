@@ -316,6 +316,15 @@ nobody can hold an account locked by merely sending traffic.
   Лекарска комора licence is on file and not expired today („Лиценца:
   важечка“). The licence number, its expiry date and the ФЗО facsimile
   number are internal and never in any payload (docs/data-import.md).
+- Doctor, facility and pharmacy list and detail items carry
+  `verification: {status, basis, basis_label}`: `status` is `verified` or
+  `unverified` („Верифициран“ / „Неверифициран“); while verified, `basis` is
+  one of `official_registers`, `licence_and_website`,
+  `website_and_register`, `staff`, `owner_claim` and `basis_label` its
+  localised public wording (both `null` while unverified). The evidence
+  behind a decision is internal and never in any payload. `GET /doctors`,
+  `/facilities` and `/pharmacies` accept `verified=1` („Само
+  верифицирани“).
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.

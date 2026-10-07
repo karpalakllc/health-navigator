@@ -11,6 +11,7 @@ import {
 } from "@/components/directory/profile-contact";
 import { LicenceStatusTag } from "@/components/directory/licence-status";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -197,6 +198,12 @@ export default async function DoctorDetailPage({
               avatarUrl={doctor.avatar_url}
               name={doctor.full_name}
               subtitle={specialtyLine || undefined}
+              verification={
+                <VerificationBadge
+                  verification={doctor.verification}
+                  kind="doctor"
+                />
+              }
               summary={doctor.review_summary}
               tags={
                 <>

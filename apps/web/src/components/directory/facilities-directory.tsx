@@ -21,6 +21,7 @@ export type FacilitiesFilterValues = {
   department: string;
   city: string;
   has_emergency: string;
+  verified: string;
 };
 
 const TYPES = ["clinic", "hospital", "laboratory"] as const;
@@ -53,6 +54,9 @@ export function FacilitiesDirectory({
     applied.has_emergency
       ? { name: "has_emergency", label: t("facilities.emergencyFilter") }
       : null,
+    applied.verified
+      ? { name: "verified", label: t("verification.filterLabel") }
+      : null,
   ].filter((filter): filter is ActiveFilter => filter !== null);
 
   return (
@@ -78,6 +82,11 @@ export function FacilitiesDirectory({
           name: "has_emergency",
           value: "1",
           label: t("facilities.emergencyFilter"),
+        },
+        {
+          name: "verified",
+          value: "1",
+          label: t("verification.filterLabel"),
         },
       ]}
       aboutData={[
@@ -133,6 +142,13 @@ export function FacilitiesDirectory({
             onChange={(value) => set("city", value, { debounce: true })}
           />
           <FilterGroup legend={t("directory.availability")}>
+            <SwitchRow
+              name="verified"
+              icon="shield-check"
+              label={t("verification.filterLabel")}
+              checked={values.verified === "1"}
+              onChange={(checked) => set("verified", checked ? "1" : "")}
+            />
             <SwitchRow
               name="has_emergency"
               label={t("facilities.emergencyFilter")}

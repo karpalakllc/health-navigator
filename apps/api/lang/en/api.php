@@ -144,4 +144,24 @@ return [
         ],
     ],
 
+    // Public labels for `verification.basis_label` (VerificationBasis).
+    'verification' => [
+        'basis' => [
+            'doctor' => [
+                'official_registers' => 'ФЗОМ register and the Medical Chamber',
+                'licence_and_website' => 'Valid licence and the institution\'s website',
+                'website_and_register' => 'The institution\'s website and the ФЗОМ register',
+                'staff' => 'Confirmed by our team',
+                'owner_claim' => 'Claimed by the doctor (identity confirmed)',
+            ],
+            'facility' => [
+                'official_registers' => 'Official register (ФЗОМ or the Ministry of Health)',
+                'licence_and_website' => 'The institution\'s website and an official register',
+                'website_and_register' => 'The institution\'s website and the ФЗОМ register',
+                'staff' => 'Confirmed by our team',
+                'owner_claim' => 'Claimed by the facility (identity confirmed)',
+            ],
+        ],
+    ],
+
 ];

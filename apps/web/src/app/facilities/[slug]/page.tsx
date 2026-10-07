@@ -9,6 +9,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -197,6 +198,12 @@ export default async function FacilityDetailPage({
               subtitle={[facilityKindLabel(facility.type), facility.city]
                 .filter(Boolean)
                 .join(" · ")}
+              verification={
+                <VerificationBadge
+                  verification={facility.verification}
+                  kind="facility"
+                />
+              }
               summary={facility.review_summary}
               tags={
                 <>

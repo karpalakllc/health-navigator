@@ -31,6 +31,9 @@ class FacilityListResource extends JsonResource
             'office_hours' => $this->office_hours ?? [],
             'has_emergency_services' => (bool) $this->has_emergency_services,
             'is_featured' => (bool) $this->is_featured,
+            // „Верифициран“ / „Неверифициран“: status and public basis label
+            // only — the evidence behind it stays internal.
+            'verification' => $this->publicVerification(),
             'departments_count' => (int) ($this->departments_count ?? 0),
             'review_summary' => ReviewSummary::for($this->resource),
         ];
