@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Support\Ux\UxSchema;
 use Illuminate\Cache\RateLimiter;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -94,6 +95,43 @@ class UxEventsTest extends TestCase
         $this->assertSame(2, (int) DB::table('ux_heatmap_cells')->value('clicks'));
         $this->assertSame(2, (int) DB::table('ux_element_stats')->value('dead_clicks'));
         $this->assertSame(2, (int) DB::table('ux_page_stats')->value('views'));
+    }
+
+    public function test_rows_are_written_in_one_order_whatever_the_batch_order(): void
+    {
+        // Two batches locking overlapping rows in different orders can
+        // deadlock on PostgreSQL; sorted rows always lock in the same order.
+        $keys = [];
+        DB::listen(function (QueryExecuted $query) use (&$keys): void {
+            if (str_contains($query->sql, 'ux_element_stats')) {
+                $keys = array_values(array_filter($query->bindings, fn ($v): bool => is_string($v) && str_contains($v, '/') && ! str_starts_with($v, '/')));
+            }
+        });
+
+        $this->postJson('/api/v1/ux/events', [
+            'clicks' => [
+                $this->click(['k' => 'page/text']),
+                $this->click(['k' => 'main/link', 'd' => false]),
+                $this->click(['k' => 'footer/link', 'd' => false]),
+                $this->click(['k' => 'doctor-card/heading']),
+            ],
+            'views' => [],
+        ])->assertNoContent();
+
+        $this->assertSame(['doctor-card/heading', 'footer/link', 'main/link', 'page/text'], $keys);
+    }
+
+    public function test_a_batch_is_recorded_all_or_nothing(): void
+    {
+        Schema::drop('ux_page_stats');
+
+        $this->postJson('/api/v1/ux/events', [
+            'clicks' => [$this->click()],
+            'views' => [$this->pageView()],
+        ])->assertServerError();
+
+        $this->assertSame(0, DB::table('ux_heatmap_cells')->count());
+        $this->assertSame(0, DB::table('ux_element_stats')->count());
     }
 
     public function test_the_tables_hold_no_visitor_session_address_or_time(): void

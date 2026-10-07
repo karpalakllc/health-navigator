@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
  *
  * Nothing about the batch survives except the increments: no row per click or
  * per view, no time finer than the day, and no visitor, session or address.
- * Each table gets one upsert, so concurrent batches for the same cell all count.
+ * Each table gets one upsert per chunk, in key order and in one transaction,
+ * so concurrent batches for the same cell all count and never deadlock.
  */
 final class UxEventRecorder
 {
@@ -100,18 +101,21 @@ final class UxEventRecorder
             $pages[$pageKey][$view['t'] === null ? 'tfi_none' : UxSchema::TFI_COLUMNS[$view['t']]]++;
         }
 
-        $this->increment('ux_heatmap_cells', $cells,
-            ['day', 'route', 'viewport_class', 'width_bucket', 'x_bucket', 'y_bucket'],
-            ['clicks', 'dead_clicks', 'rage_clicks']);
+        // All or nothing: a batch that fails half-way is not half counted.
+        DB::transaction(function () use ($cells, $elements, $pages): void {
+            $this->increment('ux_heatmap_cells', $cells,
+                ['day', 'route', 'viewport_class', 'width_bucket', 'x_bucket', 'y_bucket'],
+                ['clicks', 'dead_clicks', 'rage_clicks']);
 
-        $this->increment('ux_element_stats', $elements,
-            ['day', 'route', 'viewport_class', 'target_key'],
-            ['clicks', 'dead_clicks', 'rage_clicks']);
+            $this->increment('ux_element_stats', $elements,
+                ['day', 'route', 'viewport_class', 'target_key'],
+                ['clicks', 'dead_clicks', 'rage_clicks']);
 
-        $this->increment('ux_page_stats', $pages,
-            ['day', 'route', 'viewport_class'],
-            ['views', 'scroll_25', 'scroll_50', 'scroll_75', 'scroll_90', 'scroll_100',
-                'tfi_under_1s', 'tfi_1_3s', 'tfi_3_10s', 'tfi_10_30s', 'tfi_over_30s', 'tfi_none']);
+            $this->increment('ux_page_stats', $pages,
+                ['day', 'route', 'viewport_class'],
+                ['views', 'scroll_25', 'scroll_50', 'scroll_75', 'scroll_90', 'scroll_100',
+                    'tfi_under_1s', 'tfi_1_3s', 'tfi_3_10s', 'tfi_10_30s', 'tfi_over_30s', 'tfi_none']);
+        });
     }
 
     /**
@@ -131,6 +135,10 @@ final class UxEventRecorder
         foreach ($counters as $column) {
             $update[$column] = DB::raw("{$table}.{$column} + excluded.{$column}");
         }
+
+        // One order for everyone: two concurrent batches touching the same
+        // cells then lock them in the same order and cannot deadlock (PostgreSQL).
+        ksort($rows, SORT_STRING);
 
         foreach (array_chunk(array_values($rows), self::UPSERT_CHUNK) as $chunk) {
             DB::table($table)->upsert($chunk, $uniqueBy, $update);
