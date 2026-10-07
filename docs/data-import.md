@@ -376,10 +376,22 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
    ФЗОМ“** does the same for ФЗОМ doctors with no licence on the Комора list
    and nothing else open on them: public, still „Неверификуван“
    ([`verification.md`](verification.md) §8;
-   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Check other drafts against the source
+   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Both run **in the
+   background**, in chunks (thousands of drafts do not fit in one request):
+   „Објавувањето започна…“, a progress bar above the table, and a
+   notification in the panel's bell when done (counts and any failed items).
+   One bulk publish at a time; one that stopped shows **Продолжи** /
+   **Прекини** and continues from where it stopped, publishing no more than
+   the modal counted. The same from a terminal:
+   `php artisan import:publish verified|fzom-unverified --by=<staff email>`
+   (`--dry-run` counts; running it again continues a stopped run). With a
+   queue worker running the page may be closed; without one (`sync` queue,
+   or no worker for 90 s) the open page publishes a chunk every few seconds
+   ([`infra/deploy.md`](../infra/deploy.md#bulk-publish-of-imported-drafts)).
+   Check other drafts against the source
    before publishing: **Publish selected drafts** (bulk) once a batch is
    checked; it also publishes the hidden imported specialties the doctor
-   uses. The queue is sorted by priority (what matters most first).
+   uses (more than 100 selected: in the background, as above). The queue is sorted by priority (what matters most first).
 2. **Missing**: check whether the doctor still works there; hide only on
    evidence. The profile keeps its reviews.
 3. The public profile may show „Лиценца: важечка“ (from the Комора list); the
