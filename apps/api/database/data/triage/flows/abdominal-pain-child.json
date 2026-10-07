@@ -1,0 +1,483 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "abdominal-pain-child",
+  "title": "Болка во стомакот кај дете",
+  "summary_en": "Child abdominal pain. Green vomit, severe/constant pain, testicular pain, blood in stool with episodic screaming (intussusception), rigid abdomen, after injury → emergency. Migrating RLQ pain, pain + fever + vomiting, infant pain → same day. Urinary symptoms → 24–48h. Constipation/recurrent pain in a well child → pharmacy/GP.",
+  "notes_en": "NHS stomach ache/appendicitis/testicular pain; intussusception classic triad as red flag (public NHS descriptions of bowel obstruction in babies). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 80,
+  "body_areas": [
+    "abdomen"
+  ],
+  "search_terms": [
+    "стомак боли дете",
+    "болка во стомак дете",
+    "грчеви кај дете",
+    "запек кај дете",
+    "дете повраќа и го боли стомак"
+  ],
+  "red_flags": [
+    {
+      "code": "green_vomit",
+      "label": "Повраќа зелена (жолчна) течност",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "testis",
+      "label": "Ненадејна болка во тестисот или препоните",
+      "when": {
+        "demo": "sex",
+        "in": [
+          "male",
+          "unspecified"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-testicle-pain"
+    },
+    {
+      "code": "intussusception",
+      "label": "Напади на силен плач со подигнување на нозете и столица со крв или слуз (кај мало дете)",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "rigid",
+      "label": "Многу силна, постојана болка — детето не сака да се мрдне, стомакот е тврд",
+      "outcome": "o_emergency",
+      "source": "nhs-appendicitis"
+    },
+    {
+      "code": "injury",
+      "label": "Болката почна по удар во стомакот",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "drowsy",
+      "label": "Тешко се буди, млитаво е или е многу бледо",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова?",
+      "options": [
+        {
+          "value": "right_lower",
+          "label": "Болката почна околу папокот и се префрли долу десно, или боли долу десно кога оди/скока"
+        },
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "vomiting",
+          "label": "Повраќање"
+        },
+        {
+          "value": "urinary",
+          "label": "Боли кога мокри или мокри често"
+        },
+        {
+          "value": "constipation",
+          "label": "Ретка, тврда столица"
+        },
+        {
+          "value": "recurrent",
+          "label": "Повремени болки повеќе недели, а меѓу нив е добро"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_pain"
+    },
+    "q_pain": {
+      "type": "question",
+      "kind": "scale",
+      "text": "Колку силна е болката (ако детето може да каже), од 0 до 10?",
+      "min_label": "Без болка",
+      "max_label": "Најсилна болка",
+      "next": [
+        {
+          "when": {
+            "demo": "age_band",
+            "in": [
+              "infant_0_3m",
+              "infant_3_12m"
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "conditions",
+                "includes": "diabetes"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "vomiting"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "right_lower"
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "fever"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "vomiting"
+                  }
+                ]
+              },
+              {
+                "answer": "q_pain",
+                "gte": 7
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "urinary"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "recurrent"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "constipation"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Знаците бараат лекар да го прегледа стомакот истиот ден.",
+      "reasons": [
+        "Кај бебиња болката во стомакот тешко се проценува и треба да ја види лекар истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска или детска хируршка служба.",
+        "Не давајте храна додека не го прегледаат; мали голтки вода се во ред."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или постојана, веднаш повикајте 194 или 112.",
+        "Ако детето повраќа зелено, тешко се буди или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-appendicitis"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Знаците бараат лекар да го прегледа стомакот истиот ден.",
+      "reasons": [
+        "Кај дете со дијабетес, болка во стомакот со повраќање може да значи сериозно покачување на кетоните; измерете шеќер и кетони и јавете се денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска или детска хируршка служба.",
+        "Не давајте храна додека не го прегледаат; мали голтки вода се во ред."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или постојана, веднаш повикајте 194 или 112.",
+        "Ако детето повраќа зелено, тешко се буди или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-appendicitis"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Знаците бараат лекар да го прегледа стомакот истиот ден.",
+      "reasons": [
+        "Болка долу десно, болка со температура и повраќање, или силна болка може да значат воспаление на слепото црево."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска или детска хируршка служба.",
+        "Не давајте храна додека не го прегледаат; мали голтки вода се во ред."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или постојана, веднаш повикајте 194 или 112.",
+        "Ако детето повраќа зелено, тешко се буди или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-appendicitis"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го прегледа детето и можеби да побара анализа на урина.",
+      "reasons": [
+        "Болка со температура или тегоби при мокрење може да значат уринарна инфекција; потребна е анализа на урина."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Давајте доволно течности."
+      ],
+      "watch_for": [
+        "Ако болката се префрли долу десно или стане многу силна, веднаш повикајте 194 или 112.",
+        "Ако детето повраќа зелено, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-uti"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај педијатар",
+      "summary": "Повремените болки кај децата често се поврзани со варењето или стресот, но треба да се проценат.",
+      "reasons": [
+        "Повремените болки во стомакот кај децата се чести, но вреди да се разговара со педијатар."
+      ],
+      "do_now": [
+        "Водете белешки кога се јавува болката и што јаде детето."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна, постојана или се појави повраќање со температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Запекот кај децата е чест и обично се подобрува со промена на исхраната и течностите.",
+      "reasons": [
+        "Запекот е честа причина за болка во стомакот кај децата."
+      ],
+      "do_now": [
+        "Давајте повеќе вода, овошје и зеленчук.",
+        "Фармацевтот може да ве посоветува за средство соодветно за возраста."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или детето повраќа зелено, веднаш повикајте 194 или 112.",
+        "Ако запекот трае повеќе од 1 недела, закажете кај педијатар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Благата болка во стомакот кај дете што си игра најчесто поминува сама.",
+      "reasons": [
+        "Благата болка во стомакот кај дете што си игра најчесто поминува сама."
+      ],
+      "do_now": [
+        "Одмор, течности, лесна храна.",
+        "Топол облог на стомакот може да помогне."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или постојана, или детето повраќа зелено, веднаш повикајте 194 или 112.",
+        "Ако болката не помине за 1–2 дена, јавете се кај педијатар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow.",
+    "chronic": "Referenced: diabetes + vomiting → same day (DKA risk)."
+  },
+  "sources": [
+    {
+      "id": "nhs-stomach-ache",
+      "title": "NHS (Велика Британија) — Stomach ache",
+      "url": "https://www.nhs.uk/symptoms/stomach-ache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-appendicitis",
+      "title": "NHS (Велика Британија) — Appendicitis",
+      "url": "https://www.nhs.uk/conditions/appendicitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-testicle-pain",
+      "title": "NHS (Велика Британија) — Testicle pain",
+      "url": "https://www.nhs.uk/symptoms/testicle-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dv",
+      "title": "NHS (Велика Британија) — Diarrhoea and vomiting",
+      "url": "https://www.nhs.uk/symptoms/diarrhoea-and-vomiting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-uti",
+      "title": "NHS (Велика Британија) — Urinary tract infections (UTIs)",
+      "url": "https://www.nhs.uk/conditions/urinary-tract-infections-utis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

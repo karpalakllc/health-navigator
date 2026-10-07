@@ -1,0 +1,319 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "head-injury-child",
+  "title": "Удар во главата кај дете",
+  "summary_en": "Child head injury. NHS 999 signs (LOC not woken, seizure, fall >1 m/5 stairs, CSF/blood from ears, neuro signs, behaviour change, under 1 with bruise/swelling/cut) → emergency. Vomiting, LOC, drowsiness, irritability → same-day ED. Minor bump in a child behaving normally → home with 24-48h observation advice.",
+  "notes_en": "NHS head injury (fetched 2026-10-07): under-1 bruise/swelling/large cut → 999; NICE NG232 child risk factors (LOC, vomiting, drowsiness, abnormal behaviour) → same-day ED. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 86,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "удар во главата кај дете",
+    "дете падна",
+    "бебе падна",
+    "дете ја удри главата",
+    "потрес на мозокот кај дете"
+  ],
+  "red_flags": [
+    {
+      "code": "unconscious",
+      "label": "Беше без свест и не се освести, или не може да остане будно",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "seizure",
+      "label": "Имаше напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "height",
+      "label": "Падна од повеќе од 1 метар или 5 скали, или удар при голема брзина",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "fluid",
+      "label": "Бистра течност или крв од ушите или носот, модринка зад ушите",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "neuro",
+      "label": "Слабост, нестабилен од, тешкотии во говорот или видот",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "infant_bruise",
+      "label": "Бебе помладо од 1 година со модринка, оток или поголема рана на главата",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "infant_0_3m",
+          "infant_3_12m"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "behaviour",
+      "label": "Однесувањето е изменето — многу раздразливо, расеано или не е како порано",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    }
+  ],
+  "entry": "q_after",
+  "nodes": {
+    "q_after": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали по ударот имаше нешто од ова?",
+      "options": [
+        {
+          "value": "vomiting",
+          "label": "Повраќање"
+        },
+        {
+          "value": "lost_consc",
+          "label": "Кратко губење свест"
+        },
+        {
+          "value": "sleepy",
+          "label": "Поспаност повеќе од вообичаено"
+        },
+        {
+          "value": "headache",
+          "label": "Главоболка што се засилува"
+        },
+        {
+          "value": "crying_long",
+          "label": "Плачење што не престанува долго"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_risk"
+    },
+    "q_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "bleeding_disorder",
+          "label": "Детето има нарушување на згрутчувањето на крвта или пие лекови за разредување"
+        },
+        {
+          "value": "not_witnessed",
+          "label": "Падот не го виде возрасен"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_after",
+                "includes_any": [
+                  "vomiting",
+                  "lost_consc",
+                  "sleepy",
+                  "headache",
+                  "crying_long"
+                ]
+              },
+              {
+                "answer": "q_risk",
+                "includes": "bleeding_disorder"
+              }
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m"
+                ]
+              },
+              {
+                "answer": "q_risk",
+                "includes": "not_witnessed"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_1": {
+      "level": "urgent_same_day",
+      "title": "Одете во итна служба сега",
+      "summary": "По удар во главата, повраќањето, губењето свест или поспаноста бараат лекарски преглед веднаш.",
+      "reasons": [
+        "По удар во главата овие знаци бараат преглед во итна служба веднаш."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето не може да се разбуди, има напад или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina",
+          "nevrohirurgija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Кај бебиња падовите што не се видени треба да ги процени лекар.",
+      "reasons": [
+        "Кај бебе, падот што не е виден треба да го процени лекар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар; следете го бебето внимателно."
+      ],
+      "watch_for": [
+        "Ако бебето повраќа, е поспано, раздразливо или не реагира како обично, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Ударот изгледа лесен, а детето се однесува нормално.",
+      "reasons": [
+        "Ударот изгледа лесен, а детето се однесува нормално."
+      ],
+      "do_now": [
+        "Ладен облог на местото (завиткан во крпа).",
+        "Нека се одмора; возрасен нека е со детето првите 24 часа.",
+        "Детето може да спие; будете го ако спие многу подолго од вообичаено и проверете дали реагира нормално."
+      ],
+      "watch_for": [
+        "Ако детето повраќа, е многу поспано, раздразливо, има главоболка што се засилува, напад или слабост, веднаш повикајте 194 или 112.",
+        "Ако тегобите траат повеќе од 2 недели, јавете се кај педијатар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow.",
+    "infant_0_3m": "Referenced via infant red flag and infant rules.",
+    "chronic": "Bleeding disorders asked directly."
+  },
+  "sources": [
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng232",
+      "title": "NICE (Велика Британија) — NG232 Head injury: assessment and early management",
+      "url": "https://www.nice.org.uk/guidance/ng232",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

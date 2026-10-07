@@ -1,0 +1,507 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "high-blood-pressure",
+  "title": "Висок крвен притисок (измерена вредност)",
+  "summary_en": "Adult with a high home BP reading. Stroke/chest pain/breathlessness/confusion/severe headache/vision change → 194. ≥180/120 without symptoms → same day recheck; pregnancy/postpartum ≥140/90 → same-day maternity; 160–179 or 100–119 → 48h; 140–159/90–99 → GP week.",
+  "notes_en": "NHS high blood pressure: ≥180/120 needs same-day assessment; ≥140/90 at home is raised. Pregnancy ≥140/90 is the public pre-eclampsia threshold. Bands are plain cut-offs, not a guideline table. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 68,
+  "body_areas": [
+    "chest",
+    "head"
+  ],
+  "search_terms": [
+    "висок притисок",
+    "крвен притисок",
+    "хипертензија",
+    "притисок 180",
+    "притисок ми е висок"
+  ],
+  "red_flags": [
+    {
+      "code": "stroke",
+      "label": "Опуштено лице, слабост или трпнење на рака или нога, нејасен говор",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "chest_pain",
+      "label": "Болка или притисок во градите, или силен недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    },
+    {
+      "code": "severe_headache_vision",
+      "label": "Ненадејна силна главоболка, збунетост или нагло нарушен вид",
+      "outcome": "o_emergency",
+      "source": "nhs-high-bp"
+    },
+    {
+      "code": "preg_severe",
+      "label": "Бременост или неодамнешно породување, со силна главоболка, нарушен вид, болка под ребрата или ненадеен оток на лицето и рацете",
+      "when": {
+        "demo": "pregnancy",
+        "in": [
+          "pregnant",
+          "postpartum",
+          "unsure"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-pre-eclampsia"
+    }
+  ],
+  "entry": "i_how",
+  "nodes": {
+    "i_how": {
+      "type": "info",
+      "title": "Како да измерите правилно",
+      "text": "Седнете мирно 5 минути, со грбот потпрен и раката на маса во висина на срцето. Не пушете и не пијте кафе 30 минути пред мерењето. Измерете двапати во размак од 1–2 минути и запишете ја пониската вредност.",
+      "next": "q_systolic"
+    },
+    "q_systolic": {
+      "type": "question",
+      "kind": "number",
+      "text": "Колкав е горниот (систолен) притисок?",
+      "unit": "mmhg",
+      "min": 60,
+      "max": 300,
+      "next": "q_diastolic"
+    },
+    "q_diastolic": {
+      "type": "question",
+      "kind": "number",
+      "text": "Колкав е долниот (дијастолен) притисок?",
+      "unit": "mmhg",
+      "min": 30,
+      "max": 200,
+      "next": "q_context"
+    },
+    "q_context": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "on_treatment",
+          "label": "Веќе пијам лекови за притисок"
+        },
+        {
+          "value": "missed",
+          "label": "Пропуштив лекови за притисок"
+        },
+        {
+          "value": "mild_symptoms",
+          "label": "Имам блага главоболка, вртоглавица или крварење од носот"
+        },
+        {
+          "value": "kidney",
+          "label": "Имам болест на бубрезите"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_systolic",
+                    "gte": 140
+                  },
+                  {
+                    "answer": "q_diastolic",
+                    "gte": 90
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_preg_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_systolic",
+                "gte": 180
+              },
+              {
+                "answer": "q_diastolic",
+                "gte": 120
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "answer": "q_systolic",
+                    "gte": 160
+                  },
+                  {
+                    "answer": "q_diastolic",
+                    "gte": 100
+                  }
+                ]
+              },
+              {
+                "answer": "q_context",
+                "includes": "mild_symptoms"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_systolic",
+                "gte": 160
+              },
+              {
+                "answer": "q_diastolic",
+                "gte": 100
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_systolic",
+                "lte": 89
+              },
+              {
+                "answer": "q_diastolic",
+                "lte": 59
+              }
+            ]
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_systolic",
+                "gte": 140
+              },
+              {
+                "answer": "q_diastolic",
+                "gte": 90
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_preg_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се во породилиште или кај гинеколог денес",
+      "summary": "Во бременост и по породување покачениот притисок може да е знак за прееклампсија (состојба со висок притисок во бременост).",
+      "reasons": [
+        "Притисок од 140/90 или повеќе во бременост или по породување треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во гинеколошко-акушерска служба (породилиште) или кај вашиот гинеколог уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави силна главоболка, нарушен вид, болка под ребрата или оток на лицето, веднаш повикајте 194 или 112.",
+        "Ако почувствувате помалку движења на бебето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pre-eclampsia"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Многу високиот притисок треба повторно да се измери и процени истиот ден.",
+      "reasons": [
+        "Притисок од 180/120 или повеќе треба да се провери истиот ден, дури и без тегоби."
+      ],
+      "do_now": [
+        "Одморете 15 минути и измерете повторно.",
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, недостиг на воздух, слабост, нејасен говор или нарушен вид, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Многу високиот притисок треба повторно да се измери и процени истиот ден.",
+      "reasons": [
+        "Висок притисок со тегоби треба да се провери денес."
+      ],
+      "do_now": [
+        "Одморете 15 минути и измерете повторно.",
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, недостиг на воздух, слабост, нејасен говор или нарушен вид, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Вредноста треба да ја процени лекар, но нема знаци за итност.",
+      "reasons": [
+        "Вредноста е значително покачена."
+      ],
+      "do_now": [
+        "Мерете двапати дневно и запишувајте ги вредностите.",
+        "Закажете кај избраниот лекар; понесете ги вредностите и лековите."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, недостиг на воздух, слабост или нејасен говор, веднаш повикајте 194 или 112.",
+        "Ако притисокот достигне 180/120, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Едно покачено мерење не е доволно за заклучок; потребни се повторени мерења.",
+      "reasons": [
+        "Вредноста е покачена; потребни се повторени мерења и разговор со лекар."
+      ],
+      "do_now": [
+        "Мерете утро и вечер една недела и запишувајте.",
+        "Намалете сол и алкохол; движете се секој ден."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, слабост, нејасен говор или нарушен вид, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Вредноста треба да ја процени лекар, но нема знаци за итност.",
+      "reasons": [
+        "Вредноста е пониска од вообичаеното; ако имате вртоглавица или несвестица, тоа треба да се провери."
+      ],
+      "do_now": [
+        "Мерете двапати дневно и запишувајте ги вредностите.",
+        "Закажете кај избраниот лекар; понесете ги вредностите и лековите."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, недостиг на воздух, слабост или нејасен говор, веднаш повикајте 194 или 112.",
+        "Ако притисокот достигне 180/120, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Вредноста е во очекуван опсег",
+      "summary": "Измерената вредност е под 140/90.",
+      "reasons": [
+        "Измерената вредност е под 140/90."
+      ],
+      "do_now": [
+        "Продолжете со редовни мерења и здрав начин на живот.",
+        "Ако пиете лекови, не ги менувајте без лекар."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, слабост, нејасен говор или нарушен вид, веднаш повикајте 194 или 112.",
+        "Ако мерењата често се над 140/90, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-high-bp"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете или легнете и мирувајте.",
+        "Не земајте дополнителни лекови за притисок на своја рака.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "older_adult": "Same thresholds; NHS uses 150/90 as a treatment target over 80, not as a triage threshold. Clinician to confirm.",
+    "chronic": "Kidney disease is asked directly; heart disease symptoms are covered by red flags."
+  },
+  "sources": [
+    {
+      "id": "nhs-high-bp",
+      "title": "NHS (Велика Британија) — High blood pressure",
+      "url": "https://www.nhs.uk/conditions/high-blood-pressure/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pre-eclampsia",
+      "title": "NHS (Велика Британија) — Pre-eclampsia",
+      "url": "https://www.nhs.uk/conditions/pre-eclampsia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-chest-pain",
+      "title": "NHS (Велика Британија) — Chest pain",
+      "url": "https://www.nhs.uk/symptoms/chest-pain/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

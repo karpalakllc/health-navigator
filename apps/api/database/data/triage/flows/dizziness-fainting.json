@@ -1,0 +1,511 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "dizziness-fainting",
+  "title": "Вртоглавица или несвестица",
+  "summary_en": "Adult dizziness/fainting. Stroke signs, chest pain/palpitations with faint, faint during exertion, not fully recovered → emergency. First faint >65, faint with known heart disease, pregnancy → same day. Vertigo with hearing loss → 48h. Simple faint with clear trigger → self-care.",
+  "notes_en": "NHS fainting/dizziness/vertigo/stroke; exertional syncope and family history of sudden death as high-risk features. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 80,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "вртоглавица",
+    "несвестица",
+    "онесвестување",
+    "колапс",
+    "се онесвестив"
+  ],
+  "red_flags": [
+    {
+      "code": "stroke",
+      "label": "Опуштено лице, слабост или трпнење во рака или нога, нејасен говор, нарушен вид или губење рамнотежа што не поминува",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "chest_palp",
+      "label": "Болка во градите, силно чукање на срцето или недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "exertion",
+      "label": "Несвестица за време на физички напор",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "not_recovered",
+      "label": "Не се освести брзо или е сè уште збунет",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "injury_head",
+      "label": "Удри со главата при паѓањето и зема лекови за разредување на крвта",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "seizure_like",
+      "label": "Грчеви, гризење на јазикот или неконтролирано мокрење при несвестицата (ако е прв пат)",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    }
+  ],
+  "entry": "q_what",
+  "nodes": {
+    "q_what": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што се случи?",
+      "options": [
+        {
+          "value": "fainted",
+          "label": "Се онесвестив (изгубив свест за кратко)"
+        },
+        {
+          "value": "nearly",
+          "label": "Ми се стемни пред очи, но не паднав"
+        },
+        {
+          "value": "spinning",
+          "label": "Чувство дека сè се врти, особено при движење на главата"
+        },
+        {
+          "value": "unsteady",
+          "label": "Нестабилност, несигурен од"
+        }
+      ],
+      "next": "q_context"
+    },
+    "q_context": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "trigger",
+          "label": "Се случи по долго стоење, топлина, глад, глетка на крв или болка"
+        },
+        {
+          "value": "standing_up",
+          "label": "Се случува кога брзо ќе станам"
+        },
+        {
+          "value": "heart",
+          "label": "Имам позната срцева болест или пејсмејкер"
+        },
+        {
+          "value": "family_sudden",
+          "label": "Во семејството некој почина ненадејно млад (под 40 години)"
+        },
+        {
+          "value": "hearing",
+          "label": "Губење на слухот или звонење во едното уво"
+        },
+        {
+          "value": "new_meds",
+          "label": "Неодамна почнав нов лек (на пр. за притисок)"
+        },
+        {
+          "value": "repeated",
+          "label": "Се повторува повеќе пати"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_what",
+                "eq": "fainted"
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "answer": "q_context",
+                        "includes": "heart"
+                      },
+                      {
+                        "demo": "conditions",
+                        "includes": "heart_disease"
+                      }
+                    ]
+                  },
+                  {
+                    "answer": "q_context",
+                    "includes": "family_sudden"
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_what",
+                "eq": "fainted"
+              },
+              {
+                "not": {
+                  "answer": "q_context",
+                  "includes": "trigger"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_context",
+                "includes": "hearing"
+              },
+              {
+                "answer": "q_context",
+                "includes": "repeated"
+              },
+              {
+                "answer": "q_context",
+                "includes": "new_meds"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_what",
+                "eq": "spinning"
+              },
+              {
+                "answer": "q_what",
+                "eq": "unsteady"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_context",
+                "includes": "trigger"
+              },
+              {
+                "answer": "q_context",
+                "includes": "standing_up"
+              }
+            ]
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Несвестицата понекогаш е поврзана со ритамот на срцето и треба брзо да се провери.",
+      "reasons": [
+        "Несвестица кај постари лица, во бременост, кај срцева болест или ненадејна смрт во семејството треба да се провери денес (на пр. ЕКГ)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта денес. Не возете додека не ве прегледаат."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, силно чукање на срцето или повторна несвестица, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост, нејасен говор или опуштено лице, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fainting"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Несвестицата понекогаш е поврзана со ритамот на срцето и треба брзо да се провери.",
+      "reasons": [
+        "Несвестица без јасна причина треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта денес. Не возете додека не ве прегледаат."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, силно чукање на срцето или повторна несвестица, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост, нејасен говор или опуштено лице, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fainting"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но треба да се најде причината.",
+      "reasons": [
+        "Повторувани епизоди, промени на слухот или нов лек треба да ги процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; понесете ги лековите што ги пиете."
+      ],
+      "watch_for": [
+        "Ако се онесвестите повторно, се појави болка во градите или слабост во телото, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija",
+          "otorinolaringologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dizziness"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Вртоглавицата често е од внатрешното уво и се подобрува сама, но вреди да се процени.",
+      "reasons": [
+        "Вртоглавицата често е од внатрешното уво и се подобрува, но лекарот може да помогне."
+      ],
+      "do_now": [
+        "Станувајте полека; седнете кога ќе почне.",
+        "Избегнувајте возење и работа на висина додека трае."
+      ],
+      "watch_for": [
+        "Ако се појави двојно гледање, нејасен говор, слабост или силна главоболка, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "otorinolaringologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-vertigo"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Кратка несвестица со јасен поттик (долго стоење, топлина, глад) најчесто е безопасна.",
+      "reasons": [
+        "Кратка несвестица со јасен поттик (стоење, топлина) најчесто е безопасна."
+      ],
+      "do_now": [
+        "Легнете и подигнете ги нозете кога чувствувате дека ќе ве фати несвестица.",
+        "Пијте доволно вода и не прескокнувајте оброци.",
+        "Станувајте полека."
+      ],
+      "watch_for": [
+        "Ако се онесвестите при напор, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или силно чукање на срцето, веднаш повикајте 194 или 112.",
+        "Ако се повтори, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-fainting"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но треба да се најде причината.",
+      "reasons": [
+        "Нема итни знаци, но треба да се најде причината."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; понесете ги лековите што ги пиете."
+      ],
+      "watch_for": [
+        "Ако се онесвестите повторно, се појави болка во градите или слабост во телото, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija",
+          "otorinolaringologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dizziness"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако е без свест но дише, свртете го на страна (безбедна положба).",
+        "Не давајте храна или пијалак.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-dizziness",
+      "title": "NHS (Велика Британија) — Dizziness",
+      "url": "https://www.nhs.uk/symptoms/dizziness/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-fainting",
+      "title": "NHS (Велика Британија) — Fainting",
+      "url": "https://www.nhs.uk/symptoms/fainting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-vertigo",
+      "title": "NHS (Велика Британија) — Vertigo",
+      "url": "https://www.nhs.uk/conditions/vertigo/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-tia",
+      "title": "NHS (Велика Британија) — Transient ischaemic attack (TIA)",
+      "url": "https://www.nhs.uk/conditions/transient-ischaemic-attack-tia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-palpitations",
+      "title": "NHS (Велика Британија) — Heart palpitations",
+      "url": "https://www.nhs.uk/symptoms/heart-palpitations/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

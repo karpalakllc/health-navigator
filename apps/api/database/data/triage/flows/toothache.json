@@ -1,0 +1,318 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "toothache",
+  "title": "Забоболка и проблеми со забите",
+  "summary_en": "Toothache/dental (all ages). Facial swelling spreading to eye/neck with breathing/swallowing difficulty → emergency. Facial swelling with fever, knocked-out adult tooth, uncontrolled bleeding after extraction → same day. Toothache >2 days → dentist.",
+  "notes_en": "NHS toothache/dental abscess: facial swelling affecting eye/neck or breathing → A&E; dentist otherwise. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 35,
+  "body_areas": [
+    "mouth"
+  ],
+  "search_terms": [
+    "забоболка",
+    "заб ме боли",
+    "забар",
+    "стоматолог",
+    "отечен образ",
+    "искршен заб"
+  ],
+  "red_flags": [
+    {
+      "code": "swelling_airway",
+      "label": "Оток на лицето или вратот со отежнато дишење, голтање или неможност да ја отворите устата",
+      "outcome": "o_emergency",
+      "source": "nhs-dental-abscess"
+    },
+    {
+      "code": "swelling_eye",
+      "label": "Отокот се шири кон окото, а окото тешко се отвора",
+      "outcome": "o_emergency",
+      "source": "nhs-dental-abscess"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "face_swelling",
+          "label": "Оток на образот, вилицата или под јазикот"
+        },
+        {
+          "value": "fever",
+          "label": "Температура или чувство на болест"
+        },
+        {
+          "value": "knocked_out",
+          "label": "Изваден (испаднат) траен заб по удар"
+        },
+        {
+          "value": "bleeding_extraction",
+          "label": "Крварење по вадење заб што не престанува по 20 минути притисок"
+        },
+        {
+          "value": "broken",
+          "label": "Скршен или напукнат заб"
+        },
+        {
+          "value": "gum",
+          "label": "Болни или крвави непца"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_2d",
+          "label": "Помалку од 2 дена"
+        },
+        {
+          "value": "gt_2d",
+          "label": "2 дена или повеќе"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "face_swelling"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "fever"
+                  }
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "knocked_out"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "bleeding_extraction"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "face_swelling"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "broken"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_2d"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "gum"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_pharm"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте стоматолог денес",
+      "summary": "Некои проблеми со забите бараат помош во истиот ден.",
+      "reasons": [
+        "Оток со температура, испаднат траен заб или крварење по вадење бараат стоматолошка помош истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот стоматолог или во дежурна стоматолошка служба.",
+        "Испаднат траен заб: фатете го за круната (не за коренот), исплакнете го кратко и вратете го во местото или чувајте го во млеко."
+      ],
+      "watch_for": [
+        "Ако отокот почне да се шири кон окото или вратот, веднаш повикајте 194 или 112.",
+        "Ако почнете тешко да дишете или голтате, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "dentist",
+        "specialties": [
+          "maksilofacijalna-hirurgija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dental-abscess"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај стоматолог во наредните 1–2 дена",
+      "summary": "Стоматологот треба да ја најде причината за болката или отокот.",
+      "reasons": [
+        "Оток, скршен заб или болка подолга од 2 дена треба да ги види стоматолог."
+      ],
+      "do_now": [
+        "Закажете кај вашиот стоматолог.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако отокот се шири кон окото или вратот, или тешко дишете или голтате, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "dentist",
+        "specialties": [],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-toothache"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај стоматолог",
+      "summary": "Непцата треба да се прегледаат.",
+      "reasons": [
+        "Болните и крвави непца треба да ги прегледа стоматолог."
+      ],
+      "do_now": [
+        "Четкајте нежно двапати дневно и користете конец за заби."
+      ],
+      "watch_for": [
+        "Ако се појави оток на лицето со температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "dentist",
+        "specialties": [],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-toothache"
+      ]
+    },
+    "o_pharm": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Кратка забоболка без оток често може да се олесни додека не стигнете до стоматолог.",
+      "reasons": [
+        "Кратка забоболка без оток често може да се олесни додека не стигнете до стоматолог."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средство против болка.",
+        "Избегнувајте многу топла, студена или слатка храна."
+      ],
+      "watch_for": [
+        "Ако се појави оток на лицето што се шири, или тешко дишење или голтање, веднаш повикајте 194 или 112.",
+        "Ако болката трае повеќе од 2 дена, закажете кај стоматолог."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-toothache"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "infant_0_3m": "Teething/dental issues are not expected; infants with mouth swelling and fever are covered by red flags and the infant fever flow.",
+    "infant_3_12m": "Teething discomfort is self-care; fever in infants is not caused by teething and is routed by the fever flow.",
+    "child": "Knocked-out baby teeth should NOT be replaced (NHS); the instruction above names permanent teeth only. Clinician to confirm wording.",
+    "pregnancy": "Dental care in pregnancy is the same; no separate threshold.",
+    "older_adult": "Same thresholds.",
+    "chronic": "Immunosuppression with facial swelling would reach same day via fever; clinician to confirm whether swelling alone should be same day."
+  },
+  "sources": [
+    {
+      "id": "nhs-toothache",
+      "title": "NHS (Велика Британија) — Toothache",
+      "url": "https://www.nhs.uk/symptoms/toothache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dental-abscess",
+      "title": "NHS (Велика Британија) — Dental abscess",
+      "url": "https://www.nhs.uk/conditions/dental-abscess/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

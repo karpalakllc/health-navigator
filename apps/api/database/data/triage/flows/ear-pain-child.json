@@ -1,0 +1,393 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "ear-pain-child",
+  "title": "Болка во увото кај дете",
+  "summary_en": "Child earache. Swelling behind ear/protruding ear, stiff neck, drowsy, facial weakness → emergency. Infants <3 m with fever → fever flow rules (same day). Discharge, >3 days, <2 years both ears with fever, very unwell → 24–48h. Most → home care, improve in 3 days.",
+  "notes_en": "NHS earache/ear infections in children; NICE NG91 criteria (under 2 bilateral, otorrhoea) are well known but not cited directly — clinician to confirm. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 38,
+  "body_areas": [
+    "ears"
+  ],
+  "search_terms": [
+    "болка во увото кај дете",
+    "дете го боли увото",
+    "отитис кај дете",
+    "течење од уво"
+  ],
+  "red_flags": [
+    {
+      "code": "mastoid",
+      "label": "Оток, црвенило или болка зад увото, или увото е одбиено нанапред",
+      "outcome": "o_emergency",
+      "source": "nhs-ear-infections"
+    },
+    {
+      "code": "meningism",
+      "label": "Вкочанет врат, многу пречи светлината, тешко се буди или е збунето",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "face_weak",
+      "label": "Опуштено лице на едната страна",
+      "outcome": "o_emergency",
+      "source": "nhs-earache"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова?",
+      "options": [
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "discharge",
+          "label": "Течење (гној или течност) од увото"
+        },
+        {
+          "value": "both_ears",
+          "label": "Го болат двете уши"
+        },
+        {
+          "value": "object",
+          "label": "Ставило нешто во увото"
+        },
+        {
+          "value": "hearing",
+          "label": "Не слуша добро"
+        },
+        {
+          "value": "unwell",
+          "label": "Многу е болно, не јаде и не пие"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_days"
+    },
+    "q_days": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае?",
+      "options": [
+        {
+          "value": "lt_3",
+          "label": "Помалку од 3 дена"
+        },
+        {
+          "value": "ge_3",
+          "label": "3 дена или повеќе"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "unwell"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "object"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "discharge"
+              },
+              {
+                "answer": "q_days",
+                "eq": "ge_3"
+              },
+              {
+                "all": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4"
+                    ]
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "both_ears"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "fever"
+                  }
+                ]
+              },
+              {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "hearing"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето треба да го прегледа лекар истиот ден.",
+      "reasons": [
+        "Кај бебиња под 3 месеци температурата секогаш треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот, во дежурна служба или на УНГ (уво-нос-грло) амбуланта.",
+        "Не обидувајте се сами да вадите предмет од увото."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, вкочанет врат или детето тешко се буди, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-ear-infections"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето треба да го прегледа лекар истиот ден.",
+      "reasons": [
+        "Многу болно дете или предмет во увото бара преглед денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот, во дежурна служба или на УНГ (уво-нос-грло) амбуланта.",
+        "Не обидувајте се сами да вадите предмет од увото."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, вкочанет врат или детето тешко се буди, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-ear-infections"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го погледне увото.",
+      "reasons": [
+        "Течење, болка подолга од 3 дена или болка во двете уши со температура кај мало дете треба да ги процени педијатар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Фармацевтот може да ве посоветува за средство против болка соодветно за возраста."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, вкочанет врат или детето тешко се буди, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-ear-infections"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај педијатар",
+      "summary": "Слабиот слух по инфекција често се враќа сам, но треба проверка ако трае.",
+      "reasons": [
+        "Ако слухот не се врати по неколку недели, треба проверка."
+      ],
+      "do_now": [
+        "Закажете кај педијатарот; може да ве упати на проверка на слухот."
+      ],
+      "watch_for": [
+        "Ако се појави висока температура, оток зад увото или вкочанет врат, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-ear-infections"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Повеќето инфекции на увото кај деца поминуваат за околу 3 дена без антибиотик.",
+      "reasons": [
+        "Повеќето инфекции на увото кај деца поминуваат за околу 3 дена без антибиотик."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средство против болка соодветно за возраста.",
+        "Топол облог на увото може да помогне.",
+        "Не ставајте стапчиња или капки во увото без совет."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, вкочанет врат или детето тешко се буди, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 3 дена или се појави течење, јавете се кај педијатар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-earache"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow.",
+    "infant_3_12m": "Referenced via under-2 bilateral rule."
+  },
+  "sources": [
+    {
+      "id": "nhs-earache",
+      "title": "NHS (Велика Британија) — Earache",
+      "url": "https://www.nhs.uk/symptoms/earache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ear-infections",
+      "title": "NHS (Велика Британија) — Ear infections",
+      "url": "https://www.nhs.uk/conditions/ear-infections/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

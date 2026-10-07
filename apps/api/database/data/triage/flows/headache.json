@@ -1,0 +1,644 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "headache",
+  "title": "Главоболка",
+  "summary_en": "Adult headache. Thunderclap, stroke signs, meningism, post-head-injury, visual loss, pregnancy/postpartum + pre-eclampsia features → emergency. New headache over 50, immunosuppression, progressive or worse on waking with vomiting → same day/48h. Typical recurrent headaches → pharmacy/self-care.",
+  "notes_en": "Red flags follow NHS headache/SAH/stroke/meningitis/pre-eclampsia pages; jaw claudication/scalp tenderness (giant cell arteritis) escalated same-day because of sight risk (public NHS headache guidance lists this). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 80,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "главоболка",
+    "глава ме боли",
+    "мигрена",
+    "болка во главата"
+  ],
+  "red_flags": [
+    {
+      "code": "thunderclap",
+      "label": "Ненадејна, многу силна главоболка — „најсилната досега“, што достигнува врв за неколку секунди или минути",
+      "outcome": "o_emergency",
+      "source": "nhs-sah"
+    },
+    {
+      "code": "stroke_signs",
+      "label": "Опуштено лице, слабост или трпнење на рака или нога, тешкотии со говорот",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "meningism",
+      "label": "Температура со вкочанет врат, осетливост на светлина или осип што не бледнее при притисок",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "after_injury",
+      "label": "Главоболката започна по удар во главата",
+      "outcome": "o_emergency",
+      "source": "nhs-headaches"
+    },
+    {
+      "code": "confusion_seizure",
+      "label": "Збунетост, тешко будење или напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-headaches"
+    },
+    {
+      "code": "vision_loss",
+      "label": "Ненадејно губење на видот, двојно гледање или многу црвено и болно око",
+      "outcome": "o_emergency",
+      "source": "nhs-headaches"
+    },
+    {
+      "code": "preg_features",
+      "label": "Бременост или породување во последните 6 недели, со силна главоболка, нарушен вид, оток на лицето или рацете, или болка под ребрата",
+      "when": {
+        "demo": "pregnancy",
+        "in": [
+          "pregnant",
+          "postpartum",
+          "unsure"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-pre-eclampsia"
+    },
+    {
+      "code": "co_household",
+      "label": "И други во домот (или миленичињата) имаат главоболка или им е лошо, особено покрај печка или бојлер на гас/дрва",
+      "help": "Може да е труење со јаглерод моноксид — излезете на свеж воздух.",
+      "outcome": "o_emergency",
+      "source": "nhs-co"
+    }
+  ],
+  "entry": "q_type",
+  "nodes": {
+    "q_type": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што најдобро ја опишува главоболката?",
+      "options": [
+        {
+          "value": "usual",
+          "label": "Слична е на главоболките што ги имам и порано"
+        },
+        {
+          "value": "new_pattern",
+          "label": "Нов вид главоболка за мене или многу поинаква од вообичаената"
+        },
+        {
+          "value": "worse_waking",
+          "label": "Најсилна е наутро или се засилува при кашлање и напнување, со повраќање"
+        },
+        {
+          "value": "progressive",
+          "label": "Постојано се влошува во текот на денови или недели"
+        }
+      ],
+      "next": "q_extras"
+    },
+    "q_extras": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали има и нешто од ова?",
+      "options": [
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "jaw_scalp",
+          "label": "Болка во слепоочницата или скалпот, болка во вилицата при џвакање (над 50 години)"
+        },
+        {
+          "value": "aura",
+          "label": "Треперење или цик-цак линии пред очите што поминуваат за помалку од час"
+        },
+        {
+          "value": "painkillers_often",
+          "label": "Земам лекови против болка повеќе од 10–15 дена во месецот"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_risk"
+    },
+    "q_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи за вас (или за лицето за кое пополнувате)?",
+      "help": "Овие состојби можат да значат дека треба побрзо да ве прегледа лекар.",
+      "options": [
+        {
+          "value": "cancer",
+          "label": "Канцер (сега или порано)"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_pain"
+    },
+    "q_pain": {
+      "type": "question",
+      "kind": "scale",
+      "text": "Колку е силна болката сега, од 0 до 10?",
+      "min_label": "Без болка",
+      "max_label": "Најсилна болка",
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_type",
+                "eq": "worse_waking"
+              },
+              {
+                "answer": "q_type",
+                "eq": "progressive"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_type",
+                "eq": "new_pattern"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "demo": "conditions",
+                        "includes": "immunosuppressed"
+                      },
+                      {
+                        "answer": "q_risk",
+                        "includes": "cancer"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_extras",
+            "includes": "jaw_scalp"
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_extras",
+                "includes": "fever"
+              },
+              {
+                "not": {
+                  "answer": "q_extras",
+                  "includes": "jaw_scalp"
+                }
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "eq": "new_pattern"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_pain",
+            "gte": 9
+          },
+          "goto": "o_doc48_3"
+        },
+        {
+          "when": {
+            "answer": "q_extras",
+            "includes": "painkillers_often"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "eq": "usual"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Одредени видови главоболка бараат преглед истиот ден за да се исклучат посериозни причини.",
+      "reasons": [
+        "Главоболка што постојано се влошува или е најсилна наутро со повраќање треба итно да се провери."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако главоболката стане ненадејно многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост, нејасен говор, збунетост или напад, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат со температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "nevrologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Одредени видови главоболка бараат преглед истиот ден за да се исклучат посериозни причини.",
+      "reasons": [
+        "Нов вид главоболка кај постари лица или кај ослабен имунитет/канцер треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако главоболката стане ненадејно многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост, нејасен говор, збунетост или напад, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат со температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "nevrologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Одредени видови главоболка бараат преглед истиот ден за да се исклучат посериозни причини.",
+      "reasons": [
+        "Болка во слепоочницата и вилицата кај постари лица може да значи воспаление на крвните садови што може да го загрози видот — потребен е преглед истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако главоболката стане ненадејно многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост, нејасен говор, збунетост или напад, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат со температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "nevrologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но промената треба да ја процени лекар.",
+      "reasons": [
+        "Главоболка со температура најчесто е од вирусна инфекција, но треба да се следи."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно вода и одморете се во мирна, затемнета просторија."
+      ],
+      "watch_for": [
+        "Ако болката нагло стане многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат, осип, збунетост или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но промената треба да ја процени лекар.",
+      "reasons": [
+        "Нов вид главоболка вреди да ја прегледа лекар во наредните денови."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно вода и одморете се во мирна, затемнета просторија."
+      ],
+      "watch_for": [
+        "Ако болката нагло стане многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат, осип, збунетост или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_doc48_3": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но промената треба да ја процени лекар.",
+      "reasons": [
+        "Многу силна болка треба да ја процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно вода и одморете се во мирна, затемнета просторија."
+      ],
+      "watch_for": [
+        "Ако болката нагло стане многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат, осип, збунетост или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Главоболките што се повторуваат или честото земање лекови против болка вредат да се разгледаат со лекар.",
+      "reasons": [
+        "Честото земање лекови против болка може да ја одржува главоболката; разговарајте со лекар."
+      ],
+      "do_now": [
+        "Водете дневник: кога почнува, колку трае, што земате и што ја предизвикува."
+      ],
+      "watch_for": [
+        "Ако се појави ненадејна, многу силна главоболка, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-headaches",
+        "nhs-migraine"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Главоболката е слична на претходните и нема знаци за итност.",
+      "reasons": [
+        "Главоболката е слична на претходните, без знаци за итност."
+      ],
+      "do_now": [
+        "Разговарајте со фармацевт за соодветно средство против болка.",
+        "Пијте вода, одморете се и намалете го времето пред екран."
+      ],
+      "watch_for": [
+        "Ако болката е ненадејна и многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави температура со вкочанет врат или осип, веднаш повикајте 194 или 112.",
+        "Ако главоболките се почести или посилни од вообичаено, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но промената треба да ја процени лекар.",
+      "reasons": [
+        "Нема знаци за итност, но промената треба да ја процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно вода и одморете се во мирна, затемнета просторија."
+      ],
+      "watch_for": [
+        "Ако болката нагло стане многу силна, веднаш повикајте 194 или 112.",
+        "Ако се појави вкочанет врат, осип, збунетост или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-headaches"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако е можно гас или чад, веднаш излезете на свеж воздух и проветрете.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-headaches",
+      "title": "NHS (Велика Британија) — Headaches",
+      "url": "https://www.nhs.uk/symptoms/headaches/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-migraine",
+      "title": "NHS (Велика Британија) — Migraine",
+      "url": "https://www.nhs.uk/conditions/migraine/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sah",
+      "title": "NHS (Велика Британија) — Subarachnoid haemorrhage",
+      "url": "https://www.nhs.uk/conditions/subarachnoid-haemorrhage/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pre-eclampsia",
+      "title": "NHS (Велика Британија) — Pre-eclampsia",
+      "url": "https://www.nhs.uk/conditions/pre-eclampsia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-co",
+      "title": "NHS (Велика Британија) — Carbon monoxide poisoning",
+      "url": "https://www.nhs.uk/conditions/carbon-monoxide-poisoning/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-glaucoma",
+      "title": "NHS (Велика Британија) — Glaucoma",
+      "url": "https://www.nhs.uk/conditions/glaucoma/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-encephalitis",
+      "title": "NHS (Велика Британија) — Encephalitis",
+      "url": "https://www.nhs.uk/conditions/encephalitis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

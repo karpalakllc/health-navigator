@@ -1,0 +1,398 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "burns",
+  "title": "Изгореници",
+  "summary_en": "Burns and scalds (all ages). Airway/smoke inhalation, electrical/chemical, large burns, full-thickness, face/hands/genitals, infants → emergency/same day. Small superficial → self-care with cooling first aid.",
+  "notes_en": "NHS burns and scalds: A&E for large/deep/chemical/electrical/face/hands/feet/genitals/joints, and for children under 5 and older people with blistered burns; 20 min cool running water. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 76,
+  "body_areas": [
+    "skin",
+    "arms",
+    "legs"
+  ],
+  "search_terms": [
+    "изгореница",
+    "изгорев",
+    "попарено",
+    "врела вода",
+    "изгорено"
+  ],
+  "red_flags": [
+    {
+      "code": "airway",
+      "label": "Изгореници на лицето или устата, засипнат глас, кашлање чад или отежнато дишење",
+      "outcome": "o_emergency",
+      "source": "nhs-burns"
+    },
+    {
+      "code": "large",
+      "label": "Изгореницата е голема (поголема од дланката на повредениот) или е длабока (бела, кафеава или црна, без болка)",
+      "outcome": "o_emergency",
+      "source": "nhs-burns"
+    },
+    {
+      "code": "electrical",
+      "label": "Изгореница од струја или од хемикалија",
+      "outcome": "o_emergency",
+      "source": "nhs-burns"
+    },
+    {
+      "code": "unwell",
+      "label": "Повредениот е збунет, поспан или има несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-burns"
+    }
+  ],
+  "entry": "i_first_aid",
+  "nodes": {
+    "i_first_aid": {
+      "type": "info",
+      "title": "Прва помош — веднаш",
+      "text": "Ладете ја изгореницата под млака или ладна течечка вода 20 минути. Не користете мраз, путер или масти. Отстранете накит и облека околу изгореницата, освен ако се залепени за кожата. Покријте со проѕирна фолија или чиста кеса.",
+      "next": "q_where"
+    },
+    "q_where": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Каде е изгореницата?",
+      "options": [
+        {
+          "value": "face",
+          "label": "Лице, врат или глава"
+        },
+        {
+          "value": "hands_feet",
+          "label": "Дланки или стапала"
+        },
+        {
+          "value": "genitals",
+          "label": "Половите органи или препоните"
+        },
+        {
+          "value": "joint",
+          "label": "Преку зглоб (колено, лакт)"
+        },
+        {
+          "value": "other",
+          "label": "Друго место на телото"
+        },
+        {
+          "value": "none",
+          "label": "Не сум сигурен",
+          "exclusive": true
+        }
+      ],
+      "next": "q_look"
+    },
+    "q_look": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како изгледа?",
+      "options": [
+        {
+          "value": "red_only",
+          "label": "Само црвена и боли, без меурчиња"
+        },
+        {
+          "value": "blisters_small",
+          "label": "Меурчиња, помало од дланка"
+        },
+        {
+          "value": "blisters_large",
+          "label": "Меурчиња, поголемо од дланка"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m",
+                  "child_1_4"
+                ]
+              },
+              {
+                "not": {
+                  "answer": "q_look",
+                  "eq": "red_only"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_where",
+                "includes_any": [
+                  "face",
+                  "hands_feet",
+                  "genitals",
+                  "joint"
+                ]
+              },
+              {
+                "answer": "q_look",
+                "eq": "blisters_large"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              },
+              {
+                "demo": "conditions",
+                "includes_any": [
+                  "immunosuppressed",
+                  "heart_disease",
+                  "lung_disease",
+                  "kidney_disease",
+                  "diabetes"
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_look",
+            "eq": "blisters_small"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Местото, големината или возраста бараат изгореницата да ја прегледа лекар истиот ден.",
+      "reasons": [
+        "Кај мали деца изгорениците со меурчиња секогаш треба да ги прегледа лекар истиот ден."
+      ],
+      "do_now": [
+        "Ако уште не сте, ладете ја 20 минути под млака вода.",
+        "Покријте ја со проѕирна фолија и јавете се во итна амбуланта или ургентен центар."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење, засипнат глас или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "plasticna-hirurgija",
+          "opsta-hirurgija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-burns"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Местото, големината или возраста бараат изгореницата да ја прегледа лекар истиот ден.",
+      "reasons": [
+        "Изгорениците на лицето, дланките, стапалата, половите органи или преку зглоб, како и поголемите, треба да ги прегледа лекар денес."
+      ],
+      "do_now": [
+        "Ако уште не сте, ладете ја 20 минути под млака вода.",
+        "Покријте ја со проѕирна фолија и јавете се во итна амбуланта или ургентен центар."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење, засипнат глас или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "plasticna-hirurgija",
+          "opsta-hirurgija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-burns"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Изгореницата треба да ја погледне медицинско лице и да се превие правилно.",
+      "reasons": [
+        "Кај постари лица, во бременост и кај хронична болест рановите заздравуваат побавно."
+      ],
+      "do_now": [
+        "Не ги пукајте меурчињата.",
+        "Закажете кај избраниот лекар или во амбуланта за превивање."
+      ],
+      "watch_for": [
+        "Ако се појави температура, гној или црвенило што се шири, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "plasticna-hirurgija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-burns"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Изгореницата треба да ја погледне медицинско лице и да се превие правилно.",
+      "reasons": [
+        "Изгореницата со меурчиња треба да ја види медицинско лице (на пр. превивање)."
+      ],
+      "do_now": [
+        "Не ги пукајте меурчињата.",
+        "Закажете кај избраниот лекар или во амбуланта за превивање."
+      ],
+      "watch_for": [
+        "Ако се појави температура, гној или црвенило што се шири, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "plasticna-hirurgija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-burns"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Мала, површна изгореница без меурчиња обично заздравува сама.",
+      "reasons": [
+        "Мала, површна изгореница без меурчиња обично заздравува сама."
+      ],
+      "do_now": [
+        "Ладете 20 минути под млака вода.",
+        "Фармацевтот може да ве посоветува за средство против болка и соодветна заштита."
+      ],
+      "watch_for": [
+        "Ако се појави температура, гној, или црвенило што се шири, веднаш повикајте 194 или 112.",
+        "Ако не заздравува за 2 недели, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-burns"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Продолжете со ладење под млака вода додека чекате (до 20 минути), но внимавајте детето или повредениот да не се изладат премногу.",
+        "При струја: не допирајте го повредениот додека струјата не е исклучена.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "infant_0_3m": "Referenced via under-5 rule.",
+    "infant_3_12m": "Referenced via under-5 rule.",
+    "child": "Referenced via under-5 rule; 5–17 follow adult thresholds.",
+    "older_adult": "Referenced (slower healing → 24–48h)."
+  },
+  "sources": [
+    {
+      "id": "nhs-burns",
+      "title": "NHS (Велика Британија) — Burns and scalds",
+      "url": "https://www.nhs.uk/conditions/burns-and-scalds/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

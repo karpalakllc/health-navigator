@@ -1,0 +1,979 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "abdominal-pain",
+  "title": "Болка во стомакот",
+  "summary_en": "Adult abdominal pain. Severe/sudden pain, rigid abdomen, vomiting blood, black stool, collapse, pregnancy-possible with one-sided pain/bleeding (ectopic) → emergency. Right lower quadrant migrating pain, persistent vomiting, fever with pain, kidney-stone type pain → same day. Mild indigestion → pharmacy.",
+  "notes_en": "NHS stomach ache 999/A&E criteria; appendicitis migrating pain; ectopic pregnancy (shoulder tip pain, bleeding); testicular torsion for males; bowel obstruction features; older adults have lower threshold. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 78,
+  "body_areas": [
+    "abdomen"
+  ],
+  "search_terms": [
+    "болка во стомакот",
+    "стомак ме боли",
+    "грчеви",
+    "надуеност",
+    "болка во мевот",
+    "желудник"
+  ],
+  "red_flags": [
+    {
+      "code": "severe_sudden",
+      "label": "Ненадејна, многу силна болка во стомакот",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "rigid",
+      "label": "Стомакот е тврд и многу болен на допир, или болката е толку силна што не можете да се движите",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "blood_vomit",
+      "label": "Повраќате крв или нешто што личи на талог од кафе",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "black_stool",
+      "label": "Црна, катранеста столица или многу крв во столицата",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "collapse",
+      "label": "Несвестица, колапс, бледа и ладна, влажна кожа",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "chest_spread",
+      "label": "Болката е во горниот дел и се шири кон градите, раката или вилицата",
+      "outcome": "o_emergency",
+      "source": "nhs-heart-attack"
+    },
+    {
+      "code": "ectopic",
+      "label": "Можна бременост (задоцнет циклус) со болка на едната страна долу, крварење или болка во врвот на рамото",
+      "when": {
+        "demo": "sex",
+        "in": [
+          "female",
+          "unspecified"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-ectopic"
+    },
+    {
+      "code": "testis",
+      "label": "Ненадејна болка во тестисот (кај мажи)",
+      "when": {
+        "demo": "sex",
+        "eq": "male"
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-testicle-pain"
+    }
+  ],
+  "entry": "q_where",
+  "nodes": {
+    "q_where": {
+      "type": "question",
+      "kind": "single",
+      "text": "Каде е најсилна болката?",
+      "options": [
+        {
+          "value": "right_lower",
+          "label": "Долу десно (или почна околу папокот и се префрли долу десно)"
+        },
+        {
+          "value": "right_upper",
+          "label": "Горе десно, под ребрата"
+        },
+        {
+          "value": "upper_middle",
+          "label": "Горе на средина, под градната коска"
+        },
+        {
+          "value": "flank",
+          "label": "Во слабината/грбот на едната страна, може да се шири кон препоните"
+        },
+        {
+          "value": "lower",
+          "label": "Долу на средина или на двете страни"
+        },
+        {
+          "value": "all_over",
+          "label": "Низ целиот стомак / не можам да одредам"
+        }
+      ],
+      "next": "q_with"
+    },
+    "q_with": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали има и нешто од ова?",
+      "options": [
+        {
+          "value": "fever",
+          "label": "Температура или треска"
+        },
+        {
+          "value": "vomiting_persistent",
+          "label": "Повраќање што не престанува, не можам да задржам течности"
+        },
+        {
+          "value": "no_stool_gas",
+          "label": "Не можам да испуштам гасови или столица, а стомакот е надуен"
+        },
+        {
+          "value": "jaundice",
+          "label": "Пожолтени очи или кожа"
+        },
+        {
+          "value": "urinary",
+          "label": "Печење при мокрење или крв во урината"
+        },
+        {
+          "value": "diarrhoea",
+          "label": "Пролив"
+        },
+        {
+          "value": "weight_loss",
+          "label": "Губење тежина без причина или тешкотии при голтање"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "no_stool_gas"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_pain"
+        }
+      ]
+    },
+    "q_pain": {
+      "type": "question",
+      "kind": "scale",
+      "text": "Колку е силна болката сега, од 0 до 10?",
+      "min_label": "Без болка",
+      "max_label": "Најсилна болка",
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_24h",
+          "label": "Помалку од 24 часа"
+        },
+        {
+          "value": "1_3d",
+          "label": "1–3 дена"
+        },
+        {
+          "value": "4_7d",
+          "label": "4–7 дена"
+        },
+        {
+          "value": "1_3w",
+          "label": "1–3 недели"
+        },
+        {
+          "value": "gt_3w",
+          "label": "Подолго од 3 недели"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "no_stool_gas"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "demo": "pregnancy",
+            "in": [
+              "pregnant",
+              "unsure"
+            ]
+          },
+          "goto": "o_urgent_preg_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_pain",
+                "gte": 7
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "answer": "q_where",
+            "eq": "right_lower"
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_with",
+                "includes": "jaundice"
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_where",
+                    "eq": "right_upper"
+                  },
+                  {
+                    "answer": "q_with",
+                    "includes": "fever"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "answer": "q_where",
+            "eq": "flank"
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "vomiting_persistent"
+          },
+          "goto": "o_urgent_5"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_with",
+                "includes": "fever"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "heart_disease",
+                      "lung_disease",
+                      "kidney_disease",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_6"
+        },
+        {
+          "when": {
+            "answer": "q_pain",
+            "gte": 8
+          },
+          "goto": "o_urgent_7"
+        },
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "urinary"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "fever"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_with",
+            "includes": "weight_loss"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "1_3w"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_3w"
+              }
+            ]
+          },
+          "goto": "o_gp_2"
+        },
+        {
+          "when": {
+            "answer": "q_where",
+            "eq": "upper_middle"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "when": {
+            "answer": "q_pain",
+            "lte": 3
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Надуен стомак без испуштање гасови и столица, со болка, може да значи непроодност на цревата."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не јадете и не пијте ништо додека не ве прегледаат.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_preg_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај гинеколог денес",
+      "summary": "Болката во стомакот во бременост има многу причини; повеќето се безопасни, но некои бараат брз преглед.",
+      "reasons": [
+        "Болка во стомакот во бременост треба да ја процени гинеколог истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог или во гинеколошко-акушерска служба (породилиште) уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави крварење од вагината, силна болка или несвестица, веднаш повикајте 194 или 112.",
+        "Ако се појави силна главоболка, нарушен вид или оток на лицето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-preg-stomach-pain"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Кај постари лица силната болка во стомакот почесто има сериозна причина."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Болка долу десно, особено ако почнала околу папокот, може да е воспаление на слепото црево."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Болка горе десно со температура или пожолтување може да значи проблем со жолчката."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Грчевита болка во слабината може да е камен во бубрегот; со температура е итно."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_5": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Повраќање што не престанува носи ризик од дехидрација."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_6": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Болка во стомакот со температура кај лица со поголем ризик."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_7": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Многу силна болка треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Подолготрајната болка или губењето тежина треба да се испитаат, без одлагање, но не итно.",
+      "reasons": [
+        "Губење тежина или тешкотии при голтање треба да ги испита лекар (без одлагање)."
+      ],
+      "do_now": [
+        "Закажете преглед оваа недела; лекарот може да побара анализи."
+      ],
+      "watch_for": [
+        "Ако болката стане силна или се појави крв во столицата или повраќаното, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но придружните тегоби треба да ги процени лекар.",
+      "reasons": [
+        "Болката може да е поврзана со мочните патишта."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности и јадете лесна храна."
+      ],
+      "watch_for": [
+        "Ако болката нагло се засили, веднаш повикајте 194 или 112.",
+        "Ако се појави крв во повраќаното или столицата, веднаш повикајте 194 или 112.",
+        "Ако температурата не спаѓа или не можете да задржите течности, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija",
+          "urologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но придружните тегоби треба да ги процени лекар.",
+      "reasons": [
+        "Болка во стомакот со температура треба да ја провери лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности и јадете лесна храна."
+      ],
+      "watch_for": [
+        "Ако болката нагло се засили, веднаш повикајте 194 или 112.",
+        "Ако се појави крв во повраќаното или столицата, веднаш повикајте 194 или 112.",
+        "Ако температурата не спаѓа или не можете да задржите течности, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija",
+          "urologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_gp_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Подолготрајната болка или губењето тежина треба да се испитаат, без одлагање, но не итно.",
+      "reasons": [
+        "Болка што трае неколку недели треба да ја испита избраниот лекар."
+      ],
+      "do_now": [
+        "Закажете преглед оваа недела; лекарот може да побара анализи."
+      ],
+      "watch_for": [
+        "Ако болката стане силна или се појави крв во столицата или повраќаното, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Блага болка во горниот дел често е поврзана со варењето.",
+      "reasons": [
+        "Блага болка горе на средина често е поврзана со варење или желудечна киселина."
+      ],
+      "do_now": [
+        "Фармацевтот може да предложи средство против киселина или гасови.",
+        "Јадете помали оброци и избегнувајте алкохол и масна храна."
+      ],
+      "watch_for": [
+        "Ако болката се засили или се префрли долу десно, веднаш повикајте 194 или 112.",
+        "Ако се појави температура или повраќање што не престанува, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Болката е блага и нема знаци за итност.",
+      "reasons": [
+        "Болката е блага, без придружни знаци за итност."
+      ],
+      "do_now": [
+        "Одморете се, пијте течности, топол облог на стомакот може да помогне."
+      ],
+      "watch_for": [
+        "Ако болката се засили или се префрли долу десно, веднаш повикајте 194 или 112.",
+        "Ако се појави температура, крв во столицата или повраќање, веднаш повикајте 194 или 112.",
+        "Ако не помине за 2–3 дена, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но придружните тегоби треба да ги процени лекар.",
+      "reasons": [
+        "Нема знаци за итност, но придружните тегоби треба да ги процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности и јадете лесна храна."
+      ],
+      "watch_for": [
+        "Ако болката нагло се засили, веднаш повикајте 194 или 112.",
+        "Ако се појави крв во повраќаното или столицата, веднаш повикајте 194 или 112.",
+        "Ако температурата не спаѓа или не можете да задржите течности, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija",
+          "urologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не јадете и не пијте ништо додека не ве прегледаат.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-stomach-ache",
+      "title": "NHS (Велика Британија) — Stomach ache",
+      "url": "https://www.nhs.uk/symptoms/stomach-ache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-appendicitis",
+      "title": "NHS (Велика Британија) — Appendicitis",
+      "url": "https://www.nhs.uk/conditions/appendicitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ectopic",
+      "title": "NHS (Велика Британија) — Ectopic pregnancy",
+      "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-gallstones",
+      "title": "NHS (Велика Британија) — Gallstones",
+      "url": "https://www.nhs.uk/conditions/gallstones/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pancreatitis",
+      "title": "NHS (Велика Британија) — Acute pancreatitis",
+      "url": "https://www.nhs.uk/conditions/acute-pancreatitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-kidney-stones",
+      "title": "NHS (Велика Британија) — Kidney stones",
+      "url": "https://www.nhs.uk/conditions/kidney-stones/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-heart-attack",
+      "title": "NHS (Велика Британија) — Heart attack",
+      "url": "https://www.nhs.uk/conditions/heart-attack/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-testicle-pain",
+      "title": "NHS (Велика Британија) — Testicle pain",
+      "url": "https://www.nhs.uk/symptoms/testicle-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-preg-stomach-pain",
+      "title": "NHS (Велика Британија) — Stomach pain in pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/common-symptoms/stomach-pain/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

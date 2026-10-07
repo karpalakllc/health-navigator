@@ -1,0 +1,795 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "shortness-of-breath",
+  "title": "Отежнато дишење",
+  "summary_en": "Adult breathlessness. Severe/sudden breathlessness, cyanosis, inability to speak, chest pain, collapse → 194. Gradual breathlessness with fever (possible pneumonia) or worsening known COPD/heart failure → same day. Chronic slow change → GP.",
+  "notes_en": "NHS breathlessness 999 criteria (unable to speak, blue lips, chest pain, confusion). SpO2 thresholds (≤91 emergency, ≤94 urgent) are conservative public-health thresholds used widely in COVID-19 home-monitoring advice; COPD patients may run lower, so the 94 rule is skipped for COPD. Assumptions: Pulse oximeter values are optional and only escalate, never de-escalate. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 94,
+  "body_areas": [
+    "chest"
+  ],
+  "search_terms": [
+    "отежнато дишење",
+    "недостиг на воздух",
+    "не можам да дишам",
+    "задув",
+    "гушење"
+  ],
+  "red_flags": [
+    {
+      "code": "cannot_speak",
+      "label": "Толку тешко дишете што не можете да кажете цела реченица",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "blue_lips",
+      "label": "Посинети, сиви или многу бледи усни, јазик или кожа",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "sudden_severe",
+      "label": "Недостигот на воздух се појави нагло и е силен",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "chest_pain",
+      "label": "Болка или притисок во градите",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "confused_drowsy",
+      "label": "Збунетост, поспаност или тешко будење",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "swelling_face",
+      "label": "Отекување на лицето, усните, јазикот или грлото",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "coughing_blood",
+      "label": "Искашлување поголемо количество крв",
+      "outcome": "o_emergency",
+      "source": "nhs-pe"
+    }
+  ],
+  "entry": "q_context",
+  "nodes": {
+    "q_context": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што најдобро го опишува вашиот случај?",
+      "options": [
+        {
+          "value": "asthma",
+          "label": "Имам астма и симптомите се влошуваат"
+        },
+        {
+          "value": "copd",
+          "label": "Имам ХОББ (хронична опструктивна белодробна болест) и е полошо од вообичаено"
+        },
+        {
+          "value": "heart_failure",
+          "label": "Имам срцева слабост; оток на нозете или полошо дишење при лежење"
+        },
+        {
+          "value": "fever_cough",
+          "label": "Имам температура и кашлица"
+        },
+        {
+          "value": "anxiety",
+          "label": "Се јавува при силен стрес или паника и потоа поминува"
+        },
+        {
+          "value": "exertion_slow",
+          "label": "Постепено, со месеци, ми снемува воздух при напор"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_dvt_risk"
+    },
+    "q_dvt_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "leg_swelling",
+          "label": "Отечена, топла или болна потколеница на едната нога"
+        },
+        {
+          "value": "recent_surgery",
+          "label": "Операција, гипс или подолго лежење во последните 4 недели"
+        },
+        {
+          "value": "pregnant_post",
+          "label": "Бременост или породување во последните 6 недели"
+        },
+        {
+          "value": "prior_clot",
+          "label": "Порано сте имале тромб"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_dvt_risk",
+            "includes_any": [
+              "leg_swelling",
+              "recent_surgery",
+              "pregnant_post",
+              "prior_clot"
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "goto": "q_onset"
+        }
+      ]
+    },
+    "q_onset": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како се појави?",
+      "options": [
+        {
+          "value": "hours",
+          "label": "Во последните часови"
+        },
+        {
+          "value": "days",
+          "label": "Во последните неколку дена"
+        },
+        {
+          "value": "weeks",
+          "label": "Постепено, во текот на неколку недели или месеци"
+        }
+      ],
+      "next": "q_spo2"
+    },
+    "q_spo2": {
+      "type": "question",
+      "kind": "single",
+      "text": "Ако имате пулсен оксиметар (мал уред што се става на прстот), колкава е сатурацијата (кислородот во крвта) во мирување?",
+      "options": [
+        {
+          "value": "ge95",
+          "label": "95 % или повеќе"
+        },
+        {
+          "value": "92_94",
+          "label": "92–94 %"
+        },
+        {
+          "value": "le91",
+          "label": "91 % или помалку"
+        },
+        {
+          "value": "no_device",
+          "label": "Немам уред / не знам"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_spo2",
+            "eq": "le91"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_spo2",
+            "eq": "le91"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_dvt_risk",
+            "includes_any": [
+              "leg_swelling",
+              "recent_surgery",
+              "pregnant_post",
+              "prior_clot"
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "when": {
+            "demo": "pregnancy",
+            "in": [
+              "pregnant",
+              "postpartum",
+              "unsure"
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_spo2",
+                "eq": "92_94"
+              },
+              {
+                "not": {
+                  "answer": "q_context",
+                  "includes": "copd"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_context",
+                "includes": "copd"
+              },
+              {
+                "answer": "q_context",
+                "includes": "heart_failure"
+              },
+              {
+                "answer": "q_context",
+                "includes": "asthma"
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_context",
+                "includes": "fever_cough"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "heart_disease",
+                      "lung_disease",
+                      "kidney_disease",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "answer": "q_onset",
+                    "eq": "hours"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "answer": "q_onset",
+            "eq": "hours"
+          },
+          "goto": "o_urgent_5"
+        },
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "fever_cough"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "exertion_slow"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "anxiety"
+          },
+          "goto": "o_gp_2"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Сатурацијата е многу ниска."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено, наведнати малку напред; олабавете тесна облека.",
+        "Ако имате пропишан инхалатор за олеснување, употребете го како што ве упатил лекарот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_2": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Недостиг на воздух со ризик за тромб може да значи тромб во белите дробови."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено, наведнати малку напред; олабавете тесна облека.",
+        "Ако имате пропишан инхалатор за олеснување, употребете го како што ве упатил лекарот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Нов недостиг на воздух во бременост или по породување треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Сатурацијата е пониска од вообичаеното."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Влошување на позната хронична болест на дишењето или срцето треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Недостиг на воздух со температура може да значи воспаление на белите дробови; кај вас ризикот е поголем."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но недостигот на воздух треба да го процени лекар.",
+      "reasons": [
+        "Недостиг на воздух со температура и кашлица бара лекарот да ги слушне белите дробови."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар во рок од 1–2 дена.",
+        "Одморајте се и пијте доволно течности."
+      ],
+      "watch_for": [
+        "Ако дишењето стане потешко при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите, посинување или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sob",
+        "nhs-pneumonia"
+      ]
+    },
+    "o_urgent_5": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Недостигот на воздух е нов, а причината не е јасна."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар оваа недела",
+      "summary": "Постепениот недостиг на воздух или оној поврзан со стрес е подобро да се испита планирано.",
+      "reasons": [
+        "Постепено влошување при напор треба да се испита кај избраниот лекар."
+      ],
+      "do_now": [
+        "Закажете преглед; лекарот може да побара снимка, спирометрија или крвни анализи."
+      ],
+      "watch_for": [
+        "Ако недостигот на воздух се појави и при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или искашлување крв, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_gp_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар оваа недела",
+      "summary": "Постепениот недостиг на воздух или оној поврзан со стрес е подобро да се испита планирано.",
+      "reasons": [
+        "Недостигот на воздух поврзан со стрес е чест, но вреди да се разговара со лекар."
+      ],
+      "do_now": [
+        "Закажете преглед; лекарот може да побара снимка, спирометрија или крвни анализи."
+      ],
+      "watch_for": [
+        "Ако недостигот на воздух се појави и при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или искашлување крв, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sob"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но недостигот на воздух треба да го процени лекар.",
+      "reasons": [
+        "Нема знаци за итност, но недостигот на воздух треба да го процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар во рок од 1–2 дена.",
+        "Одморајте се и пијте доволно течности."
+      ],
+      "watch_for": [
+        "Ако дишењето стане потешко при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите, посинување или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sob",
+        "nhs-pneumonia"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено, наведнати малку напред; олабавете тесна облека.",
+        "Ако имате пропишан инхалатор за олеснување, употребете го како што ве упатил лекарот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-sob",
+      "title": "NHS (Велика Британија) — Shortness of breath",
+      "url": "https://www.nhs.uk/symptoms/shortness-of-breath/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pe",
+      "title": "NHS (Велика Британија) — Pulmonary embolism",
+      "url": "https://www.nhs.uk/conditions/pulmonary-embolism/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pneumonia",
+      "title": "NHS (Велика Британија) — Pneumonia",
+      "url": "https://www.nhs.uk/conditions/pneumonia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-copd",
+      "title": "NHS (Велика Британија) — Chronic obstructive pulmonary disease (COPD)",
+      "url": "https://www.nhs.uk/conditions/chronic-obstructive-pulmonary-disease-copd/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-heart-failure",
+      "title": "NHS (Велика Британија) — Heart failure",
+      "url": "https://www.nhs.uk/conditions/heart-failure/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-asthma",
+      "title": "NHS (Велика Британија) — Asthma (incl. asthma attacks)",
+      "url": "https://www.nhs.uk/conditions/asthma/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-anaphylaxis",
+      "title": "NHS (Велика Британија) — Anaphylaxis",
+      "url": "https://www.nhs.uk/conditions/anaphylaxis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-chest-pain",
+      "title": "NHS (Велика Британија) — Chest pain",
+      "url": "https://www.nhs.uk/symptoms/chest-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

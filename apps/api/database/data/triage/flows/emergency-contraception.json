@@ -1,0 +1,333 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "emergency-contraception",
+  "title": "Итна контрацепција (по незаштитен однос)",
+  "summary_en": "Emergency contraception guidance: where to go and how soon. Red flag: possible ectopic (pain/bleeding). <72h → pharmacy or gynaecologist today; 72–120h → gynaecologist today (some methods work up to 5 days); >120h → pregnancy test and gynaecologist. Sexual violence → same-day support (police 192 / emergency department).",
+  "notes_en": "NHS emergency contraception (fetched 2026-10-07): levonorgestrel ≤72h, ulipristal ≤120h, copper IUD ≤5 days; WHO EC fact sheet. No drug names or doses in public copy. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64"
+    ]
+  },
+  "urgency_rank": 50,
+  "body_areas": [
+    "pelvis"
+  ],
+  "search_terms": [
+    "итна контрацепција",
+    "пилула за после",
+    "незаштитен однос",
+    "пукна кондом",
+    "контрацепција"
+  ],
+  "red_flags": [
+    {
+      "code": "ectopic",
+      "label": "Силна болка на едната страна долу во стомакот, несвестица или болка во врвот на рамото",
+      "outcome": "o_emergency",
+      "source": "nhs-ectopic"
+    }
+  ],
+  "entry": "q_assault",
+  "nodes": {
+    "q_assault": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали односот беше без ваша согласност?",
+      "help": "Ова прашање е тука за да ви понудиме соодветна помош. Одговорот не се поврзува со вас.",
+      "options": [
+        {
+          "value": "no",
+          "label": "Не"
+        },
+        {
+          "value": "yes",
+          "label": "Да"
+        },
+        {
+          "value": "prefer_not",
+          "label": "Не сакам да одговорам"
+        }
+      ],
+      "next": "q_hours"
+    },
+    "q_hours": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку време помина од незаштитениот однос?",
+      "options": [
+        {
+          "value": "lt_72",
+          "label": "Помалку од 3 дена (72 часа)"
+        },
+        {
+          "value": "72_120",
+          "label": "3–5 дена (72–120 часа)"
+        },
+        {
+          "value": "gt_120",
+          "label": "Повеќе од 5 дена"
+        }
+      ],
+      "next": "q_late_period"
+    },
+    "q_late_period": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали менструацијата ви доцни?",
+      "next": [
+        {
+          "when": {
+            "answer": "q_assault",
+            "eq": "yes"
+          },
+          "goto": "o_assault_1"
+        },
+        {
+          "when": {
+            "answer": "q_hours",
+            "eq": "72_120"
+          },
+          "goto": "o_urgent_gyn_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_late_period",
+                "eq": "yes"
+              },
+              {
+                "answer": "q_hours",
+                "eq": "gt_120"
+              }
+            ]
+          },
+          "goto": "o_gp_test_1"
+        },
+        {
+          "when": {
+            "answer": "q_hours",
+            "eq": "lt_72"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_pharm"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_assault_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес — не сте сами",
+      "summary": "Медицинската помош по сексуално насилство е најкорисна што побрзо: заштита од бременост, од инфекции и документирање на повредите.",
+      "reasons": [
+        "По сексуално насилство имате право на итна медицинска помош, заштита од бременост и инфекции, и поддршка."
+      ],
+      "do_now": [
+        "Ако сте во опасност, повикајте полиција на 192 или 112.",
+        "Одете во итна служба или гинеколошка служба уште денес; ако можете, не се миете и не ја менувајте облеката пред прегледот.",
+        "Може да побарате со вас да биде лице на кое му верувате."
+      ],
+      "watch_for": [
+        "Ако имате силна болка, обилно крварење или се чувствувате небезбедно, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-ec"
+      ]
+    },
+    "o_gp_test_1": {
+      "level": "see_gp_this_week",
+      "title": "Направете тест за бременост и закажете кај гинеколог",
+      "summary": "Итната контрацепција веројатно повеќе не е опција; прво треба да се провери дали има бременост.",
+      "reasons": [
+        "Поминаа повеќе од 5 дена или менструацијата доцни — прво треба тест за бременост."
+      ],
+      "do_now": [
+        "Тест за бременост од аптека е сигурен 3 недели по односот.",
+        "Закажете кај гинеколог за разговор за тестот, контрацепцијата и тестирање за сексуално преносливи инфекции."
+      ],
+      "watch_for": [
+        "Ако се појави силна болка на едната страна долу во стомакот или крварење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-ec",
+        "nhs-sti"
+      ]
+    },
+    "o_urgent_gyn_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се кај гинеколог денес",
+      "summary": "По 3 дена некои методи (одредени пилули или бакарна спирала) сè уште можат да помогнат, но времето е важно.",
+      "reasons": [
+        "Некои методи на итна контрацепција делуваат до 5 дена по односот, но треба да се дејствува денес."
+      ],
+      "do_now": [
+        "Јавете се кај гинеколог уште денес.",
+        "Можете да прашате и во аптека кои можности постојат."
+      ],
+      "watch_for": [
+        "Ако менструацијата задоцни, направете тест за бременост.",
+        "Ако се појави силна болка на едната страна долу во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-ec"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Аптека или гинеколог — уште денес",
+      "summary": "Итната контрацепција делува најдобро што побрзо по односот.",
+      "reasons": [
+        "Итната контрацепција е најефикасна што порано по односот."
+      ],
+      "do_now": [
+        "Обратете се во аптека уште денес; фармацевтот ќе ве посоветува и ќе ви каже дали е потребен лекар.",
+        "Друга можност е гинеколог: бакарната спирала (интраутерина помагала) е најефикасна и може да се постави до 5 дена по односот."
+      ],
+      "watch_for": [
+        "Ако менструацијата задоцни повеќе од 7 дена или е необична, направете тест за бременост и јавете се кај гинеколог.",
+        "Ако се појави силна болка на едната страна долу во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-ec",
+        "who-ec"
+      ]
+    },
+    "o_pharm": {
+      "level": "pharmacy_advice",
+      "title": "Аптека или гинеколог — уште денес",
+      "summary": "Итната контрацепција делува најдобро што побрзо по односот.",
+      "reasons": [
+        "Итната контрацепција делува најдобро што побрзо по односот."
+      ],
+      "do_now": [
+        "Обратете се во аптека уште денес; фармацевтот ќе ве посоветува и ќе ви каже дали е потребен лекар.",
+        "Друга можност е гинеколог: бакарната спирала (интраутерина помагала) е најефикасна и може да се постави до 5 дена по односот."
+      ],
+      "watch_for": [
+        "Ако менструацијата задоцни повеќе од 7 дена или е необична, направете тест за бременост и јавете се кај гинеколог.",
+        "Ако се појави силна болка на едната страна долу во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-ec",
+        "who-ec"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teens 13–17 are included; same timing applies. Consent/confidentiality for minors is an open question.",
+    "pregnancy": "Late period / >5 days routes to a pregnancy test first.",
+    "chronic": "No condition-specific threshold; the pharmacist/gynaecologist checks interactions."
+  },
+  "sources": [
+    {
+      "id": "nhs-ec",
+      "title": "NHS (Велика Британија) — Emergency contraception",
+      "url": "https://www.nhs.uk/contraception/emergency-contraception/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "who-ec",
+      "title": "Светска здравствена организација (WHO) — Emergency contraception — fact sheet",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/emergency-contraception",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sti",
+      "title": "NHS (Велика Британија) — Sexually transmitted infections",
+      "url": "https://www.nhs.uk/conditions/sexually-transmitted-infections-stis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ectopic",
+      "title": "NHS (Велика Британија) — Ectopic pregnancy",
+      "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}
