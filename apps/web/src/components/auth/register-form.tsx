@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAltcha } from "@/components/altcha/use-altcha";
 import { AuthStateHeader } from "@/components/auth/auth-page";
 import { PasswordField } from "@/components/auth/password-input";
 import { PrivacyNote } from "@/components/auth/privacy-note";
@@ -92,6 +93,9 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
   const summaryRef = useRef<HTMLDivElement>(null);
   // Bumped on every rejected submit so focus moves to the summary each time.
   const [rejections, setRejections] = useState(0);
+  // Anti-bot proof of work, solved in the background while the form is
+  // filled in (W7-C).
+  const altcha = useAltcha();
 
   useEffect(() => {
     if (rejections > 0) {
@@ -153,6 +157,13 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
     setPending(true);
 
     try {
+      const altchaPayload = await altcha.solve();
+
+      if (altchaPayload === null) {
+        setError(t("altcha.failed"));
+        return;
+      }
+
       const response = await fetch("/api/session/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,12 +174,14 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           password,
           password_confirmation: passwordConfirmation,
           accept_terms: acceptTerms,
+          altcha: altchaPayload,
         }),
       });
 
       const payload = await response.json();
 
       if (!response.ok) {
+        altcha.renew();
         // Each field shows its own message and the summary lists them all
         // (Laravel's "… (и уште N грешки)" names only the first one). A
         // reply without field errors (rate limit, server) keeps its message.
@@ -187,6 +200,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
       // and the API deliberately does not say whether it was already registered.
       setSubmitted(true);
     } catch {
+      altcha.renew();
       setError(t("auth.registerFailed"));
     } finally {
       setPending(false);
@@ -287,6 +301,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           />
         ) : null}
         {error ? <FormError>{error}</FormError> : null}
+        {altcha.widget}
         <Button
           type="submit"
           size="lg"

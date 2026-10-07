@@ -36,6 +36,7 @@ import { pageMetadata, profileMeta } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { ApiRequestError } from "@/lib/api/server";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t, tFormat } from "@/i18n/t";
 
 type DoctorDetailPageProps = {
@@ -262,6 +263,7 @@ export default async function DoctorDetailPage({
                 ) : undefined
               }
             />
+            <ProfileReportButton subject="doctor" slug={slug} />
 
             <ProfileContactList info={contact} />
 

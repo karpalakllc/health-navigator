@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { useAltcha } from "@/components/altcha/use-altcha";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Fieldset, Radio, Textarea } from "@/components/ui/field";
@@ -113,6 +114,8 @@ function ReportForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  // Starts solving when the sheet opens (the form mounts with it).
+  const altcha = useAltcha();
   const firstRadio = useRef<HTMLDivElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +133,13 @@ function ReportForm({
     setPending(true);
 
     try {
+      const altchaPayload = await altcha.solve();
+
+      if (altchaPayload === null) {
+        setError(t("altcha.failed"));
+        return;
+      }
+
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,6 +147,7 @@ function ReportForm({
           target,
           reason,
           note: note.trim() === "" ? null : note.trim(),
+          altcha: altchaPayload,
         }),
       });
 
@@ -147,6 +158,7 @@ function ReportForm({
       }
 
       if (!response.ok) {
+        altcha.renew();
         const payload = await response.json().catch(() => ({}));
         setError(
           response.status === 429
@@ -160,6 +172,7 @@ function ReportForm({
       // Focus follows the content swap, so it is not lost on <body>.
       requestAnimationFrame(() => successRef.current?.focus());
     } catch {
+      altcha.renew();
       setError(t("reports.error"));
     } finally {
       setPending(false);
@@ -216,6 +229,7 @@ function ReportForm({
         counter={formatCharCounter(note.length, REPORT_NOTE_MAX)}
       />
       {error ? <FormError>{error}</FormError> : null}
+      {altcha.widget}
       <Button type="submit" loading={pending} fullWidth>
         {t("reports.submit")}
       </Button>

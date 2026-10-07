@@ -317,6 +317,7 @@ describe("DoctorClaimForm", () => {
       slug: "ana-petrovska",
       message: "Јас сум д-р Ана Петровска.",
       contact: "070 123 456",
+      altcha: "test-altcha-1",
     });
     expect(await screen.findByRole("status")).toHaveTextContent(
       t("doctorDashboard.claimSent"),

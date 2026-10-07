@@ -39,5 +39,7 @@
         <env name="SANCTUM_STATEFUL_DOMAINS" value=""/>
         <env name="SCOUT_DRIVER" value="null"/>
         <env name="SCOUT_QUEUE" value="false"/>
+        <!-- ALTCHA is enforced by AltchaTest and AltchaProtectedRoutesTest, which turn it on. -->
+        <env name="ALTCHA_ENABLED" value="false"/>
     </php>
 </phpunit>

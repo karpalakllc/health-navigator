@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccountController;
+use App\Http\Controllers\Api\V1\AltchaChallengeController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileCorrectionController;
+use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReviewHelpfulController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -100,7 +102,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/login', [AuthController::class, 'login'])
             ->middleware('throttle:api-login');
         Route::post('/register', [AuthController::class, 'register'])
-            ->middleware(['registrations', 'throttle:api-login']);
+            ->middleware(['registrations', 'throttle:api-login', 'altcha']);
         Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
             ->middleware(['signed', 'throttle:api-login'])
             ->name('verification.verify');
@@ -147,7 +149,7 @@ Route::prefix('v1')->group(function (): void {
     // windows, each with its own key prefix so they count separately: a burst
     // limit and a daily ceiling per account. One report per item is enforced
     // by the table, so the limits only bound how many items one account flags.
-    Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily'])
+    Route::middleware(['auth:sanctum', 'verified', 'throttle:10,10,api-reports-burst', 'throttle:40,1440,api-reports-daily', 'altcha'])
         ->group(function (): void {
             Route::post('/reviews/{review}/reports', [ContentReportController::class, 'storeForReview'])
                 ->where('review', '[0-9]{1,18}');
@@ -211,7 +213,7 @@ Route::prefix('v1')->group(function (): void {
 
     // „Ова е мој профил“: a member asks staff to link them to a profile.
     Route::post('/doctors/{slug}/claim-requests', [DoctorClaimController::class, 'store'])
-        ->middleware(['auth:sanctum', 'verified', 'throttle:5,1440,api-doctor-claims']);
+        ->middleware(['auth:sanctum', 'verified', 'throttle:5,1440,api-doctor-claims', 'altcha']);
 
     // Forum keywords and profile ↔ forum links (W5-S, docs/seo.md). Anonymous
     // and identical for everyone, so shared caches may keep them for 60 s.
@@ -229,11 +231,32 @@ Route::prefix('v1')->group(function (): void {
     // account). Two windows, each keyed by account or else by address: a
     // burst limit and an hourly ceiling (an address-keyed limit lasts at most
     // an hour, as the privacy policy says). No IP address is stored with a request.
-    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-corrections-burst', 'throttle:15,60,api-corrections-hourly'])
+    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-corrections-burst', 'throttle:15,60,api-corrections-hourly', 'altcha'])
         ->group(function (): void {
             Route::post('/doctors/{slug}/corrections', [ProfileCorrectionController::class, 'storeForDoctor'])
                 ->name('corrections.doctor');
             Route::post('/facilities/{slug}/corrections', [ProfileCorrectionController::class, 'storeForFacility'])
                 ->name('corrections.facility');
+        });
+
+    // W7-C: a signed ALTCHA proof-of-work challenge for the web's widget
+    // (AltchaGuard). Every route behind the `altcha` middleware needs one
+    // solved; per-address limits keep anyone from stockpiling them.
+    Route::get('/altcha/challenge', AltchaChallengeController::class)
+        ->middleware('throttle:api-altcha');
+
+    // W7-C: „Пријави профил“ on a doctor, facility or pharmacy profile.
+    // Anyone may send one; the controller keeps a member to one open report
+    // per profile and a guest to one per profile per day per address. The
+    // windows are keyed by account or else by address, as for corrections.
+    Route::middleware(['auth.sanctum.optional', 'throttle:5,10,api-profile-reports-burst', 'throttle:15,60,api-profile-reports-hourly', 'altcha'])
+        ->group(function (): void {
+            Route::post('/doctors/{slug}/profile-reports', [ProfileReportController::class, 'storeForDoctor'])
+                ->name('profile-reports.doctor');
+            Route::post('/facilities/{slug}/profile-reports', [ProfileReportController::class, 'storeForFacility'])
+                ->name('profile-reports.facility');
+            Route::post('/pharmacies/{slug}/profile-reports', [ProfileReportController::class, 'storeForPharmacy'])
+                ->middleware('module:pharmacies')
+                ->name('profile-reports.pharmacy');
         });
 });

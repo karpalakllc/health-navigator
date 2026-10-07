@@ -1503,6 +1503,59 @@ export const mk = {
     keptCurrentBody:
       "Проверката се повторува при секое ажурирање на изворите. Ако лиценцата истече или записот исчезне од регистарот, ознаката се отстранува сама. Во листите можете да изберете „Само верифицирани“, а грешка во профил пријавете ја преку линкот на профилот.",
   },
+  // W7-C: ALTCHA, the self-hosted proof of work on forms open to bots.
+  altcha: {
+    failed:
+      "Не успеавме да потврдиме дека формуларот го праќа човек. Проверете ја врската и обидете се повторно.",
+    // The widget's own strings (it runs invisibly; these show only if it
+    // ever has to speak).
+    widget: {
+      ariaLinkLabel: "ALTCHA",
+      enterCode: "Внесете го кодот",
+      enterCodeAria: "Внесете го кодот што го слушате.",
+      enterCodeFromImage: "За да продолжите, внесете го кодот од сликата.",
+      error: "Проверката не успеа. Обидете се повторно.",
+      expired: "Проверката истече. Обидете се повторно.",
+      getAudioChallenge: "Аудио верзија",
+      label: "Проверка дека не сте робот",
+      loading: "Се вчитува…",
+      reload: "Обиди се повторно",
+      verify: "Провери",
+      verificationRequired: "Потребна е проверка.",
+      verified: "Потврдено",
+      verifying: "Се проверува…",
+      waitAlert: "Се проверува, почекајте малку.",
+      cancel: "Откажи",
+    },
+  },
+  // W7-C: „Пријави профил“ on doctor, facility and pharmacy profiles.
+  profileReports: {
+    action: "Пријави профил",
+    dialogTitle: "Пријави профил",
+    intro:
+      "Пријавата ја гледа само нашиот тим. Профилот не се крие сам од себе: тимот го проверува и одлучува.",
+    reasonLegend: "Што не е во ред со профилот?",
+    reasons: {
+      fake_profile: "Лажен или непостоечки профил",
+      wrong_person: "Погрешна личност",
+      no_longer_here: "Веќе не работи тука",
+      no_longer_here_place: "Веќе не работи или е преселена",
+      inappropriate_content: "Несоодветна слика или содржина",
+      other: "Друго",
+    },
+    reasonRequired: "Изберете причина.",
+    noteLabel: "Белешка (по желба)",
+    noteHint: "Без лични или здравствени податоци.",
+    submit: "Испрати пријава",
+    sending: "Се испраќа…",
+    successTitle: "Ви благодариме",
+    successBody: "Пријавата е примена. Тимот ќе го провери профилот.",
+    close: "Затвори",
+    error: "Пријавата не е испратена. Обидете се повторно.",
+    throttled:
+      "Испративте повеќе пријави за кратко време. Обидете се повторно подоцна.",
+    honeypotLabel: "Оставете го ова поле празно",
+  },
 } as const;
 
 export type MkMessages = typeof mk;
