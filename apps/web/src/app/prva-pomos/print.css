@@ -1,0 +1,26 @@
+/*
+ * „Прва помош“ on paper: only the guide. Keyed off the page's own marker
+ * ([data-first-aid-print]) so the rules do nothing elsewhere, even if the
+ * stylesheet stays loaded after a client-side navigation away.
+ */
+@media print {
+  body:has([data-first-aid-print])
+    :is(header, footer, nav, [data-track="tab-bar"]):not(
+      [data-first-aid-print] *
+    ) {
+    display: none !important;
+  }
+
+  body:has([data-first-aid-print]) {
+    background: #fff !important;
+  }
+
+  [data-first-aid-print] a[href^="tel:"] {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+
+  @page {
+    margin: 14mm 12mm;
+  }
+}
