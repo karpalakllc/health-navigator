@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  * 2. Equal values only refresh provenance.
  * 3. The import may write when the record is new, the field is empty, or the
  *    current value is exactly what THIS source wrote last time (nobody else
- *    touched it since).
+ *    touched it since) or what the name cleanup made of it.
  * 4. Otherwise someone else set the value (staff, the doctor's own edit,
  *    another source): nothing is overwritten and a "conflict" review item
  *    shows both values.
@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\DB;
  */
 final class ProvenanceWriter
 {
+    /** Provenance source of a value import:clean-names rewrote. */
+    public const CLEANUP_SOURCE = 'cleanup';
+
     /** @var array<string, array<string, FieldProvenance>> provenance rows by "type:id", then field */
     private array $cache = [];
 
@@ -103,8 +106,11 @@ final class ProvenanceWriter
             return 'unchanged';
         }
 
+        // A value the name cleanup rewrote (import:clean-names) still belongs
+        // to the source that wrote it before: the cleanup only touches
+        // fields no person edited.
         $ownValue = $provenance !== null
-            && $provenance->source === $this->context->source
+            && $this->originalSource($provenance) === $this->context->source
             && $provenance->value === $current;
 
         if (! $isNew && $current !== null && ! $ownValue) {
@@ -147,7 +153,36 @@ final class ProvenanceWriter
      */
     public function sourceOf(Model $subject, string $field): ?string
     {
-        return $subject->exists ? $this->provenance($subject, $field)?->source : null;
+        $row = $subject->exists ? $this->provenance($subject, $field) : null;
+
+        return $row !== null ? $this->originalSource($row) : null;
+    }
+
+    /** @var array<int, string|null> source of a source record, by id */
+    private array $recordSources = [];
+
+    /**
+     * The source behind a value: for one the name cleanup rewrote, the
+     * source of the record the value came from (kept on the row).
+     */
+    private function originalSource(FieldProvenance $row): ?string
+    {
+        if ($row->source !== self::CLEANUP_SOURCE) {
+            return $row->source;
+        }
+
+        $recordId = $row->source_record_id;
+
+        if ($recordId === null) {
+            return null;
+        }
+
+        if (! array_key_exists($recordId, $this->recordSources)) {
+            $source = DB::table('source_records')->where('id', $recordId)->value('source');
+            $this->recordSources[$recordId] = is_string($source) ? $source : null;
+        }
+
+        return $this->recordSources[$recordId];
     }
 
     /**

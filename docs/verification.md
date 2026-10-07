@@ -112,7 +112,7 @@ the ФЗОМ import marked `no_specialty` (§8).
 
 | Rule | Basis | Evidence |
 |---|---|---|
-| `fzom_register` | `official_registers` | The ФЗОМ register lists the institution in the latest complete snapshot, and the profile still carries the register's tax number (ЕДБ, or the ФЗО code for an institution without one), the same name words (case, quotes and punctuation aside) and the same town. |
+| `fzom_register` | `official_registers` | The ФЗОМ register lists the institution in the latest complete snapshot, and the profile still carries the register's tax number (ЕДБ, or the ФЗО code for an institution without one), the same name words (case, quotes and punctuation aside — or the words of the register name as the import shows it, [`data-import.md`](data-import.md) §12: abbreviations written out, the town of a private practice dropped) and the same town. |
 
 Unverified: `register_mismatch` (in the register, but name, town or tax
 number differ — an item when the profile is public), `stale_register`, `source_removed`,
