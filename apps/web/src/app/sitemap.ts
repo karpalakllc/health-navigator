@@ -16,6 +16,9 @@ import { loadPublicSettings } from "@/lib/api/settings";
 import { collectPages } from "@/lib/collect-pages";
 import { isIndexableTag, TAG_INDEXABLE_MIN_TOPICS } from "@/lib/metadata";
 import { absoluteUrl } from "@/lib/site-url";
+import { fetchUrgentCareCities } from "@/lib/api/urgent-care";
+import { GUIDES } from "@/content/guides/guides";
+import { citySlug } from "@/lib/urgent-care";
 
 /**
  * Regenerated at most hourly. Without this the sitemap would call the API on
@@ -56,6 +59,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/disclaimer",
     // „Транспарентност“ (W5-I): moderation statistics and ordering rules.
     "/transparency",
+    // „Каде веднаш“ and the healthcare guides (docs/urgent-care.md).
+    "/urgent-care",
+    "/guides",
+    ...GUIDES.map((guide) => `/guides/${guide.slug}`),
     // Optional modules answer 503 while switched off, so their URLs are only
     // advertised while they are on.
     ...(settings.public_forum ? ["/forum"] : []),
@@ -72,6 +79,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // A partial sitemap is better than a 500 for a crawler: collectPages stops a
   // listing at its first failing page instead of throwing.
+  // City pages of „Каде веднаш“ with at least one place (the others are
+  // noindex). A failure only drops them from this sitemap.
+  const urgentCities = await fetchUrgentCareCities(CACHE).catch(() => []);
+  const urgentPaths = [
+    ...new Set(
+      urgentCities
+        .map((city) => citySlug(city.name))
+        .filter((slug): slug is string => slug !== null),
+    ),
+  ];
+  entries.push(
+    ...urgentPaths.map((slug) => ({
+      url: absoluteUrl(`/urgent-care/${slug}`),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
+  );
+
   const [doctors, facilities, pharmacies, products] = await Promise.all([
     collectPages(
       (page) => fetchDoctors({ page, per_page: PER_PAGE }, CACHE),

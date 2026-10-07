@@ -8,12 +8,14 @@ const fetchProducts = vi.hoisted(() => vi.fn());
 const fetchForumCategories = vi.hoisted(() => vi.fn());
 const fetchForumTopics = vi.hoisted(() => vi.fn());
 const fetchForumTags = vi.hoisted(() => vi.fn());
+const fetchUrgentCareCities = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/settings", () => ({ loadPublicSettings }));
 vi.mock("@/lib/api/doctors", () => ({ fetchDoctors }));
 vi.mock("@/lib/api/facilities", () => ({ fetchFacilities }));
 vi.mock("@/lib/api/pharmacies", () => ({ fetchPharmacies }));
 vi.mock("@/lib/api/products", () => ({ fetchProducts }));
+vi.mock("@/lib/api/urgent-care", () => ({ fetchUrgentCareCities }));
 vi.mock("@/lib/api/forum", () => ({
   fetchForumCategories,
   fetchForumTopics,
@@ -45,6 +47,7 @@ beforeEach(() => {
   fetchFacilities.mockResolvedValue(page(["klinika"]));
   fetchPharmacies.mockResolvedValue(page(["zegin-centar", "jakafarm"]));
   fetchProducts.mockResolvedValue(page(["ibuprofen-400"]));
+  fetchUrgentCareCities.mockResolvedValue([]);
 });
 
 async function urls(): Promise<string[]> {
@@ -100,6 +103,40 @@ describe("sitemap", () => {
     expect(list.some((url) => url.includes("/products"))).toBe(false);
     expect(fetchPharmacies).not.toHaveBeenCalled();
     expect(fetchProducts).not.toHaveBeenCalled();
+  });
+
+  it("lists „Каде веднаш“, its city pages with places, and the guides", async () => {
+    fetchUrgentCareCities.mockResolvedValue([
+      { name: "Скопје", total: 3, ed: 2, ems: 1, clinic: 0, dental: 0 },
+      { name: "Битола", total: 1, ed: 1, ems: 0, clinic: 0, dental: 0 },
+      // Not on the territorial list: no city page to advertise.
+      { name: "Непознато", total: 1, ed: 1, ems: 0, clinic: 0, dental: 0 },
+    ]);
+
+    const list = await urls();
+
+    expect(list).toEqual(
+      expect.arrayContaining([
+        "https://zdravje.test/urgent-care",
+        "https://zdravje.test/urgent-care/skopje",
+        "https://zdravje.test/urgent-care/bitola",
+        "https://zdravje.test/guides",
+        "https://zdravje.test/guides/kako-do-uput",
+        "https://zdravje.test/guides/participacija",
+      ]),
+    );
+    expect(list.filter((url) => url.includes("/urgent-care/"))).toHaveLength(2);
+  });
+
+  it("keeps the rest when the urgent-care cities fail", async () => {
+    fetchUrgentCareCities.mockRejectedValue(
+      new Error("API request failed (500)"),
+    );
+
+    const list = await urls();
+
+    expect(list).toContain("https://zdravje.test/urgent-care");
+    expect(list).toContain("https://zdravje.test/doctors/d-r-ana");
   });
 
   it("keeps the rest when the pharmacy listing fails", async () => {

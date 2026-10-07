@@ -89,6 +89,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                   {t("nav.facilities")}
                 </Link>
               </li>
+              <li>
+                <Link href="/urgent-care" className={linkClass}>
+                  {t("footer.urgentCare")}
+                </Link>
+              </li>
               {isPathEnabled("/pharmacies", settings) ? (
                 <li>
                   <Link href="/pharmacies" className={linkClass}>
@@ -116,6 +121,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
               <li>
                 <Link href="/transparency" className={linkClass}>
                   {t("integrity.footerLink")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/guides" className={linkClass}>
+                  {t("footer.guides")}
                 </Link>
               </li>
               {isPathEnabled("/guidance", settings) ? (

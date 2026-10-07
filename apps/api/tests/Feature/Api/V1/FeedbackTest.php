@@ -71,6 +71,8 @@ class FeedbackTest extends TestCase
     public function test_nothing_about_the_visitor_is_stored(): void
     {
         foreach (['feedback_counters', 'feedback_reason_counters', 'funnel_step_counters'] as $table) {
+            $this->assertTrue(Schema::hasTable($table), $table);
+
             foreach (Schema::getColumnListing($table) as $column) {
                 $this->assertNotContains($column, ['ip', 'ip_address', 'user_id', 'session_id', 'user_agent', 'created_at', 'text'], "{$table}.{$column}");
             }
