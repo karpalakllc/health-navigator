@@ -254,7 +254,11 @@ function PlaceCard({
       )}
 
       {likely ? (
-        <p className="type-meta text-ink-2">{t("urgentCare.edLikelyNote")}</p>
+        <p className="type-meta text-ink-2">
+          {tel || urgentTel
+            ? t("urgentCare.edLikelyNote")
+            : t("urgentCare.edLikelyNoteNoPhone")}
+        </p>
       ) : null}
 
       {place.note ? <p className="type-body text-ink">{place.note}</p> : null}

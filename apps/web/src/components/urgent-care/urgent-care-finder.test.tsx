@@ -179,6 +179,25 @@ describe("UrgentCareFinder", () => {
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
+  it("does not point to a main phone a likely hospital does not have", () => {
+    render(
+      <UrgentCareFinder
+        places={[
+          place({
+            slug: "kb",
+            name: "ЈЗУ Клиничка болница Битола",
+            type: "hospital",
+            services: ["ed"],
+            ed_status: "unconfirmed_likely",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText(/на главниот број/)).toBeNull();
+    expect(screen.getByText(/повикајте 194/)).toBeInTheDocument();
+  });
+
   it("hides the distance sort when no place has coordinates", () => {
     render(<UrgentCareFinder places={[centre]} />);
 
