@@ -339,6 +339,21 @@ final class PersonName
         return self::finish($cyrillic, $ignored);
     }
 
+    /**
+     * Whether a (cleaned) name still holds a role, title or institution word
+     * — a sign an earlier cleanup kept a partly cleaned uncertain name.
+     */
+    public static function holdsNonNameWord(string $name): bool
+    {
+        foreach (self::words((string) preg_replace('/-/u', ' ', $name)) as $word) {
+            if (self::isRole($word) || self::isTitle($word) || in_array(self::bare($word), self::INSTITUTION_WORDS, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static function isTitle(string $word): bool
     {
         return DoctorTitle::isTitleWord($word);

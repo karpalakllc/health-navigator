@@ -387,24 +387,34 @@ final class NameCleanup
             return;
         }
 
+        $item = self::raiseItem($subject, $field, $current, $suggestion, $problem, (int) $this->run?->getKey());
+
+        if ($item->wasRecentlyCreated) {
+            $this->count('review_items_created');
+        }
+    }
+
+    /**
+     * The review item of one uncertain name (also raised by
+     * import:repair-name-cleanup).
+     */
+    public static function raiseItem(Doctor|Facility $subject, string $field, string $current, ?string $suggestion, string $problem, ?int $runId): ImportReviewItem
+    {
+        $type = ImportReviewItem::subjectTypeOf($subject);
         $label = $type === 'doctor' ? 'Name' : 'Facility name';
         $label = $field === 'title' ? 'Title' : $label;
         $title = $suggestion !== null
             ? sprintf('%s: „%s“ → „%s“?', $label, $current, $suggestion)
             : sprintf('%s: „%s“', $label, $current);
 
-        $item = ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:'.$type.':'.$id.':'.$field, $title, [
+        return ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:'.$type.':'.$subject->getKey().':'.$field, $title, [
             'reason' => self::REASON,
             'problem' => $problem,
             'field' => $field,
             'current' => $current,
             'suggestion' => $suggestion,
             'action' => (self::PROBLEMS[$problem] ?? $problem).($suggestion !== null ? ' „Прифати предлог“ sets the proposed value.' : ' Edit the profile if it needs a change.'),
-        ], $subject, (int) $this->run?->getKey(), (bool) $subject->getAttribute('is_published') ? 20 : 5);
-
-        if ($item->wasRecentlyCreated) {
-            $this->count('review_items_created');
-        }
+        ], $subject, $runId, (bool) $subject->getAttribute('is_published') ? 20 : 5);
     }
 
     /** Problems raised as one item for all their cases. */
@@ -424,18 +434,29 @@ final class NameCleanup
                 continue;
             }
 
-            $item = ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:batch:'.$problem, sprintf('%d names: %s', count($changes), self::PROBLEMS[$problem] ?? $problem), [
-                'reason' => self::REASON,
-                'problem' => $problem,
-                'changes' => $changes,
-                'proposals' => implode('; ', array_map(fn (array $change): string => $change['current'].' → '.$change['suggestion'], $changes)),
-                'action' => (self::PROBLEMS[$problem] ?? $problem).' „Прифати предлог“ sets every proposed value (a profile changed since is skipped); „Остави“ keeps them all.',
-            ], null, (int) $this->run?->getKey(), 15);
+            $item = self::raiseBatch($problem, $changes, (int) $this->run?->getKey());
 
             if ($item->wasRecentlyCreated) {
                 $this->count('review_items_created');
             }
         }
+    }
+
+    /**
+     * One item for many proposals of one kind (also refreshed by
+     * import:repair-name-cleanup).
+     *
+     * @param  list<array{subject_type: string, subject_id: int, field: string, current: string, suggestion: string}>  $changes
+     */
+    public static function raiseBatch(string $problem, array $changes, ?int $runId): ImportReviewItem
+    {
+        return ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:batch:'.$problem, sprintf('%d names: %s', count($changes), self::PROBLEMS[$problem] ?? $problem), [
+            'reason' => self::REASON,
+            'problem' => $problem,
+            'changes' => $changes,
+            'proposals' => implode('; ', array_map(fn (array $change): string => $change['current'].' → '.$change['suggestion'], $changes)),
+            'action' => (self::PROBLEMS[$problem] ?? $problem).' „Прифати предлог“ sets every proposed value (a profile changed since is skipped); „Остави“ keeps them all.',
+        ], null, $runId, 15);
     }
 
     /** One-line descriptions of the uncertain cases (the review item and the CSV). */
