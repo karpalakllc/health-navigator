@@ -280,6 +280,27 @@ class NameCleanupTest extends TestCase
     }
 
     /**
+     * A surname-first fix is the cleanup's decision: the source writing the
+     * same words in the old order again leaves it, run after run; a real
+     * change from the source is still taken.
+     */
+    public function test_the_next_import_does_not_undo_a_surname_first_fix(): void
+    {
+        $doctor = $this->doctor('Ана Петрова', 'website');
+        FieldProvenance::query()->where('subject_type', 'doctor')->where('subject_id', $doctor->id)->where('field', 'full_name')
+            ->update(['source' => ProvenanceWriter::CLEANUP_SOURCE]);
+
+        foreach ([1, 2] as $ignored) {
+            $writer = new ProvenanceWriter(new ImportContext(ImportRun::start('website', false), 'website', false));
+            $this->assertSame('unchanged', $writer->scalar($doctor->fresh(), 'full_name', 'Петрова Ана', false));
+        }
+
+        $this->assertSame('Ана Петрова', $doctor->fresh()->full_name);
+        $writer = new ProvenanceWriter(new ImportContext(ImportRun::start('website', false), 'website', false));
+        $this->assertSame('written', $writer->scalar($doctor->fresh(), 'full_name', 'Ана Петрова-Ристова', false));
+    }
+
+    /**
      * Комора matching finds the same profiles before and after the cleanup.
      */
     public function test_licence_matching_is_the_same_after_the_cleanup(): void

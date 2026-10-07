@@ -115,6 +115,15 @@ final class ProvenanceWriter
             && $this->originalSource($provenance) === $this->context->source
             && $provenance->value === $current;
 
+        // The cleanup put a name's words in order („Петрова Ана“ → „Ана
+        // Петрова“, from the whole directory's evidence): the source writing
+        // the same words in its old order does not undo it (the provenance
+        // stays „cleanup“, so the next run decides the same).
+        if ($ownValue && $provenance->source === self::CLEANUP_SOURCE && $field === 'full_name' && $current !== null && $incoming !== null
+            && NameKey::sorted($current) === NameKey::sorted($incoming) && NameKey::for($current) !== NameKey::for($incoming)) {
+            return 'unchanged';
+        }
+
         if (! $isNew && $current !== null && ! $ownValue) {
             // An empty incoming value never clears what someone else entered.
             if ($incoming === null) {

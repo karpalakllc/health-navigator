@@ -577,9 +577,9 @@ them to profiles already in the directory.
 
 | Rule | Doctors (`full_name`, `title`) | Facilities (`name`) |
 |---|---|---|
-| Casing | A word in capitals or lower case is capitalised, each part of a double surname too; mixed case („МекДоналд“) is left alone | Register capitals → title case; „Д-Р“ / „Др“ before a name → „д-р“ (capital after an opening quote); function words („по“, „за“, „и“…) and generic words in a descriptive run in lower case („Здравствен дом“, „Ординација по општа медицина“); a brand keeps its capitals |
-| Titles and roles | Titles before or after the name („Проф. д-р“, „dr.“) move to `title`; a trailing profession („стоматолог“, „специјалист …“) is dropped. Titles are canonical: „проф. д-р д-р сци.“, „асс. д-р“, „д-р (специјализант)“; job roles („раководител на оддел“) and spelled-out specialties are dropped | — |
-| Script | Latin look-alike letters inside Cyrillic words („Бaјрaми“) → Cyrillic | the same |
+| Casing | A word in capitals or lower case is capitalised, each part of a double surname too; mixed case („МекДоналд“) and title words („д-р“) are left alone | Register capitals → title case; „Д-Р“ / „Др“ before a name → „д-р“ (capital after an opening quote); function words („по“, „за“, „и“…) and generic words in a descriptive run in lower case („Здравствен дом“, „Ординација по општа медицина“); a brand keeps its capitals, and a function word that starts the name, a quoted or bracketed name („ДО ДЕНТ“ → „До Дент“, never „до Дент“) or the name after the legal form keeps its capital |
+| Titles and roles | Titles before or after the name („Проф. д-р“, „dr.“, „Mr. sc.“ — Latin `sc`, `med`, `mag`, `univ`, `subspec`… are understood) move to `title`; a trailing profession („стоматолог“, „специјалист …“, also after a spaced dash: „Ана Петрова - специјалист по педијатрија“) is dropped. Titles are canonical: „проф. д-р д-р сци.“, „асс. д-р“, „д-р (специјализант)“; job roles („раководител на оддел“) and spelled-out specialties are dropped | — |
+| Script | Latin look-alike letters inside Cyrillic words („Бaјрaми“) → Cyrillic: only a, c, e, o, p, x, y and A, B, C, E, H, K, M, O, P, T, X. A Latin s/S, j/J or Y is **not** folded (a Latin s in a Macedonian word is almost always a mistyped с, and ѕ/ј are letters of their own): the name is left as it is, with a review item | the same |
 | Punctuation | „Петрова - Ристова“ → „Петрова-Ристова“; „К.Петрова“ → „К. Петрова“; „Ана К Петрова“ → „Ана К. Петрова“; stray dots and quotes | Quotes → „…“; „Пзу-“, „Приватна здравствена установа -“ → „ПЗУ “; „Орд.“, „Спец. Орд.“, „Поликл.“, „Опш.“, „Кл.“, „Универзи.“ written out |
 | Town | — | The facility's own town (or „С. village“) at the end of a **private** institution's name is dropped when the rest still names it; public institutions (ЈЗУ, health centres, hospitals) keep it |
 | Order | Two-word names written surname first, when the whole directory says so clearly (the first word is otherwise only ever a surname, the second a common given name) | — |
@@ -595,11 +595,15 @@ the import shows it too ([`verification.md`](verification.md) §3).
 `cleanup`, reason `name_cleanup`), each with one click:
 
 - names in Latin script (one item for all, with a Cyrillic proposal each;
-  check the proposals of non-Macedonian names), a Latin letter with no
+  check the proposals of non-Macedonian names — see the transliteration
+  below; a name with a letter that has no certain Cyrillic counterpart gets
+  no proposal and an item of its own, for a manual edit), a Latin letter with no
   Cyrillic twin in a Cyrillic word, an institution or a role inside a
   person's name, text after a comma that is not a title, a less clear
   surname-first name, a cleaned name that would no longer match its
-  Комора licence, a title the rules do not know. **„Прифати предлог“**
+  Комора licence, a title the rules do not know. An uncertain name keeps
+  its value exactly as it was (no partial cleaning); the proposal is only on
+  the item. **„Прифати предлог“**
   sets the proposed value (a profile changed since is skipped; the value
   is then a staff value that imports do not overwrite), **„Остави“** keeps
   the current one (the item stays dismissed while nothing changes);
@@ -617,6 +621,38 @@ the import shows it too ([`verification.md`](verification.md) §3).
   draft without a suppression; **„Остави“** keeps them apart. Groups with
   several ФЗОМ namesakes beside a public website profile, or ФЗОМ profiles
   sharing a workplace, are listed to compare, without a merge.
+
+**Latin-script names → Cyrillic proposals** (`PersonName::LATIN_TO_CYRILLIC`).
+Most Latin-script names on the clinics' websites are Albanian; the
+proposals follow the way Macedonian Cyrillic writes Albanian names
+(„Xhaferi“ → „Џафери“, „Qazim“ → „Ќазим“, „Thaçi“ → „Тачи“): xh → џ,
+gj → ѓ, zh → ж, sh → ш, ç → ч, q → ќ, dh → д, th → т, ll → л, rr → р,
+nj → њ, ë → е, y → и (ј before a vowel: „Yusuf“ → „Јусуф“). Serbo-Croatian
+spellings: č ć š ž đ dž lj nj, a final „-ic“ as „-иќ“, and „dj“ (đ typed
+without the accent) → ѓ („Djordjevic“ → „Ѓорѓевиќ“). The ASCII Macedonian
+digraphs kj, ch, dzh, dz as in search. A plain x (Albanian ѕ, but „кс“ in
+„Maxim“), w and any other letter without one certain counterpart are not
+mapped, and a proposal is never made while a Latin letter would remain.
+There is no codified state standard we could cite for this (no web check
+was possible at the time of writing); it is the common practice in
+Macedonian-language registers and media, so staff check each proposal.
+
+**Repair after the 2026-10 rule fixes** (`import:repair-name-cleanup`, a
+one-off): the first real-data run used rules since fixed — a function word
+starting a quoted facility name was lower-cased, a Latin s became ѕ, and an
+uncertain name could be partly rewritten. The command recomputes every
+automatic change in the **Name cleanup** activity log from its original
+value with today's rules, and writes the result only where the cleanup
+still owns the field (never a locked, staff-set or since-imported value);
+any other difference is only counted. Restored uncertain names get their
+review item; the open Latin-script batch gets today's proposals. Repairs
+are logged (category `repair:b1` / `repair:s2` / `repair:s3`), counts only
+on screen, and a second run changes nothing:
+
+```sh
+php artisan import:repair-name-cleanup --dry-run
+php artisan import:repair-name-cleanup --apply
+```
 
 ### Running it
 
@@ -636,7 +672,13 @@ php artisan import:adjudicate               # then re-verify
   cleanup's) **only in casing** — e.g. after the 2026-10 fix of
   `TextCase::institution`, which missed „во“, „до“, „по“, „со“ next to a
   multibyte quote rule — the new casing is written and listed in the run's
-  diff, but a published profile gets no „changed“ review item for it.
+  diff, but a published profile gets no „changed“ review item for it —
+  unless the change lower-cases the word the name or a quoted name starts
+  with („До Дент“ → „до Дент“): that one is listed for staff.
+- A surname-first fix („Петрова Ана“ → „Ана Петрова“) stays: the source
+  sending the same words in the old order again is treated as unchanged
+  while the provenance is „cleanup“. Any other change of the name is taken
+  as usual.
 - Each change is one activity-log entry (log **Name cleanup**, field, old →
   new); a merge is one entry on the profile that stayed.
 - Each run is an `import_runs` row (source `cleanup`) whose **Diff (CSV)**
