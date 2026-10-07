@@ -59,18 +59,45 @@ describe("POST /api/feedback", () => {
       }),
     );
     await POST(
-      post({
-        kind: "step",
-        funnel: "guidance:headache",
-        step: "start",
-        depth: 0,
-      }),
+      post(
+        {
+          kind: "step",
+          funnel: "guidance:headache",
+          step: "start",
+          depth: 0,
+        },
+        { "X-Z360-Consent": "statistics" },
+      ),
     );
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       "https://api.test/api/v1/feedback/reasons",
       "https://api.test/api/v1/feedback/steps",
     ]);
+    expect(fetchMock.mock.calls[1][1].headers["X-Z360-Consent"]).toBe(
+      "statistics",
+    );
+  });
+
+  it("drops step counters without the consent header, keeps votes", async () => {
+    const step = {
+      kind: "step",
+      funnel: "guidance:headache",
+      step: "start",
+      depth: 0,
+    };
+
+    expect((await POST(post(step, { "Sec-GPC": "1" }))).status).toBe(204);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // An explicit yes wins over the browser's generic signal.
+    await POST(
+      post(step, { "X-Z360-Consent": "statistics", "Sec-GPC": "1", DNT: "1" }),
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    await POST(post({ kind: "vote", item: "guide:x", helpful: true }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("drops anything outside the vocabulary, without calling the API", async () => {

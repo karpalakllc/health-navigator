@@ -1,4 +1,5 @@
-import { privacySignalOn } from "@/lib/ux/privacy-signals";
+import { statisticsAllowed } from "@/lib/consent/consent";
+import { statisticsHeaders } from "@/lib/consent/header";
 
 /*
  * „Дали ви помогна?“ and step drop-off (docs/urgent-care.md § Feedback).
@@ -143,7 +144,11 @@ export async function sendFeedback(message: FeedbackMessage): Promise<void> {
   try {
     await fetch("/api/feedback", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Step counters are statistics: the relay drops them without this.
+        ...(message.kind === "step" ? statisticsHeaders() : {}),
+      },
       body: JSON.stringify(message),
       keepalive: true,
       credentials: "omit",
@@ -156,15 +161,16 @@ export async function sendFeedback(message: FeedbackMessage): Promise<void> {
 /**
  * For the guidance engine: one call per step the visitor reaches
  * (`guidance:<flow-slug>`, a node key or `outcome:<level>`, its depth).
- * Sends nothing with Global Privacy Control or Do Not Track on.
+ * Sends nothing until the visitor accepted statistics (the vote stays: it is
+ * an explicit action).
  */
 export function recordFunnelStep(
   funnel: string,
   step: string,
   depth: number,
 ): void {
-  // Passive statistics: Global Privacy Control / Do Not Track switch them off.
-  if (typeof window === "undefined" || privacySignalOn(window)) return;
+  // Passive statistics: only after an explicit yes in the consent banner.
+  if (typeof window === "undefined" || !statisticsAllowed()) return;
   const message = parseFeedbackMessage({ kind: "step", funnel, step, depth });
   if (message) void sendFeedback(message);
 }

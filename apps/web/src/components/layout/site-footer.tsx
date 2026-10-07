@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ConsentSettingsButton } from "@/components/layout/consent-settings-button";
 import { FooterSearchButton } from "@/components/layout/footer-search-button";
 import { FIRST_AID_COPY } from "@/content/first-aid/copy";
 import {
@@ -182,6 +183,9 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                 <Link href="/disclaimer" className={linkClass}>
                   {t("footer.disclaimer")}
                 </Link>
+              </li>
+              <li>
+                <ConsentSettingsButton className={linkClass} />
               </li>
             </Column>
           </div>

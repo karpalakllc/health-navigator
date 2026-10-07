@@ -15,6 +15,15 @@ class UrgentCareUxRoutesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The browser sends this with every statistics request once the
+        // visitor accepted statistics (RequireStatisticsConsent).
+        $this->withHeader('X-Z360-Consent', 'statistics');
+    }
+
     public function test_the_new_templates_are_counted_and_have_sample_pages(): void
     {
         foreach (['/urgent-care', '/urgent-care/[city]', '/guides', '/guides/[slug]'] as $route) {

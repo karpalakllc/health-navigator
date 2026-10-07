@@ -111,6 +111,7 @@ describe("POST /api/reviews/views", () => {
         "Content-Type": "application/json",
         origin: SITE,
         "user-agent": agent,
+        "x-z360-consent": "statistics",
       },
       body: JSON.stringify({ ids }),
     });
@@ -126,6 +127,7 @@ describe("POST /api/reviews/views", () => {
     expect(url).toBe("https://api.test/api/v1/reviews/views");
     expect(JSON.parse(String(init.body))).toEqual({ ids: [3, 4] });
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("X-Z360-Consent")).toBe("statistics");
   });
 
   it("drops crawlers without counting", async () => {
@@ -140,16 +142,26 @@ describe("POST /api/reviews/views", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("counts nothing without the statistics-consent header (204)", async () => {
+    const request = report([3]);
+    request.headers.delete("x-z360-consent");
+
+    const response = await views.POST(request);
+
+    expect(response.status).toBe(204);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it.each([["sec-gpc"], ["dnt"]])(
-    "counts nothing when the request carries %s: 1",
+    "still counts with consent when the request carries %s: 1",
     async (header) => {
       const request = report([3]);
       request.headers.set(header, "1");
 
       const response = await views.POST(request);
 
-      expect(await response.json()).toEqual({ data: { counted: 0 } });
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledOnce();
     },
   );
 

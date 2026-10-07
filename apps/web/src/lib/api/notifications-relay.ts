@@ -17,8 +17,11 @@ export async function relayToApi(
     method,
     body,
     auth,
+    headers: extraHeaders,
   }: {
     method: "GET" | "POST" | "PUT" | "DELETE";
+    /** Extra request headers (e.g. the statistics-consent header). */
+    headers?: Record<string, string>;
     body?: unknown;
     /** "required": 401 without a session; "optional": sent when present; "none": never. */
     auth: "required" | "optional" | "none";
@@ -42,6 +45,7 @@ export async function relayToApi(
         "Accept-Language": "mk",
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...forwardedForHeaders(request),
+        ...extraHeaders,
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     }),

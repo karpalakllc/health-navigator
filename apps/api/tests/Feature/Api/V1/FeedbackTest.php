@@ -16,10 +16,32 @@ class FeedbackTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The browser sends this with every statistics request once the
+        // visitor accepted statistics (RequireStatisticsConsent).
+        $this->withHeader('X-Z360-Consent', 'statistics');
+    }
+
     private function importFixtureFlows(): void
     {
         config(['triage.flows_path' => base_path('tests/Fixtures/triage')]);
         app(FlowImporter::class)->import();
+    }
+
+    public function test_step_counters_need_the_consent_header_but_votes_do_not(): void
+    {
+        $this->importFixtureFlows();
+        $this->flushHeaders();
+        $step = ['funnel' => 'guidance:example-sore-throat', 'step' => 'start', 'depth' => 0];
+
+        $this->postJson('/api/v1/feedback/steps', $step)->assertNoContent();
+        $this->assertSame(0, DB::table('funnel_step_counters')->count());
+
+        $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertNoContent();
+        $this->assertSame(1, DB::table('feedback_counters')->count());
     }
 
     public function test_votes_add_up_per_item_and_day(): void

@@ -7,7 +7,7 @@ import {
   feedbackApiPath,
   parseFeedbackMessage,
 } from "@/lib/feedback";
-import { privacySignalHeader } from "@/lib/ux/privacy-signals";
+import { hasConsentHeader, statisticsHeaders } from "@/lib/consent/header";
 
 /**
  * Relay for „Дали ви помогна?“ votes and step counters (docs/urgent-care.md
@@ -16,8 +16,7 @@ import { privacySignalHeader } from "@/lib/ux/privacy-signals";
  * API. The visitor's address is forwarded for the API's rate limit only (an
  * expiring keyed hash of the network); no cookie or session is read or sent.
  *
- * Step counters are passive statistics: with Global Privacy Control or Do
- * Not Track on they are dropped. A vote is something the visitor chose to
+ * Step counters are statistics: without the consent header they are dropped. A vote is something the visitor chose to
  * send, so it goes through.
  *
  * Every outcome after the origin check is 204: the page has nothing useful
@@ -66,7 +65,7 @@ export async function POST(request: Request) {
     return noContent();
   }
 
-  if (message.kind === "step" && privacySignalHeader(request.headers)) {
+  if (message.kind === "step" && !hasConsentHeader(request.headers)) {
     return noContent();
   }
 
@@ -77,6 +76,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         Accept: "application/json",
         ...forwardedForHeaders(request),
+        ...(message.kind === "step" ? statisticsHeaders() : {}),
       },
       body: JSON.stringify(feedbackApiBody(message)),
       cache: "no-store",

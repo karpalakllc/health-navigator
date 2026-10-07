@@ -1,11 +1,13 @@
 import Script from "next/script";
+import { StatisticsOnly } from "@/components/layout/statistics-only";
 import { PlausiblePageviews } from "@/components/layout/plausible-pageviews";
 import { isManualPlausibleScript } from "@/lib/analytics/redact-url";
 
 /**
  * Plausible in manual mode: the script never reports a pageview itself, so a
  * query string (`?q=` searches, filters) can never reach it. Pageviews are sent
- * by PlausiblePageviews with the address cut down to origin + path.
+ * by PlausiblePageviews with the address cut down to origin + path. Both the
+ * script and the pageviews wait for the statistics consent (StatisticsOnly).
  */
 export function PlausibleAnalytics() {
   const domain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
@@ -30,8 +32,10 @@ export function PlausibleAnalytics() {
     return null;
   }
 
+  // Nothing loads before the visitor accepted statistics; withdrawing removes
+  // both at once (no further pageview is sent).
   return (
-    <>
+    <StatisticsOnly>
       <Script
         defer
         data-domain={domain}
@@ -39,6 +43,6 @@ export function PlausibleAnalytics() {
         strategy="afterInteractive"
       />
       <PlausiblePageviews />
-    </>
+    </StatisticsOnly>
   );
 }

@@ -21,6 +21,28 @@ class UxEventsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The browser sends this with every statistics request once the
+        // visitor accepted statistics (RequireStatisticsConsent).
+        $this->withHeader('X-Z360-Consent', 'statistics');
+    }
+
+    public function test_without_the_consent_header_nothing_is_stored_and_a_privacy_signal_alone_does_not_block(): void
+    {
+        $batch = ['clicks' => [], 'views' => [$this->pageView()]];
+
+        $this->flushHeaders();
+        $this->postJson('/api/v1/ux/events', $batch)->assertNoContent();
+        $this->assertSame(0, DB::table('ux_page_stats')->count());
+
+        $this->withHeaders(['X-Z360-Consent' => 'statistics', 'Sec-GPC' => '1', 'DNT' => '1'])
+            ->postJson('/api/v1/ux/events', $batch)->assertNoContent();
+        $this->assertSame(1, DB::table('ux_page_stats')->count());
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

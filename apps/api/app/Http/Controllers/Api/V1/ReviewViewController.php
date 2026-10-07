@@ -13,7 +13,8 @@ use Illuminate\Http\Request;
  * W8-B: the web reports which review cards were on a visitor's screen
  * (ReviewViews has the counting rules: only approved reviews on a published
  * profile). Anonymous; optional auth only so the author's own views are left
- * out. Global Privacy Control / Do Not Track: nothing is counted.
+ * out. Counted only with the statistics-consent header
+ * (statistics.consent middleware).
  */
 class ReviewViewController extends Controller
 {
@@ -23,12 +24,6 @@ class ReviewViewController extends Controller
             'ids' => ['required', 'array', 'max:'.ReviewViews::MAX_IDS],
             'ids.*' => ['integer', 'min:1', 'max:999999999999'],
         ]);
-
-        // A browser asking not to be tracked counts nothing, also when it
-        // calls the API directly rather than through the web route.
-        if ($request->header('Sec-GPC') === '1' || $request->header('DNT') === '1') {
-            return ApiResponse::success(['counted' => 0]);
-        }
 
         $viewer = $request->user();
 

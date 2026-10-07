@@ -55,7 +55,7 @@ Route::prefix('v1')->group(function (): void {
     // is an HMAC of the visitor's network (api-ux-events): it expires with its
     // window (at most an hour) and expired rows are purged hourly.
     Route::post('/ux/events', [UxController::class, 'store'])
-        ->middleware('throttle:api-ux-events');
+        ->middleware(['statistics.consent', 'throttle:api-ux-events']);
     Route::get('/ux/heatmap', [UxController::class, 'heatmap'])
         ->middleware('throttle:120,1,api-ux-heatmap');
     // Anonymous, identical-for-everyone taxonomies: shared caches may keep them
@@ -92,7 +92,7 @@ Route::prefix('v1')->group(function (): void {
     // stored; the limiters key on an HMAC of the visitor's network.
     Route::post('/feedback', [FeedbackController::class, 'vote'])->middleware('throttle:api-feedback');
     Route::post('/feedback/reasons', [FeedbackController::class, 'reasons'])->middleware('throttle:api-feedback');
-    Route::post('/feedback/steps', [FeedbackController::class, 'step'])->middleware('throttle:api-funnel');
+    Route::post('/feedback/steps', [FeedbackController::class, 'step'])->middleware(['statistics.consent', 'throttle:api-funnel']);
     Route::middleware('module:pharmacies')->group(function (): void {
         Route::get('/pharmacies', [PharmacyController::class, 'index'])->middleware('cache.public:60');
         Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
@@ -318,7 +318,7 @@ Route::prefix('v1')->group(function (): void {
     // review cards a visitor had on screen (ReviewViews: once a day per
     // network, no cookie); optional auth leaves the author's own views out.
     Route::post('/reviews/views', [ReviewViewController::class, 'store'])
-        ->middleware(['auth.sanctum.optional', 'throttle:60,1,api-review-views']);
+        ->middleware(['statistics.consent', 'auth.sanctum.optional', 'throttle:60,1,api-review-views']);
 
     // The member's „Известувања“, e-mail switches and per-profile reminders.
     Route::middleware(['auth:sanctum', 'throttle:120,1,api-notifications'])->prefix('me')->group(function (): void {

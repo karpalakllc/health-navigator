@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { privacySignalHeader, privacySignalOn } from "@/lib/ux/privacy-signals";
 import { isUxTargetKey, type UxBatch } from "@/lib/ux/schema";
 import type { EarlyClick } from "@/lib/ux/early-clicks";
 import {
@@ -412,23 +411,5 @@ describe("back/forward cache", () => {
       // The restored page is a view of its own, clicked within a second.
       { r: "/doctors/[slug]", vc: "mobile", s: 25, t: 0 },
     ]);
-  });
-});
-
-describe("privacy signals", () => {
-  it("are on with Global Privacy Control or Do Not Track", () => {
-    expect(privacySignalOn({ navigator: { globalPrivacyControl: true } })).toBe(
-      true,
-    );
-    expect(privacySignalOn({ navigator: { doNotTrack: "1" } })).toBe(true);
-    expect(privacySignalOn({ doNotTrack: "1" })).toBe(true);
-    expect(privacySignalOn({ navigator: { doNotTrack: "0" } })).toBe(false);
-    expect(privacySignalOn({ navigator: {} })).toBe(false);
-  });
-
-  it("are read from request headers too", () => {
-    expect(privacySignalHeader(new Headers({ "Sec-GPC": "1" }))).toBe(true);
-    expect(privacySignalHeader(new Headers({ DNT: "1" }))).toBe(true);
-    expect(privacySignalHeader(new Headers())).toBe(false);
   });
 });

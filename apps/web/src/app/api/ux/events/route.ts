@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { apiUrl } from "@/lib/config";
 import { readLimited, rejectCrossSite } from "@/lib/auth/request-guard";
-import { privacySignalHeader } from "@/lib/ux/privacy-signals";
+import { hasConsentHeader, statisticsHeaders } from "@/lib/consent/header";
 import { parseUxBatch } from "@/lib/ux/validate";
 
 /**
@@ -37,9 +37,10 @@ export async function POST(request: Request) {
     return crossSite;
   }
 
-  // Global Privacy Control / Do Not Track: the tracker already sends nothing,
-  // this is the server-side backstop.
-  if (privacySignalHeader(request.headers)) {
+  // Statistics only after the visitor accepted them: the tracker sends the
+  // consent header, and this is the server-side backstop. (Global Privacy
+  // Control / Do Not Track alone no longer decide: an explicit yes overrides.)
+  if (!hasConsentHeader(request.headers)) {
     return noContent();
   }
 
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         Accept: "application/json",
         ...forwardedForHeaders(request),
+        ...statisticsHeaders(),
       },
       body: JSON.stringify(batch),
       cache: "no-store",
