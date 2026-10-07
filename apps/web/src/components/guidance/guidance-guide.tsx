@@ -861,7 +861,7 @@ function StickyContinue({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-sticky-action-bar
-      className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+      className="sticky bottom-[calc(var(--tabbar-space)+var(--consent-h,0px))] z-10 -mx-5 bg-cream px-5 py-3 shadow-[0_-1px_0_var(--color-line)] lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:shadow-none"
     >
       {children}
     </div>

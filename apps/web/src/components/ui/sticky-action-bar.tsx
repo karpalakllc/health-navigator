@@ -46,7 +46,7 @@ export function StickyActionBar({
         data-sticky-action-bar
         data-hidden={footerVisible || undefined}
         className={cn(
-          "fixed inset-x-0 bottom-[var(--tabbar-space)] z-30 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:hidden",
+          "fixed inset-x-0 bottom-[calc(var(--tabbar-space)+var(--consent-h,0px))] z-30 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:hidden",
           "motion-safe:transition-transform motion-safe:duration-200",
           footerVisible &&
             "invisible translate-y-[calc(100%+var(--tabbar-space))]",
