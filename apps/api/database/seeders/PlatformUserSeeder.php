@@ -88,7 +88,7 @@ class PlatformUserSeeder extends Seeder
      */
     private function ensureDemoAuthenticator(User $user, string $secret): void
     {
-        if (filled($user->app_authentication_secret)) {
+        if (filled($user->app_authentication_secret) || $user->isLocallyExemptFromMultiFactorAuthentication()) {
             return;
         }
 

@@ -143,6 +143,7 @@ class PlatformPreflightCommandTest extends TestCase
             ], 'filesystems.disks.r2.bucket'],
             'meilisearch without key' => [['scout.meilisearch.key' => null], 'scout.meilisearch.key'],
             'meilisearch on localhost' => [['scout.meilisearch.host' => 'http://localhost:7700'], 'scout.meilisearch.host'],
+            'local mfa exemption set' => [['zdravje.mfa.local_exempt_emails' => ['owner@zdravje360.mk']], 'zdravje.mfa.local_exempt_emails'],
         ];
     }
 

@@ -171,7 +171,17 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      */
     public function requiresMultiFactorAuthentication(): bool
     {
-        return $this->can('admin.access');
+        return $this->can('admin.access') && ! $this->isLocallyExemptFromMultiFactorAuthentication();
+    }
+
+    /**
+     * A local-only convenience for the owner's demo: never true outside
+     * APP_ENV=local, whatever the setting says.
+     */
+    public function isLocallyExemptFromMultiFactorAuthentication(): bool
+    {
+        return app()->environment('local')
+            && in_array(strtolower((string) $this->email), config('zdravje.mfa.local_exempt_emails', []), true);
     }
 
     public function hasMultiFactorAuthenticationEnabled(): bool
