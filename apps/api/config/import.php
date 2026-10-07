@@ -86,4 +86,15 @@ return [
         'max_image_bytes' => (int) env('IMPORT_WEBSITE_MAX_IMAGE_BYTES', 2 * 1024 * 1024),
     ],
 
+    // The verification engine (import:adjudicate, docs/verification.md).
+    'verification' => [
+        // Re-evaluate every profile right after each successful import apply
+        // (ФЗОМ, Комора, websites). The nightly run happens regardless.
+        'after_import' => (bool) env('IMPORT_VERIFY_AFTER_IMPORT', true),
+
+        // Publish the drafts a run newly verifies, without staff. Off: staff
+        // publish them with „Објави ги сите верифицирани“ in Import review.
+        'auto_publish' => (bool) env('IMPORT_AUTO_PUBLISH_VERIFIED', false),
+    ],
+
 ];

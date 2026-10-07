@@ -7,6 +7,7 @@ use App\Support\Import\ImportAlreadyRunning;
 use App\Support\Import\ImportContext;
 use App\Support\Import\ImportRunner;
 use App\Support\Import\Website\InstitutionsJsonImporter;
+use App\Support\Verification\Engine\VerificationEngine;
 use Illuminate\Console\Command;
 
 /**
@@ -21,7 +22,7 @@ class ImportInstitutionsJsonCommand extends Command
 
     protected $description = 'Import institutions and listed doctors from a website research dataset (JSON)';
 
-    public function handle(ImportRunner $runner, InstitutionsJsonImporter $importer): int
+    public function handle(ImportRunner $runner, InstitutionsJsonImporter $importer, VerificationEngine $engine): int
     {
         $path = (string) $this->argument('path');
 
@@ -52,6 +53,15 @@ class ImportInstitutionsJsonCommand extends Command
         }
 
         $this->table(['count', 'value'], collect($run->counts ?? [])->map(fn ($value, $key) => [$key, $value])->values()->all());
+
+        // Website runs are not announced (ImportRunFinished), so the
+        // verification engine is started here (docs/verification.md).
+        if (! $run->dry_run && (bool) config('import.verification.after_import')) {
+            $verification = $engine->runQuietly();
+            $this->line($verification !== null
+                ? sprintf('Verification run #%d: %s', $verification->getKey(), $verification->status->value)
+                : 'Verification engine busy; the nightly run will re-evaluate.');
+        }
 
         return self::SUCCESS;
     }
