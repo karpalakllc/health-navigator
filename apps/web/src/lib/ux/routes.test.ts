@@ -18,6 +18,7 @@ describe("uxRouteTemplate", () => {
     ["/forum/tags/pritisok", "/forum/tags/[tag]"],
     ["/guidance", "/guidance"],
     ["/search", "/search"],
+    ["/community", "/community"],
   ])("%s → %s", (path, template) => {
     expect(uxRouteTemplate(path)).toBe(template);
   });
@@ -25,6 +26,8 @@ describe("uxRouteTemplate", () => {
   it.each([
     "/account",
     "/account/data",
+    "/account/notifications",
+    "/unsubscribe",
     "/login",
     "/register",
     "/forgot-password",
