@@ -62,13 +62,12 @@ test.describe("review flow and notifications", () => {
   });
 
   test("the impact summary is readable on a 390 px phone", async ({
-    browser,
+    page,
   }, testInfo) => {
-    const context = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-    });
-    const page = await context.newPage();
+    // Signed in at the desktop width (the login helper uses the header's
+    // account button), then looked at on a phone.
     await login(page, users.member);
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/account/reviews");
 
     const summary = page.locator("section[aria-labelledby='impact-title']");
@@ -101,7 +100,6 @@ test.describe("review flow and notifications", () => {
     ).toBe(true);
 
     await summary.screenshot({ path: testInfo.outputPath("impact-390.png") });
-    await context.close();
   });
 
   test("a member turns the monthly digest on and the setting sticks", async ({
