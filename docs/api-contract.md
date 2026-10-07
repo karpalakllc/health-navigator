@@ -215,7 +215,7 @@ limiters are layered on top:
 | `api-unsubscribe` | `GET`/`POST /notifications/unsubscribe` (inline, no sign-in) | 30/min per IP |
 | `api-feedback` | `POST /feedback`, `POST /feedback/reasons` („Дали ви помогна?“, docs/urgent-care.md) | 20/min and 200/day per network (keyed hash, as `api-ux-events`) |
 | `api-funnel` | `POST /feedback/steps` (anonymous step counters) | 120/min and 1200/hour per network (keyed hash) |
-| `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
+| `api-triage-sessions` | guidance session start (v1 and v2), v1 answer/emergency | 30/hour per IP |
 | `api-triage-complete` | guidance completion | 5/hour |
 | `api-triage-steps` | guidance v2 steps: state, demographics, symptoms, screen, answer, emergency, no-match | 600/hour per IP |
 

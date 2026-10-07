@@ -190,10 +190,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Guidance is called from the browser directly, so these see a real client
-        // address without depending on the web tier forwarding one.
+        // address without depending on the web tier forwarding one. 30 starts an
+        // hour: a household or an office shares one address and „Почни од почеток“
+        // opens a new session (the v1 answer/emergency calls share this limiter).
         RateLimiter::for('api-triage-sessions', function (Request $request) {
             return [
-                Limit::perHour(10)->by('triage:'.$request->ip()),
+                Limit::perHour(30)->by('triage:'.$request->ip()),
             ];
         });
 
