@@ -27,6 +27,12 @@ class MemberNotification extends Model
 
     public const RETENTION_DAYS = 180;
 
+    /**
+     * A sent reminder's line names the profile the member meant to review:
+     * it goes after 30 days (the reminder row itself is deleted on sending).
+     */
+    public const REMINDER_RETENTION_DAYS = 30;
+
     public const UPDATED_AT = null;
 
     protected $fillable = [
@@ -50,7 +56,11 @@ class MemberNotification extends Model
      */
     public function prunable(): Builder
     {
-        return self::query()->where('created_at', '<', now()->subDays(self::RETENTION_DAYS));
+        return self::query()->where(fn (Builder $query) => $query
+            ->where('created_at', '<', now()->subDays(self::RETENTION_DAYS))
+            ->orWhere(fn (Builder $reminder) => $reminder
+                ->where('type', NotificationType::ReviewReminder->value)
+                ->where('created_at', '<', now()->subDays(self::REMINDER_RETENTION_DAYS))));
     }
 
     /**

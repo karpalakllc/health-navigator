@@ -164,4 +164,17 @@ class ReviewRemindersTest extends TestCase
 
         $this->assertDatabaseCount('member_notifications', 1);
     }
+
+    public function test_a_sent_reminders_line_naming_the_profile_goes_after_30_days(): void
+    {
+        $old = MemberNotification::query()->create(['user_id' => $this->member->id, 'type' => 'review_reminder', 'data' => ['profile' => ['name' => 'Клиника']]]);
+        $old->forceFill(['created_at' => now()->subDays(MemberNotification::REMINDER_RETENTION_DAYS + 1)])->save();
+        $recent = MemberNotification::query()->create(['user_id' => $this->member->id, 'type' => 'review_reminder', 'data' => ['profile' => ['name' => 'Клиника']]]);
+        $reply = MemberNotification::query()->create(['user_id' => $this->member->id, 'type' => 'review_reply', 'data' => []]);
+        $reply->forceFill(['created_at' => now()->subDays(MemberNotification::REMINDER_RETENTION_DAYS + 1)])->save();
+
+        $this->artisan('model:prune', ['--model' => [MemberNotification::class]])->assertSuccessful();
+
+        $this->assertSame([$recent->id, $reply->id], MemberNotification::query()->orderBy('id')->pluck('id')->all());
+    }
 }
