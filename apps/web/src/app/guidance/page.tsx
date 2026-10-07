@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { GuidanceWizard } from "@/components/guidance/guidance-wizard";
+import { GuidanceGuide } from "@/components/guidance/guidance-guide";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { guidancePageClass } from "@/components/guidance/guidance-layout";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
-import { fetchGuidanceFlow } from "@/lib/api/guidance-flow";
+import { NoticeTelLink } from "@/components/ui/notice";
+import { fetchGuidanceCatalog } from "@/lib/api/guidance-flow";
+import type { GuidanceCatalog } from "@/lib/api/guidance-v2";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { pageMetadata } from "@/lib/metadata";
@@ -30,18 +32,19 @@ export default async function GuidancePage() {
     );
   }
 
-  let flow = null;
-  let unavailable = false;
+  let catalog: GuidanceCatalog | null = null;
 
   try {
-    flow = await fetchGuidanceFlow();
+    catalog = await fetchGuidanceCatalog();
   } catch {
-    unavailable = true;
+    catalog = null;
   }
 
   return (
     <div className={guidancePageClass}>
-      {unavailable || !flow ? (
+      {catalog === null || catalog.flows.length === 0 ? (
+        // Fail closed: no published flow → no questionnaire, only the safe
+        // fallback with the emergency numbers (docs/triage-safety.md).
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
             <h1 className="type-h1 text-ink">{t("guidance.title")}</h1>
@@ -51,13 +54,16 @@ export default async function GuidancePage() {
           </div>
           <GuidanceSafetyNotice />
           <p className="type-reading text-ink">{t("guidance.unavailable")}</p>
+          <p className="type-reading text-ink">
+            {t("guidance.compactLead")} <NoticeTelLink number="194" />{" "}
+            {t("guidance.compactOr")} <NoticeTelLink number="112" />.
+          </p>
         </div>
       ) : (
-        // The wizard renders the page's h1 itself: the intro shows it in the
-        // hero, later steps keep it for screen readers only, so the emergency
-        // screen has nothing above it but the header.
-        <GuidanceWizard
-          flow={flow}
+        // The guide renders the page's h1 itself: the intro shows it in the
+        // hero, later steps keep it for screen readers only.
+        <GuidanceGuide
+          catalog={catalog}
           pharmaciesOn={isModuleOn(settings, "public_pharmacies")}
         />
       )}

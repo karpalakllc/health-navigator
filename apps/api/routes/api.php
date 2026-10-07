@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Http\Controllers\Api\V1\TriageV2Controller;
 use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Http\Controllers\Api\V1\UxController;
 use App\Models\ForumPost;
@@ -112,6 +113,22 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:api-triage-sessions');
         Route::post('/sessions/{id}/complete', [TriageController::class, 'complete'])
             ->middleware('throttle:api-triage-complete');
+
+        // v2 (docs/triage-flows.md): several flows, one question per call.
+        Route::prefix('v2')->group(function (): void {
+            Route::get('/catalog', [TriageV2Controller::class, 'catalog']);
+            Route::post('/sessions', [TriageV2Controller::class, 'start'])
+                ->middleware('throttle:api-triage-sessions');
+            Route::middleware('throttle:api-triage-steps')->group(function (): void {
+                Route::get('/sessions/{id}', [TriageV2Controller::class, 'show']);
+                Route::put('/sessions/{id}/demographics', [TriageV2Controller::class, 'demographics']);
+                Route::put('/sessions/{id}/symptoms', [TriageV2Controller::class, 'symptoms']);
+                Route::put('/sessions/{id}/screen', [TriageV2Controller::class, 'screen']);
+                Route::put('/sessions/{id}/answer', [TriageV2Controller::class, 'answer']);
+                Route::post('/sessions/{id}/emergency', [TriageV2Controller::class, 'emergency']);
+                Route::post('/sessions/{id}/no-match', [TriageV2Controller::class, 'noMatch']);
+            });
+        });
     });
 
     Route::prefix('auth')->group(function (): void {

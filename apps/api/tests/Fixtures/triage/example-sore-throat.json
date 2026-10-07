@@ -1,0 +1,124 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "example-sore-throat",
+  "title": "Болки во грлото (пример)",
+  "summary_en": "Illustrative example of the schema. Adults and teenagers with a sore throat: red flags, duration, fever, then pharmacy / GP / same-day outcomes.",
+  "audience": { "age_bands": ["teen_13_17", "adult_18_64", "older_65_plus"] },
+  "urgency_rank": 30,
+  "body_areas": ["throat"],
+  "search_terms": ["грло", "болно грло", "голтање", "гуша"],
+  "red_flags": [
+    {
+      "code": "cannot_swallow_saliva",
+      "label": "Не можете да голтате плунка или ви тече плунка од устата",
+      "source": "nhs-sore-throat"
+    },
+    {
+      "code": "noisy_breathing",
+      "label": "Свирежи или шумно дишење (стридор)",
+      "help": "Висок звук при вдишување.",
+      "source": "nhs-sore-throat"
+    }
+  ],
+  "scores": {
+    "amber_count": {
+      "label_en": "Amber features",
+      "items": [
+        { "when": { "answer": "q_fever", "eq": "yes" }, "points": 1 },
+        { "when": { "answer": "q_duration", "gte": 7 }, "points": 1 }
+      ]
+    }
+  },
+  "entry": "q_duration",
+  "nodes": {
+    "q_duration": {
+      "type": "question",
+      "kind": "number",
+      "text": "Колку дена ве боли грлото?",
+      "unit": "days",
+      "alt_units": ["hours", "weeks"],
+      "min": 0,
+      "max": 365,
+      "step": 0.5,
+      "allow_unknown": true,
+      "next": [
+        { "when": { "answer": "q_duration", "eq": "unknown" }, "goto": "q_fever" },
+        { "goto": "q_fever" }
+      ]
+    },
+    "q_fever": {
+      "type": "question",
+      "kind": "yes_no",
+      "allow_unsure": true,
+      "text": "Дали имате температура (треска) 38 °C или повеќе?",
+      "next": "q_pain"
+    },
+    "q_pain": {
+      "type": "question",
+      "kind": "scale",
+      "text": "Колку е силна болката, од 0 (нема болка) до 10 (најсилна)?",
+      "min_label": "Нема болка",
+      "max_label": "Најсилна",
+      "next": [
+        { "when": { "answer": "q_pain", "gte": 9 }, "goto": "o_same_day" },
+        { "when": { "any": [
+            { "demo": "conditions", "includes": "immunosuppressed" },
+            { "demo": "age_band", "eq": "older_65_plus" }
+          ] }, "goto": "o_gp_soon" },
+        { "when": { "score": "amber_count", "gte": 2 }, "goto": "o_gp_soon" },
+        { "when": { "answer": "q_fever", "in": ["yes", "unsure"] }, "goto": "o_pharmacy" },
+        { "goto": "o_self_care" }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_same_day": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Многу силна болка во грлото треба да се прегледа денес.",
+      "reasons": ["Ја оценивте болката како многу силна."],
+      "do_now": ["Јавете се во дежурна служба или појдете во итна амбуланта денес."],
+      "watch_for": ["Ако почнете тешко да дишете или не можете да голтате, веднаш јавете се на 194."],
+      "care": { "setting": "on_call", "specialties": ["otorinolaringologija"], "facility_types": ["hospital"] }
+    },
+    "o_gp_soon": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Според вашите одговори, добро е лекар да ве прегледа наскоро.",
+      "reasons": ["Имате повеќе знаци што бараат преглед, или поголем ризик од компликации."],
+      "do_now": ["Закажете преглед кај вашиот матичен лекар."],
+      "watch_for": ["Ако болката нагло се влоши или не можете да голтате течности, веднаш побарајте итна помош."],
+      "care": { "setting": "gp", "specialties": ["opsta-medicina", "semejna-medicina"], "facility_types": [] }
+    },
+    "o_pharmacy": {
+      "level": "pharmacy_advice",
+      "title": "Разговарајте со фармацевт",
+      "summary": "Фармацевтот може да ве посоветува за олеснување на болката и температурата.",
+      "reasons": ["Имате температура, но без знаци за итност."],
+      "do_now": ["Пијте доволно течности и одморајте."],
+      "watch_for": ["Ако по 7 дена нема подобрување, јавете се кај матичниот лекар."],
+      "care": { "setting": "pharmacy", "specialties": [], "facility_types": [] }
+    },
+    "o_self_care": {
+      "level": "self_care_with_safety_net",
+      "title": "Грижете се за себе дома",
+      "summary": "Болките во грлото често минуваат сами за околу една недела.",
+      "reasons": ["Немате знаци што бараат преглед."],
+      "do_now": ["Пијте топли или ладни течности.", "Одморајте."],
+      "watch_for": ["Ако се појави температура над 38 °C или тешко голтање, јавете се кај лекар."],
+      "care": { "setting": "self_care", "specialties": [], "facility_types": [] }
+    }
+  },
+  "populations": {
+    "pregnancy": "Example only: no pregnancy-specific threshold for this symptom; the global screen covers pregnancy red flags.",
+    "child": "Example only: teenagers follow the adult path."
+  },
+  "sources": [
+    {
+      "id": "nhs-sore-throat",
+      "title": "NHS — Sore throat",
+      "url": "https://www.nhs.uk/conditions/sore-throat/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

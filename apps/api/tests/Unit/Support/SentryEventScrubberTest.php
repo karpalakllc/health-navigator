@@ -40,6 +40,35 @@ class SentryEventScrubberTest extends TestCase
         $this->assertSame('kept', $data['name']);
     }
 
+    public function test_guidance_v2_bodies_lose_every_health_field(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://api.example/api/v1/triage/v2/sessions/x/answer',
+            'data' => [
+                'age_value' => 34,
+                'age_unit' => 'years',
+                'sex' => 'female',
+                'pregnancy' => 'pregnant',
+                'conditions' => ['immunosuppressed'],
+                'flows' => ['chest-pain'],
+                'red_flags' => ['global.self_harm'],
+                'flow' => 'mental-health',
+                'node' => 'q_mood',
+                'body_area' => 'pelvis',
+                'accepted_terms' => true,
+            ],
+        ]);
+
+        $data = SentryEventScrubber::beforeSend($event)?->getRequest()['data'];
+
+        foreach (['age_value', 'age_unit', 'sex', 'pregnancy', 'conditions', 'flows', 'red_flags', 'flow', 'node', 'body_area'] as $key) {
+            $this->assertSame(SentryEventScrubber::FILTERED, $data[$key], $key);
+        }
+
+        $this->assertTrue($data['accepted_terms']);
+    }
+
     public function test_search_terms_are_dropped_from_the_query_string_and_body(): void
     {
         // A health search ("ХИВ тест") is sensitive even without a user id.

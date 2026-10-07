@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Observers\ContributorLevelObserver;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
+use App\Services\Triage\V2\Escalation\NullEscalation;
+use App\Services\Triage\V2\Escalation\TriageEscalation;
 use App\Support\DeploymentEnvironment;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Import\EloquentDoctorLicenceSink;
@@ -33,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Licence matchers (Лекарска комора) hand their results to the import core.
         $this->app->bind(DoctorLicenceSink::class, EloquentDoctorLicenceSink::class);
+
+        // Symptom guidance's AI seam (3f-b): off, and no driver exists yet. A
+        // real driver is bound here only when config triage.escalation is on.
+        $this->app->bind(TriageEscalation::class, NullEscalation::class);
     }
 
     public function boot(): void
@@ -193,6 +199,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api-triage-complete', function (Request $request) {
             return Limit::perHour(5)->by('triage-complete:'.$request->ip());
+        });
+
+        // Guidance v2 answers one question per call (up to three flows of
+        // questions, plus going back): generous, but bounded per address.
+        RateLimiter::for('api-triage-steps', function (Request $request) {
+            return Limit::perHour(600)->by('triage-steps:'.$request->ip());
         });
 
         // Anonymous UX batches (docs/ux-heatmaps.md), relayed by the web tier.

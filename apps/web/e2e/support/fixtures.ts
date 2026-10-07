@@ -87,9 +87,17 @@ export const forum = {
 } as const;
 
 /** TriageSeeder's red flags (the guidance flow the E2ESeeder reuses). */
+/**
+ * Symptom guidance v2: the grandfathered general flow (database/data/triage/
+ * flows/general.json) and the global screen (global/core.json), loaded by
+ * TriageFlowSeeder.
+ */
 export const triage = {
-  redFlagLabel: "Силна болка или притисок во градите",
-  emergencyOutcomeTitle: "Веднаш побарајте итна помош",
+  flowTitle: "Општи симптоми",
+  redFlagLabel:
+    "Силна болка или притисок во градите, особено ако се шири кон раката, вратот, вилицата или грбот",
+  emergencyOutcomeTitle: "Веднаш јавете се на 194",
+  firstQuestion: "Што најдобро го опишува она што ве загрижува?",
 } as const;
 
 /**

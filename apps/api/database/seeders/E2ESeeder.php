@@ -135,6 +135,7 @@ class E2ESeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
         $this->seedUsers();
         $this->call(TriageSeeder::class);
+        $this->call(TriageFlowSeeder::class);
         $this->seedDirectory();
         $this->seedForum();
         $this->seedHelpTopic();
