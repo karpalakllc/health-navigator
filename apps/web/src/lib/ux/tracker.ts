@@ -191,13 +191,19 @@ export function createTracker({
     const label = el.closest("label");
     labelled = label?.control ?? null;
 
+    // Enter or Space on a control, an implicit form submission or a screen
+    // reader: a click with detail 0 and no pointer position (clientX/Y are 0).
+    // It counts for its target, but is not placed on the map and is never part
+    // of a rage burst.
+    const keyboard = event.detail === 0;
+
     // A drag that selected text is reading, not clicking. (Double and triple
     // clicks select words too, but those are clicks: detail > 1.)
     const selection = win.getSelection?.();
-    if (event.detail <= 1 && selection && !selection.isCollapsed) return;
+    if (event.detail === 1 && selection && !selection.isCollapsed) return;
 
     const at = now();
-    const rage = isRage(at, event.clientX, event.clientY);
+    const rage = !keyboard && isRage(at, event.clientX, event.clientY);
     const target = describeTarget(
       el,
       (node) => win.getComputedStyle(node).cursor === "pointer",
@@ -205,7 +211,12 @@ export function createTracker({
     const fixed = inFixedBox(el, (node) => win.getComputedStyle(node).position);
 
     const docWidth = Math.max(doc.documentElement.scrollWidth, 1);
-    const pageX = event.clientX + win.scrollX;
+    let clientX = event.clientX;
+    if (keyboard) {
+      const rect = el.getBoundingClientRect();
+      clientX = rect.left + rect.width / 2;
+    }
+    const pageX = clientX + win.scrollX;
     const pageY = event.clientY + win.scrollY;
     const yBucket = Math.floor(pageY / UX_Y_STEP);
     const { vc, wb } = viewport();
@@ -217,7 +228,8 @@ export function createTracker({
       vc,
       wb,
       x: Math.min(UX_MAX_X, Math.max(0, Math.floor((pageX / docWidth) * 100))),
-      y: fixed || yBucket < 0 || yBucket > UX_MAX_Y ? null : yBucket,
+      y:
+        keyboard || fixed || yBucket < 0 || yBucket > UX_MAX_Y ? null : yBucket,
       k: target.key,
       d: !target.interactive,
       g: rage,

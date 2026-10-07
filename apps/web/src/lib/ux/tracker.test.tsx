@@ -38,9 +38,15 @@ function geometry({ width = 390, height = 844, docHeight = 3000 } = {}) {
   });
 }
 
+/** A pointer click (detail 1); keyboard activations have detail 0. */
 function click(el: Element, x = 100, y = 200) {
   el.dispatchEvent(
-    new MouseEvent("click", { bubbles: true, clientX: x, clientY: y }),
+    new MouseEvent("click", {
+      bubbles: true,
+      clientX: x,
+      clientY: y,
+      detail: 1,
+    }),
   );
 }
 
@@ -142,6 +148,29 @@ describe("rage clicks", () => {
     tracker.flush();
 
     expect(allClicks().some((c) => c.g)).toBe(false);
+  });
+});
+
+describe("keyboard and assistive-technology activations", () => {
+  it("count for their target, but have no position and are never rage clicks", () => {
+    // Enter/Space on a button, implicit form submission and screen readers
+    // fire a click with detail 0 at clientX = clientY = 0.
+    const btn = document.getElementById("btn")!;
+    for (const at of [0, 100, 200]) {
+      clock = at;
+      btn.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }));
+    }
+    tracker.flush();
+
+    expect(allClicks()).toHaveLength(3);
+    for (const c of allClicks()) {
+      expect(c).toMatchObject({
+        k: "doctor-card/button",
+        d: false,
+        y: null,
+        g: false,
+      });
+    }
   });
 });
 
