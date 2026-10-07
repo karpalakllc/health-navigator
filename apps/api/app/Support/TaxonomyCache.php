@@ -31,6 +31,9 @@ final class TaxonomyCache
 
     public const LANGUAGES = 'languages';
 
+    /** GET /forum/topics/unanswered: „Прашања без одговор“. */
+    public const FORUM_UNANSWERED = 'forum-unanswered';
+
     /**
      * @template T
      *

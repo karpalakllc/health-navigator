@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\ForumTagController;
+use App\Http\Controllers\Api\V1\ForumUnansweredController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
@@ -259,4 +260,11 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('module:pharmacies')
                 ->name('profile-reports.pharmacy');
         });
+
+    // W8-A: „Прашања без одговор“ — visible topics nobody but their author has
+    // answered yet (home „Помогни некому“, the forum's „Без одговор“ view).
+    // Anonymous and identical for everyone; cached server side as well.
+    Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
+        Route::get('/forum/topics/unanswered', ForumUnansweredController::class);
+    });
 });

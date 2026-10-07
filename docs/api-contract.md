@@ -242,6 +242,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/forum/topics/related` | `module:forum`, `cache.public:60` |
+| `GET` | `/forum/topics/unanswered` | `module:forum`, `cache.public:60` |
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
@@ -531,6 +532,13 @@ nobody can hold an account locked by merely sending traffic.
   /forum/topics/related?doctor={slug}` or `?facility={slug}` (`limit` 1–10,
   default 5) lists visible topics related to a published profile. All three
   are anonymous and `cache.public:60`.
+- **Unanswered questions.** `GET /forum/topics/unanswered` (`category` slug,
+  `q`, `min_age_hours` 0–720, `per_page` ≤ 20, default 10) lists visible
+  topics that have no published reply from anyone but their own author,
+  newest first; pinned and locked topics are left out. Same item shape as
+  `/forum/topics/recent`; 404 for an unknown or unpublished category.
+  Anonymous, `cache.public:60`, and cached server side for 5 minutes (busted
+  by topic saves and reply approvals or removals).
 - `GET /locations/cities` lists every city with at least one published
   profile (doctors, clinical facilities, and pharmacies while that module is
   on) as `[{name, doctors_count, facilities_count}]`; spellings differing only
