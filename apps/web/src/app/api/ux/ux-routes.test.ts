@@ -94,6 +94,29 @@ describe("POST /api/ux/events", () => {
   });
 });
 
+describe("POST /api/ux/events under load", () => {
+  it("has no shared ceiling: one busy client cannot switch the relay off for everyone", async () => {
+    // The API limits per visitor network; a per-process counter here would be
+    // used up by a single client before that limit ever applied.
+    for (let i = 0; i < 1_250; i++) {
+      await events(post({ clicks: [click], views: [] }));
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1_250);
+  });
+
+  it("gives up on a hung API after 3 s", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+
+    await events(post({ clicks: [click], views: [] }));
+
+    expect(timeout).toHaveBeenCalledWith(3_000);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.signal).toBe(timeout.mock.results[0].value);
+    timeout.mockRestore();
+  });
+});
+
 describe("GET /api/ux/heatmap", () => {
   function get(query: string, token?: string) {
     return new Request(`${SITE}/api/ux/heatmap?${query}`, {
