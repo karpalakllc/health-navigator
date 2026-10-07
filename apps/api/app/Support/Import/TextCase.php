@@ -18,6 +18,9 @@ final class TextCase
     /** Short function words written in lower case inside a name. */
     private const LOWER = ['И', 'ЗА', 'СО', 'НА', 'ВО', 'ОД', 'ПО', 'ДО', 'БР', 'БР.'];
 
+    /** A word that opens a quote or a bracket (its first word starts a name). */
+    private const OPENS = '/^[„“"\'«(]/u';
+
     public static function person(string $name): string
     {
         $name = trim((string) preg_replace('/\s+/u', ' ', $name));
@@ -44,17 +47,29 @@ final class TextCase
         }
 
         $words = explode(' ', $name);
+        // The first word of the name, of a quoted name („ДО ДЕНТ“ → „До
+        // Дент“, never „до Дент“) and the first after the leading legal forms
+        // („ПЗУ И…“) start a name: a function word there is a brand word.
+        $startsName = true;
+        $leading = true;
 
         foreach ($words as $index => $word) {
             // Multibyte-safe: a byte-wise trim() with „“ in the list also cut
             // the last byte of О or М (ДО, ПО, ВО, СО were missed).
-            $bare = (string) preg_replace('/^[„“"\'(),.\-]+|[„“"\'(),.\-]+$/u', '', $word);
+            $bare = (string) preg_replace('/^[„“"\'«»(),.\-]+|[„“"\'«»(),.\-]+$/u', '', $word);
+            $isStart = $startsName || preg_match(self::OPENS, $word) === 1;
+            // A quote standing alone („ПЗУ " ДО ДЕНТ "“) opens the next word.
+            $startsName = $bare === '' && preg_match(self::OPENS, $word) === 1;
 
             if (in_array($bare, self::ACRONYMS, true) || preg_match('/\d/u', $bare) === 1) {
+                $startsName = $startsName || ($leading && $isStart);
+
                 continue;
             }
 
-            if ($index > 0 && in_array($bare, self::LOWER, true)) {
+            $leading = false;
+
+            if (! $isStart && in_array($bare, self::LOWER, true)) {
                 $words[$index] = mb_strtolower($word, 'UTF-8');
 
                 continue;

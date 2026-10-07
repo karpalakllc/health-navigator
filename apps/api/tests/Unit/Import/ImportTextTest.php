@@ -73,4 +73,32 @@ class ImportTextTest extends TestCase
         $this->assertSame('„ПЗУ“ Медика', TextCase::institution('„ПЗУ“ МЕДИКА'));
         $this->assertSame('Клиника „Свети Наум“', TextCase::institution('КЛИНИКА „СВЕТИ НАУМ“'));
     }
+
+    /**
+     * A function word that starts a name — the whole name, a quoted name or
+     * the name after the legal form — is a brand word and keeps its capital:
+     * „ДО ДЕНТ“ is „До Дент“, never „до Дент“.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function nameStarts(): array
+    {
+        return [
+            'ДО in quotes' => ['ПЗУ „ДО ДЕНТ“', 'ПЗУ „До Дент“'],
+            'ВО in quotes' => ['АПТЕКА „ВО ЗДРАВЈЕ“', 'Аптека „Во Здравје“'],
+            'НА in straight quotes' => ['ПЗУ "НА ДЛАНКА" ', 'ПЗУ "На Дланка"'],
+            'И after a standalone quote' => ['ПЗУ " И ЈАС "', 'ПЗУ " И Јас "'],
+            'СО in guillemets' => ['КЛИНИКА «СО ГРИЖА»', 'Клиника «Со Грижа»'],
+            'ПО in brackets' => ['ОРДИНАЦИЈА (ПО МЕРА)', 'Ординација (По Мера)'],
+            'ДО first word' => ['ДО ДЕНТ', 'До Дент'],
+            'И after the legal form' => ['ПЗУ И ДЕНТ', 'ПЗУ И Дент'],
+            'inside the name still lower' => ['ПЗУ „ЗДРАВЈЕ ЗА СИТЕ“', 'ПЗУ „Здравје за Сите“'],
+        ];
+    }
+
+    #[DataProvider('nameStarts')]
+    public function test_a_function_word_starting_a_name_keeps_its_capital(string $raw, string $expected): void
+    {
+        $this->assertSame($expected, TextCase::institution($raw));
+    }
 }
