@@ -11,31 +11,31 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class UgcApprovedMail extends Mailable implements ShouldQueue, Unsubscribable
+/** W8-B: the reviewed doctor or facility replied publicly to the member's review. */
+class ReviewReplyMail extends Mailable implements ShouldQueue, Unsubscribable
 {
     use HasUnsubscribeLink, Queueable, SerializesModels;
 
     public function __construct(
         public readonly string $recipientName,
-        public readonly string $contentLabel,
-        public readonly string $contentTitle,
+        public readonly string $profileName,
+        // The linked doctor wrote it (not staff on the profile's behalf).
+        public readonly bool $fromDoctor,
+        public readonly string $replyExcerpt,
         public readonly string $actionUrl,
-        public readonly string $actionLabel,
-        // $contentLabel is a masculine noun (одговор): the template agrees with it.
-        public readonly bool $masculine = false,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Вашата содржина е објавена — Zdravje360',
+            subject: 'Одговор на вашата рецензија — Zdravje360',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.ugc-approved',
+            markdown: 'mail.review-reply',
         );
     }
 }

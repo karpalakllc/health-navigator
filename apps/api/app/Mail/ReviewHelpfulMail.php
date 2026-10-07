@@ -11,31 +11,33 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class UgcApprovedMail extends Mailable implements ShouldQueue, Unsubscribable
+/**
+ * W8-B: new „Корисно“ votes on the member's review, batched (at most one a
+ * day per review, reviews:notify-helpful). Counts only — never who voted.
+ */
+class ReviewHelpfulMail extends Mailable implements ShouldQueue, Unsubscribable
 {
     use HasUnsubscribeLink, Queueable, SerializesModels;
 
     public function __construct(
         public readonly string $recipientName,
-        public readonly string $contentLabel,
-        public readonly string $contentTitle,
+        public readonly string $profileName,
+        public readonly int $newVotes,
+        public readonly int $totalVotes,
         public readonly string $actionUrl,
-        public readonly string $actionLabel,
-        // $contentLabel is a masculine noun (одговор): the template agrees with it.
-        public readonly bool $masculine = false,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Вашата содржина е објавена — Zdravje360',
+            subject: 'Вашата рецензија им помогна на други — Zdravje360',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.ugc-approved',
+            markdown: 'mail.review-helpful',
         );
     }
 }

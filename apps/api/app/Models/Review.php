@@ -8,6 +8,7 @@ use App\Enums\ReviewResponseSource;
 use App\Enums\ReviewResponseStatus;
 use App\Enums\ReviewStatus;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
+use App\Support\Notifications\ReviewNotifications;
 use App\Support\ReviewAggregates;
 use App\Support\ReviewBurstDetector;
 use App\Support\TaxonomyCache;
@@ -94,6 +95,9 @@ class Review extends Model
             }
         });
 
+        // W8-B: the author hears once when a reply becomes public.
+        static::saved(fn (Review $review) => ReviewNotifications::replyMaybePublished($review));
+
         static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
 
         static::created(fn (Review $review) => ReviewBurstDetector::check($review));
@@ -146,6 +150,9 @@ class Review extends Model
             'resubmission_count' => 'integer',
             'resubmitted_at' => 'datetime',
             'first_refused_at' => 'datetime',
+            'view_count' => 'integer',
+            'helpful_notified_count' => 'integer',
+            'reply_notified_at' => 'datetime',
             'response_source' => ReviewResponseSource::class,
             'response_status' => ReviewResponseStatus::class,
             'response_moderated_at' => 'datetime',
@@ -417,6 +424,8 @@ class Review extends Model
             'response_moderated_by_id' => null,
             'response_moderated_at' => null,
             'response_rejection_note' => null,
+            // A later reply is news again.
+            'reply_notified_at' => null,
         ])->save();
     }
 

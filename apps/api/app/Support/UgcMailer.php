@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\NotificationType;
 use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcApprovedMail;
 use App\Mail\UgcRejectedMail;
@@ -12,15 +13,21 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\Notifications\MemberNotifier;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Mail;
 
+/**
+ * Moderation outcome e-mails to authors and reporters. Since W8-B they go
+ * through MemberNotifier: type „moderation“ (the member can switch the
+ * e-mails off with the link in each), and decisions also appear in the
+ * member's „Известувања“ (not the „received“ confirmation).
+ */
 final class UgcMailer
 {
     public static function notifySubmitted(Model $model): void
     {
         self::sendToAuthor($model, function (User $user, array $payload): void {
-            Mail::to($user)->queue(new UgcSubmittedMail(
+            MemberNotifier::send($user, NotificationType::Moderation, null, new UgcSubmittedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
                 contentTitle: $payload['title'],
@@ -33,12 +40,17 @@ final class UgcMailer
 
     public static function notifyApproved(Model $model): void
     {
-        self::sendToAuthor($model, function (User $user, array $payload): void {
+        self::sendToAuthor($model, function (User $user, array $payload) use ($model): void {
             if ($payload['public_url'] === null) {
                 return;
             }
 
-            Mail::to($user)->queue(new UgcApprovedMail(
+            MemberNotifier::send($user, NotificationType::Moderation, [
+                'event' => 'published',
+                'content' => $payload['content'],
+                'title' => $payload['title'],
+                'path' => $payload['public_path'],
+            ], new UgcApprovedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
                 contentTitle: $payload['title'],
@@ -46,6 +58,12 @@ final class UgcMailer
                 actionLabel: $payload['public_action_label'],
                 masculine: $payload['masculine'],
             ));
+
+            // The first published review invites the member, once and only
+            // in the account, to the opt-in monthly digest.
+            if ($model instanceof Review) {
+                MemberNotifier::inviteToDigest($user);
+            }
         });
     }
 
@@ -55,7 +73,12 @@ final class UgcMailer
     public static function notifyRejected(Model $model, bool $removed = false): void
     {
         self::sendToAuthor($model, function (User $user, array $payload) use ($model, $removed): void {
-            Mail::to($user)->queue(new UgcRejectedMail(
+            MemberNotifier::send($user, NotificationType::Moderation, [
+                'event' => $removed ? 'removed' : 'rejected',
+                'content' => $payload['content'],
+                'title' => $payload['title'],
+                'path' => $payload['account_path'],
+            ], new UgcRejectedMail(
                 recipientName: $user->name,
                 contentLabel: $payload['label'],
                 contentTitle: $payload['title'],
@@ -90,7 +113,12 @@ final class UgcMailer
                 continue;
             }
 
-            Mail::to($user)->queue(new ContentReportOutcomeMail(
+            MemberNotifier::send($user, NotificationType::Moderation, [
+                'event' => 'report_resolved',
+                'content' => $subject['content'],
+                'title' => $subject['title'],
+                'removed' => $removed,
+            ], new ContentReportOutcomeMail(
                 recipientName: $user->name,
                 contentLabel: $subject['label'],
                 contentTitle: $subject['title'],
@@ -100,7 +128,7 @@ final class UgcMailer
     }
 
     /**
-     * @return array{label: string, title: string}|null
+     * @return array{label: string, title: string, content: string}|null
      */
     private static function reportSubject(Model $content): ?array
     {
@@ -117,6 +145,7 @@ final class UgcMailer
                 default => 'рецензијата за',
             },
             'title' => $payload['title'],
+            'content' => $payload['content'],
         ];
     }
 
@@ -147,11 +176,14 @@ final class UgcMailer
     /**
      * @return array{
      *     label: string,
+     *     content: string,
      *     masculine: bool,
      *     title: string,
      *     account_url: string,
      *     account_action_label: string,
      *     public_url: string|null,
+     *     public_path: string|null,
+     *     account_path: string,
      *     public_action_label: string,
      *     rejection_note: string|null
      * }|null
@@ -163,11 +195,14 @@ final class UgcMailer
 
             return [
                 'label' => 'тема',
+                'content' => 'topic',
                 'masculine' => false,
                 'title' => $model->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
                 'public_url' => FrontendUrl::to("/forum/{$model->category->slug}/{$model->slug}"),
+                'public_path' => "/forum/{$model->category->slug}/{$model->slug}",
+                'account_path' => '/account/forum',
                 'public_action_label' => 'Види ја темата',
                 'rejection_note' => $model->rejection_note,
             ];
@@ -178,11 +213,14 @@ final class UgcMailer
 
             return [
                 'label' => 'одговор во темата',
+                'content' => 'post',
                 'masculine' => true,
                 'title' => $model->topic->title,
                 'account_url' => FrontendUrl::to('/account/forum'),
                 'account_action_label' => 'Мој форум',
                 'public_url' => FrontendUrl::to("/forum/{$model->topic->category->slug}/{$model->topic->slug}"),
+                'public_path' => "/forum/{$model->topic->category->slug}/{$model->topic->slug}",
+                'account_path' => '/account/forum',
                 'public_action_label' => 'Види го одговорот',
                 'rejection_note' => $model->rejection_note,
             ];
@@ -208,11 +246,14 @@ final class UgcMailer
 
             return [
                 'label' => 'рецензија за',
+                'content' => 'review',
                 'masculine' => false,
                 'title' => $name,
                 'account_url' => FrontendUrl::to('/account/reviews'),
                 'account_action_label' => 'Мои рецензии',
                 'public_url' => $publicPath !== null ? FrontendUrl::to($publicPath) : null,
+                'public_path' => $publicPath,
+                'account_path' => '/account/reviews',
                 'public_action_label' => 'Види го профилот',
                 'rejection_note' => $model->rejection_note,
             ];

@@ -176,4 +176,15 @@ return [
         ],
     ],
 
+    // W8-B review reminders and notifications.
+    'reminder' => [
+        'own_profile' => 'You cannot set a reminder for the profile you manage.',
+        'already_reviewed' => 'You have already reviewed this profile.',
+        'too_many' => 'You have too many active reminders. Cancel one in your notification settings.',
+    ],
+
+    'notifications' => [
+        'unsubscribe_invalid' => 'This unsubscribe link is not valid. You can change your settings in your account.',
+    ],
+
 ];

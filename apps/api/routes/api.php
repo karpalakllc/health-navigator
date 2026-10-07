@@ -17,12 +17,15 @@ use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileCorrectionController;
 use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReviewHelpfulController;
+use App\Http\Controllers\Api\V1\ReviewReminderController;
+use App\Http\Controllers\Api\V1\ReviewViewController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
@@ -259,4 +262,30 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('module:pharmacies')
                 ->name('profile-reports.pharmacy');
         });
+
+    // W8-B review flow and impact. „Прикажана N пати“: the web reports the
+    // review cards a visitor had on screen (ReviewViews: once a day per
+    // network, no cookie); optional auth leaves the author's own views out.
+    Route::post('/reviews/views', [ReviewViewController::class, 'store'])
+        ->middleware(['auth.sanctum.optional', 'throttle:60,1,api-review-views']);
+
+    // The member's „Известувања“, e-mail switches and per-profile reminders.
+    Route::middleware(['auth:sanctum', 'throttle:120,1,api-notifications'])->prefix('me')->group(function (): void {
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/read', [NotificationController::class, 'markRead']);
+        Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
+        Route::put('/notification-preferences', [NotificationController::class, 'updatePreferences']);
+        Route::get('/review-reminders', [ReviewReminderController::class, 'index']);
+        Route::post('/review-reminders', [ReviewReminderController::class, 'store'])
+            ->middleware(['verified', 'throttle:30,60,api-review-reminders']);
+        Route::delete('/review-reminders/{reminder}', [ReviewReminderController::class, 'destroy'])
+            ->where('reminder', '[0-9]{1,18}');
+    });
+
+    // The signed one-click unsubscribe in every member e-mail: no sign-in,
+    // the token is the authorisation (UnsubscribeToken).
+    Route::middleware('throttle:30,1,api-unsubscribe')->group(function (): void {
+        Route::get('/notifications/unsubscribe', [NotificationController::class, 'showUnsubscribe']);
+        Route::post('/notifications/unsubscribe', [NotificationController::class, 'unsubscribe']);
+    });
 });
