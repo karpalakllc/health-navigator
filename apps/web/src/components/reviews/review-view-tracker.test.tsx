@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewViewTracker } from "@/components/reviews/review-view-tracker";
+import { OVERLAY_TOKEN_KEY } from "@/lib/ux/overlay-token";
 import { mockFetch, requestBody } from "../../../test/fetch";
 
 type Callback = (entries: Partial<IntersectionObserverEntry>[]) => void;
@@ -25,6 +26,9 @@ class FakeObserver {
 
 function show(...ids: number[]) {
   const observer = observers[observers.length - 1];
+
+  // The tracker may decline to watch at all (privacy signal, overlay tab).
+  if (!observer) return;
 
   act(() => {
     observer.callback(
@@ -100,5 +104,46 @@ describe("ReviewViewTracker", () => {
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(requestBody(fetch)).toEqual({ ids: [21] });
+  });
+
+  // Same rule as the UX tracker (docs/ux-heatmaps.md): a privacy signal or a
+  // staff heatmap-overlay tab counts nothing.
+  it("counts nothing when the browser sends Global Privacy Control", () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    const { unmount } = render(
+      <ReviewViewTracker>{cards(31)}</ReviewViewTracker>,
+    );
+
+    show(31);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    unmount();
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("counts nothing in a tab showing the staff heatmap overlay", () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    window.sessionStorage.setItem(
+      OVERLAY_TOKEN_KEY,
+      "abcdefgh.abcdefghijklmnopqrstuvwxyz",
+    );
+    try {
+      const { unmount } = render(
+        <ReviewViewTracker>{cards(41)}</ReviewViewTracker>,
+      );
+
+      show(41);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      unmount();
+    } finally {
+      window.sessionStorage.removeItem(OVERLAY_TOKEN_KEY);
+    }
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

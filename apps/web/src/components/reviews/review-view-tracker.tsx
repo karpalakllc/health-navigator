@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { hasOverlayToken } from "@/lib/ux/overlay-token";
+import { privacySignalOn } from "@/lib/ux/privacy-signals";
 
 /** How long after the first card appears the batch goes out. */
 const FLUSH_MS = 2000;
@@ -14,7 +16,8 @@ const MAX_BATCH = 30;
  * view. In memory only — no cookie or storage; the API counts each review at
  * most once a day per network and never the author's own views. Pages a
  * crawler fetches without running scripts, or that nobody scrolls to, count
- * nothing.
+ * nothing. Like the UX tracker, a browser sending Global Privacy Control or
+ * Do Not Track, and a staff heatmap-overlay tab, count nothing either.
  */
 export function ReviewViewTracker({
   children,
@@ -32,7 +35,12 @@ export function ReviewViewTracker({
   useEffect(() => {
     const root = container.current;
 
-    if (!root || typeof IntersectionObserver === "undefined") {
+    if (
+      !root ||
+      typeof IntersectionObserver === "undefined" ||
+      privacySignalOn(window) ||
+      hasOverlayToken(window)
+    ) {
       return;
     }
 

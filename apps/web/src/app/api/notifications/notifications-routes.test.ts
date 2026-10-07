@@ -140,6 +140,19 @@ describe("POST /api/reviews/views", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([["sec-gpc"], ["dnt"]])(
+    "counts nothing when the request carries %s: 1",
+    async (header) => {
+      const request = report([3]);
+      request.headers.set(header, "1");
+
+      const response = await views.POST(request);
+
+      expect(await response.json()).toEqual({ data: { counted: 0 } });
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     [[]],
     [Array.from({ length: 31 }, (_, i) => i + 1)],

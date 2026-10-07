@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { guardJson } from "@/lib/auth/request-guard";
 import { isLikelyBot, relayToApi } from "@/lib/api/notifications-relay";
+import { privacySignalHeader } from "@/lib/ux/privacy-signals";
 
 /** Most review cards one report may carry (the API's ReviewViews::MAX_IDS). */
 const MAX_IDS = 30;
 
 /**
  * „Прикажана N пати“: the review cards that were on this visitor's screen
- * (ReviewViewTracker). Crawlers are dropped here; the API counts each review
+ * (ReviewViewTracker). Crawlers and privacy signals are dropped here; the API counts each review
  * at most once a day per network and never the author's own views.
  */
 export async function POST(request: Request) {
@@ -28,7 +29,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Invalid ids." }, { status: 422 });
   }
 
-  if (isLikelyBot(request)) {
+  // Crawlers, and (as for the UX statistics) Sec-GPC / DNT: not counted.
+  if (isLikelyBot(request) || privacySignalHeader(request.headers)) {
     return NextResponse.json({ data: { counted: 0 } });
   }
 
