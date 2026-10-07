@@ -40,6 +40,9 @@ test.describe("review flow and notifications", () => {
     const page = await context.newPage();
     await page.clock.install();
     await page.goto(`/doctors/${doctor.slug}`);
+    // The dwell timer starts once the page has hydrated; fast-forwarding the
+    // fake clock before that would skip nothing.
+    await page.waitForLoadState("networkidle");
 
     const question = mk.reviewFlow.promptDoctor.replace("{name}", doctor.name);
     await page.clock.fastForward(16_000);
@@ -52,6 +55,7 @@ test.describe("review flow and notifications", () => {
 
     // Once per profile per device.
     await page.reload();
+    await page.waitForLoadState("networkidle");
     await page.clock.fastForward(16_000);
     await expect(page.getByText(question)).toHaveCount(0);
     await context.close();

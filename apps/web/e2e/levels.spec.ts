@@ -72,8 +72,17 @@ test.describe("contributor levels", () => {
     const button = reply.getByRole("button", { name: /^Корисно/ });
 
     await expect(button).toHaveAttribute("aria-pressed", "false");
+    // The toggle is optimistic: wait for the vote to be stored before the
+    // reload, or the reload can render ahead of it (or abort it).
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/forum/posts/helpful") &&
+        response.request().method() === "PUT",
+    );
     await button.click();
+    expect((await saved).ok()).toBe(true);
     await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(button).toHaveText(/1/);
 
     await page.reload();
     const again = page
