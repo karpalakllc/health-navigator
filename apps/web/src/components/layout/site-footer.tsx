@@ -1,6 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FooterSearchButton } from "@/components/layout/footer-search-button";
+import { FIRST_AID_COPY } from "@/content/first-aid/copy";
+import {
+  FIRST_AID_BASE,
+  hasPublishedFirstAidGuides,
+} from "@/content/first-aid";
 import { SiteBrandMark } from "@/components/layout/site-brand-mark";
 import { isPathEnabled } from "@/lib/site-modules";
 import type { PublicSettings } from "@/lib/api/settings";
@@ -122,6 +127,14 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                 <li>
                   <Link href="/guidance" className={linkClass}>
                     {t("nav.guidance")}
+                  </Link>
+                </li>
+              ) : null}
+              {/* Only once a clinician-reviewed guide is published. */}
+              {hasPublishedFirstAidGuides() ? (
+                <li>
+                  <Link href={FIRST_AID_BASE} className={linkClass}>
+                    {FIRST_AID_COPY.title}
                   </Link>
                 </li>
               ) : null}

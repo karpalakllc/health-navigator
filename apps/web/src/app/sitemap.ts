@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/public-settings";
 import { loadPublicSettings } from "@/lib/api/settings";
 import { collectPages } from "@/lib/collect-pages";
+import { FIRST_AID_BASE, publishedFirstAidGuides } from "@/content/first-aid";
 import { isIndexableTag, TAG_INDEXABLE_MIN_TOPICS } from "@/lib/metadata";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -63,6 +64,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(settings.public_pharmacies ? ["/pharmacies"] : []),
     ...(settings.public_products ? ["/products"] : []),
   ];
+
+  // „Прва помош“: only clinician-reviewed, published guides (docs/first-aid.md);
+  // the index only once there is at least one.
+  const firstAid = publishedFirstAidGuides();
+  if (firstAid.length > 0) {
+    staticPaths.push(
+      FIRST_AID_BASE,
+      ...firstAid.map((guide) => `${FIRST_AID_BASE}/${guide.slug}`),
+    );
+  }
 
   const entries: MetadataRoute.Sitemap = staticPaths.map((path) => ({
     url: absoluteUrl(path),
