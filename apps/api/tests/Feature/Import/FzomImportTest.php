@@ -6,6 +6,7 @@ use App\Enums\ImportReviewKind;
 use App\Enums\ImportRunStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
 use App\Models\SourceRecord;
@@ -320,6 +321,41 @@ class FzomImportTest extends TestCase
         $changed = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)->where('subject_id', $doctor->getKey())->firstOrFail();
         $this->assertSame('Четврти Срцевски', $changed->details['fields']['full_name']['old']);
         $this->assertTrue($doctor->is_published);
+    }
+
+    /**
+     * A casing rule fixed between runs (TextCase: „ВО“, „ДО“… were missed)
+     * re-cases the import's own values on every published facility. That is
+     * not news for staff: the value is written, but no „changed“ item — also
+     * when import:clean-names rewrote it last (provenance „cleanup“).
+     */
+    public function test_a_casing_only_difference_on_the_imports_own_value_is_applied_without_a_changed_item(): void
+    {
+        $this->import();
+        $facilities = Facility::query()->whereNotNull('address')->orderBy('id')->take(2)->get();
+        $this->assertCount(2, $facilities);
+
+        foreach ($facilities as $index => $facility) {
+            $expected = (string) $facility->address;
+            $oldCasing = mb_strtoupper($expected, 'UTF-8');
+            $facility->forceFill(['address' => $oldCasing, 'is_published' => true, 'published_at' => now()])->save();
+            $provenance = FieldProvenance::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->where('field', 'address')->firstOrFail();
+            // The second one as import:clean-names leaves it.
+            $provenance->forceFill(['value' => $oldCasing] + ($index === 1 ? ['source' => ProvenanceWriter::CLEANUP_SOURCE] : []))->save();
+            // The stored payload must differ, or the record is skipped as unchanged.
+            SourceRecord::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())
+                ->update(['hash' => 'stale']);
+        }
+
+        $this->import();
+
+        foreach ($facilities as $facility) {
+            $this->assertNotSame(mb_strtoupper((string) $facility->address, 'UTF-8'), $facility->refresh()->address);
+            $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+                ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->exists());
+            $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Conflict)
+                ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->exists());
+        }
     }
 
     public function test_a_doctor_missing_from_two_runs_is_queued_and_never_deleted(): void

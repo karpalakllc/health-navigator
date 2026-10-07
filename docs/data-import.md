@@ -632,6 +632,11 @@ php artisan import:adjudicate               # then re-verify
 - A rewritten value keeps its provenance row with the source `cleanup` (and
   the source record it came from); the next import treats it as its own
   value, so it neither raises a conflict nor writes it back.
+- When an import's value differs from its own earlier value (or the
+  cleanup's) **only in casing** — e.g. after the 2026-10 fix of
+  `TextCase::institution`, which missed „во“, „до“, „по“, „со“ next to a
+  multibyte quote rule — the new casing is written and listed in the run's
+  diff, but a published profile gets no „changed“ review item for it.
 - Each change is one activity-log entry (log **Name cleanup**, field, old →
   new); a merge is one entry on the profile that stayed.
 - Each run is an `import_runs` row (source `cleanup`) whose **Diff (CSV)**

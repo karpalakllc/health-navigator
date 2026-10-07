@@ -25,7 +25,8 @@ use Illuminate\Support\Facades\DB;
  *
  * A write to a PUBLISHED record is also reported as "changed", one review
  * item per record per run listing the fields, so staff see what moved on
- * live profiles.
+ * live profiles — except when only the casing of the source's own value
+ * changed (a fixed casing rule; still in the run's diff).
  */
 final class ProvenanceWriter
 {
@@ -130,7 +131,13 @@ final class ProvenanceWriter
         if (! $isNew) {
             $this->context->increment('fields_updated');
             $this->context->record(self::entity($subject), 'update', $subject, $label, $field, $current, $incoming);
-            $this->noteChange($subject, $label, $field, $current, $incoming);
+
+            // Only the casing of the import's own value moved (a casing rule
+            // fixed between runs, or a value import:clean-names re-cased):
+            // written, but not listed as a „changed“ profile for staff.
+            if (! ($ownValue && $current !== null && mb_strtolower($current, 'UTF-8') === mb_strtolower($incoming ?? '', 'UTF-8'))) {
+                $this->noteChange($subject, $label, $field, $current, $incoming);
+            }
         }
 
         return 'written';
