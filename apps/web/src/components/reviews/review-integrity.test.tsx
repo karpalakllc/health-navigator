@@ -145,6 +145,8 @@ describe("aspect rating input", () => {
     const user = userEvent.setup();
     render(<ReviewForm kind="doctor" slug="d-r-ana" />);
 
+    // Stars first (W8-B): the optional extras appear once a star is chosen.
+    await user.click(screen.getByRole("radio", { name: "4 ѕвезди од 5" }));
     await user.click(screen.getByText(t("integrity.aspectsToggle")));
     const waiting = screen.getByRole("radiogroup", {
       name: "Време на чекање",

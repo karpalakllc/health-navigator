@@ -4,7 +4,13 @@ import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
 export type AccountSection =
-  "overview" | "reviews" | "forum" | "devices" | "data" | "doctor";
+  | "overview"
+  | "reviews"
+  | "forum"
+  | "notifications"
+  | "devices"
+  | "data"
+  | "doctor";
 
 const sections: {
   id: AccountSection;
@@ -14,6 +20,7 @@ const sections: {
     | "account.navOverview"
     | "nav.myReviews"
     | "nav.myForum"
+    | "notifications.navLabel"
     | "account.navDevices"
     | "account.navData"
     | "doctorDashboard.navLabel";
@@ -42,6 +49,12 @@ const sections: {
     href: "/account/forum",
     icon: "message-circle",
     labelKey: "nav.myForum",
+  },
+  {
+    id: "notifications",
+    href: "/account/notifications",
+    icon: "bell",
+    labelKey: "notifications.navLabel",
   },
   {
     id: "devices",

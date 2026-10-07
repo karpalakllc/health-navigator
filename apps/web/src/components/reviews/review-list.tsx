@@ -56,7 +56,11 @@ export function ReviewList({
 
         return (
           <li key={review.id ?? `${review.author_name}-${review.published_at}`}>
-            <article className="card flex h-full flex-col gap-3 p-5">
+            <article
+              className="card flex h-full flex-col gap-3 p-5"
+              // ReviewViewTracker: „Прикажана N пати“ for the author.
+              data-review-view-id={review.id ?? undefined}
+            >
               <header className="flex items-start gap-3">
                 <Monogram name={review.author_name} size={40} />
                 <div className="min-w-0 flex-1">

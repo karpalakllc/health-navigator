@@ -8,6 +8,7 @@ import { Pagination } from "@/components/directory/pagination";
 import { reviewsBasePath } from "@/components/reviews/review-paths";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewList } from "@/components/reviews/review-list";
+import { ReviewViewTracker } from "@/components/reviews/review-view-tracker";
 import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
@@ -157,13 +158,15 @@ export function ReviewsPanel({
         </div>
       ) : null}
 
-      <ReviewList
-        reviews={initial.data}
-        isLoggedIn={isLoggedIn}
-        mustChooseUsername={mustChooseUsername}
-        viewerReviewId={viewerReview?.id ?? null}
-        returnTo={`${basePath}#reviews`}
-      />
+      <ReviewViewTracker excludeId={viewerReview?.id ?? null}>
+        <ReviewList
+          reviews={initial.data}
+          isLoggedIn={isLoggedIn}
+          mustChooseUsername={mustChooseUsername}
+          viewerReviewId={viewerReview?.id ?? null}
+          returnTo={`${basePath}#reviews`}
+        />
+      </ReviewViewTracker>
 
       {initial.meta.last_page > 1 ? (
         <Pagination

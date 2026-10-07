@@ -223,6 +223,7 @@ export default async function PharmacyDetailPage({
             <ReviewSection
               kind="pharmacy"
               slug={slug}
+              profileName={pharmacy.name}
               summary={pharmacy.review_summary}
               searchParams={reviewQuery}
             />

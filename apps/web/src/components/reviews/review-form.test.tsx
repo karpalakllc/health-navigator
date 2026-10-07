@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ReviewForm } from "@/components/reviews/review-form";
@@ -139,6 +139,59 @@ describe("ReviewForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       t("reviews.submitErrorRetry"),
     );
+  });
+
+  it("starts with the stars only and reveals the optional extras after a star", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    expect(
+      screen.getByText(t("reviewFlow.ratingQuestion")),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(t("reviews.body"))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("integrity.aspectsToggle")),
+    ).not.toBeInTheDocument();
+    const steps = screen.getByRole("list", {
+      name: t("reviewFlow.stepsLabel"),
+    });
+    expect(within(steps).getAllByRole("listitem")[0]).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+
+    await user.click(screen.getByRole("radio", { name: "4 ѕвезди од 5" }));
+
+    expect(screen.getByLabelText(t("reviews.body"))).toBeInTheDocument();
+    expect(screen.getByText(t("integrity.aspectsToggle"))).toBeInTheDocument();
+    expect(within(steps).getAllByRole("listitem")[0]).toHaveTextContent(
+      t("reviewFlow.stepDone"),
+    );
+    // The send button never waits for the optional steps.
+    expect(submitButton()).toBeEnabled();
+  });
+
+  it("sends a stars-only review without a comment or aspects", async () => {
+    const fetch = mockFetch({ status: 201, body: { data: {} } });
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole("radio", { name: "5 ѕвезди од 5" }));
+    await user.click(submitButton());
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(requestBody(fetch)).toEqual({
+      kind: "doctor",
+      slug: "d-r-ana-petrovska",
+      rating: 5,
+      body: null,
+    });
+  });
+
+  it("tells the reviewer that only the username is shown", () => {
+    renderForm();
+
+    expect(screen.getByText(t("reviewFlow.safety"))).toBeInTheDocument();
   });
 
   it("has no serious accessibility violations, including the rating error", async () => {
