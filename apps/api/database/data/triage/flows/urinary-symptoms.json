@@ -38,10 +38,13 @@
     },
     {
       "code": "testis",
-      "label": "Ненадејна, силна болка во тестисот",
+      "label": "Ненадејна, силна болка во тестисот или скротумот",
       "when": {
         "demo": "sex",
-        "eq": "male"
+        "in": [
+          "male",
+          "unspecified"
+        ]
       },
       "outcome": "o_emergency",
       "source": "nhs-testicle-pain"
@@ -84,7 +87,7 @@
         },
         {
           "value": "discharge",
-          "label": "Секрет од вагината или пенисот, или чешање"
+          "label": "Секрет од половите органи, или чешање во таа област"
         },
         {
           "value": "none",
