@@ -115,7 +115,7 @@ class ReviewController extends Controller
         // ratings, so it leaves the placeholders out.
         $query = $reviewable->reviews()
             ->inPublicList()
-            ->with(['user', 'aspectRatings']);
+            ->with(['user.contributorLevel', 'aspectRatings']);
 
         if (! empty($validated['rating'])) {
             $query->approved()->where('rating', (int) $validated['rating']);

@@ -112,3 +112,11 @@ Schedule::command('import:adjudicate')
     ->dailyAt('05:50')
     ->onOneServer()
     ->withoutOverlapping(120);
+
+// W8-C: contributor levels and the monthly top lists, rebuilt from public
+// content (docs/levels.md). Moderation and vote events keep them current
+// during the day.
+Schedule::command('levels:recompute')
+    ->dailyAt('03:30')
+    ->onOneServer()
+    ->withoutOverlapping();

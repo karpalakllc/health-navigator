@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -388,6 +389,31 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function forumPosts(): HasMany
     {
         return $this->hasMany(ForumPost::class);
+    }
+
+    /**
+     * W8-C: levels derived from public content (docs/levels.md).
+     *
+     * @return HasOne<ContributorLevel, $this>
+     */
+    public function contributorLevel(): HasOne
+    {
+        return $this->hasOne(ContributorLevel::class);
+    }
+
+    /**
+     * Whether a contributor level may be shown with this account's name: a
+     * member in good standing with a chosen username. Staff carry „Тим“
+     * instead, a suspended account earns no recognition while suspended,
+     * and a deleted account's posts must not be linkable to each other.
+     */
+    public function showsContributorLevel(): bool
+    {
+        return ! $this->isStaff()
+            && ! $this->isSuspended()
+            && ! $this->isAnonymised()
+            && filled($this->username)
+            && ! TemporaryUsername::isTemporary($this->username);
     }
 
     /**

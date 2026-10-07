@@ -198,6 +198,8 @@ limiters are layered on top:
 | `api-forum-posts` | reply creation | 30/day |
 | `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
 | `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
+| `api-forum-post-helpful` | „Корисно“ on forum replies on/off (W8-C, inline) | 60 per 10 min per user |
+| `api-me-levels` | `GET /me/levels` (W8-C, inline) | 60/min per user |
 | `api-doctor-dashboard` | everything under `/me/doctor` (inline `throttle:`) | 120/min per user |
 | `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
 | `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
@@ -219,6 +221,7 @@ nobody can hold an account locked by merely sending traffic.
 <!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
+| `DELETE` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
 | `DELETE` | `/me/doctor/change-requests/{changeRequest}` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `DELETE` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
@@ -227,6 +230,7 @@ nobody can hold an account locked by merely sending traffic.
 | `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `GET` | `/altcha/challenge` | `throttle:api-altcha` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
+| `GET` | `/community/leaderboards` | `cache.public:300` |
 | `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | `cache.public:60` |
 | `GET` | `/doctors/{slug}` | `cache.public:60` |
@@ -253,6 +257,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
+| `GET` | `/me/levels` | `auth:sanctum`, `throttle:60,1,api-me-levels` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
 | `GET` | `/me/tokens` | `auth:sanctum` |
 | `GET` | `/pharmacies` | `module:pharmacies`, `cache.public:60` |
@@ -297,6 +302,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |

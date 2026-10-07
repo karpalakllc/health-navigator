@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Review;
 use App\Models\User;
+use App\Support\Levels\ContributorLevels;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,8 @@ final class ReviewHelpfulVotes
             // Already voted: idempotent.
         }
 
+        ContributorLevels::refreshAfterCommit($review->user_id);
+
         return self::state($review, true);
     }
 
@@ -55,6 +58,8 @@ final class ReviewHelpfulVotes
                     ->decrement('helpful_count');
             }
         });
+
+        ContributorLevels::refreshAfterCommit($review->user_id);
 
         return self::state($review, false);
     }

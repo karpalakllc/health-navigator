@@ -17,6 +17,12 @@ class ForumPost extends Model
     /** @use HasFactory<ForumPostFactory> */
     use HasFactory, ModeratesForumContent;
 
+    /**
+     * W8-C: whether the signed-in viewer marked this reply „Корисно“. Not a
+     * column: set per request by the topic page (ForumPostHelpfulVotes::votedBy).
+     */
+    public ?bool $viewerHasVotedHelpful = null;
+
     protected $fillable = [
         'forum_topic_id',
         'user_id',
@@ -36,6 +42,7 @@ class ForumPost extends Model
             'moderated_at' => 'datetime',
             'removed_at' => 'datetime',
             'removal_category' => RemovalCategory::class,
+            'helpful_count' => 'integer',
         ];
     }
 

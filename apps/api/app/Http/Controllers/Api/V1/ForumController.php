@@ -24,6 +24,7 @@ use App\Services\AnalyticsService;
 use App\Support\Forum\ForumContentModeration;
 use App\Support\Forum\RelatedForumTopics;
 use App\Support\ForumAuthorCounts;
+use App\Support\ForumPostHelpfulVotes;
 use App\Support\MeilisearchGateway;
 use App\Support\Slug;
 use App\Support\TaxonomyCache;
@@ -164,6 +165,17 @@ class ForumController extends Controller
         $paginator = $postsQuery->paginate($perPage)->withQueryString();
         // ForumPostResource compares each reply's author with the topic's.
         $paginator->getCollection()->each(fn (ForumPost $post) => $post->setRelation('topic', $topicModel));
+
+        // „Корисно“ state for the signed-in viewer only (W8-C).
+        if ($request->user()) {
+            $voted = ForumPostHelpfulVotes::votedBy(
+                $request->user(),
+                $paginator->getCollection()->map(fn (ForumPost $post): int => (int) $post->getKey())->values()->all(),
+            );
+            $paginator->getCollection()->each(function (ForumPost $post) use ($voted): void {
+                $post->viewerHasVotedHelpful = isset($voted[(int) $post->getKey()]);
+            });
+        }
 
         // Shared keywords first, then the same category (docs/seo.md).
         $related = RelatedForumTopics::forTopic($topicModel);
