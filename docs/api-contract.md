@@ -265,10 +265,10 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
+| `GET` | `/me/levels` | `auth:sanctum`, `throttle:60,1,api-me-levels` |
 | `GET` | `/me/notification-preferences` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `GET` | `/me/notifications` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `GET` | `/me/review-reminders` | `auth:sanctum`, `throttle:120,1,api-notifications` |
-| `GET` | `/me/levels` | `auth:sanctum`, `throttle:60,1,api-me-levels` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
 | `GET` | `/me/tokens` | `auth:sanctum` |
 | `GET` | `/notifications/unsubscribe` | `throttle:30,1,api-unsubscribe` |
