@@ -19,7 +19,9 @@ use App\Models\ImportReviewItem;
  *   thing between its doctors and a verification; staff trust the site (one
  *   click) or dismiss;
  * - verification_lost: a published profile lost its verification (licence
- *   expired or off the list, gone from ФЗОМ);
+ *   expired or off the list, gone from ФЗОМ); raised again on every run
+ *   while it stays unverified, so it is open until the verification returns
+ *   or staff act (a dismissal sticks while nothing changes);
  * - register_mismatch: a published facility no longer matches the register.
  *
  * Priority: published profiles and big groups first.

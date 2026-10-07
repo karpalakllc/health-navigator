@@ -102,6 +102,11 @@ final class VerificationWriter
 
         $changed = $subject->isVerified();
         $previousBasis = $subject->verification_basis;
+        // A profile that lost an automatic verification keeps saying so on
+        // later automatic runs (the engine's verification_lost item stays
+        // open) until it is verified again or staff decide.
+        $lostBasis = $changed ? $previousBasis?->value
+            : ($staff === null && $subject->verification_source === VerificationSource::Auto ? ($subject->verification_reasons['previous_basis'] ?? null) : null);
 
         $subject->forceFill([
             'verified_at' => null,
@@ -110,7 +115,7 @@ final class VerificationWriter
                 'status' => VerificationStatus::Unverified->value,
                 'reason' => $reason,
                 'evidence' => $evidence,
-                'previous_basis' => $changed ? $previousBasis?->value : null,
+                'previous_basis' => $lostBasis,
             ], fn ($value) => $value !== null),
             'verification_source' => $staff !== null ? VerificationSource::Staff : VerificationSource::Auto,
             'verified_by_id' => $staff?->getKey(),

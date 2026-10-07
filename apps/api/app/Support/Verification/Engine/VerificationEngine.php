@@ -113,7 +113,8 @@ final class VerificationEngine
                         $newlyFzomUnverified[] = (int) $doctor->getKey();
                     }
 
-                    $signals->doctor($doctor, $e, $verdict, $doctorRules, $wasAutoVerified && ! $verdict->isVerified() && (bool) $doctor->is_published, $previousBasis);
+                    $lost = $this->lostBasis($doctor, $verdict, $wasAutoVerified, $previousBasis);
+                    $signals->doctor($doctor, $e, $verdict, $doctorRules, $lost !== null, $lost);
 
                     if (isset($verdict->evidence[0]['namesake_licences'])) {
                         $byNamesakes[] = (int) $doctor->getKey();
@@ -137,7 +138,8 @@ final class VerificationEngine
                     $add($kind.'_result.'.$result->value);
                     $this->track('facility', $facility, $result, $newly, $reindex);
 
-                    $signals->facility($facility, $e, $verdict, $wasAutoVerified && ! $verdict->isVerified() && (bool) $facility->is_published, $previousBasis);
+                    $lost = $this->lostBasis($facility, $verdict, $wasAutoVerified, $previousBasis);
+                    $signals->facility($facility, $e, $verdict, $lost !== null, $lost);
                 }
             });
 
@@ -149,17 +151,23 @@ final class VerificationEngine
                 $signals->raise((int) $run->getKey());
                 $add('licence_items_settled_by_namesakes', $this->settleNamesakeItems($byNamesakes));
                 $this->prioritiseLicenceItems();
-                $this->reindex($reindex);
 
+                // After the review items are raised: a draft with an open
+                // item is not in the set.
                 if ((bool) config('import.verification.auto_publish')) {
                     $add('auto_published', $this->publisher->publishNewlyVerified($newly['doctor'], $newly['facility']));
                 }
 
-                // After the review items are raised: a draft with an open
-                // item is not in the set.
                 if ((bool) config('import.verification.auto_publish_fzom_unverified')) {
                     $add('auto_published_fzom_unverified', $this->publisher->publishNewlyFzomUnverified($newlyFzomUnverified));
                 }
+
+                // Drafts published just now were saved without syncing (this
+                // run does not sync record by record): index them with the
+                // status changes.
+                $reindex['doctor'] = [...$reindex['doctor'], ...$this->nowPublished(Doctor::class, [...$newly['doctor'], ...$newlyFzomUnverified])];
+                $reindex['facility'] = [...$reindex['facility'], ...$this->nowPublished(Facility::class, $newly['facility'])];
+                $this->reindex($reindex);
             }
         } catch (Throwable $exception) {
             ksort($counts);
@@ -174,6 +182,27 @@ final class VerificationEngine
         $run->finish($counts);
 
         return $run;
+    }
+
+    /**
+     * The basis a published profile lost automatically — in this run, or in
+     * an earlier one while it stays unverified (the writer keeps
+     * previous_basis) — so its verification_lost item stays open until the
+     * verification returns or staff act (dismissing it, deciding, hiding).
+     */
+    private function lostBasis(Doctor|Facility $subject, Verdict $verdict, bool $wasAutoVerified, ?string $previousBasis): ?string
+    {
+        if ($verdict->isVerified() || ! $subject->is_published || $subject->hasStaffVerificationDecision()) {
+            return null;
+        }
+
+        if ($wasAutoVerified) {
+            return $previousBasis ?? '';
+        }
+
+        $kept = $subject->verification_reasons['previous_basis'] ?? null;
+
+        return is_string($kept) && ! $subject->isVerified() ? $kept : null;
     }
 
     private function write(Doctor|Facility $subject, Verdict $verdict, bool $published): VerificationResult
@@ -226,13 +255,31 @@ final class VerificationEngine
      */
     private function reindex(array $reindex): void
     {
-        foreach (array_chunk($reindex['doctor'], self::CHUNK) as $chunk) {
-            Doctor::query()->whereKey($chunk)->get()->each(fn (Doctor $doctor) => $doctor->searchable());
+        foreach (array_chunk(array_values(array_unique($reindex['doctor'])), self::CHUNK) as $chunk) {
+            Doctor::query()->whereKey($chunk)->get()->searchable();
         }
 
-        foreach (array_chunk($reindex['facility'], self::CHUNK) as $chunk) {
-            Facility::query()->whereKey($chunk)->get()->each(fn (Facility $facility) => $facility->searchable());
+        foreach (array_chunk(array_values(array_unique($reindex['facility'])), self::CHUNK) as $chunk) {
+            Facility::query()->whereKey($chunk)->get()->searchable();
         }
+    }
+
+    /**
+     * Which of these drafts are public now (auto-published by this run).
+     *
+     * @param  class-string<Doctor|Facility>  $model
+     * @param  list<int>  $ids
+     * @return list<int>
+     */
+    private function nowPublished(string $model, array $ids): array
+    {
+        $published = [];
+
+        foreach (array_chunk($ids, self::CHUNK) as $chunk) {
+            $published = [...$published, ...$model::query()->whereKey($chunk)->where('is_published', true)->pluck('id')->map(fn ($id): int => (int) $id)->all()];
+        }
+
+        return $published;
     }
 
     /**

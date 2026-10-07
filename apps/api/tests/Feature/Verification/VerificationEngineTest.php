@@ -25,6 +25,8 @@ use App\Support\Verification\VerificationWriter;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Scout\EngineManager;
+use Laravel\Scout\Engines\NullEngine;
 use Tests\TestCase;
 
 /**
@@ -647,5 +649,75 @@ class VerificationEngineTest extends TestCase
         $this->adjudicate();
         $this->assertTrue($doctor->fresh()->isVerified());
         $this->assertSame(0, app(VerifiedDraftPublisher::class)->count());
+    }
+
+    public function test_a_lost_verification_item_stays_open_until_staff_act_or_the_verification_returns(): void
+    {
+        $doctor = $this->fzomDoctor('Ема Изгубена', $this->facility(), published: true);
+        $licence = $this->licence('Ема Изгубена', 'педијатрија', $doctor, validUntil: '2026-10-08');
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-09 09:00'));
+        $this->adjudicate();
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertCount(1, $this->uncertain('verification_lost'));
+
+        // The next nightly runs change nothing: the item stays.
+        foreach (['2026-10-10 05:50', '2026-10-11 05:50'] as $night) {
+            $this->travelTo(CarbonImmutable::parse($night));
+            DB::table('import_runs')->where('source', 'fzom')->update(['started_at' => now()->subHour()]);
+            DB::table('source_records')->where('source', 'fzom')->update(['last_seen_at' => now()->subMinutes(55)]);
+            $this->adjudicate();
+            $this->assertCount(1, $this->uncertain('verification_lost'), $night);
+        }
+
+        // Staff dismiss it: it stays dismissed while nothing changes.
+        $this->uncertain('verification_lost')[0]->resolve(ImportReviewStatus::Dismissed, 'dismissed', User::factory()->create());
+        $this->adjudicate();
+        $this->assertCount(0, $this->uncertain('verification_lost'));
+
+        // A renewed licence brings the verification back; a later loss is a new item.
+        $licence->forceFill(['valid_until' => '2030-01-01'])->save();
+        $doctor->forceFill(['licence_valid_until' => '2030-01-01'])->saveQuietly();
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+        $this->assertArrayNotHasKey('previous_basis', $this->reasons($doctor));
+    }
+
+    public function test_drafts_auto_published_by_a_run_reach_the_search_index(): void
+    {
+        $spy = new class extends NullEngine
+        {
+            /** @var list<string> */
+            public array $updated = [];
+
+            public function update($models)
+            {
+                foreach ($models as $model) {
+                    $this->updated[] = $model::class.':'.$model->getKey();
+                }
+            }
+        };
+        app(EngineManager::class)->extend('spy', fn () => $spy);
+        config(['scout.driver' => 'spy', 'import.verification.auto_publish' => true, 'import.verification.auto_publish_fzom_unverified' => true]);
+
+        $facility = $this->facility();
+        $verified = $this->fzomDoctor('Шемси Индекс', $facility);
+        $this->licence('Шемси Индекс', 'педијатрија', $verified);
+        $this->newItem($verified);
+        $unlicensed = $this->fzomDoctor('Бојан Индексиран', $facility);
+        $this->newItem($unlicensed);
+        $this->newItem($facility);
+        $spy->updated = [];
+
+        $run = $this->adjudicate();
+
+        $this->assertSame(2, $run->counts['auto_published']);
+        $this->assertSame(1, $run->counts['auto_published_fzom_unverified']);
+        foreach ([$verified, $unlicensed, $facility] as $subject) {
+            $this->assertTrue($subject->fresh()->is_published);
+            $this->assertContains($subject::class.':'.$subject->id, $spy->updated);
+        }
     }
 }
