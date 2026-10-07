@@ -57,6 +57,23 @@ class ReviewImpactTest extends TestCase
         return $this->withServerVariables(['REMOTE_ADDR' => $ip])->postJson('/api/v1/reviews/views', ['ids' => $ids]);
     }
 
+    public function test_a_privacy_signal_counts_nothing_also_on_the_api(): void
+    {
+        $review = $this->review();
+
+        foreach (['Sec-GPC', 'DNT'] as $header) {
+            $this->withHeaders([$header => '1'])->withServerVariables(['REMOTE_ADDR' => '198.51.100.9'])
+                ->postJson('/api/v1/reviews/views', ['ids' => [$review->id]])
+                ->assertOk()->assertJsonPath('data.counted', 0);
+        }
+
+        $this->assertSame(0, (int) $review->fresh()->view_count);
+
+        // Approved, but on a profile that is not published: not counted.
+        $hidden = $this->review(['reviewable_id' => Doctor::factory()->unpublished()->create()->id]);
+        $this->reportViews([$hidden->id])->assertJsonPath('data.counted', 0);
+    }
+
     public function test_a_view_counts_once_a_day_per_network(): void
     {
         $review = $this->review();
