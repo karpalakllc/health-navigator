@@ -281,8 +281,9 @@ that flow (`App\Support\Feedback\FeedbackKeys`, `config/feedback.php`). The same
 
 Browser code never calls the API directly: it posts to the same-origin relay
 `POST /api/feedback` (`{kind: "vote" | "reasons" | "step", …}`), which
-rebuilds the message from the vocabulary, drops step counters when the
-browser sends Global Privacy Control / Do Not Track, forwards the visitor's
+rebuilds the message from the vocabulary, drops step counters unless the
+request carries `X-Z360-Consent: statistics` (sent only after the visitor accepted
+statistics), forwards the visitor's
 address for the rate limit only, and always answers 204.
 
 **Widget** — on an outcome screen:

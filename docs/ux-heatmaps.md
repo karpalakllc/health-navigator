@@ -57,8 +57,15 @@ the name to both lists, and give it words in
   session ids, user agent or any fingerprint. No cookie or browser storage is
   used by the tracker; its rage/scroll bookkeeping lives in memory only and no
   identifier is in the payload.
-- Global Privacy Control or Do Not Track on → the tracker is never loaded; the
-  route handler also drops batches carrying `Sec-GPC: 1` / `DNT: 1`.
+- Consent first: the tracker is loaded only after the visitor accepted
+  „Статистика“ in the cookie banner (`z360:consent:v1`, `statistics: true`).
+  Without a choice, after „Одбиј“, or after withdrawing, nothing is loaded or
+  sent; withdrawing stops a running tracker at once and drops queued batches.
+  An explicit yes overrides Global Privacy Control / Do Not Track (without the
+  yes they change nothing: statistics are off anyway). Every request carries
+  `X-Z360-Consent: statistics`; the web relay and the API
+  (`statistics.consent` middleware) answer 204 and store nothing without it.
+  The staff overlay is not statistics and does not need consent.
 - Not tracked at all: `/account/**`, `/login`, `/register`,
   `/forgot-password`, `/reset-password/**`, `/verify-email`, the doctor
   claim/correction/objection forms, `/forum/new`, `/unsubscribe` (the e-mail
@@ -66,7 +73,7 @@ the name to both lists, and give it words in
   and the answers are health data), `/design-system`, unknown pages (allow-list in
   `apps/web/src/lib/ux/routes.ts` = `apps/api/config/ux.php`).
 - Text-selection drags are ignored; script-dispatched clicks are ignored.
-- Batches go by `navigator.sendBeacon` to the same-origin `/api/ux/events`
+- Batches go by `fetch` with `keepalive` (a beacon cannot carry the consent header) to the same-origin `/api/ux/events`
   (shared origin guard, JSON only, 16 KB cap, rebuilt field by field), which
   relays them to `POST /api/v1/ux/events`. The API validates every value
   against a fixed vocabulary (anything else → the whole batch is refused) and
