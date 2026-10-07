@@ -38,6 +38,7 @@ const VERIFIED_WHEN: MessageKey[] = [
   "verification.howDentist",
   "verification.howDoctorWebsite",
   "verification.howFacility",
+  "verification.howPharmacy",
   "verification.howTeam",
 ];
 
@@ -498,7 +499,7 @@ function DataSources() {
 }
 
 /**
- * „Верифицирани профили“ (W7-B): what the „Верифициран“ / „Неверифициран“
+ * „Верификувани профили“ (W7-B): what the „Верификуван“ / „Неверификуван“
  * badges on profiles mean. Every badge's „Повеќе“ links here
  * (VERIFICATION_MORE_HREF). Must match VerificationBasis on the API.
  */

@@ -14,7 +14,7 @@ import { pathSegment } from "@/lib/api/path";
 export type PharmacyListParams = {
   city?: string;
   q?: string;
-  /** „Само верифицирани“: "1" or nothing. */
+  /** „Само верификувани“: "1" or nothing. */
   verified?: "1";
   page?: number;
   per_page?: number;

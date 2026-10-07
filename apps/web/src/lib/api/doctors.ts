@@ -18,7 +18,7 @@ export type DoctorListParams = {
   featured?: boolean;
   sort?: "name" | "rating";
   min_reviews?: number;
-  /** „Само верифицирани“. */
+  /** „Само верификувани“. */
   verified?: boolean;
   page?: number;
   per_page?: number;

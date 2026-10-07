@@ -198,7 +198,7 @@ describe("TransparencyContent", () => {
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
-  it("explains what „Верифициран“ and „Неверифициран“ mean where the badges link", async () => {
+  it("explains what „Верификуван“ and „Неверификуван“ mean where the badges link", async () => {
     const { container } = render(<TransparencyContent stats={null} />);
 
     const section = screen.getByRole("region", {
@@ -209,6 +209,9 @@ describe("TransparencyContent", () => {
     expect(section).toHaveTextContent(t("verification.howDoctor"));
     expect(section).toHaveTextContent(t("verification.howDentist"));
     expect(section).toHaveTextContent(t("verification.howFacility"));
+    expect(section).toHaveTextContent(t("verification.howPharmacy"));
+    // Only the registers we import: ФЗОМ and the Лекарска комора.
+    expect(section).not.toHaveTextContent("Министерство");
     expect(section).toHaveTextContent(t("verification.unverifiedBody"));
     // Not a quality rating, and it does not move anyone up the lists.
     expect(section).toHaveTextContent("не влијае на редоследот");

@@ -19,7 +19,7 @@ export type FacilityListParams = {
   has_emergency?: boolean | string;
   department?: string;
   featured?: boolean | string;
-  /** „Само верифицирани“. */
+  /** „Само верификувани“. */
   verified?: boolean | string;
   page?: number;
   per_page?: number;

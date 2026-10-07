@@ -38,7 +38,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   const sort = params.sort === "rating" ? "rating" : "name";
   // „Има рецензии“: the only value the UI sends; anything else is ignored.
   const withReviews = params.min_reviews === "1";
-  // „Само верифицирани“: likewise only "1".
+  // „Само верификувани“: likewise only "1".
   const onlyVerified = params.verified === "1";
 
   // The filter is optional: without the list, the page still renders.

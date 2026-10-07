@@ -16,18 +16,26 @@ const LABELS: Record<
     unverified: "verification.unverified",
   },
   facility: {
-    verified: "verification.verifiedFacility",
-    unverified: "verification.unverifiedFacility",
+    verified: "verification.verifiedFeminine",
+    unverified: "verification.unverifiedFeminine",
   },
   pharmacy: {
-    verified: "verification.verifiedPharmacy",
-    unverified: "verification.unverifiedPharmacy",
+    verified: "verification.verifiedFeminine",
+    unverified: "verification.unverifiedFeminine",
   },
 };
 
+/** What a verification rests on when the API sends no public basis. */
+const SOURCES: Record<VerificationKind, MessageKey> = {
+  doctor: "verification.verifiedInfo",
+  facility: "verification.verifiedInfoFacility",
+  pharmacy: "verification.verifiedInfoPharmacy",
+};
+
 /**
- * „Верифициран“ / „Неверифициран“ (feminine with the noun for facilities
- * and pharmacies) with the DisclosureBadge toggletip: hover, tap or keyboard
+ * „Верификуван“ / „Неверификуван“ (the short feminine „Верификувана“ /
+ * „Неверификувана“ for facilities and pharmacies) with the DisclosureBadge
+ * toggletip: hover, tap or keyboard
  * shows what it means, and „Повеќе“ leads to /transparency#verifikacija.
  *
  * Verified is the care-green tag with a shield; unverified is the plain sand
@@ -51,19 +59,13 @@ export function VerificationBadge({
   const verified = verification.status === "verified";
   const feminine = kind !== "doctor";
 
+  // The public basis names the source; without one, the kind's sources.
   const explanation = verified
-    ? [
-        t(
-          feminine
-            ? "verification.verifiedInfoFacility"
-            : "verification.verifiedInfo",
-        ),
-        verification.basis_label
-          ? tFormat("verification.basis", { basis: verification.basis_label })
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" ")
+    ? verification.basis_label
+      ? tFormat("verification.verifiedInfoBasis", {
+          basis: verification.basis_label,
+        })
+      : t(SOURCES[kind])
     : t("verification.unverifiedInfo");
 
   const buttonLabel = verified

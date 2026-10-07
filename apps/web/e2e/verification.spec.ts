@@ -5,12 +5,12 @@ import { doctor, facilitySlug } from "./support/fixtures";
 
 /*
  * Verified badges (W7-B): E2ESeeder::seedVerification() marks the E2E doctor
- * „Верифициран“ (official registers) and leaves the clinic
- * „Неверифицирана установа“. The badge explains itself on tap/keyboard and
- * links to /transparency#verifikacija; „Само верифицирани“ narrows the list.
+ * „Верификуван“ (official registers) and leaves the clinic
+ * „Неверификувана“. The badge explains itself on tap/keyboard and
+ * links to /transparency#verifikacija; „Само верификувани“ narrows the list.
  */
 test.describe("verification badges", () => {
-  test("the doctor profile shows „Верифициран“ next to the name and explains it", async ({
+  test("the doctor profile shows „Верификуван“ next to the name and explains it", async ({
     page,
   }) => {
     await page.goto(`/doctors/${doctor.slug}`);
@@ -27,7 +27,9 @@ test.describe("verification badges", () => {
     await expect(
       page
         .getByRole("status")
-        .filter({ hasText: mk.verification.verifiedInfo }),
+        .filter({
+          hasText: mk.verification.verifiedInfoBasis.split("{basis}")[0],
+        }),
     ).toBeVisible();
 
     await page.getByRole("link", { name: mk.integrity.disclosureMore }).click();
@@ -44,7 +46,7 @@ test.describe("verification badges", () => {
     await page.goto(`/facilities/${facilitySlug}`);
 
     await expect(
-      page.getByText(mk.verification.unverifiedFacility).first(),
+      page.getByText(mk.verification.unverifiedFeminine).first(),
     ).toBeVisible();
     const results = await new AxeBuilder({ page }).analyze();
     expect(
@@ -54,7 +56,7 @@ test.describe("verification badges", () => {
     ).toEqual([]);
   });
 
-  test("„Само верифицирани“ keeps the verified doctor in the list", async ({
+  test("„Само верификувани“ keeps the verified doctor in the list", async ({
     page,
   }) => {
     await page.goto("/doctors?verified=1");

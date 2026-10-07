@@ -148,7 +148,7 @@ export type DoctorListItem = {
   years_experience: number | null;
   accepts_new_patients: boolean;
   is_featured: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   is_sponsored: boolean;
   primary_specialty: {
@@ -215,7 +215,7 @@ export type DoctorDetail = {
   office_hours: Record<string, string>;
   accepts_new_patients: boolean;
   is_featured: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   is_sponsored: boolean;
   city: string | null;
@@ -255,7 +255,7 @@ export type FacilityListItem = {
   cover_url?: string | null;
   has_emergency_services: boolean;
   is_featured: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   departments_count: number;
   review_summary: ReviewSummary;
@@ -284,7 +284,7 @@ export type FacilityDetail = {
   avatar_url: string | null;
   cover_url?: string | null;
   is_featured?: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   office_hours: Record<string, string>;
   doctors: {
@@ -305,7 +305,7 @@ export type PharmacyListItem = {
   /** Cover photo, WebP ≤1600×900. */
   cover_url?: string | null;
   is_featured?: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   review_summary: ReviewSummary;
   /**
@@ -330,7 +330,7 @@ export type PharmacyDetail = {
   avatar_url: string | null;
   cover_url?: string | null;
   is_featured?: boolean;
-  /** „Верифициран“ / „Неверифициран“ (list and detail payloads). */
+  /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   office_hours: Record<string, string>;
   review_summary: ReviewSummary;

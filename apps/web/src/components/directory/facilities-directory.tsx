@@ -141,7 +141,7 @@ export function FacilitiesDirectory({
             autoComplete="address-level2"
             onChange={(value) => set("city", value, { debounce: true })}
           />
-          <FilterGroup legend={t("directory.availability")}>
+          <FilterGroup legend={t("verification.filterLegend")}>
             <SwitchRow
               name="verified"
               icon="shield-check"
@@ -149,6 +149,8 @@ export function FacilitiesDirectory({
               checked={values.verified === "1"}
               onChange={(checked) => set("verified", checked ? "1" : "")}
             />
+          </FilterGroup>
+          <FilterGroup legend={t("directory.availability")}>
             <SwitchRow
               name="has_emergency"
               label={t("facilities.emergencyFilter")}

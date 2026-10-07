@@ -147,7 +147,7 @@ export function DoctorsDirectory({
             autoComplete="address-level2"
             onChange={(value) => set("city", value, { debounce: true })}
           />
-          <FilterGroup legend={t("directory.availability")}>
+          <FilterGroup legend={t("verification.filterLegend")}>
             <SwitchRow
               name="verified"
               icon="shield-check"
@@ -155,6 +155,8 @@ export function DoctorsDirectory({
               checked={values.verified === "1"}
               onChange={(checked) => set("verified", checked ? "1" : "")}
             />
+          </FilterGroup>
+          <FilterGroup legend={t("directory.availability")}>
             <SwitchRow
               name="min_reviews"
               label={t("doctors.hasReviews")}

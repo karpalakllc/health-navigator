@@ -139,11 +139,15 @@ describe("Doctors filter sheet", () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it("„Само верифицирани“ applies verified=1 and shows as an active filter", async () => {
+  it("„Само верификувани“ applies verified=1 and shows as an active filter", async () => {
     const { user, sheet } = await openSheet();
 
+    // Under its own legend, not „Достапност“.
+    const group = within(sheet).getByRole("group", {
+      name: t("verification.filterLegend"),
+    });
     await user.click(
-      within(sheet).getByRole("switch", {
+      within(group).getByRole("switch", {
         name: t("verification.filterLabel"),
       }),
     );
@@ -153,7 +157,7 @@ describe("Doctors filter sheet", () => {
     });
   });
 
-  it("lists an applied „Само верифицирани“ among the removable filters", () => {
+  it("lists an applied „Само верификувани“ among the removable filters", () => {
     renderList({ verified: "1" });
 
     expect(

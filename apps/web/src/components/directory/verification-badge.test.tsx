@@ -41,25 +41,25 @@ describe("VerificationBadge", () => {
     [
       "facility",
       verified,
-      "verification.verifiedFacility",
+      "verification.verifiedFeminine",
       "verification.whyVerifiedFeminine",
     ],
     [
       "facility",
       unverified,
-      "verification.unverifiedFacility",
+      "verification.unverifiedFeminine",
       "verification.whyUnverifiedFeminine",
     ],
     [
       "pharmacy",
       verified,
-      "verification.verifiedPharmacy",
+      "verification.verifiedFeminine",
       "verification.whyVerifiedFeminine",
     ],
     [
       "pharmacy",
       unverified,
-      "verification.unverifiedPharmacy",
+      "verification.unverifiedFeminine",
       "verification.whyUnverifiedFeminine",
     ],
   ] as const)(
@@ -84,13 +84,41 @@ describe("VerificationBadge", () => {
     );
 
     const panel = screen.getByRole("status");
-    expect(panel).toHaveTextContent(t("verification.verifiedInfo"));
+    // The basis names the source once; no second sentence about sources.
     expect(panel).toHaveTextContent(
-      "Основа: Регистар на ФЗОМ и Лекарска комора.",
+      "Податоците се потврдени. Основа: Регистар на ФЗОМ и Лекарска комора.",
     );
+    expect(panel).not.toHaveTextContent(t("verification.verifiedInfo"));
     expect(
       screen.getByRole("link", { name: t("integrity.disclosureMore") }),
     ).toHaveAttribute("href", VERIFICATION_MORE_HREF);
+  });
+
+  it.each([
+    ["doctor", "verification.verifiedInfo"],
+    ["facility", "verification.verifiedInfoFacility"],
+    ["pharmacy", "verification.verifiedInfoPharmacy"],
+  ] as const)(
+    "without a public basis, a %s names its own sources",
+    async (kind, info) => {
+      const user = userEvent.setup();
+      render(
+        <VerificationBadge
+          verification={{ ...verified, basis_label: null }}
+          kind={kind}
+        />,
+      );
+
+      await user.click(screen.getByRole("button"));
+
+      expect(screen.getByRole("status")).toHaveTextContent(t(info));
+    },
+  );
+
+  it("uses the short feminine forms for places, with no noun", () => {
+    expect(t("verification.verifiedFeminine")).toBe("Верификувана");
+    expect(t("verification.unverifiedFeminine")).toBe("Неверификувана");
+    expect(t("verification.verifiedInfoPharmacy")).not.toMatch(/ФЗОМ|Министерство/);
   });
 
   it("explains an unverified profile calmly, from the keyboard", async () => {
@@ -191,10 +219,10 @@ describe("verification on cards and the profile header", () => {
 
     expect(screen.getByText(t("verification.verified"))).toBeInTheDocument();
     expect(
-      screen.getByText(t("verification.unverifiedFacility")),
+      screen.getByText(t("verification.unverifiedFeminine")),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(t("verification.verifiedPharmacy")),
+      screen.getByText(t("verification.verifiedFeminine")),
     ).toBeInTheDocument();
   });
 
