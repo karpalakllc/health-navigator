@@ -104,7 +104,7 @@ from an import stay hidden until staff publish them.
 |---|---|---|
 | httpOnly cookie (web app's own domain) | The API bearer token | Signed-in session; the browser's scripts cannot read it |
 | `localStorage` key `z360:recently-viewed:v1` | „Последно прегледани“: up to 8 recently opened doctor/facility/pharmacy profiles (kind, slug, name, subtitle, avatar URL, time viewed) | The home page's recently-viewed list; never sent to the API or tied to an account; cleared with „Исчисти“ on the home page or by clearing site data |
-| `localStorage` key `z360:review-prompt:v1` (W8-B) | For each profile where „Дали сте биле кај…?“ was shown: a 32-bit FNV-1a hash of „kind:slug“ (not the name or address) and the day it was shown; at most 200 entries, each dropped after 180 days | Show the review prompt at most once per profile per device; never sent to the API or tied to an account; cleared by clearing site data. Nothing is written unless the prompt is shown |
+| `localStorage` key `z360:review-prompt:v1` (W8-B) | For each profile where „Дали сте биле кај…?“ was shown: a 32-bit FNV-1a hash of „kind:slug“ and the day it was shown; at most 200 entries, each dropped after 180 days. The hash keeps the name out of storage but does not hide which profile it is: slugs are public, so anyone with access to the browser can hash them and match | Show the review prompt at most once per profile per device; never sent to the API or tied to an account; cleared by clearing site data. Nothing is written unless the prompt card came on screen |
 | `sessionStorage` key `guidance_session` | Guidance session id + its secret | Lets the tab continue a questionnaire after reload; cleared on completion and when the tab closes |
 
 No other cookies or storage are set for analytics (Plausible is cookieless).
@@ -145,12 +145,11 @@ No other cookies or storage are set for analytics (Plausible is cookieless).
 
 ## 6. Open points for counsel / the owner
 
-- W8-B: moderation e-mails (including a refusal or removal with its reason)
-  can be switched off like any other notice; the decision and reason stay in
-  „Известувања“ and „Мои рецензии“. Whether a removal notice must always be
-  e-mailed is a legal/owner decision.
+- W8-B: a refusal or removal e-mail (the statement of reasons) is always
+  sent and cannot be switched off; the other moderation notices („received“,
+  „published“, report outcomes) can. Counsel may confirm this split.
 - W8-B: the review prompt's localStorage entry is a device-only record that
-  a profile was opened (hashed). It is disclosed like „Последно прегледани“;
+  a profile was opened (hashed, but matchable against the public slugs). It is disclosed like „Последно прегледани“;
   counsel should confirm it needs no consent.
 
 - Erasure keeps the member's public reviews and forum content (under „Избришан
