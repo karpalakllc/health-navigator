@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
 import { login } from "./support/auth";
-import { attemptUser, doctor, facilitySlug } from "./support/fixtures";
+import { attemptUser, doctor, facilitySlug, users } from "./support/fixtures";
 
 /*
  * W8-B: stars-first reviews, the profile prompt, „Известувања“ and the
@@ -58,6 +58,49 @@ test.describe("review flow and notifications", () => {
     await page.waitForLoadState("networkidle");
     await page.clock.fastForward(16_000);
     await expect(page.getByText(question)).toHaveCount(0);
+    await context.close();
+  });
+
+  test("the impact summary is readable on a 390 px phone", async ({
+    browser,
+  }, testInfo) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    await login(page, users.member);
+    await page.goto("/account/reviews");
+
+    const summary = page.locator("section[aria-labelledby='impact-title']");
+    await expect(summary).toBeVisible();
+    const figures = summary.getByTestId("impact-figure");
+    await expect(figures).toHaveCount(3);
+
+    for (const label of [
+      mk.reviewFlow.impactViews,
+      mk.reviewFlow.impactHelpful,
+      mk.reviewFlow.impactReplies,
+    ]) {
+      const text = summary.getByText(label, { exact: true });
+      await expect(text).toBeVisible();
+      // Not cut: the whole label fits its box, and no ellipsis.
+      expect(
+        await text.evaluate(
+          (element) =>
+            element.scrollWidth <= element.clientWidth &&
+            getComputedStyle(element).textOverflow !== "ellipsis",
+        ),
+      ).toBe(true);
+    }
+
+    // No horizontal page scroll at phone width.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await summary.screenshot({ path: testInfo.outputPath("impact-390.png") });
     await context.close();
   });
 

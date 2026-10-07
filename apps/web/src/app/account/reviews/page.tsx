@@ -239,15 +239,18 @@ function ImpactSummary({ impact }: { impact: MyReviewImpact }) {
       <h2 id="impact-title" className="type-h3 text-ink">
         {t("reviewFlow.impactTitle")}
       </h2>
-      <dl className="m-0 grid grid-cols-3 gap-3">
+      {/* One row per figure on a phone (label left, number right); three
+          columns once each label fits on one line. Labels are never cut. */}
+      <dl className="m-0 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
         {figures.map((figure) => (
           <div
             key={figure.label}
-            className="flex flex-col gap-1 rounded-2xl bg-sand p-3 lg:p-4"
+            data-testid="impact-figure"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-sand px-4 py-3 sm:flex-col sm:items-start sm:justify-start sm:gap-1 sm:p-3 lg:p-4"
           >
-            <dt className="flex items-center gap-1.5 type-meta text-ink-2">
+            <dt className="flex min-w-0 items-center gap-1.5 type-meta text-ink-2">
               <Icon name={figure.icon} size={16} className="shrink-0" />
-              <span className="truncate">{figure.label}</span>
+              <span className="break-words">{figure.label}</span>
             </dt>
             <dd className="m-0 type-h2 text-ink tabular-nums">
               {figure.value.toLocaleString("mk-MK")}
