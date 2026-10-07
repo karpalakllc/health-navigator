@@ -234,5 +234,27 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perHour(600)->by('ux-hour:'.$network),
             ];
         });
+
+        // „Дали ви помогна?“ (docs/urgent-care.md § Feedback): a vote and its
+        // reasons are two requests; a reader of several guides votes a few
+        // times. The key is an HMAC of the network, as for api-ux-events.
+        RateLimiter::for('api-feedback', function (Request $request) {
+            $network = hash_hmac('sha256', 'feedback|'.ProfileReportController::guestNetwork((string) $request->ip()), (string) config('app.key'));
+
+            return [
+                Limit::perMinute(20)->by('feedback-min:'.$network),
+                Limit::perDay(200)->by('feedback-day:'.$network),
+            ];
+        });
+
+        // Step counters from the guidance flows: one per step reached.
+        RateLimiter::for('api-funnel', function (Request $request) {
+            $network = hash_hmac('sha256', 'funnel|'.ProfileReportController::guestNetwork((string) $request->ip()), (string) config('app.key'));
+
+            return [
+                Limit::perMinute(120)->by('funnel-min:'.$network),
+                Limit::perHour(1200)->by('funnel-hour:'.$network),
+            ];
+        });
     }
 }

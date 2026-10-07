@@ -213,6 +213,8 @@ limiters are layered on top:
 | `api-notifications` | `/me/notifications*`, `/me/notification-preferences`, `/me/review-reminders*` (inline) | 120/min per user |
 | `api-review-reminders` | `POST /me/review-reminders` (inline) | 30/hour per user |
 | `api-unsubscribe` | `GET`/`POST /notifications/unsubscribe` (inline, no sign-in) | 30/min per IP |
+| `api-feedback` | `POST /feedback`, `POST /feedback/reasons` („Дали ви помогна?“, docs/urgent-care.md) | 20/min and 200/day per network (keyed hash, as `api-ux-events`) |
+| `api-funnel` | `POST /feedback/steps` (anonymous step counters) | 120/min and 1200/hour per network (keyed hash) |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 | `api-triage-steps` | guidance v2 steps: state, demographics, symptoms, screen, answer, emergency, no-match | 600/hour per IP |
@@ -288,6 +290,8 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/triage/flow` | `module:guidance` |
 | `GET` | `/triage/v2/catalog` | `module:guidance` |
 | `GET` | `/triage/v2/sessions/{id}` | `module:guidance`, `throttle:api-triage-steps` |
+| `GET` | `/urgent-care` | `cache.public:60` |
+| `GET` | `/urgent-care/cities` | `cache.public:60` |
 | `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `GET` | `/ux/heatmap` | `throttle:120,1,api-ux-heatmap` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
@@ -306,6 +310,9 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/feedback` | `throttle:api-feedback` |
+| `POST` | `/feedback/reasons` | `throttle:api-feedback` |
+| `POST` | `/feedback/steps` | `throttle:api-funnel` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |

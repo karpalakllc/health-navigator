@@ -19,6 +19,10 @@ describe("uxRouteTemplate", () => {
     ["/guidance", "/guidance"],
     ["/search", "/search"],
     ["/community", "/community"],
+    ["/urgent-care", "/urgent-care"],
+    ["/urgent-care/bitola", "/urgent-care/[city]"],
+    ["/guides", "/guides"],
+    ["/guides/kako-do-uput", "/guides/[slug]"],
   ])("%s → %s", (path, template) => {
     expect(uxRouteTemplate(path)).toBe(template);
   });
@@ -40,6 +44,8 @@ describe("uxRouteTemplate", () => {
     "/facilities/klinika-x/correction",
     "/forum/new",
     "/forum/tags",
+    "/urgent-care/bitola/extra",
+    "/guides/kako-do-uput/x",
     "/admin",
     "/no-such-page",
   ])("%s is never tracked", (path) => {

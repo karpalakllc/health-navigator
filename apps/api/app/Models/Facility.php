@@ -9,10 +9,12 @@ use App\Models\Concerns\HasVerification;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\Import\ImportBookkeeping;
 use App\Support\MacedonianSearchVariants;
+use App\Support\OfficeHours;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +26,26 @@ use Laravel\Scout\Searchable;
 
 class Facility extends Model
 {
+    /**
+     * Urgent-care service (the public `type` filter of GET /urgent-care) =>
+     * its flag column.
+     */
+    public const URGENT_CARE_SERVICES = [
+        'ed' => 'has_emergency_services',
+        'ems' => 'has_emergency_medical_service',
+        'clinic' => 'has_on_duty_clinic',
+        'dental' => 'has_dental_emergency',
+    ];
+
+    /** emergency_department_status (docs/urgent-care.md § Data). */
+    public const ED_CONFIRMED = 'confirmed';
+
+    public const ED_UNCONFIRMED_LIKELY = 'unconfirmed_likely';
+
+    public const ED_NONE = 'none';
+
+    public const ED_STATUSES = [self::ED_CONFIRMED, self::ED_UNCONFIRMED_LIKELY, self::ED_NONE];
+
     /** @use HasFactory<FacilityFactory> */
     use DeletesReplacedMedia, HasFactory, HasImportDraftLifecycle, HasVerification, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
@@ -37,6 +59,15 @@ class Facility extends Model
         'latitude',
         'longitude',
         'has_emergency_services',
+        'emergency_department_status',
+        'has_emergency_medical_service',
+        'has_on_duty_clinic',
+        'has_dental_emergency',
+        'is_open_24h',
+        'emergency_hours',
+        'emergency_phone',
+        'urgent_care_note',
+        'urgent_care_checked_at',
         'phone',
         'email',
         'website',
@@ -62,6 +93,21 @@ class Facility extends Model
     {
         // The import rows about this facility go with it (ImportBookkeeping).
         static::forceDeleted(fn (Facility $facility) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_FACILITY, (int) $facility->getKey()));
+
+        // has_emergency_services is true exactly when the emergency
+        // department is confirmed: the status wins when it changed, else the
+        // flag (older code and the public filter still set the flag).
+        static::saving(function (Facility $facility): void {
+            if ($facility->isDirty('emergency_department_status')) {
+                $facility->has_emergency_services = $facility->emergency_department_status === self::ED_CONFIRMED;
+            } elseif ($facility->isDirty('has_emergency_services')) {
+                if ($facility->has_emergency_services) {
+                    $facility->emergency_department_status = self::ED_CONFIRMED;
+                } elseif ($facility->emergency_department_status === self::ED_CONFIRMED) {
+                    $facility->emergency_department_status = null;
+                }
+            }
+        });
     }
 
     protected function casts(): array
@@ -72,6 +118,12 @@ class Facility extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'has_emergency_services' => 'boolean',
+            'has_emergency_medical_service' => 'boolean',
+            'has_on_duty_clinic' => 'boolean',
+            'has_dental_emergency' => 'boolean',
+            'is_open_24h' => 'boolean',
+            'urgent_care_evidence' => 'array',
+            'urgent_care_checked_at' => 'datetime',
             'is_published' => 'boolean',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
@@ -118,6 +170,33 @@ class Facility extends Model
         return $this->belongsToMany(Department::class, 'department_facility')->withTimestamps();
     }
 
+    /**
+     * The urgent service's hours as {day: hours}. The admin repeater hands
+     * over a list of {day, hours} rows; those are folded into the map here.
+     *
+     * @return Attribute<array<string, string>|null, mixed>
+     */
+    protected function emergencyHours(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value): ?array {
+                $decoded = is_string($value) ? json_decode($value, true) : $value;
+
+                return is_array($decoded) && $decoded !== [] ? $decoded : null;
+            },
+            set: function (mixed $value): ?string {
+                if (! is_array($value) || $value === []) {
+                    return null;
+                }
+
+                $rows = array_values($value);
+                $hours = is_array($rows[0] ?? null) ? OfficeHours::fromRows($rows) : $value;
+
+                return $hours === null || $hours === [] ? null : (string) json_encode($hours, JSON_UNESCAPED_UNICODE);
+            },
+        );
+    }
+
     public function hasMapCoordinates(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
@@ -148,6 +227,43 @@ class Facility extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
+    }
+
+    /**
+     * Facilities with any urgent-care service (docs/urgent-care.md), or with
+     * the one named: ed | ems | clinic | dental.
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    public function scopeUrgentCare(Builder $query, ?string $service = null): Builder
+    {
+        return self::whereUrgentCare($query, $service);
+    }
+
+    /**
+     * The urgent-care filter as a plain static (Filament filters call it on
+     * a generic builder). An emergency department counts when confirmed or
+     * likely (a public general/clinical hospital awaiting staff).
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    public static function whereUrgentCare(Builder $query, ?string $service = null): Builder
+    {
+        $services = $service !== null && isset(self::URGENT_CARE_SERVICES[$service])
+            ? [$service]
+            : array_keys(self::URGENT_CARE_SERVICES);
+
+        return $query->where(function (Builder $inner) use ($services): void {
+            foreach ($services as $name) {
+                $inner->orWhere(self::URGENT_CARE_SERVICES[$name], true);
+
+                if ($name === 'ed') {
+                    $inner->orWhere('emergency_department_status', self::ED_UNCONFIRMED_LIKELY);
+                }
+            }
+        });
     }
 
     /**

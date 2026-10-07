@@ -33,6 +33,10 @@ return [
         '/forum/[categorySlug]',
         '/forum/[categorySlug]/[topicSlug]',
         '/forum/tags/[tag]',
+        '/urgent-care',
+        '/urgent-care/[city]',
+        '/guides',
+        '/guides/[slug]',
     ],
 
     /* Counters older than this many days are deleted by analytics:purge-old-events. */

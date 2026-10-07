@@ -335,6 +335,12 @@ export type PharmacyDetail = {
   /** „Верификуван“ / „Неверификуван“ (list and detail payloads). */
   verification?: Verification;
   office_hours: Record<string, string>;
+  /** „Дежурна денес“ from ФЗОМ's schedule; null/absent when not on duty. */
+  on_duty_today?: {
+    date: string;
+    mode: "all_day" | "hours" | "on_call" | "unknown";
+    hours_text: string | null;
+  } | null;
   review_summary: ReviewSummary;
 };
 
