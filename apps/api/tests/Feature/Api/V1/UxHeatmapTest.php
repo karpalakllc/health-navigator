@@ -96,6 +96,46 @@ class UxHeatmapTest extends TestCase
         $this->heatmap($body.'.'.strrev($signature))->assertForbidden();
     }
 
+    public function test_a_tampered_period_claim_is_refused(): void
+    {
+        $analyst = $this->analyst();
+        $token = UxOverlayToken::issue($analyst, 7);
+        [$body, $signature] = explode('.', $token);
+
+        $payload = json_decode((string) base64_decode(strtr($body, '-_', '+/')), true);
+        $this->assertSame(7, $payload['d']);
+        $payload['d'] = 180; // same user and expiry, longer window only
+
+        $widened = rtrim(strtr(base64_encode((string) json_encode($payload)), '+/', '-_'), '=');
+
+        $this->heatmap($widened.'.'.$signature)->assertForbidden();
+        $this->heatmap($token)->assertOk();
+    }
+
+    public function test_the_period_claim_bounds_what_is_read(): void
+    {
+        $analyst = $this->analyst();
+        app(UxEventRecorder::class)->record(
+            [['r' => '/doctors', 'vc' => 'desktop', 'wb' => 1440, 'x' => 50, 'y' => 30, 'k' => 'doctor-card/heading', 'd' => true, 'g' => false]],
+            [],
+            Carbon::today()->subDays(10),
+        );
+
+        $this->heatmap(UxOverlayToken::issue($analyst, 7))->assertJsonCount(0, 'data.cells');
+        $this->heatmap(UxOverlayToken::issue($analyst, 30))->assertJsonCount(1, 'data.cells');
+    }
+
+    public function test_a_token_of_a_suspended_staff_member_is_refused(): void
+    {
+        $analyst = $this->analyst();
+        $token = UxOverlayToken::issue($analyst, 30);
+        $this->heatmap($token)->assertOk();
+
+        $analyst->forceFill(['suspended_at' => now()])->save();
+
+        $this->heatmap($token)->assertForbidden();
+    }
+
     public function test_an_expired_token_is_refused(): void
     {
         $token = UxOverlayToken::issue($this->analyst(), 30);
