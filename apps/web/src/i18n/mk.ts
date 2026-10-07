@@ -1166,6 +1166,9 @@ export const mk = {
     searchLabel: "Пребарај симптом",
     searchPlaceholder: "на пр. главоболка, кашлица, температура",
     searchNoResults: "Нема симптом за „{query}“.",
+    previewBanner: "Преглед на нацрти — не е за јавноста",
+    areaNoFlows:
+      "За овој дел од телото сè уште нема насоки. Пребарајте симптом или изберете „Цело тело“.",
     bodyMapTitle: "Или изберете дел од телото",
     bodyMapLabel: "Дел од телото",
     bodyFront: "Напред",

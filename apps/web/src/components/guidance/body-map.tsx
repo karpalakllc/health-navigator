@@ -8,7 +8,8 @@ import { t } from "@/i18n/t";
  * Front and back outline with tappable regions. A pointer convenience only:
  * the SVG is hidden from assistive technology and skipped by the keyboard,
  * because the same areas are the labelled chips next to it (the accessible
- * list alternative). Regions without a flow are drawn but inert.
+ * list alternative). Regions without a flow are muted but still clickable:
+ * the visitor gets the „no guidance yet“ note instead of silence.
  */
 
 type Region = {
@@ -84,9 +85,9 @@ function Figure({
               ? "fill-ink"
               : active
                 ? "cursor-pointer fill-sand hover:fill-apricot"
-                : "fill-white",
+                : "cursor-pointer fill-white opacity-60 hover:opacity-100",
           );
-          const onClick = active ? () => onSelect(region.area) : undefined;
+          const onClick = () => onSelect(region.area);
 
           return region.shape.kind === "rect" ? (
             <rect

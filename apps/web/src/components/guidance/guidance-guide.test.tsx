@@ -222,9 +222,9 @@ function callLinks() {
   ];
 }
 
-async function start() {
+async function start(shown: GuidanceCatalog = catalog) {
   const user = userEvent.setup();
-  render(<GuidanceGuide catalog={catalog} />);
+  render(<GuidanceGuide catalog={shown} />);
   await user.click(screen.getByRole("checkbox"));
   await user.click(
     screen.getByRole("button", { name: t("guidance.continue") }),
@@ -729,5 +729,43 @@ describe("GuidanceGuide next steps", () => {
         ([, step]) => step === "start",
       ),
     ).toHaveLength(1);
+  });
+});
+
+describe("GuidanceGuide local draft preview", () => {
+  it("shows a persistent calm banner only when the catalogue is a preview", async () => {
+    const user = await start({ ...catalog, preview: true });
+    expect(screen.getByText(t("guidance.previewBanner"))).toBeInTheDocument();
+
+    await toSymptoms(user);
+    expect(screen.getByText(t("guidance.previewBanner"))).toBeInTheDocument();
+  });
+
+  it("shows no banner for the public catalogue", async () => {
+    await start();
+    expect(screen.queryByText(t("guidance.previewBanner"))).toBeNull();
+  });
+});
+
+describe("GuidanceGuide body map", () => {
+  it("answers a click on an area without guidance, and selects its chip", async () => {
+    const user = await start();
+    await toSymptoms(user);
+    expect(screen.queryByText(t("guidance.areaNoFlows"))).toBeNull();
+
+    // Arms: drawn on the map, but no flow covers it.
+    const arm = document.querySelector<SVGElement>('[data-area="arms"]');
+    expect(arm).not.toBeNull();
+    await user.click(arm!);
+
+    expect(screen.getByText(t("guidance.areaNoFlows"))).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: t("guidance.areaArms") }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.areaArms") }),
+    );
+    expect(screen.queryByText(t("guidance.areaNoFlows"))).toBeNull();
   });
 });
