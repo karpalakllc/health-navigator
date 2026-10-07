@@ -58,4 +58,19 @@ class ImportTextTest extends TestCase
         // Mixed case is left as written.
         $this->assertSame('Клиника Жан Митрев', TextCase::institution('Клиника Жан Митрев'));
     }
+
+    /**
+     * The quote characters „“ are multibyte: a byte-wise trim() also cut the
+     * last byte of a Cyrillic О (D0 9E) or М (D0 9C), so „ДО“, „ПО“, „ВО“ and
+     * „СО“ were never recognised as function words, and a quoted acronym lost
+     * its match.
+     */
+    public function test_function_words_ending_in_o_and_quoted_acronyms(): void
+    {
+        $this->assertSame('ЈЗУ Здравствен Дом во Скопје', TextCase::institution('ЈЗУ ЗДРАВСТВЕН ДОМ ВО СКОПЈЕ'));
+        $this->assertSame('Ординација по Интерна Медицина со Лабораторија', TextCase::institution('ОРДИНАЦИЈА ПО ИНТЕРНА МЕДИЦИНА СО ЛАБОРАТОРИЈА'));
+        $this->assertSame('Одделение до Ургентен Центар', TextCase::institution('ОДДЕЛЕНИЕ ДО УРГЕНТЕН ЦЕНТАР'));
+        $this->assertSame('„ПЗУ“ Медика', TextCase::institution('„ПЗУ“ МЕДИКА'));
+        $this->assertSame('Клиника „Свети Наум“', TextCase::institution('КЛИНИКА „СВЕТИ НАУМ“'));
+    }
 }

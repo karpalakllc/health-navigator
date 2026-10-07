@@ -46,7 +46,9 @@ final class TextCase
         $words = explode(' ', $name);
 
         foreach ($words as $index => $word) {
-            $bare = trim($word, '„“"\'(),.-');
+            // Multibyte-safe: a byte-wise trim() with „“ in the list also cut
+            // the last byte of О or М (ДО, ПО, ВО, СО were missed).
+            $bare = (string) preg_replace('/^[„“"\'(),.\-]+|[„“"\'(),.\-]+$/u', '', $word);
 
             if (in_array($bare, self::ACRONYMS, true) || preg_match('/\d/u', $bare) === 1) {
                 continue;
