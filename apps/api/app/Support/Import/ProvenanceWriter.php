@@ -26,7 +26,8 @@ use Illuminate\Support\Facades\DB;
  * A write to a PUBLISHED record is also reported as "changed", one review
  * item per record per run listing the fields, so staff see what moved on
  * live profiles — except when only the casing of the source's own value
- * changed (a fixed casing rule; still in the run's diff).
+ * changed (a fixed casing rule; still in the run's diff) and no name or
+ * quoted name loses the capital it starts with.
  */
 final class ProvenanceWriter
 {
@@ -134,13 +135,53 @@ final class ProvenanceWriter
 
             // Only the casing of the import's own value moved (a casing rule
             // fixed between runs, or a value import:clean-names re-cased):
-            // written, but not listed as a „changed“ profile for staff.
-            if (! ($ownValue && $current !== null && mb_strtolower($current, 'UTF-8') === mb_strtolower($incoming ?? '', 'UTF-8'))) {
+            // written, but not listed as a „changed“ profile for staff —
+            // unless it lower-cases the word a name or a quoted name starts
+            // with („До Дент“ → „до Дент“): that can read wrong, so staff see it.
+            $casingOnly = $ownValue && $current !== null && mb_strtolower($current, 'UTF-8') === mb_strtolower($incoming ?? '', 'UTF-8');
+
+            if (! $casingOnly || self::lowersANameStart($current, (string) $incoming)) {
                 $this->noteChange($subject, $label, $field, $current, $incoming);
             }
         }
 
         return 'written';
+    }
+
+    /**
+     * Whether a casing-only change lower-cases the first letter of a word
+     * that starts the value, a quoted name („…, "…, «…) or a bracket.
+     */
+    public static function lowersANameStart(string $current, string $incoming): bool
+    {
+        $before = preg_split('/\s+/u', trim($current)) ?: [];
+        $after = preg_split('/\s+/u', trim($incoming)) ?: [];
+
+        if (count($before) !== count($after)) {
+            return false;
+        }
+
+        $start = true;
+
+        foreach ($before as $index => $word) {
+            $opens = preg_match('/^[„“"\'«(]/u', $word) === 1;
+            $isStart = $start || $opens;
+            // A quote standing alone opens the next word.
+            $start = $opens && preg_match('/\p{L}/u', $word) !== 1;
+
+            if (! $isStart) {
+                continue;
+            }
+
+            preg_match('/\p{L}/u', $word, $old);
+            preg_match('/\p{L}/u', $after[$index], $new);
+
+            if (isset($old[0], $new[0]) && preg_match('/\p{Lu}/u', $old[0]) === 1 && preg_match('/\p{Ll}/u', $new[0]) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

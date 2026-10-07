@@ -12,6 +12,7 @@ use App\Models\ImportRun;
 use App\Models\SourceRecord;
 use App\Models\Specialty;
 use App\Support\Import\Fzom\FzomImportJob;
+use App\Support\Import\ImportContext;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Verification\Engine\VerificationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -356,6 +357,35 @@ class FzomImportTest extends TestCase
             $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Conflict)
                 ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->exists());
         }
+    }
+
+    /**
+     * A casing-only change that lower-cases the word a quoted name starts
+     * with („До Дент“ → „до Дент“) is still written, but staff see it.
+     */
+    public function test_a_casing_change_lowering_a_quoted_name_start_raises_a_changed_item(): void
+    {
+        $this->import();
+        [$lowered, $capitalised] = Facility::query()->orderBy('id')->take(2)->get()->all();
+        $context = new ImportContext(ImportRun::start('fzom', false), 'fzom', false);
+        $writer = new ProvenanceWriter($context);
+
+        foreach ([[$lowered, 'ПЗУ „До Дент“', 'ПЗУ „до Дент“'], [$capitalised, 'ПЗУ „ДО ДЕНТ“', 'ПЗУ „До Дент“']] as [$facility, $old, $new]) {
+            $facility->forceFill(['name' => $old, 'is_published' => true, 'published_at' => now()])->save();
+            FieldProvenance::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())
+                ->where('field', 'name')->update(['value' => $old, 'source' => 'fzom']);
+            $this->assertSame('written', $writer->scalar($facility->fresh(), 'name', $new, false, label: $old));
+        }
+
+        $writer->flushChanges();
+
+        $this->assertTrue(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $lowered->getKey())->exists());
+        $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $capitalised->getKey())->exists());
+        $this->assertTrue(ProvenanceWriter::lowersANameStart('Аптека "Во Здравје"', 'Аптека "во Здравје"'));
+        $this->assertTrue(ProvenanceWriter::lowersANameStart('До Дент', 'до Дент'));
+        $this->assertFalse(ProvenanceWriter::lowersANameStart('ЈЗУ Здравствен Дом Во Скопје', 'ЈЗУ Здравствен дом во Скопје'));
     }
 
     public function test_a_doctor_missing_from_two_runs_is_queued_and_never_deleted(): void
