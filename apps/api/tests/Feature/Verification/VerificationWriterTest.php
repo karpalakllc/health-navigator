@@ -148,4 +148,24 @@ class VerificationWriterTest extends TestCase
         $this->assertSame('Официјален регистар (ФЗОМ или Министерство за здравство)', $facility->fresh()->publicVerification()['basis_label']);
         $this->assertSame(1, Doctor::query()->verified()->count());
     }
+
+    public function test_an_automatic_write_from_a_stale_copy_never_overrides_a_concurrent_staff_decision(): void
+    {
+        $doctor = Doctor::factory()->create();
+        $this->writer()->unverify($doctor, 'fzom_no_licence'); // an earlier engine run
+        $stale = Doctor::query()->find($doctor->id); // the engine's chunk copy
+        $staff = User::factory()->create();
+        $this->writer()->unverify(Doctor::query()->find($doctor->id), 'Called: left in 2025', $staff);
+
+        $this->assertSame(VerificationResult::StaffDecisionKept, $this->writer()->verify($stale, VerificationBasis::OfficialRegisters, [['rule' => 'fzom_licence']]));
+        $this->assertSame(VerificationResult::StaffDecisionKept, $this->writer()->unverify($stale, 'source_removed'));
+
+        $fresh = $doctor->fresh();
+        $this->assertFalse($fresh->isVerified());
+        $this->assertSame(VerificationSource::Staff, $fresh->verification_source);
+        $this->assertSame('Called: left in 2025', $fresh->verification_reasons['reason']);
+        $this->assertSame($staff->id, $fresh->verified_by_id);
+        // The stale copy now shows the staff decision too.
+        $this->assertTrue($stale->hasStaffVerificationDecision());
+    }
 }

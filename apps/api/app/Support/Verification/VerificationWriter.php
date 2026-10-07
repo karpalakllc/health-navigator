@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class VerificationWriter
 {
+    private const COLUMNS = ['verified_at', 'verification_basis', 'verification_reasons', 'verification_source', 'verified_by_id', 'verification_checked_at'];
+
     /**
      * Mark the profile verified on $basis.
      *
@@ -36,7 +38,15 @@ final class VerificationWriter
      */
     public function verify(Doctor|Facility $subject, VerificationBasis $basis, array $evidence = [], ?User $staff = null, ?string $note = null): VerificationResult
     {
-        if ($staff === null && $subject->hasStaffVerificationDecision()) {
+        return DB::transaction(fn (): VerificationResult => $this->verifyLocked($subject, $basis, $evidence, $staff, $note));
+    }
+
+    /**
+     * @param  list<array<string, scalar|null>|string>  $evidence
+     */
+    private function verifyLocked(Doctor|Facility $subject, VerificationBasis $basis, array $evidence, ?User $staff, ?string $note): VerificationResult
+    {
+        if ($staff === null && $this->staffDecidedMeanwhile($subject)) {
             return VerificationResult::StaffDecisionKept;
         }
 
@@ -78,7 +88,15 @@ final class VerificationWriter
      */
     public function unverify(Doctor|Facility $subject, string $reason, ?User $staff = null, array $evidence = []): VerificationResult
     {
-        if ($staff === null && $subject->hasStaffVerificationDecision()) {
+        return DB::transaction(fn (): VerificationResult => $this->unverifyLocked($subject, $reason, $staff, $evidence));
+    }
+
+    /**
+     * @param  list<array<string, scalar|null>|string>  $evidence
+     */
+    private function unverifyLocked(Doctor|Facility $subject, string $reason, ?User $staff, array $evidence): VerificationResult
+    {
+        if ($staff === null && $this->staffDecidedMeanwhile($subject)) {
             return VerificationResult::StaffDecisionKept;
         }
 
@@ -124,6 +142,28 @@ final class VerificationWriter
         $subject->forceFill(['verification_source' => VerificationSource::Auto]);
         $this->persist($subject, false);
         $this->log($subject, 'released', $staff, []);
+    }
+
+    /**
+     * An automatic call works on a copy loaded earlier (the engine's chunk):
+     * re-read the verification columns with the row locked until the write
+     * commits, so a staff decision made meanwhile always wins and the
+     * status is decided from what is stored now.
+     */
+    private function staffDecidedMeanwhile(Doctor|Facility $subject): bool
+    {
+        $row = $subject->newQueryWithoutScopes()
+            ->whereKey($subject->getKey())
+            ->lockForUpdate()
+            ->toBase()
+            ->first(self::COLUMNS);
+
+        if ($row !== null) {
+            $subject->setRawAttributes(array_merge($subject->getAttributes(), (array) $row));
+            $subject->syncOriginalAttributes(self::COLUMNS);
+        }
+
+        return $subject->hasStaffVerificationDecision();
     }
 
     /**
