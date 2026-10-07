@@ -329,5 +329,6 @@
       "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
       "accessed": "2026-10-07"
     }
-  ]
+  ],
+  "demographics_ok_reason": "Inherently about pregnancy prevention after unprotected sex (asked by or for a person who can become pregnant); the age-band catalogue cannot filter by sex, so sex and pregnancy wording is waived for the whole flow."
 }

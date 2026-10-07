@@ -55,15 +55,28 @@
           "label": "Црвена, топла и болна дојка"
         },
         {
-          "value": "pain_cycle",
-          "label": "Болка што се менува со менструалниот циклус"
-        },
-        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
         }
       ],
+      "next": [
+        {
+          "when": {
+            "demo": "pregnancy",
+            "ne": "not_asked"
+          },
+          "goto": "q_cycle_pain"
+        },
+        {
+          "goto": "q_fever"
+        }
+      ]
+    },
+    "q_cycle_pain": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали болката или затегнатоста во дојките се менува со менструалниот циклус (посилна пред менструација)?",
       "next": "q_breastfeeding"
     },
     "q_breastfeeding": {
@@ -103,6 +116,25 @@
             ]
           },
           "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_changes",
+                "includes": "red_hot"
+              },
+              {
+                "answer": "q_fever",
+                "eq": "yes"
+              },
+              {
+                "answer": "q_breastfeeding",
+                "eq": "yes"
+              }
+            ]
+          },
+          "goto": "o_doc48_1_bf"
         },
         {
           "when": {
@@ -155,8 +187,8 @@
         },
         {
           "when": {
-            "answer": "q_changes",
-            "includes": "pain_cycle"
+            "answer": "q_cycle_pain",
+            "eq": "yes"
           },
           "goto": "o_self_1"
         },
@@ -197,6 +229,35 @@
       ]
     },
     "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Маститот (воспаление на дојката) често се подобрува, но понекогаш бара лекување.",
+      "reasons": [
+        "Воспалена дојка со температура (мастит) може да бара лекување."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар или гинеколог."
+      ],
+      "watch_for": [
+        "Ако се појави тресење, збунетост или забрзано дишење, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 12–24 часа, јавете се во дежурна служба."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mastitis"
+      ]
+    },
+    "o_doc48_1_bf": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Маститот (воспаление на дојката) често се подобрува, но понекогаш бара лекување.",

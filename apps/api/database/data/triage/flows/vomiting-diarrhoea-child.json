@@ -46,7 +46,27 @@
       "code": "no_urine",
       "label": "Не мокрело 12 часа или повеќе (суви пелени)",
       "outcome": "o_emergency",
-      "source": "nhs-under5-urgent"
+      "source": "nhs-under5-urgent",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "infant_0_3m",
+          "infant_3_12m",
+          "child_1_4"
+        ]
+      }
+    },
+    {
+      "code": "no_urine_older",
+      "label": "Не мокрело 12 часа или повеќе",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "child_5_12"
+        ]
+      }
     },
     {
       "code": "green_vomit",
@@ -80,7 +100,7 @@
         },
         {
           "value": "dehydration",
-          "label": "Сува уста, нема солзи, вдлабнати очи или теме, помалку мокри пелени"
+          "label": "Сува уста, нема солзи, вдлабнати очи или помалку мокрење од вообичаено"
         },
         {
           "value": "unusual",
@@ -91,8 +111,40 @@
           "label": "Температура"
         },
         {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "demo": "age_months",
+            "lt": 24
+          },
+          "goto": "q_infant"
+        },
+        {
+          "goto": "q_duration"
+        }
+      ]
+    },
+    "q_infant": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова кај бебето или малото дете?",
+      "options": [
+        {
+          "value": "sunken",
+          "label": "Вдлабнато меко место на темето (фонтанела)"
+        },
+        {
+          "value": "dry_nappies",
+          "label": "Помалку мокри пелени"
+        },
+        {
           "value": "projectile",
-          "label": "Силно (млазно) повраќање по секое хранење (бебе)"
+          "label": "Силно (млазно) повраќање по секое хранење"
         },
         {
           "value": "none",
@@ -155,8 +207,19 @@
           "when": {
             "any": [
               {
-                "answer": "q_signs",
-                "includes": "dehydration"
+                "any": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "dehydration"
+                  },
+                  {
+                    "answer": "q_infant",
+                    "includes_any": [
+                      "sunken",
+                      "dry_nappies"
+                    ]
+                  }
+                ]
               },
               {
                 "answer": "q_signs",
@@ -167,7 +230,7 @@
                 "includes": "unusual"
               },
               {
-                "answer": "q_signs",
+                "answer": "q_infant",
                 "includes": "projectile"
               }
             ]
@@ -353,7 +416,7 @@
       ],
       "watch_for": [
         "Ако детето стане млитаво, тешко се буди, не мокрело 12 часа или повраќа зелено, веднаш повикајте 194 или 112.",
-        "Ако се појават сува уста, нема солзи или помалку мокри пелени, одете на преглед истиот ден."
+        "Ако се појават сува уста, нема солзи или помалку мокрење од вообичаено, одете на преглед истиот ден."
       ],
       "care": {
         "setting": "self_care",

@@ -64,7 +64,27 @@
       "code": "no_urine",
       "label": "Не мокрело 12 часа или повеќе (суви пелени)",
       "outcome": "o_emergency",
-      "source": "nhs-under5-urgent"
+      "source": "nhs-under5-urgent",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "infant_0_3m",
+          "infant_3_12m",
+          "child_1_4"
+        ]
+      }
+    },
+    {
+      "code": "no_urine_older",
+      "label": "Не мокрело 12 часа или повеќе",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "child_5_12"
+        ]
+      }
     },
     {
       "code": "stiff_neck",
@@ -111,6 +131,38 @@
           "label": "5 дена или повеќе"
         }
       ],
+      "next": [
+        {
+          "when": {
+            "demo": "age_months",
+            "lt": 24
+          },
+          "goto": "q_infant"
+        },
+        {
+          "goto": "q_signs"
+        }
+      ]
+    },
+    "q_infant": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова кај бебето или малото дете?",
+      "options": [
+        {
+          "value": "sunken",
+          "label": "Вдлабнато меко место на темето (фонтанела)"
+        },
+        {
+          "value": "dry_nappies",
+          "label": "Помалку мокри пелени"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
       "next": "q_signs"
     },
     "q_signs": {
@@ -124,11 +176,11 @@
         },
         {
           "value": "fewer_nappies",
-          "label": "Помалку мокри (помалку мокри пелени)"
+          "label": "Мокри помалку од вообичаено"
         },
         {
           "value": "dry",
-          "label": "Сува уста, нема солзи, или вдлабнато темето (фонтанела) кај бебе"
+          "label": "Сува уста или нема солзи"
         },
         {
           "value": "unusual",
@@ -220,12 +272,28 @@
           "when": {
             "any": [
               {
-                "answer": "q_signs",
-                "includes": "dry"
+                "any": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "dry"
+                  },
+                  {
+                    "answer": "q_infant",
+                    "includes": "sunken"
+                  }
+                ]
               },
               {
-                "answer": "q_signs",
-                "includes": "fewer_nappies"
+                "any": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "fewer_nappies"
+                  },
+                  {
+                    "answer": "q_infant",
+                    "includes": "dry_nappies"
+                  }
+                ]
               },
               {
                 "answer": "q_signs",
