@@ -17,7 +17,8 @@ Example (after your domain): `/forum?utm_source=viber&utm_medium=chat&utm_campai
 
 - **Short slugs only.** 1–64 letters (Latin or Cyrillic), digits, `.`, `_` or
   `-`. A value with spaces, `@`, `+`, `/`, `%`, or six or more digits in a row
-  is dropped before anything is sent. Lower-case Latin with hyphens is the
+  — also when `.`, `_` or `-` split them („070-123-456“, and so also a date
+  like „2026-10“) — is dropped before anything is sent. Lower-case Latin with hyphens is the
   easiest to read in reports.
 - **Never put a person in a tag**: no names, e-mail addresses, phone numbers,
   member ids or symptoms. A tag describes *where the link was posted*, never

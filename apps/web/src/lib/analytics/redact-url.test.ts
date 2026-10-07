@@ -69,7 +69,14 @@ describe("redactPageUrl", () => {
 
 describe("isSafeCampaignValue", () => {
   it("accepts short slugs in either script", () => {
-    for (const value of ["viber", "Newsletter", "esen-2026", "a_b.c", "есен"]) {
+    for (const value of [
+      "viber",
+      "Newsletter",
+      "esen-2026",
+      "a_b.c",
+      "есен",
+      "v2-10",
+    ]) {
       expect(isSafeCampaignValue(value)).toBe(true);
     }
   });
@@ -81,6 +88,10 @@ describe("isSafeCampaignValue", () => {
       "ana@mail.mk",
       "+38970123456",
       "070123456",
+      "070-123-456",
+      "070.123.456",
+      "07_01_23_45",
+      "id-12-34-56",
       "https://x.mk/a",
       "a".repeat(65),
     ]) {

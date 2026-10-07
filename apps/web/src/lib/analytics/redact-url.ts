@@ -26,15 +26,18 @@ const MAX_CAMPAIGN_VALUE_LENGTH = 64;
 
 /**
  * A campaign tag value worth keeping: 1–64 letters (any script), digits, `.`,
- * `_` or `-`, and no run of six or more digits (a phone number, an ID).
- * Anything else — spaces, `@`, `+`, `/`, `%`… — drops the parameter.
+ * `_` or `-`, and no run of six or more digits, also when separators split it
+ * („070-123-456“, „070.123.456“: a phone number, an ID). Anything else —
+ * spaces, `@`, `+`, `/`, `%`… — drops the parameter.
  */
 export function isSafeCampaignValue(value: string): boolean {
   return (
     value.length > 0 &&
     value.length <= MAX_CAMPAIGN_VALUE_LENGTH &&
     /^[\p{L}\p{N}._-]+$/u.test(value) &&
-    !/\d{6,}/.test(value)
+    !(value.match(/\d+(?:[._-]+\d+)*/g) ?? []).some(
+      (run) => run.replace(/\D/g, "").length >= 6,
+    )
   );
 }
 
