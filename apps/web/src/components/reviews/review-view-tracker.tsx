@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { hasOverlayToken } from "@/lib/ux/overlay-token";
-import { privacySignalOn } from "@/lib/ux/privacy-signals";
+import { statisticsAllowed } from "@/lib/consent/consent";
+import { useStatisticsConsent } from "@/lib/consent/use-consent";
+import { statisticsHeaders } from "@/lib/consent/header";
 
 /** How long after the first card appears the batch goes out. */
 const FLUSH_MS = 2000;
@@ -16,8 +18,10 @@ const MAX_BATCH = 30;
  * view. In memory only — no cookie or storage; the API counts each review at
  * most once a day per network and never the author's own views. Pages a
  * crawler fetches without running scripts, or that nobody scrolls to, count
- * nothing. Like the UX tracker, a browser sending Global Privacy Control or
- * Do Not Track, and a staff heatmap-overlay tab, count nothing either.
+ * nothing. Like the UX tracker, it runs only after the visitor accepted
+ * statistics (withdrawing stops it at once; an explicit yes overrides Global
+ * Privacy Control / Do Not Track), and a staff heatmap-overlay tab counts
+ * nothing either.
  */
 export function ReviewViewTracker({
   children,
@@ -31,6 +35,7 @@ export function ReviewViewTracker({
   // Across re-renders (a new page of reviews re-runs the effect): each card
   // is reported at most once per page view.
   const reportedRef = useRef(new Set<number>());
+  const statistics = useStatisticsConsent();
 
   useEffect(() => {
     const root = container.current;
@@ -38,7 +43,7 @@ export function ReviewViewTracker({
     if (
       !root ||
       typeof IntersectionObserver === "undefined" ||
-      privacySignalOn(window) ||
+      !statistics ||
       hasOverlayToken(window)
     ) {
       return;
@@ -61,10 +66,16 @@ export function ReviewViewTracker({
         return;
       }
 
+      // Checked at sending: a report queued before consent was withdrawn is
+      // dropped.
+      if (!statisticsAllowed()) {
+        return;
+      }
+
       // keepalive: the report survives the visitor leaving the page.
       void fetch("/api/reviews/views", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...statisticsHeaders() },
         body: JSON.stringify({ ids }),
         keepalive: true,
       }).catch(() => {});
@@ -123,7 +134,7 @@ export function ReviewViewTracker({
       window.removeEventListener("pagehide", flush);
       flush();
     };
-  }, [children, excludeId]);
+  }, [children, excludeId, statistics]);
 
   return <div ref={container}>{children}</div>;
 }

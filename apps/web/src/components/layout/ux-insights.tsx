@@ -4,15 +4,16 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { bufferEarlyClicks } from "@/lib/ux/early-clicks";
 import { readOverlayToken } from "@/lib/ux/overlay-token";
-import { privacySignalOn } from "@/lib/ux/privacy-signals";
+import { useStatisticsConsent } from "@/lib/consent/use-consent";
 
 /**
  * Anonymous click and scroll statistics, and the staff heatmap overlay
  * (docs/ux-heatmaps.md). Renders nothing.
  *
- * After hydration, once the browser is idle, it loads the tracker — unless the
- * browser sends Global Privacy Control or Do Not Track, or this tab falls
- * outside the sample. A tab holding a staff overlay token loads the overlay
+ * After hydration, once the browser is idle, it loads the tracker — but only
+ * once the visitor accepted statistics in the consent banner (an explicit yes
+ * also overrides Global Privacy Control / Do Not Track), and unless this tab
+ * falls outside the sample. Withdrawing consent stops it at once. A tab holding a staff overlay token loads the overlay
  * instead, and is never tracked. Both are separate chunks, so neither costs
  * the first render anything.
  *
@@ -44,6 +45,7 @@ function whenIdle(run: () => void): () => void {
 
 export function UxInsights() {
   const pathname = usePathname();
+  const statistics = useStatisticsConsent();
   const pathRef = useRef(pathname);
   const handle = useRef<Handle | null>(null);
   // performance.now() of the last navigation before the tracker loaded.
@@ -66,7 +68,7 @@ export function UxInsights() {
         handle.current = overlay;
         stop = overlay.destroy;
       });
-    } else if (!privacySignalOn(window) && Math.random() < uxSampleRate()) {
+    } else if (statistics && Math.random() < uxSampleRate()) {
       const early = bufferEarlyClicks(window, () => pathRef.current);
       const cancelIdle = whenIdle(() => {
         void import("@/lib/ux/tracker").then(
@@ -98,7 +100,7 @@ export function UxInsights() {
       handle.current = null;
       stop?.();
     };
-  }, []);
+  }, [statistics]);
 
   useEffect(() => {
     if (pathRef.current === pathname) return;

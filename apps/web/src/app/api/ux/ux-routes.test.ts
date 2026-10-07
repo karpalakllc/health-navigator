@@ -38,6 +38,7 @@ function post(body: unknown, headers: Record<string, string> = {}) {
     headers: {
       Origin: SITE,
       "Content-Type": "application/json",
+      "X-Z360-Consent": "statistics",
       ...headers,
     },
     body: typeof body === "string" ? body : JSON.stringify(body),
@@ -59,6 +60,7 @@ describe("POST /api/ux/events", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api.test/api/v1/ux/events");
     expect(JSON.parse(init.body)).toEqual({ clicks: [click], views: [] });
+    expect(init.headers["X-Z360-Consent"]).toBe("statistics");
     expect(init.headers).not.toHaveProperty("Authorization");
     expect(init.headers).not.toHaveProperty("Cookie");
   });
@@ -72,8 +74,8 @@ describe("POST /api/ux/events", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it.each([[{ "Sec-GPC": "1" }], [{ DNT: "1" }]])(
-    "sends nothing on with a privacy signal %o",
+  it.each([[{ "X-Z360-Consent": "" }], [{ "X-Z360-Consent": "marketing" }]])(
+    "stores nothing without the statistics-consent header %o",
     async (headers) => {
       const response = await events(
         post({ clicks: [click], views: [] }, headers),
@@ -81,6 +83,18 @@ describe("POST /api/ux/events", () => {
 
       expect(response.status).toBe(204);
       expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([[{ "Sec-GPC": "1" }], [{ DNT: "1" }]])(
+    "still relays with consent when the browser sends %o (an explicit yes wins)",
+    async (headers) => {
+      const response = await events(
+        post({ clicks: [click], views: [] }, headers),
+      );
+
+      expect(response.status).toBe(204);
+      expect(fetchMock).toHaveBeenCalledOnce();
     },
   );
 

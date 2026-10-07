@@ -1,5 +1,6 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CONSENT_KEY, saveConsent } from "@/lib/consent/consent";
 import { OVERLAY_TOKEN_KEY } from "@/lib/ux/overlay-token";
 
 /**
@@ -56,10 +57,12 @@ beforeEach(() => {
   });
   vi.stubGlobal("cancelIdleCallback", () => undefined);
   sessionStorage.clear();
+  saveConsent(true);
   window.history.replaceState(null, "", "/doctors");
 });
 
 afterEach(() => {
+  window.localStorage.removeItem(CONSENT_KEY);
   mountOverlay.mockClear();
   createTracker.mockClear();
   bufferEarlyClicks.mockClear();
@@ -90,7 +93,45 @@ describe("UxInsights", () => {
     ]);
   });
 
-  it("loads nothing with Global Privacy Control on", async () => {
+  it("loads nothing before the visitor accepted statistics, or after a decline", async () => {
+    window.localStorage.removeItem(CONSENT_KEY);
+    render(<UxInsights />);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(createTracker).not.toHaveBeenCalled();
+    expect(bufferEarlyClicks).not.toHaveBeenCalled();
+
+    saveConsent(false);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(createTracker).not.toHaveBeenCalled();
+  });
+
+  it("starts when consent is given and stops when it is withdrawn, without a reload", async () => {
+    window.localStorage.removeItem(CONSENT_KEY);
+    render(<UxInsights />);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(createTracker).not.toHaveBeenCalled();
+
+    act(() => saveConsent(true));
+    await waitFor(() => expect(createTracker).toHaveBeenCalledOnce());
+    const tracker = createTracker.mock.results[0].value;
+    expect(tracker.stop).not.toHaveBeenCalled();
+
+    act(() => saveConsent(false));
+    expect(tracker.stop).toHaveBeenCalledOnce();
+  });
+
+  it("tracks with consent even when Global Privacy Control is on (an explicit yes wins)", async () => {
+    Object.defineProperty(navigator, "globalPrivacyControl", {
+      configurable: true,
+      value: true,
+    });
+
+    render(<UxInsights />);
+    await waitFor(() => expect(createTracker).toHaveBeenCalledOnce());
+  });
+
+  it("loads nothing for the overlay-less case of GPC without consent", async () => {
+    window.localStorage.removeItem(CONSENT_KEY);
     Object.defineProperty(navigator, "globalPrivacyControl", {
       configurable: true,
       value: true,

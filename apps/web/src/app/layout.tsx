@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geologica, Source_Sans_3 } from "next/font/google";
+import { ConsentBanner } from "@/components/layout/consent-banner";
 import { PlausibleAnalytics } from "@/components/layout/plausible-analytics";
 import { RevealObserver } from "@/components/layout/reveal-observer";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
@@ -99,6 +100,7 @@ export default async function RootLayout({
               <UxInsights />
               <RevealObserver />
               <SkipLink />
+              <ConsentBanner />
               <SiteHeader />
               {/* The one <main> of the page, so it also covers the hero;
                   tabIndex lets the skip link move focus here. */}

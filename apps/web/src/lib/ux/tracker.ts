@@ -1,3 +1,5 @@
+import { statisticsAllowed } from "@/lib/consent/consent";
+import { statisticsHeaders } from "@/lib/consent/header";
 import { uxRouteTemplate, type UxRoute } from "@/lib/ux/routes";
 import {
   scrollMilestone,
@@ -89,23 +91,20 @@ export type Tracker = {
   stop: () => void;
 };
 
-/** Sends with sendBeacon (survives page unload); fetch keepalive otherwise. */
+/** Sends with fetch keepalive (survives page unload), and only with consent. */
 export function beaconSender(win: Window): (batch: UxBatch) => void {
   return (batch) => {
-    const body = JSON.stringify(batch);
-    const blob = new Blob([body], { type: "application/json" });
+    // Checked at the moment of sending: a visitor who withdrew consent since
+    // the batch was queued sends nothing.
+    if (!statisticsAllowed()) return;
 
-    try {
-      if (win.navigator.sendBeacon?.(UX_EVENTS_PATH, blob)) return;
-    } catch {
-      // Fall through to fetch.
-    }
-
+    // fetch with keepalive rather than sendBeacon: the consent header cannot
+    // be set on a beacon, and the relay drops a request without it.
     void win
       .fetch(UX_EVENTS_PATH, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
+        headers: { "Content-Type": "application/json", ...statisticsHeaders() },
+        body: JSON.stringify(batch),
         keepalive: true,
         credentials: "same-origin",
       })

@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewViewTracker } from "@/components/reviews/review-view-tracker";
+import { CONSENT_KEY, saveConsent } from "@/lib/consent/consent";
 import { OVERLAY_TOKEN_KEY } from "@/lib/ux/overlay-token";
 import { mockFetch, requestBody } from "../../../test/fetch";
 
@@ -62,9 +63,11 @@ describe("ReviewViewTracker", () => {
     observers = [];
     vi.useFakeTimers();
     vi.stubGlobal("IntersectionObserver", FakeObserver);
+    saveConsent(true);
   });
 
   afterEach(() => {
+    window.localStorage.removeItem(CONSENT_KEY);
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -133,11 +136,10 @@ describe("ReviewViewTracker", () => {
     expect(requestBody(fetch)).toEqual({ ids: [21] });
   });
 
-  // Same rule as the UX tracker (docs/ux-heatmaps.md): a privacy signal or a
-  // staff heatmap-overlay tab counts nothing.
-  it("counts nothing when the browser sends Global Privacy Control", () => {
+  // Statistics run only after an explicit yes in the consent banner.
+  it("counts nothing before the visitor accepted statistics", () => {
+    window.localStorage.removeItem(CONSENT_KEY);
     const fetch = mockFetch({ status: 200, body: { data: {} } });
-    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
     const { unmount } = render(
       <ReviewViewTracker>{cards(31)}</ReviewViewTracker>,
     );
@@ -147,6 +149,49 @@ describe("ReviewViewTracker", () => {
       vi.advanceTimersByTime(5000);
     });
     unmount();
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("counts nothing after a decline", () => {
+    saveConsent(false);
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    render(<ReviewViewTracker>{cards(32)}</ReviewViewTracker>);
+
+    show(32);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("still counts with consent when the browser sends Global Privacy Control, and sends the consent header", () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    render(<ReviewViewTracker>{cards(33)}</ReviewViewTracker>);
+
+    show(33);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(requestBody(fetch)).toEqual({ ids: [33] });
+    expect(
+      (fetch.mock.calls[0][1] as RequestInit).headers as Record<string, string>,
+    ).toMatchObject({ "X-Z360-Consent": "statistics" });
+  });
+
+  it("stops at once when consent is withdrawn, dropping what was pending", () => {
+    const fetch = mockFetch({ status: 200, body: { data: {} } });
+    render(<ReviewViewTracker>{cards(34)}</ReviewViewTracker>);
+
+    show(34);
+    act(() => {
+      saveConsent(false);
+      vi.advanceTimersByTime(5000);
+      window.dispatchEvent(new Event("pagehide"));
+    });
 
     expect(fetch).not.toHaveBeenCalled();
   });
