@@ -1096,10 +1096,6 @@ export const mk = {
       "Означете што важи во моментов. Ако нешто важи, ќе прикажеме само итни насоки.",
     restart: "Започни нова проверка",
     introAnonymous: "Анонимно, без профил и без регистрација.",
-    redFlagsReminderTitle: "Кога да не чекате",
-    redFlagsReminderLead: "Повикајте",
-    redFlagsReminderOr: "или",
-    redFlagsReminderTail: "веднаш ако имате:",
     emergencyBand: "Итно",
     resultEyebrow: "Општа насока, не дијагноза",
     ladderTitle: "Каде да побарате помош",
@@ -1121,6 +1117,9 @@ export const mk = {
     sessionError: "Сесијата не може да се започне.",
     saveError: "Одговорите не може да се зачуваат.",
     emergencyError: "Не може да се евидентира итен случај.",
+    emergencyCrisisTitle: "Веднаш побарајте помош — не сте сами",
+    emergencyCrisisBody:
+      "Ако мислите да се повредите себеси или веќе сте се повредиле, повикајте 194 или 112 сега. Не останувајте сами — кажете му на некој близок.",
     emergencyInterimTitle: "Веднаш повикајте итна помош",
     emergencyShortcutBody:
       "Ако мислите дека е итно, не чекајте: повикајте ја службата за итна помош веднаш. Не ја користете оваа веб-страница наместо итна медицинска помош.",
@@ -1131,11 +1130,6 @@ export const mk = {
     call112: "112 — единствен број за итни случаи",
     // v2 (docs/triage-flows.md): who, symptoms, questions, results, summary.
     compactLead: "Итно? Повикајте",
-    introFlagBreathing: "многу тешко дишење или гушење;",
-    introFlagChest: "силна болка или притисок во градите;",
-    introFlagStroke:
-      "ненадејно паднат агол на лицето, слабост во раката или тешкотии со говорот;",
-    introFlagSelfHarm: "мисли за самоповредување или самоубиство.",
     compactOr: "или",
     forWhomTitle: "За кого се насоките?",
     forWhomLead:

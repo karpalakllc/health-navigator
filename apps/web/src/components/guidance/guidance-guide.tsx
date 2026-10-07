@@ -22,7 +22,6 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
-import { NoticeTelLink } from "@/components/ui/notice";
 import {
   GuidanceApiError,
   isStaleGuidanceSession,
@@ -58,6 +57,9 @@ import { t } from "@/i18n/t";
 const SESSION_KEY = "guidance_session_v2";
 // Earlier builds' keys: they can no longer continue anything.
 const LEGACY_KEYS = ["guidance_session", "guidance_session_id"];
+
+/** The global screen's self-harm red flag (it routes to the crisis outcome). */
+const SELF_HARM_FLAG = "global.self_harm";
 
 type Phase = "intro" | "guide" | "emergency";
 
@@ -102,6 +104,9 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [emergencySaving, setEmergencySaving] = useState(false);
   const [emergencyFromShortcut, setEmergencyFromShortcut] = useState(false);
+  // The self-harm flag was ticked: until the API answers (or if it fails) the
+  // interim card uses the crisis wording, not the generic emergency one.
+  const [emergencyIsCrisis, setEmergencyIsCrisis] = useState(false);
   const [finishedAt, setFinishedAt] = useState<Date | null>(null);
 
   /*
@@ -299,6 +304,7 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
 
   async function handleEmergencyNow() {
     setEmergencyFromShortcut(true);
+    setEmergencyIsCrisis(false);
     await enterEmergency(emergencyShortcut);
   }
 
@@ -459,6 +465,7 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
   async function handleScreen() {
     if (ticked.length > 0) {
       setEmergencyFromShortcut(false);
+      setEmergencyIsCrisis(ticked.includes(SELF_HARM_FLAG));
       await enterEmergency((current) => answerScreen(current, ticked));
 
       return;
@@ -609,35 +616,15 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
           </p>
         </section>
 
-        <Card as="section" aria-labelledby="guidance-red-flags-reminder">
-          <div className="flex flex-col gap-4">
-            <h2
-              id="guidance-red-flags-reminder"
-              className="flex items-center gap-3 type-h3 text-ink"
-            >
-              <Icon name="alert-triangle" size={24} className="shrink-0" />
-              {t("guidance.redFlagsReminderTitle")}
-            </h2>
-            <p className="type-reading text-ink">
-              {t("guidance.redFlagsReminderLead")}{" "}
-              <NoticeTelLink number="194" /> {t("guidance.redFlagsReminderOr")}{" "}
-              <NoticeTelLink number="112" />{" "}
-              {t("guidance.redFlagsReminderTail")}
-            </p>
-            <ul className="flex list-disc flex-col gap-1 pl-6 type-reading text-ink marker:text-ink-2">
-              <li>{t("guidance.introFlagBreathing")}</li>
-              <li>{t("guidance.introFlagChest")}</li>
-              <li>{t("guidance.introFlagStroke")}</li>
-              <li>{t("guidance.introFlagSelfHarm")}</li>
-            </ul>
-            <EmergencyShortcutButton
-              onEmergency={handleEmergencyNow}
-              className="w-full lg:w-auto lg:self-start"
-            />
-          </div>
-        </Card>
+        <div className="flex flex-col items-start gap-3">
+          <EmergencyShortcutButton
+            onEmergency={handleEmergencyNow}
+            className="w-full lg:w-auto"
+          />
+          <GuidanceSafetyNotice compact />
+        </div>
 
-        <GuidanceSafetyNotice />
+        <GuidanceSafetyNotice withoutEmergencyLine />
 
         <div className="flex flex-col gap-3">
           <Card padding="md">
@@ -671,11 +658,17 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
       <div data-guidance-step className="flex flex-col gap-6">
         {pageTitle}
         <EmergencyCard
-          title={t("guidance.emergencyInterimTitle")}
+          title={
+            emergencyIsCrisis
+              ? t("guidance.emergencyCrisisTitle")
+              : t("guidance.emergencyInterimTitle")
+          }
           body={
-            emergencyFromShortcut
-              ? t("guidance.emergencyShortcutBody")
-              : t("guidance.emergencyDelay")
+            emergencyIsCrisis
+              ? t("guidance.emergencyCrisisBody")
+              : emergencyFromShortcut
+                ? t("guidance.emergencyShortcutBody")
+                : t("guidance.emergencyDelay")
           }
           headingRef={headingRef}
         >

@@ -141,6 +141,12 @@ const screenState: GuidanceState = {
       group: null,
     },
     {
+      code: "global.self_harm",
+      label: "Мисли за самоповредување или самоубиство",
+      help: null,
+      group: null,
+    },
+    {
       code: "headache.worst_ever",
       label: "Најсилната главоболка во животот",
       help: null,
@@ -335,6 +341,65 @@ describe("GuidanceGuide emergency path", () => {
     expect(screen.queryByRole("button", { name: t("common.back") })).toBeNull();
   });
 
+  it("shows the crisis wording with 194/112 when the API fails after self-harm is ticked", async () => {
+    api.answerScreen.mockRejectedValue(new TypeError("Failed to fetch"));
+    const user = await start();
+    await toSymptoms(user);
+    await user.click(screen.getByRole("checkbox", { name: "Главоболка" }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "Мисли за самоповредување или самоубиство",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: t("guidance.emergencyCrisisTitle"),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("guidance.emergencyCrisisBody")),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", {
+        name: t("guidance.emergencyInterimTitle"),
+      }),
+    ).toBeNull();
+    const [l194, l112] = callLinks();
+    expect(l194).toHaveAttribute("href", "tel:194");
+    expect(l112).toHaveAttribute("href", "tel:112");
+  });
+
+  it("keeps the generic emergency card when another red flag is ticked and the API fails", async () => {
+    api.answerScreen.mockRejectedValue(new TypeError("Failed to fetch"));
+    const user = await start();
+    await toSymptoms(user);
+    await user.click(screen.getByRole("checkbox", { name: "Главоболка" }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+    await user.click(
+      screen.getByRole("checkbox", { name: "Силна болка во градите" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: t("guidance.emergencyInterimTitle"),
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the emergency screen when an earlier answer lands after the shortcut", async () => {
     let finishScreen: (s: GuidanceState) => void = () => {};
     api.answerScreen.mockReturnValue(
@@ -367,6 +432,25 @@ describe("GuidanceGuide emergency path", () => {
     expect(
       screen.getByRole("heading", { name: emergencyOutcome.title }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("GuidanceGuide intro", () => {
+  it("states the emergency message once: the 194/112 line and the urgent-help button, no reminder card", () => {
+    render(<GuidanceGuide catalog={catalog} />);
+
+    expect(
+      document.querySelectorAll("[data-guidance-compact-emergency]"),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: t("guidance.emergencyNow") }),
+    ).toHaveLength(1);
+    expect(document.querySelector("#guidance-red-flags-reminder")).toBeNull();
+    expect(screen.queryByText(t("guidance.emergencyDelay"))).toBeNull();
+    expect(
+      screen.getByText(t("guidance.notDiagnosisBody")),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "194" })).toHaveLength(1);
   });
 });
 

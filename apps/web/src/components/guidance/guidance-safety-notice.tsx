@@ -9,8 +9,11 @@ import { t } from "@/i18n/t";
  */
 export function GuidanceSafetyNotice({
   compact = false,
+  withoutEmergencyLine = false,
 }: {
   compact?: boolean;
+  /** The intro already carries the 194/112 line and the urgent-help button. */
+  withoutEmergencyLine?: boolean;
 }) {
   if (compact) {
     return (
@@ -30,7 +33,9 @@ export function GuidanceSafetyNotice({
   return (
     <Notice tone="safety" title={t("guidance.notDiagnosis")}>
       <p>{t("guidance.notDiagnosisBody")}</p>
-      <p className="mt-2">{t("guidance.emergencyDelay")}</p>
+      {withoutEmergencyLine ? null : (
+        <p className="mt-2">{t("guidance.emergencyDelay")}</p>
+      )}
     </Notice>
   );
 }
