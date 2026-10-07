@@ -14,6 +14,9 @@ use App\Support\Import\Fzom\FzomSpecialtyCatalog;
 use App\Support\Import\ImportContext;
 use App\Support\Import\ImportSuppressions;
 use App\Support\Import\NameKey;
+use App\Support\Import\Names\DoctorTitle;
+use App\Support\Import\Names\FacilityName;
+use App\Support\Import\Names\PersonName;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
 use App\Support\Import\TextCase;
@@ -132,8 +135,8 @@ final class InstitutionsJsonImporter
     private function importInstitution(ImportContext $context, DirectoryWriter $writer, string $slice, array $institution, string $baseDir): ?Facility
     {
         $key = 'institution:'.$slice.':'.mb_substr((string) ($institution['slug'] ?? NameKey::for((string) $institution['name_mk'])), 0, 80);
-        $name = TextCase::institution(trim((string) $institution['name_mk']));
         $town = TextCase::place(self::str($institution['town'] ?? null));
+        $name = FacilityName::clean(trim((string) $institution['name_mk']), $town)->value;
         $type = match (true) {
             in_array($institution['type'] ?? null, self::HOSPITAL_TYPES, true) => FacilityType::Hospital,
             in_array($institution['type'] ?? null, self::LAB_TYPES, true) => FacilityType::Laboratory,
@@ -362,7 +365,8 @@ final class InstitutionsJsonImporter
             return;
         }
 
-        $fullName = TextCase::person(self::withoutTitles($rawName));
+        $cleaned = PersonName::clean($rawName);
+        $fullName = $cleaned->value;
         $sourceUrl = self::url($worker['source_url'] ?? null);
         $resolved = $specialties->resolve(implode(',', SpecialtyText::wordings(self::str($worker['specialty'] ?? null))) ?: null);
         $specialtyIds = $resolved['ids'];
@@ -436,7 +440,7 @@ final class InstitutionsJsonImporter
             $p->scalar($doctor, 'city', $facility->city, $isNew, $recordId, $label);
         }
 
-        $p->scalar($doctor, 'title', self::title($worker['title'] ?? null), $isNew, $recordId, $label);
+        $p->scalar($doctor, 'title', self::title($worker['title'] ?? null) ?? $cleaned->title, $isNew, $recordId, $label);
 
         $writer->save($doctor);
         $stored['record']->forceFill(['subject_id' => $doctor->getKey()])->save();
@@ -602,18 +606,14 @@ final class InstitutionsJsonImporter
         return $value === '' ? null : mb_substr($value, 0, 255);
     }
 
+    /**
+     * The canonical title („Проф д-р др. сци“ → „проф. д-р д-р сци.“); one
+     * the rules do not know is kept as written.
+     */
     private static function title(mixed $value): ?string
     {
-        $title = self::str($value);
+        $title = DoctorTitle::clean(self::str($value));
 
-        return $title !== null ? mb_substr($title, 0, 60) : null;
-    }
-
-    /**
-     * "проф. д-р Ана Петрова" → "Ана Петрова" (the title goes to doctors.title).
-     */
-    private static function withoutTitles(string $name): string
-    {
-        return trim((string) preg_replace('/^(?:(?:проф|доц|асс?|прим|спец|субспец|д-р|м-р|др|мр)(?:\.\s*|\s+))+/iu', '', $name));
+        return $title !== null && $title->value !== '' ? mb_substr($title->value, 0, 60) : null;
     }
 }

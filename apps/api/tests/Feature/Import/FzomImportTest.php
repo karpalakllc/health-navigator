@@ -12,6 +12,7 @@ use App\Models\SourceRecord;
 use App\Models\Specialty;
 use App\Support\Import\Fzom\FzomImportJob;
 use App\Support\Import\ProvenanceWriter;
+use App\Support\Verification\Engine\VerificationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -87,7 +88,7 @@ class FzomImportTest extends TestCase
         $hospital = Facility::query()->where('fzo_code', '9000010')->firstOrFail();
         $this->assertSame('hospital', $hospital->type->value);
         $this->assertSame('public', $hospital->ownership);
-        $this->assertSame('ЈЗУ Општа Болница Тестово', $hospital->name);
+        $this->assertSame('ЈЗУ Општа болница Тестово', $hospital->name);
 
         // Imported specialties are created hidden.
         $this->assertFalse((bool) Specialty::query()->where('slug', 'kardiologija')->value('is_published'));
@@ -171,6 +172,35 @@ class FzomImportTest extends TestCase
             ->where('item_key', 'doctor:'.$doctor->getKey().':city')->firstOrFail();
         $this->assertSame('Друг Град', $conflict->details['current']);
         $this->assertSame('Ново Место', $conflict->details['incoming']);
+    }
+
+    /**
+     * Names are cleaned on the way in (PersonName, FacilityName), and a
+     * facility whose shown name dropped the town is still the register's.
+     */
+    public function test_names_are_cleaned_on_import_and_the_register_still_verifies_the_facility(): void
+    {
+        $spec = (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml'));
+        $spec = str_replace(
+            ['ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО', '<Ime>ЧЕТВРТИ</Ime>', '<Prezime>СРЦЕВСКИ</Prezime>'],
+            ['ПЗУ-ОРД.ПО ИНТЕРНА МЕДИЦИНА ТЕСТ МЕДИКА ТЕСТОВО', "<Ime>ЧЕТВР\u{0054}И</Ime>", '<Prezime>СРЦЕВСКИ - ТЕСТОВСКИ</Prezime>'],
+            $spec,
+        );
+        $run = $this->import(files: $this->files($this->writeSpec($spec)));
+
+        $this->assertSame(ImportRunStatus::Succeeded, $run->status, (string) $run->error);
+        $this->assertSame('Четврти Срцевски-Тестовски', Doctor::query()->where('fzo_facsimile', '900010')->value('full_name'));
+        $facility = Facility::query()->where('fzo_code', '9000010')->firstOrFail();
+        $this->assertSame('ПЗУ Ординација по интерна медицина Тест Медика', $facility->name);
+
+        app(VerificationEngine::class)->run();
+
+        $this->assertTrue($facility->fresh()->isVerified(), 'The register lists it: name words as the import shows them.');
+
+        // The same files again: nothing to change, no conflict.
+        $again = $this->import(files: $this->files($this->writeSpec($spec)));
+        $this->assertSame(0, $again->count('fields_updated'));
+        $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->count());
     }
 
     public function test_a_locked_field_is_left_alone_without_a_conflict(): void

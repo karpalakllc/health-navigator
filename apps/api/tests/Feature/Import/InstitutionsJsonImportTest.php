@@ -164,6 +164,28 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertTrue($item->details['needs_licence_verification']);
     }
 
+    /**
+     * Staff-page names and titles in their canonical form (PersonName,
+     * DoctorTitle, FacilityName).
+     */
+    public function test_names_and_titles_from_a_staff_page_are_cleaned(): void
+    {
+        $this->runImport($this->dataset([
+            'name_mk' => 'ПЗУ Ординација По Интерна Медицина ’’Тест Срце’’ Тестово',
+            'type' => 'clinic',
+            'workers' => [
+                ['full_name' => 'ИЗМИСЛЕНА КАРДИОЛОВСКА - ТЕСТОВА', 'title' => 'Проф д-р др. сци', 'role' => 'physician', 'specialty' => 'Кардиологија', 'source_url' => 'https://www.bolnica.invalid/tim', 'confidence' => 'high'],
+                ['full_name' => 'Проф. д-р Втор Измислен', 'role' => 'physician', 'specialty' => 'Кардиологија', 'source_url' => 'https://www.bolnica.invalid/tim', 'confidence' => 'high'],
+                ['full_name' => 'Трет Измислен', 'title' => 'асс. спец. д-р, раководител на оддел', 'role' => 'physician', 'source_url' => 'https://www.bolnica.invalid/tim', 'confidence' => 'high'],
+            ],
+        ]));
+
+        $this->assertSame('ПЗУ Ординација по интерна медицина „Тест Срце“', Facility::query()->where('website', 'https://www.bolnica.invalid/')->value('name'));
+        $this->assertSame('проф. д-р д-р сци.', Doctor::query()->where('full_name', 'Измислена Кардиоловска-Тестова')->value('title'));
+        $this->assertSame('проф. д-р', Doctor::query()->where('full_name', 'Втор Измислен')->value('title'));
+        $this->assertSame('асс. спец. д-р', Doctor::query()->where('full_name', 'Трет Измислен')->value('title'));
+    }
+
     public function test_re_running_is_idempotent_and_a_dry_run_stores_nothing(): void
     {
         $path = $this->dataset();

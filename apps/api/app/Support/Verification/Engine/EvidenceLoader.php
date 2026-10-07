@@ -15,6 +15,7 @@ use App\Models\ImportSuppression;
 use App\Support\Import\Fzom\FzomImporter;
 use App\Support\Import\Fzom\FzomSpecialtyCatalog;
 use App\Support\Import\NameKey;
+use App\Support\Import\Names\FacilityName;
 use App\Support\Import\Website\InstitutionsJsonImporter;
 use App\Support\Licences\Contracts\LicenceCandidate;
 use App\Support\Licences\LicenceSpecialtyMap;
@@ -254,7 +255,12 @@ final class EvidenceLoader
             current: (int) $facility->import_missing_runs === 0 && $this->fzomCurrentSince !== null
                 && CarbonImmutable::parse($record->last_seen_at)->gte($this->fzomCurrentSince),
             taxNumberMatches: $taxNumberMatches,
-            nameMatches: NameKey::sorted((string) $facility->name) === NameKey::sorted((string) ($payload['name'] ?? '')),
+            // The register's raw name, or that name as the import shows it
+            // (FacilityName drops the town, writes out abbreviations…).
+            nameMatches: in_array(NameKey::sorted((string) $facility->name), [
+                NameKey::sorted((string) ($payload['name'] ?? '')),
+                FacilityName::key((string) ($payload['name'] ?? ''), is_string($payload['town'] ?? null) ? $payload['town'] : null),
+            ], true),
             townMatches: self::townKey($facility->city) !== '' && self::townKey($facility->city) === self::townKey(is_string($payload['town'] ?? null) ? $payload['town'] : null),
         );
     }
