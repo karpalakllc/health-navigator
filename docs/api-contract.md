@@ -206,6 +206,8 @@ limiters are layered on top:
 | `api-altcha` | `GET /altcha/challenge` | 20/min and 120/hour per IP |
 | `api-ux-events` | `POST /ux/events` (anonymous UX counters) | 60/min and 600/hour per network (keyed hash of the IPv4 address or IPv6 /64) |
 | `api-ux-heatmap` | `GET /ux/heatmap` (staff overlay, signed token; inline `throttle:`) | 120/min per IP |
+| `api-feedback` | `POST /feedback`, `POST /feedback/reasons` („Дали ви помогна?“, docs/urgent-care.md) | 20/min and 200/day per network (keyed hash, as `api-ux-events`) |
+| `api-funnel` | `POST /feedback/steps` (anonymous step counters) | 120/min and 1200/hour per network (keyed hash) |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -269,6 +271,8 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/transparency` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
+| `GET` | `/urgent-care` | `cache.public:60` |
+| `GET` | `/urgent-care/cities` | `cache.public:60` |
 | `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `GET` | `/ux/heatmap` | `throttle:120,1,api-ux-heatmap` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
@@ -287,6 +291,9 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/feedback` | `throttle:api-feedback` |
+| `POST` | `/feedback/reasons` | `throttle:api-feedback` |
+| `POST` | `/feedback/steps` | `throttle:api-funnel` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |

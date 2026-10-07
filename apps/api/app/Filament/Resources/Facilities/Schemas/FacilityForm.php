@@ -6,12 +6,12 @@ use App\Enums\FacilityType;
 use App\Filament\Support\AdminSelect;
 use App\Filament\Support\FacilityCommonForm;
 use App\Filament\Support\OptimizedImageUpload;
+use App\Filament\Support\UrgentCareForm;
 use App\Models\Doctor;
 use App\Support\Slug;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -63,13 +63,14 @@ class FacilityForm
                             ->columnSpanFull(),
                     ]),
 
-                Fieldset::make('Services & departments')
+                Fieldset::make('Departments')
                     ->schema([
-                        Toggle::make('has_emergency_services')
-                            ->label('Emergency services available')
-                            ->helperText('Shown on the public profile when enabled.'),
                         AdminSelect::facilityDepartments(),
                     ]),
+
+                // Emergency department (has_emergency_services) and the other
+                // urgent services shown on „Каде веднаш“.
+                UrgentCareForm::fieldset(),
 
                 ...FacilityCommonForm::locationContactAndHoursFieldsets(),
 

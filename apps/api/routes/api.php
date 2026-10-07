@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
+use App\Http\Controllers\Api\V1\FeedbackController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Http\Controllers\Api\V1\UrgentCareController;
 use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Http\Controllers\Api\V1\UxController;
 use App\Models\ForumPost;
@@ -73,6 +75,17 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
         ->middleware('auth.sanctum.optional');
     Route::get('/facilities/{slug}', [FacilityController::class, 'show'])->middleware('cache.public:60');
+    // „Каде веднаш“ (docs/urgent-care.md): places with urgent care, by city
+    // and service, and the cities that have any. Anonymous and identical for
+    // everyone, so shared caches may keep them for a minute.
+    Route::get('/urgent-care', [UrgentCareController::class, 'index'])->middleware('cache.public:60');
+    Route::get('/urgent-care/cities', [UrgentCareController::class, 'cities'])->middleware('cache.public:60');
+    // „Дали ви помогна?“ and step drop-off (docs/urgent-care.md § Feedback):
+    // anonymous daily counters, relayed by the web tier. The address is not
+    // stored; the limiters key on an HMAC of the visitor's network.
+    Route::post('/feedback', [FeedbackController::class, 'vote'])->middleware('throttle:api-feedback');
+    Route::post('/feedback/reasons', [FeedbackController::class, 'reasons'])->middleware('throttle:api-feedback');
+    Route::post('/feedback/steps', [FeedbackController::class, 'step'])->middleware('throttle:api-funnel');
     Route::middleware('module:pharmacies')->group(function (): void {
         Route::get('/pharmacies', [PharmacyController::class, 'index'])->middleware('cache.public:60');
         Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])

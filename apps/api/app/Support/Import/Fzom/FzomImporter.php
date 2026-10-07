@@ -19,6 +19,7 @@ use App\Support\Import\NameKey;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
 use App\Support\Import\TextCase;
+use App\Support\UrgentCare\UrgentCareDeriver;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -97,6 +98,10 @@ final class FzomImporter
         }
 
         $provenance->flushChanges();
+
+        // Work units such as „Ургентен центар“ or „Служба за итна медицинска
+        // помош“ switch on the facility's urgent-care flags (docs/urgent-care.md).
+        (new UrgentCareDeriver)->run($context);
     }
 
     /**

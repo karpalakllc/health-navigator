@@ -16,6 +16,12 @@ Schedule::command('analytics:purge-old-events')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Anonymous „Дали ви помогна?“ and step counters (docs/urgent-care.md).
+Schedule::command('feedback:purge-old')
+    ->dailyAt('03:50')
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // The database cache store never deletes an expired row nobody reads again,
 // and rate-limiter keys are derived from visitor addresses: purge them hourly
 // so none outlives its window by more than an hour (docs/data-inventory.md).

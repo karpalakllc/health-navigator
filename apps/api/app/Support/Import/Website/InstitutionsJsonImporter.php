@@ -18,6 +18,7 @@ use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
 use App\Support\Import\TextCase;
 use App\Support\Media\ImageOptimizer;
+use App\Support\UrgentCare\UrgentCareDeriver;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -124,6 +125,11 @@ final class InstitutionsJsonImporter
             SourceRecord::query()->where('source', self::SOURCE)->whereIn('external_key', $chunk)->toBase()
                 ->update(['last_seen_at' => $seenAt, 'last_run_id' => $context->run->getKey()]);
         }
+
+        // Departments („Ургентен центар“, „Итна медицинска помош“) and hours
+        // text („Ургентен центар 24/7“) switch on urgent-care flags
+        // (docs/urgent-care.md).
+        (new UrgentCareDeriver)->run($context);
     }
 
     /**
