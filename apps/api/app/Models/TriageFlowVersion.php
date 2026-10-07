@@ -52,21 +52,25 @@ class TriageFlowVersion extends Model
         ];
     }
 
+    /** @return BelongsTo<TriageFlow, $this> */
     public function flow(): BelongsTo
     {
         return $this->belongsTo(TriageFlow::class, 'triage_flow_id');
     }
 
+    /** @return HasMany<TriageFlowReview, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(TriageFlowReview::class)->latest('id');
     }
 
+    /** @return HasOne<TriageFlowReview, $this> */
     public function latestReview(): HasOne
     {
         return $this->hasOne(TriageFlowReview::class)->latestOfMany();
     }
 
+    /** @return BelongsTo<User, $this> */
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'published_by');
@@ -87,6 +91,6 @@ class TriageFlowVersion extends Model
 
     public function title(): string
     {
-        return (string) ($this->definition['title'] ?? $this->flow?->title ?? '');
+        return (string) ($this->definition['title'] ?? $this->flow->title ?? '');
     }
 }

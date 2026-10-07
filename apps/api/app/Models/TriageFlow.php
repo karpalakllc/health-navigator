@@ -48,18 +48,24 @@ class TriageFlow extends Model
         return $this->hasMany(TriageSession::class);
     }
 
-    /** v2 flows (docs/triage-flows.md): one row per flow file, content in versions. */
+    /**
+     * v2 flows (docs/triage-flows.md): one row per flow file, content in versions.
+     *
+     * @return HasMany<TriageFlowVersion, $this>
+     */
     public function versions(): HasMany
     {
         return $this->hasMany(TriageFlowVersion::class)->orderByDesc('version');
     }
 
+    /** @return HasOne<TriageFlowVersion, $this> */
     public function publishedVersion(): HasOne
     {
         return $this->hasOne(TriageFlowVersion::class)
             ->where('status', TriageFlowVersion::STATUS_PUBLISHED);
     }
 
+    /** @return HasOne<TriageFlowVersion, $this> */
     public function latestVersion(): HasOne
     {
         return $this->hasOne(TriageFlowVersion::class)->latestOfMany('version');
@@ -70,11 +76,19 @@ class TriageFlow extends Model
         return $this->key !== null;
     }
 
+    /**
+     * @param  Builder<TriageFlow>  $query
+     * @return Builder<TriageFlow>
+     */
     public function scopeV1(Builder $query): Builder
     {
         return $query->whereNull('key');
     }
 
+    /**
+     * @param  Builder<TriageFlow>  $query
+     * @return Builder<TriageFlow>
+     */
     public function scopeV2(Builder $query): Builder
     {
         return $query->whereNotNull('key');

@@ -62,17 +62,23 @@ class TriageSession extends Model
         return hash_equals($this->token_hash, self::hashToken($token));
     }
 
+    /** @return BelongsTo<TriageFlow, $this> */
     public function flow(): BelongsTo
     {
         return $this->belongsTo(TriageFlow::class, 'triage_flow_id');
     }
 
+    /** @return HasMany<TriageSessionAnswer, $this> */
     public function answers(): HasMany
     {
         return $this->hasMany(TriageSessionAnswer::class);
     }
 
-    /** v2: the flows chosen for this session, in the order they run. */
+    /**
+     * v2: the flows chosen for this session, in the order they run.
+     *
+     * @return HasMany<TriageSessionFlow, $this>
+     */
     public function sessionFlows(): HasMany
     {
         return $this->hasMany(TriageSessionFlow::class)->orderBy('position');

@@ -33,11 +33,13 @@ class TriageFlowReview extends Model
         ];
     }
 
+    /** @return BelongsTo<TriageFlowVersion, $this> */
     public function version(): BelongsTo
     {
         return $this->belongsTo(TriageFlowVersion::class, 'triage_flow_version_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');

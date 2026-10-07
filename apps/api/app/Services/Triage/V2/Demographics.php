@@ -174,7 +174,7 @@ final class Demographics
             (int) $answers['demo.age_months'][0],
             $answers['demo.sex'][0],
             $answers['demo.pregnancy'][0],
-            array_values($answers['demo.conditions'] ?? []),
+            $answers['demo.conditions'] ?? [],
         );
     }
 }

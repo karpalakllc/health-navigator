@@ -25,7 +25,7 @@ class TriageFlowSeeder extends Seeder
             if ($file['result'] === 'rejected') {
                 // A broken content file must not stop the rest of the seed; it
                 // simply stays out. `php artisan triage:lint` shows why.
-                $this->command?->warn('Guidance flow rejected by the linter: '.basename($file['path']));
+                $this->command->warn('Guidance flow rejected by the linter: '.basename($file['path']));
             }
         }
     }

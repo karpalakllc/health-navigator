@@ -86,7 +86,7 @@ final class FlowImporter
         }
 
         if ($dryRun) {
-            return ['path' => $path, 'key' => $fileKey, 'result' => 'would_import', 'version' => ($latest?->version ?? 0) + 1, 'report' => $report];
+            return ['path' => $path, 'key' => $fileKey, 'result' => 'would_import', 'version' => ($latest->version ?? 0) + 1, 'report' => $report];
         }
 
         return DB::transaction(function () use ($flow, $fileKey, $decoded, $hash, $path, $report, $latest): array {
@@ -101,7 +101,7 @@ final class FlowImporter
 
             $version = TriageFlowVersion::query()->create([
                 'triage_flow_id' => $flow->id,
-                'version' => ($latest?->version ?? 0) + 1,
+                'version' => ($latest->version ?? 0) + 1,
                 'status' => $grandfathered ? TriageFlowVersion::STATUS_PUBLISHED : TriageFlowVersion::STATUS_DRAFT,
                 'definition' => $decoded,
                 'definition_hash' => $hash,

@@ -26,11 +26,13 @@ class TriageSessionFlow extends Model
         ];
     }
 
+    /** @return BelongsTo<TriageSession, $this> */
     public function session(): BelongsTo
     {
         return $this->belongsTo(TriageSession::class, 'triage_session_id');
     }
 
+    /** @return BelongsTo<TriageFlowVersion, $this> */
     public function version(): BelongsTo
     {
         return $this->belongsTo(TriageFlowVersion::class, 'triage_flow_version_id');

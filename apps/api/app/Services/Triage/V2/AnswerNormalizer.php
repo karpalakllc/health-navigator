@@ -17,7 +17,7 @@ final class AnswerNormalizer
 
     /**
      * @param  array<string, mixed>  $node
-     * @param  list<mixed>  $values
+     * @param  array<mixed>  $values  as sent (a JSON object would arrive keyed)
      * @return list<string>
      */
     public function normalize(array $node, array $values): array
