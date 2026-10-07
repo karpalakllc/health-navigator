@@ -164,6 +164,11 @@ export function createTracker({
     }
   };
 
+  /** Sends what is queued BATCH_DELAY_MS from now, unless already scheduled. */
+  const arm = () => {
+    if (!timer) timer = setTimeout(() => flush(), BATCH_DELAY_MS);
+  };
+
   const isRage = (at: number, x: number, y: number): boolean => {
     recent = recent.filter((click) => at - click.at <= RAGE_WINDOW_MS);
     const near = recent.filter(
@@ -237,8 +242,8 @@ export function createTracker({
 
     if (clicks.length >= BATCH_CLICKS) {
       flush();
-    } else if (!timer) {
-      timer = setTimeout(() => flush(), BATCH_DELAY_MS);
+    } else {
+      arm();
     }
   };
 
@@ -264,9 +269,11 @@ export function createTracker({
 
   return {
     setPath(pathname, startedAt) {
-      // The previous view ends with the navigation.
+      // The previous view ends with the navigation. It waits in the queue
+      // with any clicks (one request per page would quickly use up a shared
+      // address's limit); leaving the page still sends it at once.
       endView();
-      flush();
+      if (views.length > 0 || clicks.length > 0) arm();
       recent = [];
 
       const route = uxRouteTemplate(pathname);

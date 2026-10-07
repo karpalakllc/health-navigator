@@ -297,7 +297,8 @@ describe("page views", () => {
       "/doctors/ivan-petrov/correction",
       "/forum/new",
     ]) {
-      tracker.setPath(path); // ends (and sends) the previous view
+      tracker.setPath(path); // ends (and queues) the previous view
+      tracker.flush();
       sent = [];
       click(document.getElementById("btn")!);
       tracker.flush(true);
@@ -330,6 +331,21 @@ describe("batching", () => {
     // The view is closed: leaving again sends nothing more.
     window.dispatchEvent(new Event("pagehide"));
     expect(sent).toHaveLength(3);
+  });
+});
+
+describe("navigation", () => {
+  it("queues the finished view and sends it with the 10 s timer, not one request per page", () => {
+    tracker.setPath("/doctors");
+    tracker.setPath("/facilities");
+    expect(sent).toEqual([]);
+
+    vi.advanceTimersByTime(BATCH_DELAY_MS);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].views.map((v) => v.r)).toEqual([
+      "/doctors/[slug]",
+      "/doctors",
+    ]);
   });
 });
 
