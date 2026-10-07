@@ -7,10 +7,34 @@ import { mk } from "../src/i18n/mk";
  * staff overlay stays shut without a valid token.
  */
 
-function uxBatches(requests: Request[]) {
-  return requests
-    .filter((request) => new URL(request.url()).pathname === "/api/ux/events")
-    .map((request) => request.postDataJSON() as Record<string, unknown>);
+/**
+ * A beacon sent while the page unloads is not reliably visible to Playwright,
+ * so these tests stay on the page and let the tracker's batch timer send.
+ */
+const BATCH_SENT_MS = 11_500; // BATCH_DELAY_MS (10 s) in lib/ux/tracker.ts, plus margin
+
+function uxRequests(requests: Request[]) {
+  return requests.filter(
+    (request) => new URL(request.url()).pathname === "/api/ux/events",
+  );
+}
+
+/**
+ * Playwright cannot read a beacon's Blob body, so the page keeps a copy of
+ * what it hands to sendBeacon (the call itself goes through unchanged).
+ */
+async function recordBeaconBodies(page: Page) {
+  await page.addInitScript(() => {
+    const bodies: string[] = [];
+    (window as unknown as { __uxBodies: string[] }).__uxBodies = bodies;
+    const send = navigator.sendBeacon.bind(navigator);
+    navigator.sendBeacon = (url, data) => {
+      if (String(url).endsWith("/api/ux/events") && data instanceof Blob) {
+        void data.text().then((text) => bodies.push(text));
+      }
+      return send(url, data);
+    };
+  });
 }
 
 /**
@@ -55,6 +79,7 @@ test.describe("UX tracker", () => {
   }) => {
     const requests: Request[] = [];
     page.on("request", (request) => requests.push(request));
+    await recordBeaconBodies(page);
 
     await page.goto("/doctors");
     const name =
@@ -67,13 +92,15 @@ test.describe("UX tracker", () => {
     const spot = await deadSpotOnAHeading(page);
     await page.mouse.click(spot.x, spot.y);
 
-    // Leaving the page sends the batch.
-    await page.goto("/about");
     await expect
-      .poll(() => uxBatches(requests).length, { timeout: 10_000 })
+      .poll(() => uxRequests(requests).length, { timeout: BATCH_SENT_MS })
       .toBeGreaterThan(0);
 
-    const payload = JSON.stringify(uxBatches(requests));
+    const payload = (
+      await page.evaluate(
+        () => (window as unknown as { __uxBodies: string[] }).__uxBodies,
+      )
+    ).join("\n");
     expect(payload).toContain('"k":"doctor-card/heading"');
     expect(payload).toContain('"d":true');
     expect(payload).toContain('"r":"/doctors"');
@@ -94,10 +121,9 @@ test.describe("UX tracker", () => {
     await page.goto("/doctors");
     await page.waitForTimeout(2_500);
     await page.mouse.click(10, 300);
-    await page.goto("/about");
-    await page.waitForTimeout(1_000);
+    await page.waitForTimeout(BATCH_SENT_MS);
 
-    expect(uxBatches(requests)).toEqual([]);
+    expect(uxRequests(requests)).toEqual([]);
     await context.close();
   });
 
@@ -111,31 +137,20 @@ test.describe("UX tracker", () => {
       .getAttribute("href");
     expect(profile).toMatch(/^\/doctors\/[^/]+$/);
 
-    const requests: Request[] = [];
-    page.on("request", (request) => requests.push(request));
+    await recordBeaconBodies(page);
 
     for (const path of ["/login", `${profile}/claim`]) {
       await page.goto(path);
       await page.waitForTimeout(2_500);
       await page.mouse.click(10, 300);
       await page.mouse.click(10, 300);
-    }
-    // Leaving the last one would send anything queued.
-    await page.goto("/about");
-    await page.waitForTimeout(1_000);
+      // Long enough for the batch timer, had the clicks been counted.
+      await page.waitForTimeout(BATCH_SENT_MS);
 
-    // At most the /doctors view we started on (sent when leaving it); no
-    // click, and nothing for a claim page passed off as a profile.
-    const batches = uxBatches(requests) as {
-      clicks: { r: string }[];
-      views: { r: string }[];
-    }[];
-    expect(batches.flatMap((batch) => batch.clicks)).toEqual([]);
-    expect(
-      batches.flatMap((batch) => batch.views.map((view) => view.r)),
-    ).not.toContain("/doctors/[slug]");
-    for (const view of batches.flatMap((batch) => batch.views)) {
-      expect(view.r).toBe("/doctors");
+      const bodies = await page.evaluate(
+        () => (window as unknown as { __uxBodies: string[] }).__uxBodies,
+      );
+      expect(bodies, path).toEqual([]);
     }
   });
 
