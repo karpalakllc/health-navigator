@@ -84,6 +84,12 @@ final class FacilityName
 
         $glyphs = Homoglyphs::repair($name);
 
+        // A Latin letter a person has to read („Петровsка“): the name stays
+        // exactly as it was, like an uncertain person's name.
+        if ($glyphs['unresolved']) {
+            return new CleanedName($raw, [], 'mixed_script');
+        }
+
         if ($glyphs['changed']) {
             $changes[] = 'homoglyph';
             $name = $glyphs['text'];
@@ -108,9 +114,7 @@ final class FacilityName
         $step('casing', self::titles($name));
         $step('casing', self::lowerWords($name));
 
-        $uncertain = $glyphs['unresolved'] ? 'mixed_script' : null;
-
-        return new CleanedName($name, array_values(array_unique($changes)), $uncertain);
+        return new CleanedName($name, array_values(array_unique($changes)));
     }
 
     /**

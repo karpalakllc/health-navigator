@@ -125,8 +125,9 @@ class NameNormalisersTest extends TestCase
         $this->assertSame('mixed_script', $cleaned->uncertain);
         $this->assertSame([], $cleaned->changes);
 
-        $facility = FacilityName::clean('ПЗУ '.$raw, null);
+        $facility = FacilityName::clean('ПЗУ ОРД. '.$raw, null);
         $this->assertSame('mixed_script', $facility->uncertain);
+        $this->assertSame('ПЗУ ОРД. '.$raw, $facility->value);
         $this->assertStringNotContainsString('ѕ', $facility->value);
         $this->assertStringNotContainsString('Ѕ', $facility->value);
     }
