@@ -313,9 +313,11 @@ describe("CommunityContent", () => {
     expect(rows[0]).toHaveTextContent("Активен рецензент");
     expect(rows[0]).toHaveTextContent("4 рецензии · 2 пати „Корисно“");
     expect(rows[1]).toHaveTextContent("1 рецензија · 1 пат „Корисно“");
+    // The rank is read as text (aria-label on a plain span is not announced).
     expect(
-      within(rows[0]).getByLabelText(tFormat("levels.rankLabel", { rank: 1 })),
-    ).toBeInTheDocument();
+      within(rows[0]).getByText(tFormat("levels.rankLabel", { rank: 1 })),
+    ).toHaveClass("sr-only");
+    expect(rows[0].querySelector("[aria-label]")).toBeNull();
 
     const forum = screen.getByRole("region", { name: t("levels.forumTitle") });
     expect(within(forum).getByText(t("levels.emptyForum"))).toBeInTheDocument();

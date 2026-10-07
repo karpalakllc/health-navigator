@@ -173,11 +173,16 @@ function Board({
               key={row.username}
               className="flex items-center gap-3 border-t border-line py-3 first:border-t-0 first:pt-0"
             >
+              {/* aria-label is not read on a plain span: the rank is
+                  spoken from visually hidden text instead. */}
               <span
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-chip-tint font-ui text-[0.9375rem] font-semibold tabular-nums text-ink"
-                aria-label={tFormat("levels.rankLabel", { rank: index + 1 })}
+                aria-hidden="true"
               >
                 {index + 1}
+              </span>
+              <span className="sr-only">
+                {tFormat("levels.rankLabel", { rank: index + 1 })}
               </span>
               <Monogram name={row.username} size={40} />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
