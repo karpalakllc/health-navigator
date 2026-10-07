@@ -165,7 +165,7 @@ final class DuplicateFinder
     }
 
     /**
-     * @param  array<string, Collection<int, object>>  $groups
+     * @param  array<string, Collection<int, \stdClass>>  $groups
      * @return list<array{kind: string, key: string, title: string, details: array<string, mixed>, facility_id: int|null, priority: int, doctor_ids: list<int>, label: string}>
      */
     private function namesakeGroups(array $groups): array

@@ -327,7 +327,7 @@ final class NameCleanup
         $subject->setAttribute($field, $new);
         activity()->withoutLogging(fn () => $subject->save());
 
-        $recordId = $provenance?->source_record_id ?? ($fallbackRecordFrom !== null ? ($this->provenance[$type][$id][$fallbackRecordFrom] ?? null)?->source_record_id : null);
+        $recordId = $provenance->source_record_id ?? ($fallbackRecordFrom !== null ? ($this->provenance[$type][$id][$fallbackRecordFrom] ?? null)?->source_record_id : null);
         $row = FieldProvenance::query()->updateOrCreate(
             ['subject_type' => $type, 'subject_id' => $id, 'field' => $field],
             ['source' => self::SOURCE, 'value' => $new, 'observed_at' => now(), 'source_record_id' => $recordId],

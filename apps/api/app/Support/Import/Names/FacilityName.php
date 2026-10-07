@@ -99,13 +99,14 @@ final class FacilityName
         };
 
         // Capitals from the register.
+        // The town first: what remains is then cased like any name.
+        $step('town', self::withoutTown($name, $town));
         $step('casing', TextCase::institution($name));
         $step('quotes', self::quotes($name));
         $step('legal_form', self::legalForm($name));
         $step('abbreviation', self::abbreviations($name));
         $step('casing', self::titles($name));
         $step('casing', self::lowerWords($name));
-        $step('town', self::withoutTown($name, $town));
 
         $uncertain = $glyphs['unresolved'] ? 'mixed_script' : null;
 
@@ -196,7 +197,7 @@ final class FacilityName
         $words = explode(' ', $name);
         $inQuotes = false;
         $previousGeneric = false;
-        $start = preg_match('/^(?:ПЗУ|ЈЗУ)$/u', $words[0] ?? '') === 1 ? 1 : 0;
+        $start = preg_match('/^(?:ПЗУ|ЈЗУ)$/u', $words[0]) === 1 ? 1 : 0;
 
         foreach ($words as $index => $word) {
             $opens = str_starts_with($word, '„');
@@ -209,13 +210,17 @@ final class FacilityName
                 $inQuotes = true;
             }
 
-            if (! $inQuotes && $index > $start) {
+            // A generic word repeated („по педијатрија Педијатрија Д“) starts
+            // the brand: it keeps its capital, and so does what follows.
+            $repeated = $index > 0 && $bare === mb_strtolower($words[$index - 1], 'UTF-8');
+
+            if (! $inQuotes && $index > $start && ! $repeated) {
                 if ($isFunction || ($isGeneric && $previousGeneric)) {
                     $words[$index] = mb_strtolower($word, 'UTF-8');
                 }
             }
 
-            $previousGeneric = ! $inQuotes && ($isGeneric || $isFunction);
+            $previousGeneric = ! $inQuotes && ! $repeated && ($isGeneric || $isFunction);
 
             if ($closes) {
                 $inQuotes = false;
@@ -253,11 +258,18 @@ final class FacilityName
             $candidate = $match[1];
         }
 
-        // „… Скопје“, „…, Скопје“, „… - Скопје“, „… Сарај,Скопје“ (one town word or two).
+        // „… Скопје“, „…, Скопје“, „… - Скопје“, „… Сарај,Скопје“ (one town word
+        // or two), „… Мед.Скопје“ (glued to an abbreviation: the dot stays).
         for ($i = 0; $i < 2; $i++) {
-            foreach ([2, 1] as $size) {
-                if (preg_match('/^(.*\S)[\s,\-–—]+((?:\S+\s+){'.($size - 1).'}\S+)$/u', $candidate, $match) === 1
-                    && ! str_contains($match[2], '“') && ! str_contains($match[2], '„')
+            $patterns = [
+                '/^(.*\S)[\s,\-–—]+((?:\S+\s+)\S+)$/u',
+                '/^(.*\S)[\s,\-–—]+(\S+)$/u',
+                '/^(.*\p{L}\.)(\p{L}+)$/u',
+            ];
+
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $candidate, $match) === 1
+                    && preg_match('/[„“”"«»’\']/u', $match[2]) !== 1
                     && in_array(NameKey::for($match[2]), $keys, true)) {
                     $candidate = $match[1];
 
