@@ -50,6 +50,7 @@ export function Pagination({
 
   return (
     <nav
+      data-track="pagination"
       className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-between"
       aria-label={label}
     >

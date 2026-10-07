@@ -5,6 +5,7 @@ namespace Tests\Feature\Console;
 use App\Models\AnalyticsEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -83,5 +84,48 @@ class PurgeOldAnalyticsEventsCommandTest extends TestCase
         $this->artisan('analytics:purge-old-events')->assertSuccessful();
 
         $this->assertSame(0, AnalyticsEvent::query()->count());
+    }
+
+    private function uxCounters(string $day): void
+    {
+        DB::table('ux_heatmap_cells')->insert([
+            'day' => $day, 'route' => '/', 'viewport_class' => 'mobile', 'width_bucket' => 320,
+            'x_bucket' => 1, 'y_bucket' => 1, 'clicks' => 1, 'dead_clicks' => 0, 'rage_clicks' => 0,
+        ]);
+        DB::table('ux_element_stats')->insert([
+            'day' => $day, 'route' => '/', 'viewport_class' => 'mobile', 'target_key' => 'main/link',
+            'clicks' => 1, 'dead_clicks' => 0, 'rage_clicks' => 0,
+        ]);
+        DB::table('ux_page_stats')->insert([
+            'day' => $day, 'route' => '/', 'viewport_class' => 'mobile', 'views' => 1,
+        ]);
+    }
+
+    public function test_it_deletes_ux_counters_after_180_days(): void
+    {
+        $this->uxCounters(now()->subDays(181)->toDateString());
+        $this->uxCounters(now()->subDays(179)->toDateString());
+
+        $this->artisan('analytics:purge-old-events')->assertSuccessful();
+
+        foreach (['ux_heatmap_cells', 'ux_element_stats', 'ux_page_stats'] as $table) {
+            $this->assertSame(1, DB::table($table)->count(), $table);
+            $this->assertSame(
+                now()->subDays(179)->toDateString(),
+                Carbon::parse((string) DB::table($table)->value('day'))->toDateString(),
+            );
+        }
+    }
+
+    public function test_the_ux_window_is_configurable_and_dry_run_keeps_rows(): void
+    {
+        $this->uxCounters(now()->subDays(10)->toDateString());
+
+        $this->artisan('analytics:purge-old-events', ['--ux-days' => 5, '--dry-run' => true])->assertSuccessful();
+        $this->assertSame(1, DB::table('ux_page_stats')->count());
+
+        $this->artisan('analytics:purge-old-events', ['--ux-days' => 5])->assertSuccessful();
+        $this->assertSame(0, DB::table('ux_page_stats')->count());
+        $this->assertSame(0, DB::table('ux_heatmap_cells')->count());
     }
 }

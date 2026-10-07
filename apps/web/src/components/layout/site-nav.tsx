@@ -57,7 +57,7 @@ export function SiteNav({
   );
 
   return (
-    <nav aria-label={label} className={className}>
+    <nav aria-label={label} data-track="site-nav" className={className}>
       <ul
         className={cn(
           "m-0 flex list-none p-0",

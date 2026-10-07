@@ -61,6 +61,7 @@ export function HomeForumTransparency({
         <section
           aria-labelledby="home-forum-band-title"
           data-band="forum"
+          data-track="home-forum-band"
           className="relative isolate overflow-hidden rounded-card bg-apricot p-6 lg:col-span-7 lg:p-8"
         >
           <span
@@ -100,6 +101,7 @@ export function HomeForumTransparency({
 
       <section
         aria-labelledby="home-transparency-title"
+        data-track="home-forum-band"
         className={cn(
           "card p-6 lg:p-8",
           showForum ? "lg:col-span-5" : "lg:col-span-12",

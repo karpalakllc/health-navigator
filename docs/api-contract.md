@@ -268,6 +268,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/transparency` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
 | `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
+| `GET` | `/ux/heatmap` | `throttle:120,1,api-ux-heatmap` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
 | `PATCH` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PATCH` | `/me/profile` | `auth:sanctum`, `verified`, `throttle:api-profile` |
@@ -297,6 +298,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `POST` | `/ux/events` | `throttle:api-ux-events` |
 | `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |

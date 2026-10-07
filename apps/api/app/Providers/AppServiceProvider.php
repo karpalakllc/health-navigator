@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Middleware\RejectInvalidUtf8;
 use App\Http\Responses\ApiResponse;
 use App\Models\TriageFlow;
@@ -183,6 +184,26 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api-triage-complete', function (Request $request) {
             return Limit::perHour(5)->by('triage-complete:'.$request->ip());
+        });
+
+        // Anonymous UX batches (docs/ux-heatmaps.md), relayed by the web tier.
+        // Keyed by an HMAC of the visitor's network under the app key — the IPv4
+        // address or the IPv6 /64, as for guest profile reports — so the cache
+        // key cannot be turned back into an address without the key (a plain
+        // hash of an IPv4 address can be, by trying them all), and one IPv6
+        // holder cannot rotate through its /64 for fresh buckets. Expired keys
+        // in the database cache store are deleted hourly (cache:purge-expired).
+        RateLimiter::for('api-ux-events', function (Request $request) {
+            $network = hash_hmac(
+                'sha256',
+                'ux-events|'.ProfileReportController::guestNetwork((string) $request->ip()),
+                (string) config('app.key'),
+            );
+
+            return [
+                Limit::perMinute(60)->by('ux-min:'.$network),
+                Limit::perHour(600)->by('ux-hour:'.$network),
+            ];
         });
     }
 }

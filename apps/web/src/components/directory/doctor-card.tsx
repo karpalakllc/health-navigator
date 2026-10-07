@@ -48,6 +48,7 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
 
   return (
     <article
+      data-track="doctor-card"
       data-featured={featured || undefined}
       className="card hover-lift flex h-full flex-col"
     >
