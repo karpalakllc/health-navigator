@@ -135,9 +135,36 @@ function Banner({
   onCustomize: (button: HTMLElement) => void;
 }) {
   const titleId = useId();
+  const box = useRef<HTMLDivElement>(null);
+
+  // Publish the banner's height (--consent-h) so sticky bars and the page end
+  // stay clear of it; removed when it closes.
+  useEffect(() => {
+    const element = box.current;
+    const root = document.documentElement;
+    if (!element) return;
+
+    const publish = () =>
+      root.style.setProperty(
+        "--consent-h",
+        `${Math.ceil(element.getBoundingClientRect().height) + 24}px`,
+      );
+    publish();
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(publish);
+    observer?.observe(element);
+
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty("--consent-h");
+    };
+  }, []);
 
   return (
     <div
+      ref={box}
       role="dialog"
       aria-modal="false"
       aria-labelledby={titleId}

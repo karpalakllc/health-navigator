@@ -302,6 +302,9 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    /* The cookie banner's height while it is open (consent-banner.tsx), so
+       it never hides the end of the page; sticky bars sit above it too. */
+    padding-bottom: var(--consent-h, 0px);
   }
 
   @media (width >= 64rem) {

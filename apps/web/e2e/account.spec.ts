@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { consentState } from "./support/consent";
 import { expect, test } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
 import {
@@ -21,7 +22,9 @@ test("export, sign out a device, delete the account", async ({
   const email = attemptUser("account", testInfo.retry);
 
   // A second device, signed in first so it is not the current one below.
-  const otherDevice = await browser.newContext();
+  const otherDevice = await browser.newContext({
+    storageState: consentState(false),
+  });
   const otherPage = await otherDevice.newPage();
   await login(otherPage, email);
   await login(page, email);

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
 import { login } from "./support/auth";
+import { consentState } from "./support/consent";
 import { attemptUser, doctor, facilitySlug, users } from "./support/fixtures";
 
 /*
@@ -35,6 +36,7 @@ test.describe("review flow and notifications", () => {
     browser,
   }) => {
     const context = await browser.newContext({
+      storageState: consentState(false),
       viewport: { width: 390, height: 844 },
     });
     const page = await context.newPage();

@@ -9,6 +9,7 @@ import {
   prepareOutputDir,
   webEnv,
 } from "./e2e/support/env";
+import { consentState } from "./e2e/support/consent";
 
 /**
  * Browser suite against the real stack: Laravel on PostgreSQL (database
@@ -52,6 +53,8 @@ export default defineConfig({
   use: {
     baseURL: WEB_URL,
     locale: "mk-MK",
+    // Cookie banner already answered (statistics off); see e2e/support/consent.ts.
+    storageState: consentState(false),
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

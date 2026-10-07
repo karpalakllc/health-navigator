@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
+import { consentState } from "./support/consent";
 
 /**
  * Anonymous UX statistics (docs/ux-heatmaps.md): the tracker sends only
@@ -8,7 +9,10 @@ import { mk } from "../src/i18n/mk";
  */
 
 /**
- * A beacon sent while the page unloads is not reliably visible to Playwright,
+ * The tracker runs only after the visitor accepted statistics (the specs set
+ * that in storage); without it nothing is sent.
+ *
+ * A request sent while the page unloads is not reliably visible to Playwright,
  * so these tests stay on the page and let the tracker's batch timer send.
  */
 const BATCH_SENT_MS = 11_500; // BATCH_DELAY_MS (10 s) in lib/ux/tracker.ts, plus margin
@@ -20,19 +24,19 @@ function uxRequests(requests: Request[]) {
 }
 
 /**
- * Playwright cannot read a beacon's Blob body, so the page keeps a copy of
- * what it hands to sendBeacon (the call itself goes through unchanged).
+ * The page keeps a copy of the bodies it hands to fetch for the UX endpoint
+ * (the call itself goes through unchanged).
  */
 async function recordBeaconBodies(page: Page) {
   await page.addInitScript(() => {
     const bodies: string[] = [];
     (window as unknown as { __uxBodies: string[] }).__uxBodies = bodies;
-    const send = navigator.sendBeacon.bind(navigator);
-    navigator.sendBeacon = (url, data) => {
-      if (String(url).endsWith("/api/ux/events") && data instanceof Blob) {
-        void data.text().then((text) => bodies.push(text));
+    const send = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (String(input).endsWith("/api/ux/events") && init?.body) {
+        bodies.push(String(init.body));
       }
-      return send(url, data);
+      return send(input, init);
     };
   });
 }
@@ -74,6 +78,8 @@ async function deadSpotOnAHeading(page: Page) {
 }
 
 test.describe("UX tracker", () => {
+  test.use({ storageState: consentState(true) });
+
   test("a dead click on a doctor card is reported as a template, without text", async ({
     page,
   }) => {
@@ -107,8 +113,11 @@ test.describe("UX tracker", () => {
     if (name.trim()) expect(payload).not.toContain(name.trim());
   });
 
-  test("sends nothing with Global Privacy Control", async ({ browser }) => {
+  test("sends nothing without consent, also with Global Privacy Control", async ({
+    browser,
+  }) => {
     const context = await browser.newContext({
+      storageState: consentState(false),
       extraHTTPHeaders: { "Sec-GPC": "1" },
     });
     await context.addInitScript(() => {

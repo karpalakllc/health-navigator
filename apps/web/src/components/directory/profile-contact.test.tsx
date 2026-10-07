@@ -48,7 +48,7 @@ describe("ProfileCallBar", () => {
     expect(
       screen.getByRole("region", { name: t("directory.quickContact") })
         .className,
-    ).toContain("bottom-[var(--tabbar-space)]");
+    ).toContain("bottom-[calc(var(--tabbar-space)+var(--consent-h,0px))]");
   });
 
   it("is left out when there is nothing to call or find", () => {

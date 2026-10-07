@@ -294,7 +294,7 @@ export function ForumNewTopicComposer({
 
           <div
             data-sticky-action-bar
-            className="sticky bottom-[var(--tabbar-space)] z-10 -mx-5 flex gap-3 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:static lg:mx-0 lg:justify-end lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none"
+            className="sticky bottom-[calc(var(--tabbar-space)+var(--consent-h,0px))] z-10 -mx-5 flex gap-3 rounded-t-sheet bg-white px-5 py-3 shadow-sheet lg:static lg:mx-0 lg:justify-end lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none"
           >
             <Button
               variant="secondary"

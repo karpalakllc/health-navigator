@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { consentState } from "./support/consent";
 import { mk } from "../src/i18n/mk";
 import {
   accountMenuButton,
@@ -18,7 +19,9 @@ test.describe("password reset", () => {
     const newPassword = "NovaLozinka2026";
 
     // A second device, signed in before the reset.
-    const otherDevice = await browser.newContext();
+    const otherDevice = await browser.newContext({
+      storageState: consentState(false),
+    });
     const otherPage = await otherDevice.newPage();
     await login(otherPage, email);
 
