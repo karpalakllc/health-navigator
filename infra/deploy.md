@@ -436,7 +436,7 @@ One-off checks before the first deploy of the Part I remediation:
 - TLS terminated at the PaaS edge (required for production). `SESSION_SECURE_COOKIE=true`.
 - One `APP_KEY` per environment, generated once (see deploy step 2); never reuse the production key in staging.
 - Use strong unique passwords for staff accounts (Filament).
-- **Rotating `APP_KEY`:** staff two-factor secrets and recovery codes are encrypted with it. Move the old key into `APP_PREVIOUS_KEYS` when rotating, or every enrolled account is locked out of the panel.
+- **Rotating `APP_KEY`:** staff two-factor secrets and recovery codes are encrypted with it. Move the old key into `APP_PREVIOUS_KEYS` when rotating, or every enrolled account is locked out of the panel. The one-click unsubscribe links in e-mails already sent are also checked against `APP_PREVIOUS_KEYS`, so keep the old key listed as long as those e-mails may be used (they never expire). Today's „Прикажана N пати“ dedupe keys simply start over under the new key.
 
 ## Admin panel: two-factor, session, headers
 

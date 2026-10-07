@@ -11,7 +11,8 @@ use App\Support\FrontendUrl;
  * (plan item G4). Stateless: "{user id}.{type}.{signature}", the signature an
  * HMAC-SHA256 under the app key, so the link works without signing in and
  * cannot be forged for another member or another type. It never expires —
- * an old e-mail's link must keep working — and only ever turns something off.
+ * an old e-mail's link must keep working, also after an APP_KEY rotation
+ * (APP_PREVIOUS_KEYS) — and only ever turns something off.
  */
 final class UnsubscribeToken
 {
@@ -31,7 +32,7 @@ final class UnsubscribeToken
             return null;
         }
 
-        if (! hash_equals(self::sign($parts[1].'.'.$parts[2]), $parts[3])) {
+        if (! self::verifies($parts[1].'.'.$parts[2], $parts[3])) {
             return null;
         }
 
@@ -63,9 +64,26 @@ final class UnsubscribeToken
         return FrontendUrl::to('/api/notifications/unsubscribe?token='.rawurlencode(self::make($user, $type)));
     }
 
-    private static function sign(string $payload): string
+    /**
+     * Signed under the current app key or one of APP_PREVIOUS_KEYS: rotating
+     * the key (infra/deploy.md) must not break the links already sent.
+     */
+    private static function verifies(string $payload, string $signature): bool
     {
-        $mac = hash_hmac('sha256', 'unsubscribe|'.$payload, (string) config('app.key'), true);
+        $keys = [(string) config('app.key'), ...array_map('strval', (array) config('app.previous_keys', []))];
+        $valid = false;
+
+        foreach (array_filter($keys, fn (string $key): bool => $key !== '') as $key) {
+            // Every key is checked (no early exit), in constant time each.
+            $valid = hash_equals(self::sign($payload, $key), $signature) || $valid;
+        }
+
+        return $valid;
+    }
+
+    private static function sign(string $payload, ?string $key = null): string
+    {
+        $mac = hash_hmac('sha256', 'unsubscribe|'.$payload, $key ?? (string) config('app.key'), true);
 
         return rtrim(strtr(base64_encode($mac), '+/', '-_'), '=');
     }

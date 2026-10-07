@@ -197,6 +197,25 @@ class NotificationPreferencesTest extends TestCase
         $this->assertSame(3, MemberNotification::query()->where('user_id', $user->id)->where('type', NotificationType::Moderation)->count());
     }
 
+    /**
+     * Rotating APP_KEY with APP_PREVIOUS_KEYS (infra/deploy.md) keeps every
+     * link already e-mailed working; a key that is not listed does not.
+     */
+    public function test_links_signed_under_a_previous_app_key_still_work(): void
+    {
+        $user = User::factory()->create();
+        $oldKey = (string) config('app.key');
+        $token = UnsubscribeToken::make($user, NotificationType::ReviewHelpful);
+
+        config(['app.key' => 'base64:'.base64_encode(random_bytes(32)), 'app.previous_keys' => []]);
+        $this->assertNull(UnsubscribeToken::parse($token));
+
+        config(['app.previous_keys' => [$oldKey]]);
+        $this->assertSame($user->id, UnsubscribeToken::parse($token)['user']->id ?? null);
+        $this->postJson('/api/v1/notifications/unsubscribe', ['token' => $token])->assertOk();
+        $this->assertFalse(NotificationPreference::for($user)->review_helpful);
+    }
+
     public function test_a_deleted_accounts_link_no_longer_works(): void
     {
         $user = User::factory()->create();
