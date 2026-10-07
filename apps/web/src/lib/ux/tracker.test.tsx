@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { privacySignalHeader, privacySignalOn } from "@/lib/ux/privacy-signals";
 import { isUxTargetKey, type UxBatch } from "@/lib/ux/schema";
+import type { EarlyClick } from "@/lib/ux/early-clicks";
 import {
   BATCH_CLICKS,
   BATCH_DELAY_MS,
@@ -346,6 +347,50 @@ describe("navigation", () => {
       "/doctors/[slug]",
       "/doctors",
     ]);
+  });
+});
+
+describe("clicks made before the tracker loaded", () => {
+  function early(id: string, at: number, scrollY = 0): EarlyClick {
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      clientX: 195,
+      clientY: 100,
+      detail: 1,
+    });
+    Object.defineProperty(event, "target", {
+      value: document.getElementById(id),
+    });
+    return {
+      event,
+      at,
+      scrollX: 0,
+      scrollY,
+      selected: false,
+      path: "/doctors/ivan-petrov",
+    };
+  }
+
+  it("are counted with their own time and scroll position", () => {
+    clock = 5_000; // the tracker loaded at idle, long after the click
+    tracker.replay([early("para", 600, 1_000)]);
+    tracker.flush(true);
+
+    expect(allClicks()).toEqual([
+      expect.objectContaining({ k: "doctor-card/text", y: 110, x: 50 }),
+    ]);
+    // Time to first click: 600 ms, not 5 s.
+    expect(sent.flatMap((b) => b.views)[0].t).toBe(0);
+  });
+
+  it("skip a target that is no longer on the page", () => {
+    const gone = early("para", 600);
+    document.getElementById("para")!.remove();
+    tracker.replay([gone]);
+    tracker.flush(true);
+
+    expect(allClicks()).toEqual([]);
+    expect(sent.flatMap((b) => b.views)[0].t).toBeNull();
   });
 });
 

@@ -15,11 +15,23 @@ const mountOverlay = vi.fn<
 >();
 const createTracker = vi.fn(() => ({
   setPath: vi.fn(),
+  replay: vi.fn(),
   flush: vi.fn(),
   stop: vi.fn(),
 }));
+// Clicks made before the tracker loaded: one on the page the tracker starts
+// on, one on a page left before that.
+const earlyStop = vi.fn();
+const bufferEarlyClicks = vi.fn((_win: Window, path: () => string) => ({
+  take: () => [
+    { at: 300, path: path(), marker: "here" },
+    { at: 200, path: "/elsewhere", marker: "left" },
+  ],
+  stop: earlyStop,
+}));
 
 vi.mock("@/lib/ux/overlay", () => ({ mountOverlay }));
+vi.mock("@/lib/ux/early-clicks", () => ({ bufferEarlyClicks }));
 vi.mock("@/lib/ux/tracker", () => ({
   createTracker,
   beaconSender: () => vi.fn(),
@@ -50,6 +62,8 @@ beforeEach(() => {
 afterEach(() => {
   mountOverlay.mockClear();
   createTracker.mockClear();
+  bufferEarlyClicks.mockClear();
+  earlyStop.mockClear();
   Object.defineProperty(navigator, "globalPrivacyControl", {
     configurable: true,
     value: undefined,
@@ -64,6 +78,18 @@ describe("UxInsights", () => {
     expect(mountOverlay).not.toHaveBeenCalled();
   });
 
+  it("hands the tracker the clicks made on its page before it loaded", async () => {
+    render(<UxInsights />);
+
+    await waitFor(() => expect(createTracker).toHaveBeenCalledOnce());
+    const tracker = createTracker.mock.results[0].value;
+    // The view started with the page load, not when the tracker arrived.
+    expect(tracker.setPath).toHaveBeenCalledWith(expect.any(String), 0);
+    expect(tracker.replay).toHaveBeenCalledWith([
+      expect.objectContaining({ marker: "here" }),
+    ]);
+  });
+
   it("loads nothing with Global Privacy Control on", async () => {
     Object.defineProperty(navigator, "globalPrivacyControl", {
       configurable: true,
@@ -75,6 +101,7 @@ describe("UxInsights", () => {
 
     expect(createTracker).not.toHaveBeenCalled();
     expect(mountOverlay).not.toHaveBeenCalled();
+    expect(bufferEarlyClicks).not.toHaveBeenCalled();
   });
 
   it("adopts a token from the fragment, strips it, and shows the overlay instead of tracking", async () => {

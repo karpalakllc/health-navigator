@@ -8,7 +8,11 @@ third party is involved.
 ## What is collected
 
 The web tracker (`apps/web/src/lib/ux/tracker.ts`) is loaded by
-`components/layout/ux-insights.tsx` after hydration, when the browser is idle.
+`components/layout/ux-insights.tsx` after hydration, when the browser is idle
+(up to 4 s later). Until then a small listener in the layout bundle
+(`lib/ux/early-clicks.ts`, no inline script) holds the clicks in memory; the
+tracker counts those made on the page it starts on, with their own time and
+scroll position, so the first click and the time to it are not lost.
 
 Per click:
 
@@ -113,7 +117,13 @@ present, and the public HTML contains no heatmap data: the overlay fetches
 signature, the expiry and that the staff member still has `analytics.view` on
 every request (403 otherwise). A tab with the overlay is never tracked.
 
-Caveats: x is a percentage of the page width, so on centred desktop layouts
+Caveats: what remains uncounted before the tracker loads is small but
+one-sided — a page the visitor left by client navigation before the tracker
+loaded (its scroll depth was never measured, so it is not a view, and its
+clicks are dropped), a visit closed within those first seconds, and clicks
+before hydration. Very short visits are therefore slightly under-represented.
+Keyboard and screen-reader activations count for their target but are not
+placed on the map. x is a percentage of the page width, so on centred desktop layouts
 clicks from very different window widths spread out — use „само слична
 ширина“. Content that differs between pages of one template (long vs short
 profiles) blurs the lower part of the map; the target tables are the more

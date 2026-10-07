@@ -12,6 +12,7 @@ import {
   type UxClick,
   type UxView,
 } from "@/lib/ux/schema";
+import type { EarlyClick } from "@/lib/ux/early-clicks";
 import { describeTarget, eventElement, inFixedBox } from "@/lib/ux/target";
 
 /**
@@ -46,6 +47,14 @@ export const UX_EVENTS_PATH = "/api/ux/events";
 
 type RecentClick = { at: number; x: number; y: number; burst: boolean };
 
+/** What the page looked like at a click (now, or for an early click, then). */
+type ClickMoment = {
+  at: number;
+  scrollX: number;
+  scrollY: number;
+  selected: boolean;
+};
+
 type PageView = {
   route: UxRoute;
   startedAt: number;
@@ -69,6 +78,12 @@ export type TrackerOptions = {
 export type Tracker = {
   /** A new page view (client navigation included). */
   setPath: (pathname: string, startedAt?: number) => void;
+  /**
+   * Counts clicks buffered before the tracker loaded (early-clicks.ts) for
+   * the current view, with their own time and scroll position; a target no
+   * longer on the page is skipped.
+   */
+  replay: (early: EarlyClick[]) => void;
   /** Sends whatever is queued, plus the current page view. */
   flush: (endView?: boolean) => void;
   stop: () => void;
@@ -184,12 +199,11 @@ export function createTracker({
     return rage && !burstOpen;
   };
 
-  const onClick = (event: MouseEvent) => {
-    if (!view || (trustedOnly && !event.isTrusted)) return;
-    if (view.clicks >= MAX_CLICKS_PER_VIEW) return;
+  const record = (event: MouseEvent, moment: ClickMoment) => {
+    if (!view || view.clicks >= MAX_CLICKS_PER_VIEW) return;
 
     const el = eventElement(event.target);
-    if (!el) return;
+    if (!el || !el.isConnected) return;
 
     if (labelled && el === labelled) {
       labelled = null;
@@ -206,10 +220,9 @@ export function createTracker({
 
     // A drag that selected text is reading, not clicking. (Double and triple
     // clicks select words too, but those are clicks: detail > 1.)
-    const selection = win.getSelection?.();
-    if (event.detail === 1 && selection && !selection.isCollapsed) return;
+    if (event.detail === 1 && moment.selected) return;
 
-    const at = now();
+    const at = moment.at;
     const rage = !keyboard && isRage(at, event.clientX, event.clientY);
     const target = describeTarget(
       el,
@@ -223,8 +236,8 @@ export function createTracker({
       const rect = el.getBoundingClientRect();
       clientX = rect.left + rect.width / 2;
     }
-    const pageX = clientX + win.scrollX;
-    const pageY = event.clientY + win.scrollY;
+    const pageX = clientX + moment.scrollX;
+    const pageY = event.clientY + moment.scrollY;
     const yBucket = Math.floor(pageY / UX_Y_STEP);
     const { vc, wb } = viewport();
 
@@ -247,6 +260,17 @@ export function createTracker({
     } else {
       arm();
     }
+  };
+
+  const onClick = (event: MouseEvent) => {
+    if (trustedOnly && !event.isTrusted) return;
+    const selection = win.getSelection?.();
+    record(event, {
+      at: now(),
+      scrollX: win.scrollX,
+      scrollY: win.scrollY,
+      selected: Boolean(selection && !selection.isCollapsed),
+    });
   };
 
   const startView = (next: string, startedAt: number) => {
@@ -303,6 +327,9 @@ export function createTracker({
   return {
     setPath(next, startedAt) {
       startView(next, startedAt ?? now());
+    },
+    replay(early) {
+      for (const click of early) record(click.event, click);
     },
     flush,
     stop() {

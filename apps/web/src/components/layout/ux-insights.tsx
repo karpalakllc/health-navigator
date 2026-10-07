@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { bufferEarlyClicks } from "@/lib/ux/early-clicks";
 import { readOverlayToken } from "@/lib/ux/overlay-token";
 import { privacySignalOn } from "@/lib/ux/privacy-signals";
 
@@ -14,6 +15,11 @@ import { privacySignalOn } from "@/lib/ux/privacy-signals";
  * outside the sample. A tab holding a staff overlay token loads the overlay
  * instead, and is never tracked. Both are separate chunks, so neither costs
  * the first render anything.
+ *
+ * Until the tracker has loaded, a small listener holds the clicks (in memory)
+ * so the first click and its timing are not lost; the tracker counts those
+ * made on the page it starts on. A page left by client navigation before the
+ * tracker loaded is not counted as a view (docs/ux-heatmaps.md, caveats).
  */
 
 type Handle = { setPath: (pathname: string) => void };
@@ -40,6 +46,8 @@ export function UxInsights() {
   const pathname = usePathname();
   const pathRef = useRef(pathname);
   const handle = useRef<Handle | null>(null);
+  // performance.now() of the last navigation before the tracker loaded.
+  const navigatedAt = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +67,7 @@ export function UxInsights() {
         stop = overlay.destroy;
       });
     } else if (!privacySignalOn(window) && Math.random() < uxSampleRate()) {
+      const early = bufferEarlyClicks(window, () => pathRef.current);
       const cancelIdle = whenIdle(() => {
         void import("@/lib/ux/tracker").then(
           ({ beaconSender, createTracker }) => {
@@ -67,14 +76,21 @@ export function UxInsights() {
               win: window,
               send: beaconSender(window),
             });
-            // The first view started with the navigation itself.
-            tracker.setPath(pathRef.current, 0);
+            // The view started with the page load itself, or with the last
+            // client navigation if there was one in the meantime.
+            tracker.setPath(pathRef.current, navigatedAt.current ?? 0);
+            tracker.replay(
+              early.take().filter((click) => click.path === pathRef.current),
+            );
             handle.current = tracker;
             stop = tracker.stop;
           },
         );
       });
-      stop = cancelIdle;
+      stop = () => {
+        cancelIdle();
+        early.stop();
+      };
     }
 
     return () => {
@@ -87,7 +103,11 @@ export function UxInsights() {
   useEffect(() => {
     if (pathRef.current === pathname) return;
     pathRef.current = pathname;
-    handle.current?.setPath(pathname);
+    if (handle.current) {
+      handle.current.setPath(pathname);
+    } else {
+      navigatedAt.current = window.performance.now();
+    }
   }, [pathname]);
 
   return null;
