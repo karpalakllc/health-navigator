@@ -1,5 +1,5 @@
 import { act, render, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAltcha } from "@/components/altcha/use-altcha";
 import { altchaControl } from "../../../test/altcha";
 
@@ -69,4 +69,30 @@ describe("useAltcha", () => {
 
     expect(document.querySelector("altcha-widget")).toBeNull();
   });
+
+  it("re-solves an expired solution only while the tab is visible", async () => {
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    visibility.mockReturnValue("hidden");
+    const { view } = harness();
+    await waitFor(() => expect(altchaControl.issued).toBe(1));
+    const widget = view.container.querySelector("altcha-widget")!;
+
+    // An idle background tab does not keep solving every half hour.
+    act(() => {
+      widget.dispatchEvent(new Event("expired"));
+    });
+    await Promise.resolve();
+    expect(altchaControl.issued).toBe(1);
+
+    // Back in view: a fresh one is ready before the submit.
+    visibility.mockReturnValue("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(altchaControl.issued).toBe(2));
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });

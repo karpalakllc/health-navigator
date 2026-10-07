@@ -141,12 +141,30 @@ export function useAltcha(): {
   useEffect(() => {
     start();
     // An unused solution ran out (a form left open for a long time): start
-    // a new one so the eventual submit carries a live one.
+    // a new one so the eventual submit carries a live one — but not in a
+    // hidden tab, which would otherwise solve every half hour while idle;
+    // there it waits until the tab is shown again.
+    let stale = false;
     const onExpired = () => {
-      if (attemptRef.current !== null) {
+      if (attemptRef.current === null) {
+        return;
+      }
+
+      if (document.visibilityState === "hidden") {
+        stale = true;
+        attemptRef.current = null;
+        return;
+      }
+
+      start();
+    };
+    const onVisible = () => {
+      if (stale && document.visibilityState === "visible") {
+        stale = false;
         start();
       }
     };
+    document.addEventListener("visibilitychange", onVisible);
 
     void ready().then((element) =>
       element?.addEventListener("expired", onExpired),
@@ -154,6 +172,7 @@ export function useAltcha(): {
 
     return () => {
       generationRef.current += 1;
+      document.removeEventListener("visibilitychange", onVisible);
       elementRef.current?.removeEventListener("expired", onExpired);
       elementRef.current?.reset();
       elementRef.current?.remove();
