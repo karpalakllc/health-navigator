@@ -110,9 +110,9 @@ class ConservativeClinicalDefaultsTest extends TestCase
     public static function infantFeverAnswers(): array
     {
         return [
-            '38 °C, first day' => [['q_temp' => ['38'], 'q_days' => ['lt_1'], 'q_signs' => ['none']]],
-            '39.5 °C, otherwise well' => [['q_temp' => ['39.5'], 'q_days' => ['lt_1'], 'q_signs' => ['none']]],
-            'not measured (feels hot)' => [['q_temp' => [], 'q_days' => ['lt_1'], 'q_signs' => ['none']]],
+            '38 °C, first day' => [['q_temp' => ['38'], 'q_days' => ['lt_1'], 'q_infant' => ['none'], 'q_signs' => ['none']]],
+            '39.5 °C, otherwise well' => [['q_temp' => ['39.5'], 'q_days' => ['lt_1'], 'q_infant' => ['none'], 'q_signs' => ['none']]],
+            'not measured (feels hot)' => [['q_temp' => [], 'q_days' => ['lt_1'], 'q_infant' => ['none'], 'q_signs' => ['none']]],
         ];
     }
 
@@ -125,14 +125,14 @@ class ConservativeClinicalDefaultsTest extends TestCase
 
     public function test_a_measured_normal_temperature_in_a_young_infant_stays_urgent_same_day(): void
     {
-        $answers = ['q_temp' => ['37.2'], 'q_days' => ['lt_1'], 'q_signs' => ['none']];
+        $answers = ['q_temp' => ['37.2'], 'q_days' => ['lt_1'], 'q_infant' => ['none'], 'q_signs' => ['none']];
 
         $this->assertSame('urgent_same_day', $this->level('fever-infant-child', $this->demo(1, 'male'), $answers));
     }
 
     public function test_fever_in_an_older_infant_is_unchanged(): void
     {
-        $answers = ['q_temp' => ['38.2'], 'q_days' => ['lt_1'], 'q_signs' => ['none']];
+        $answers = ['q_temp' => ['38.2'], 'q_days' => ['lt_1'], 'q_infant' => ['none'], 'q_signs' => ['none']];
 
         $this->assertSame('self_care_with_safety_net', $this->level('fever-infant-child', $this->demo(14, 'male'), $answers));
     }
@@ -158,21 +158,21 @@ class ConservativeClinicalDefaultsTest extends TestCase
 
     public function test_post_menopausal_bleeding_needs_a_doctor_within_two_days(): void
     {
-        $answers = ['q_situation' => ['postmenopause'], 'q_signs' => ['none']];
+        $answers = ['q_situation' => ['other'], 'q_postmeno' => ['yes'], 'q_signs' => ['none']];
 
         $this->assertSame('see_doctor_24_48h', $this->level('vaginal-bleeding', $this->demo(58 * 12), $answers));
-        $this->assertSame('see_doctor_24_48h', $this->level('vaginal-bleeding', $this->demo(70 * 12), ['q_situation' => ['other'], 'q_signs' => ['none']]));
+        $this->assertSame('see_doctor_24_48h', $this->level('vaginal-bleeding', $this->demo(70 * 12), ['q_situation' => ['other'], 'q_postmeno' => ['no'], 'q_signs' => ['none']]));
     }
 
     public function test_a_new_breast_lump_needs_a_doctor_within_two_days(): void
     {
         foreach (['lump', 'skin', 'nipple'] as $change) {
-            $answers = ['q_changes' => [$change], 'q_breastfeeding' => ['no'], 'q_fever' => ['no']];
+            $answers = ['q_changes' => [$change], 'q_cycle_pain' => ['no'], 'q_breastfeeding' => ['no'], 'q_fever' => ['no']];
             $this->assertSame('see_doctor_24_48h', $this->level('breast-lump', $this->demo(45 * 12), $answers), $change);
         }
 
         // Cyclical pain alone stays self-care.
-        $answers = ['q_changes' => ['pain_cycle'], 'q_breastfeeding' => ['no'], 'q_fever' => ['no']];
+        $answers = ['q_changes' => ['none'], 'q_cycle_pain' => ['yes'], 'q_breastfeeding' => ['no'], 'q_fever' => ['no']];
         $this->assertSame('self_care_with_safety_net', $this->level('breast-lump', $this->demo(30 * 12), $answers));
     }
 }

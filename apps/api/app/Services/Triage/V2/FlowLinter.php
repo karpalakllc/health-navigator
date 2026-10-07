@@ -99,6 +99,8 @@ final class FlowLinter
             $this->lintSource("global.sources.{$id}", $source);
         }
 
+        (new DemographicAppropriateness)->lintGlobal($global->redFlags, $this->report);
+
         return $this->report;
     }
 
@@ -239,7 +241,39 @@ final class FlowLinter
 
         $this->lintPopulations($bands, $flow['populations'] ?? []);
 
+        if ($graphLinted) {
+            $this->lintDemographicReasons($this->flow);
+            (new DemographicAppropriateness)->lintFlow($this->flow, $this->report);
+        }
+
         return $this->report;
+    }
+
+    /**
+     * "demographics_ok_reason" (flow, node, outcome or red flag) is internal
+     * English and must say why the copy is fine for everyone who can see it.
+     *
+     * @param  array<string, mixed>  $flow
+     */
+    private function lintDemographicReasons(array $flow): void
+    {
+        $items = ['flow' => $flow];
+
+        foreach (['nodes', 'outcomes', 'red_flags'] as $group) {
+            foreach ((array) ($flow[$group] ?? []) as $id => $item) {
+                $items[$group.(is_int($id) ? "[{$id}]" : ".{$id}")] = (array) $item;
+            }
+        }
+
+        foreach ($items as $where => $item) {
+            if (array_key_exists('demographics_ok_reason', $item)) {
+                $reason = $item['demographics_ok_reason'];
+
+                if (! is_string($reason) || mb_strlen(trim($reason)) < 10) {
+                    $this->report->error($where, 'demographics_ok_reason must be a sentence (internal English) saying why this is fine for everyone who sees it');
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------- nodes

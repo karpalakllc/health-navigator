@@ -119,10 +119,6 @@
           "label": "Операција, гипс или подолго лежење во последните 4 недели"
         },
         {
-          "value": "pregnant_post",
-          "label": "Бременост или породување во последните 6 недели"
-        },
-        {
           "value": "prior_clot",
           "label": "Порано сте имале тромб"
         },
@@ -135,12 +131,51 @@
       "next": [
         {
           "when": {
+            "demo": "pregnancy",
+            "in": [
+              "pregnant",
+              "postpartum",
+              "unsure"
+            ]
+          },
+          "goto": "q_dvt_preg"
+        },
+        {
+          "when": {
             "answer": "q_dvt_risk",
             "includes_any": [
               "leg_swelling",
               "recent_surgery",
-              "pregnant_post",
               "prior_clot"
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "goto": "q_onset"
+        }
+      ]
+    },
+    "q_dvt_preg": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали сте бремени или сте родиле во последните 6 недели?",
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_dvt_risk",
+                "includes_any": [
+                  "leg_swelling",
+                  "recent_surgery",
+                  "prior_clot"
+                ]
+              },
+              {
+                "answer": "q_dvt_preg",
+                "eq": "yes"
+              }
             ]
           },
           "goto": "o_emergency_2"
@@ -209,12 +244,19 @@
         },
         {
           "when": {
-            "answer": "q_dvt_risk",
-            "includes_any": [
-              "leg_swelling",
-              "recent_surgery",
-              "pregnant_post",
-              "prior_clot"
+            "any": [
+              {
+                "answer": "q_dvt_risk",
+                "includes_any": [
+                  "leg_swelling",
+                  "recent_surgery",
+                  "prior_clot"
+                ]
+              },
+              {
+                "answer": "q_dvt_preg",
+                "eq": "yes"
+              }
             ]
           },
           "goto": "o_emergency_2"

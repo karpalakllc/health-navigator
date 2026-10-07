@@ -64,21 +64,21 @@
       "code": "ectopic",
       "label": "Можна бременост (задоцнет циклус) со болка на едната страна долу, крварење или болка во врвот на рамото",
       "when": {
-        "demo": "sex",
-        "in": [
-          "female",
-          "unspecified"
-        ]
+        "demo": "pregnancy",
+        "ne": "not_asked"
       },
       "outcome": "o_emergency",
       "source": "nhs-ectopic"
     },
     {
       "code": "testis",
-      "label": "Ненадејна болка во тестисот (кај мажи)",
+      "label": "Ненадејна, силна болка во тестисот или скротумот",
       "when": {
         "demo": "sex",
-        "eq": "male"
+        "in": [
+          "male",
+          "unspecified"
+        ]
       },
       "outcome": "o_emergency",
       "source": "nhs-testicle-pain"

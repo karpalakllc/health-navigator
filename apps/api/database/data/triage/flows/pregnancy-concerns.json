@@ -744,5 +744,6 @@
       "url": "https://www.nhs.uk/conditions/pulmonary-embolism/",
       "accessed": "2026-10-07"
     }
-  ]
+  ],
+  "demographics_ok_reason": "Inherently about pregnancy and the weeks after birth: the visitor chose this symptom; the age-band catalogue cannot filter by sex or pregnancy, so sex and pregnancy wording is waived for the whole flow."
 }

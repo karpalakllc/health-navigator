@@ -503,7 +503,8 @@
       "sources": [
         "nhs-chickenpox",
         "nhs-hfmd"
-      ]
+      ],
+      "demographics_ok_reason": "The last safety-net line is about the carer and people around the child (chickenpox is dangerous in pregnancy and for newborns), not about the patient."
     },
     "o_emergency": {
       "level": "emergency_now",

@@ -34,7 +34,11 @@
       "code": "ectopic",
       "label": "Можна бременост и силна болка на едната страна долу, болка во врвот на рамото или несвестица",
       "outcome": "o_emergency",
-      "source": "nhs-ectopic"
+      "source": "nhs-ectopic",
+      "when": {
+        "demo": "pregnancy",
+        "ne": "not_asked"
+      }
     },
     {
       "code": "preg_heavy",
@@ -71,10 +75,6 @@
           "label": "Крварење по полов однос"
         },
         {
-          "value": "postmenopause",
-          "label": "Крварење повеќе од 12 месеци по последната менструација (менопауза)"
-        },
-        {
           "value": "pregnant",
           "label": "Сум бремена (или можеби сум бремена)"
         },
@@ -87,6 +87,23 @@
           "label": "Друго"
         }
       ],
+      "next": [
+        {
+          "when": {
+            "demo": "age_years",
+            "gte": 40
+          },
+          "goto": "q_postmeno"
+        },
+        {
+          "goto": "q_signs"
+        }
+      ]
+    },
+    "q_postmeno": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали се појави крварење повеќе од 12 месеци по последната менструација (по менопауза)?",
       "next": "q_signs"
     },
     "q_signs": {
@@ -200,8 +217,8 @@
           "when": {
             "any": [
               {
-                "answer": "q_situation",
-                "eq": "postmenopause"
+                "answer": "q_postmeno",
+                "eq": "yes"
               },
               {
                 "demo": "age_band",
@@ -579,5 +596,6 @@
       "url": "https://www.nhs.uk/conditions/sexually-transmitted-infections-stis/",
       "accessed": "2026-10-07"
     }
-  ]
+  ],
+  "demographics_ok_reason": "Inherently about the female reproductive tract: the flow is chosen by the visitor for this symptom, and the age-band catalogue cannot filter by sex, so sex and pregnancy wording is waived for the whole flow (age rules still apply)."
 }
