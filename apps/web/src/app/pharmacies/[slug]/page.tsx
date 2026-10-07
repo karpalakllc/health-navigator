@@ -30,6 +30,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { placeJsonLd } from "@/lib/structured-data";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t } from "@/i18n/t";
 
 type PharmacyDetailPageProps = {
@@ -181,6 +182,7 @@ export default async function PharmacyDetailPage({
               summary={pharmacy.review_summary}
               tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />
+            <ProfileReportButton subject="pharmacy" slug={slug} />
 
             <ProfileContactList info={contact} />
 

@@ -40,6 +40,7 @@ import {
   facilitySchemaType,
   placeJsonLd,
 } from "@/lib/structured-data";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t, tCount } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
@@ -217,6 +218,7 @@ export default async function FacilityDetailPage({
                 </>
               }
             />
+            <ProfileReportButton subject="facility" slug={slug} />
 
             <ProfileContactList info={contact} />
 

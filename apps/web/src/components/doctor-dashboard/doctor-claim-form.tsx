@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useAltcha } from "@/components/altcha/use-altcha";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
@@ -20,6 +21,7 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const errorId = useId();
+  const altcha = useAltcha();
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -44,10 +46,18 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
     setPending(true);
 
     try {
+      const altchaPayload = await altcha.solve();
+
+      if (altchaPayload === null) {
+        setError(t("altcha.failed"));
+
+        return;
+      }
+
       const response = await fetch("/api/doctor-dashboard/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, message, contact }),
+        body: JSON.stringify({ slug, message, contact, altcha: altchaPayload }),
       });
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
@@ -55,6 +65,7 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
       } | null;
 
       if (!response.ok) {
+        altcha.renew();
         setErrors({
           message: payload?.errors?.message?.[0],
           contact: payload?.errors?.contact?.[0],
@@ -66,6 +77,7 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
 
       setSent(true);
     } catch {
+      altcha.renew();
       setError(t("doctorDashboard.claimError"));
     } finally {
       setPending(false);
@@ -105,6 +117,7 @@ export function DoctorClaimForm({ slug }: { slug: string }) {
             onChange={(event) => setContact(event.target.value)}
           />
           {error ? <FormError id={errorId}>{error}</FormError> : null}
+          {altcha.widget}
           <Button
             type="submit"
             loading={pending}

@@ -11,6 +11,8 @@ type RegisterPayload = {
   password?: string;
   password_confirmation?: string;
   accept_terms?: boolean;
+  /** ALTCHA payload from the form's invisible widget; the API checks it. */
+  altcha?: unknown;
 };
 
 /**
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
         password: body.password,
         password_confirmation: body.password_confirmation,
         accept_terms: body.accept_terms,
+        altcha: typeof body.altcha === "string" ? body.altcha : null,
       }),
     }),
   );
