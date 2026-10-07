@@ -27,6 +27,10 @@ class ImportScheduleTest extends TestCase
 
         Cache::flush();
         Mail::fake();
+        // No database here: the verification engine, which listens for
+        // finished imports, would write to whatever database is configured
+        // (and leak import_runs rows into later tests on Postgres).
+        config(['import.verification.after_import' => false]);
     }
 
     private function scheduled(string $command): Event
