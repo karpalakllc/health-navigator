@@ -160,31 +160,72 @@ export function mountOverlay({
 
   const device = (): UxViewportClass => viewportClass(win.innerWidth);
 
-  const button = (label: string, pressed: boolean, onClick: () => void) => {
+  const button = (label: string, onClick: () => void) => {
     const el = doc.createElement("button");
     el.type = "button";
     el.textContent = label;
-    el.setAttribute("aria-pressed", String(pressed));
-    el.style.cssText = `min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid #fff;cursor:pointer;font:inherit;${
-      pressed
-        ? "background:#fff;color:#1f1a17;"
-        : "background:transparent;color:#fff;"
-    }`;
+    el.style.cssText =
+      "min-height:44px;min-width:44px;padding:4px 12px;border-radius:999px;border:1px solid #fff;cursor:pointer;font:inherit;";
     el.addEventListener("click", onClick);
     return el;
   };
 
+  const setPressed = (el: HTMLButtonElement, pressed: boolean) => {
+    el.setAttribute("aria-pressed", String(pressed));
+    el.style.background = pressed ? "#fff" : "transparent";
+    el.style.color = pressed ? "#1f1a17" : "#fff";
+  };
+
+  // Built once: the live region must stay the same node for screen readers
+  // to announce its changes, and the buttons keep focus when pressed.
+  const title = doc.createElement("strong");
+  title.textContent = text.title;
+  title.style.display = "block";
+
+  const line = doc.createElement("p");
+  line.style.margin = "4px 0 8px";
+  line.setAttribute("aria-live", "polite");
+
+  const row = doc.createElement("div");
+  row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;";
+  const modeLabel = doc.createElement("span");
+  modeLabel.textContent = `${text.modeLabel}:`;
+  row.appendChild(modeLabel);
+  const modeButtons = (
+    [
+      ["all", text.modeAll],
+      ["dead", text.modeDead],
+      ["rage", text.modeRage],
+    ] as const
+  ).map(([key, label]) => {
+    const el = button(label, () => {
+      mode = key;
+      renderPanel();
+      schedule();
+    });
+    row.appendChild(el);
+    return [key, el] as const;
+  });
+
+  const row2 = doc.createElement("div");
+  row2.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;";
+  const widthButton = button(text.sameWidth, () => {
+    sameWidth = !sameWidth;
+    void load();
+  });
+  row2.appendChild(widthButton);
+  const closeButton = button(text.close, () => close());
+  closeButton.style.background = "transparent";
+  closeButton.style.color = "#fff";
+  row2.appendChild(closeButton);
+
+  const note = doc.createElement("p");
+  note.textContent = text.fixedNote;
+  note.style.cssText = "margin:8px 0 0;font-size:12px;opacity:.8;";
+
+  panel.append(title, line, row, row2, note);
+
   const renderPanel = () => {
-    panel.replaceChildren();
-
-    const title = doc.createElement("strong");
-    title.textContent = text.title;
-    title.style.display = "block";
-    panel.appendChild(title);
-
-    const line = doc.createElement("p");
-    line.style.margin = "4px 0 8px";
-    line.setAttribute("aria-live", "polite");
     if (data && route) {
       const clicks = data.cells.reduce((sum, cell) => sum + cell.clicks, 0);
       line.textContent = `${route} · ${format(text.summary, {
@@ -195,53 +236,26 @@ export function mountOverlay({
     } else {
       line.textContent = route ? status : text.notTracked;
     }
-    panel.appendChild(line);
 
-    const row = doc.createElement("div");
-    row.style.cssText =
-      "display:flex;flex-wrap:wrap;gap:6px;align-items:center;";
-    const modeLabel = doc.createElement("span");
-    modeLabel.textContent = `${text.modeLabel}:`;
-    row.appendChild(modeLabel);
-    for (const [key, label] of [
-      ["all", text.modeAll],
-      ["dead", text.modeDead],
-      ["rage", text.modeRage],
-    ] as const) {
-      row.appendChild(
-        button(label, mode === key, () => {
-          mode = key;
-          renderPanel();
-          schedule();
-        }),
-      );
-    }
-    panel.appendChild(row);
+    for (const [key, el] of modeButtons) setPressed(el, mode === key);
+    setPressed(widthButton, sameWidth);
+  };
 
-    const row2 = doc.createElement("div");
-    row2.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;";
-    row2.appendChild(
-      button(text.sameWidth, sameWidth, () => {
-        sameWidth = !sameWidth;
-        void load();
-      }),
+  /** Above the tab bar, and above a sticky action bar when one is showing. */
+  const place = () => {
+    const bar = doc.querySelector(
+      "[data-sticky-action-bar]:not([data-hidden])",
     );
-    row2.appendChild(
-      button(text.close, false, () => {
-        clearOverlayToken(win);
-        destroy();
-      }),
-    );
-    panel.appendChild(row2);
-
-    const note = doc.createElement("p");
-    note.textContent = text.fixedNote;
-    note.style.cssText = "margin:8px 0 0;font-size:12px;opacity:.8;";
-    panel.appendChild(note);
+    const rect = bar?.getBoundingClientRect();
+    panel.style.bottom =
+      rect && rect.height > 0 && rect.top < win.innerHeight
+        ? `${Math.round(win.innerHeight - rect.top) + 12}px`
+        : "calc(12px + var(--tabbar-space, 0px))";
   };
 
   const draw = () => {
     frame = 0;
+    place();
     const ratio = win.devicePixelRatio || 1;
     const width = win.innerWidth;
     const height = win.innerHeight;
@@ -376,15 +390,30 @@ export function mountOverlay({
     }
   };
 
+  // Escape closes the overlay, unless a dialog of the page is open (Escape
+  // is that dialog's).
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    if (doc.querySelector('[aria-modal="true"], dialog[open]')) return;
+    close();
+  };
+
   win.addEventListener("scroll", schedule, { passive: true });
   win.addEventListener("resize", onResize, { passive: true });
+  doc.addEventListener("keydown", onKeyDown);
 
   function destroy() {
     request += 1;
     if (frame) win.cancelAnimationFrame(frame);
     win.removeEventListener("scroll", schedule);
     win.removeEventListener("resize", onResize);
+    doc.removeEventListener("keydown", onKeyDown);
     layer.remove();
+  }
+
+  function close() {
+    clearOverlayToken(win);
+    destroy();
   }
 
   void load();
