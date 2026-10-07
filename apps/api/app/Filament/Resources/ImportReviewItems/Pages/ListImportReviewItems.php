@@ -5,9 +5,15 @@ namespace App\Filament\Resources\ImportReviewItems\Pages;
 use App\Enums\ImportReviewKind;
 use App\Filament\Resources\ImportReviewItems\ImportReviewItemResource;
 use App\Models\ImportReviewItem;
+use App\Models\User;
+use App\Support\Verification\Engine\VerifiedDraftPublisher;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class ListImportReviewItems extends ListRecords
 {
@@ -29,5 +35,49 @@ class ListImportReviewItems extends ListRecords
         }
 
         return $tabs;
+    }
+
+    /**
+     * @return list<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('publishVerified')
+                ->label('Објави ги сите верифицирани')
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->count() > 0)
+                ->requiresConfirmation()
+                ->modalHeading(fn (): string => sprintf('Publish %d verified drafts?', app(VerifiedDraftPublisher::class)->count()))
+                ->modalDescription(fn (): Htmlable => $this->sampleDescription())
+                ->modalSubmitActionLabel('Publish all')
+                ->action(function (): void {
+                    $user = auth()->user();
+
+                    if (! $user instanceof User || ! $user->can('imports.manage')) {
+                        abort(403);
+                    }
+
+                    $published = app(VerifiedDraftPublisher::class)->publishAll($user);
+                    Notification::make()->title("Published {$published} verified profiles")->success()->send();
+                }),
+        ];
+    }
+
+    /**
+     * Every imported draft the verification engine verified (two sources
+     * agree, docs/verification.md) — and a random sample of 20 to glance at.
+     */
+    private function sampleDescription(): Htmlable
+    {
+        $rows = app(VerifiedDraftPublisher::class)->sample(20)
+            ->map(fn (ImportReviewItem $item): string => '<li>'.e($item->title).'</li>')
+            ->implode('');
+
+        return new HtmlString(
+            '<p>Every hidden draft the verification engine verified becomes public. A random sample to glance at:</p>'
+            .'<ul style="margin-top:.5rem;list-style:disc;padding-inline-start:1.25rem;text-align:start">'.$rows.'</ul>'
+        );
     }
 }

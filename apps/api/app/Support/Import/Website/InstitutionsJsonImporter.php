@@ -134,6 +134,13 @@ final class InstitutionsJsonImporter
             'name_mk', 'name_latin', 'type', 'ownership', 'legal_form', 'address', 'town', 'municipality',
             'phones', 'email', 'website', 'hours', 'departments', 'fzom_contract', 'social', 'sources', 'confidence',
         ]));
+        // The researchers' warnings about the site itself (compromised,
+        // stale): its staff list then does not count as verification
+        // evidence (docs/verification.md). Only the flags and the one
+        // sentence behind them are kept, not the notes.
+        $notes = is_string($institution['notes'] ?? null) ? $institution['notes'] : null;
+        $payload['source_flags'] = SourceNotes::flags($notes);
+        $payload['source_flag_note'] = $payload['source_flags'] !== [] ? SourceNotes::excerpt($notes) : null;
         $payload['logo'] = $institution['logo']['source_url'] ?? null;
         $payload['covers'] = array_map(fn ($cover) => is_array($cover) ? ($cover['source_url'] ?? null) : null, (array) ($institution['covers'] ?? []));
 
