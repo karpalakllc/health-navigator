@@ -103,6 +103,29 @@ describe("parseUxBatch", () => {
     expect(JSON.stringify(batch)).not.toMatch(/Болка|session|ivan|url/);
   });
 
+  it("accepts target keys only from the closed lists", () => {
+    const keys = [
+      "doctor-card/input-other",
+      "main/role-tab",
+      "page/area",
+      // Well-formed, but not words the tracker can produce.
+      "anything-goes/whatever",
+      "main/role-bogus",
+      "secret-word/link",
+      "main/input-hidden-text",
+    ];
+    const batch = parseUxBatch({
+      clicks: keys.map((k) => ({ ...good, k })),
+      views: [],
+    });
+
+    expect(batch?.clicks.map((c) => c.k)).toEqual([
+      "doctor-card/input-other",
+      "main/role-tab",
+      "page/area",
+    ]);
+  });
+
   it("is null when nothing valid is left", () => {
     expect(parseUxBatch({ clicks: [{ ...good, vc: "watch" }] })).toBeNull();
     expect(parseUxBatch([])).toBeNull();

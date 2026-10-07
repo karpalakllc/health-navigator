@@ -34,9 +34,15 @@ attribute (`doctor-card`, `facility-card`, `pharmacy-card`, `forum-topic`,
 `link`, `button`, `input-<type>`, `select`, `label`, `summary`, `role-<role>`,
 `focusable`, `pointer` (a `cursor: pointer` element without semantics), or —
 for dead clicks — `heading`, `text`, `img`, `icon`, `table`, `media`, `area`,
-`disabled`. To get finer keys for a component, add `data-track="<name>"`
-(lowercase, hyphens) to it and a label in
-`apps/api/app/Support/Ux/UxTargetDescriber.php`.
+`disabled`. Both halves come from **closed lists** (contexts, element kinds,
+input types, ARIA roles) kept in `apps/web/src/lib/ux/schema.ts` and
+`apps/api/app/Support/Ux/UxSchema.php`; `UxRoutesParityTest` checks they
+match, and the API refuses a batch with any other key, so a key can never
+carry free text and the number of distinct rows is fixed. A `data-track`
+value outside the list is ignored (the landmark is used). To get finer keys
+for a component, add `data-track="<name>"` (lowercase, hyphens) to it, add
+the name to both lists, and give it words in
+`apps/api/app/Support/Ux/UxTargetDescriber.php` (`UxTargetDescriberTest`).
 
 ## Privacy guarantees
 

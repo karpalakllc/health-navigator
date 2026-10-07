@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Support\Ux\UxSchema;
+use Closure;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,8 @@ use Illuminate\Validation\Rule;
 /**
  * POST /ux/events — one batch from the web tracker (docs/ux-heatmaps.md).
  *
- * Every field is a bounded number or one of a fixed set of words, so a batch
+ * Every field is a bounded number or one of a fixed set of words (the target
+ * key is two words from closed lists: UxSchema::isTargetKey), so a batch
  * can only ever increment a known counter: a free-text value, an unknown page
  * or an out-of-range position fails the whole batch.
  *
@@ -43,7 +45,11 @@ class StoreUxEventsRequest extends FormRequest
             'clicks.*.wb' => ['required', 'integer', 'min:0', 'max:'.UxSchema::MAX_WIDTH, 'multiple_of:'.UxSchema::WIDTH_STEP],
             'clicks.*.x' => ['required', 'integer', 'min:0', 'max:'.UxSchema::MAX_X],
             'clicks.*.y' => ['present', 'nullable', 'integer', 'min:0', 'max:'.UxSchema::MAX_Y],
-            'clicks.*.k' => ['required', 'string', 'max:80', 'regex:'.UxSchema::TARGET_KEY_PATTERN],
+            'clicks.*.k' => ['required', 'string', 'max:'.UxSchema::MAX_TARGET_KEY_LENGTH, function (string $attribute, mixed $value, Closure $fail): void {
+                if (! UxSchema::isTargetKey($value)) {
+                    $fail('Unknown target key.');
+                }
+            }],
             'clicks.*.d' => ['required', 'boolean'],
             'clicks.*.g' => ['required', 'boolean'],
             'views' => ['present', 'array', 'max:'.UxSchema::MAX_VIEWS_PER_BATCH],

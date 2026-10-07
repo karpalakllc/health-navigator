@@ -27,9 +27,129 @@ export type UxScrollMilestone = (typeof UX_SCROLL_MILESTONES)[number];
 export const UX_TFI_BOUNDS_MS = [1_000, 3_000, 10_000, 30_000] as const;
 export const UX_MAX_TFI_BUCKET = UX_TFI_BOUNDS_MS.length;
 
-/** `context/element`: a data-track name or landmark, then the kind of element. */
-export const UX_TARGET_KEY_PATTERN =
-  /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,31}$/;
+/*
+ * Target keys are `context/element`, both from closed lists, so a key can
+ * never carry free text and the number of distinct keys is fixed. The lists
+ * are mirrored in apps/api/app/Support/Ux/UxSchema.php (UxRoutesParityTest
+ * compares the marked blocks).
+ */
+
+/** Our `data-track` names, then the landmarks, then `page` (none of those). */
+export const UX_TARGET_CONTEXTS = [
+  // ux-target-contexts:start
+  "doctor-card",
+  "facility-card",
+  "pharmacy-card",
+  "forum-topic",
+  "site-nav",
+  "tab-bar",
+  "breadcrumbs",
+  "pagination",
+  "home-how-it-works",
+  "home-forum-band",
+  "header",
+  "nav",
+  "main",
+  "footer",
+  "aside",
+  "search",
+  "dialog",
+  "form",
+  "page",
+  // ux-target-contexts:end
+] as const;
+
+/** Kinds of element, besides `input-<type>` and `role-<role>`. */
+export const UX_TARGET_ELEMENTS = [
+  // ux-target-elements:start
+  "link",
+  "button",
+  "select",
+  "textarea",
+  "summary",
+  "label",
+  "focusable",
+  "pointer",
+  "disabled",
+  "heading",
+  "img",
+  "icon",
+  "text",
+  "table",
+  "media",
+  "area",
+  // ux-target-elements:end
+] as const;
+
+/** `input-<type>`; any other type is `input-other`. */
+export const UX_INPUT_TYPES = [
+  // ux-input-types:start
+  "text",
+  "search",
+  "email",
+  "password",
+  "tel",
+  "url",
+  "number",
+  "checkbox",
+  "radio",
+  "range",
+  "date",
+  "time",
+  "file",
+  "submit",
+  "button",
+  "reset",
+  // ux-input-types:end
+] as const;
+
+/** ARIA roles that make an element interactive: `role-<role>`, except button and link. */
+export const UX_INTERACTIVE_ROLES = [
+  // ux-interactive-roles:start
+  "button",
+  "link",
+  "checkbox",
+  "radio",
+  "switch",
+  "tab",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "option",
+  "combobox",
+  "slider",
+  "spinbutton",
+  "textbox",
+  "searchbox",
+  "treeitem",
+  // ux-interactive-roles:end
+] as const;
+
+const TARGET_CONTEXTS = new Set<string>(UX_TARGET_CONTEXTS);
+const TARGET_ELEMENTS = new Set<string>([
+  ...UX_TARGET_ELEMENTS,
+  ...UX_INPUT_TYPES.map((type) => `input-${type}`),
+  "input-other",
+  ...UX_INTERACTIVE_ROLES.filter(
+    (role) => role !== "button" && role !== "link",
+  ).map((role) => `role-${role}`),
+]);
+
+/** A `data-track` name the statistics know (any other is ignored). */
+export function isUxTrackName(value: string): boolean {
+  return TARGET_CONTEXTS.has(value);
+}
+
+/** `context/element` with both parts from the closed lists. */
+export function isUxTargetKey(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const slash = value.indexOf("/");
+  return (
+    slash > 0 &&
+    TARGET_CONTEXTS.has(value.slice(0, slash)) &&
+    TARGET_ELEMENTS.has(value.slice(slash + 1))
+  );
+}
 
 export const UX_MAX_CLICKS_PER_BATCH = 50;
 export const UX_MAX_VIEWS_PER_BATCH = 20;

@@ -1,3 +1,9 @@
+import {
+  isUxTrackName,
+  UX_INPUT_TYPES,
+  UX_INTERACTIVE_ROLES,
+} from "@/lib/ux/schema";
+
 /**
  * Describes a clicked element without reading anything a person wrote or read.
  *
@@ -11,48 +17,12 @@
  * Only tag names, a fixed list of ARIA roles and input types, and our own
  * data-track attributes are read: never textContent, value, aria-label, alt,
  * title, href, ids or classes. The admin describes keys in words
- * (apps/api/app/Support/Ux/UxTargetDescriber.php).
+ * (apps/api/app/Support/Ux/UxTargetDescriber.php). Every name and kind comes
+ * from the closed lists in schema.ts, which the API checks too.
  */
 
-const TRACK_NAME = /^[a-z][a-z0-9-]{0,47}$/;
-
-const INTERACTIVE_ROLES = new Set([
-  "button",
-  "link",
-  "checkbox",
-  "radio",
-  "switch",
-  "tab",
-  "menuitem",
-  "menuitemcheckbox",
-  "menuitemradio",
-  "option",
-  "combobox",
-  "slider",
-  "spinbutton",
-  "textbox",
-  "searchbox",
-  "treeitem",
-]);
-
-const INPUT_TYPES = new Set([
-  "text",
-  "search",
-  "email",
-  "password",
-  "tel",
-  "url",
-  "number",
-  "checkbox",
-  "radio",
-  "range",
-  "date",
-  "time",
-  "file",
-  "submit",
-  "button",
-  "reset",
-]);
+const INTERACTIVE_ROLES = new Set<string>(UX_INTERACTIVE_ROLES);
+const INPUT_TYPES = new Set<string>(UX_INPUT_TYPES);
 
 const LANDMARK_TAGS: Record<string, string> = {
   HEADER: "header",
@@ -156,7 +126,7 @@ export function findInteractive(
 function context(el: Element): string {
   for (let node: Element | null = el; node; node = node.parentElement) {
     const track = node.getAttribute("data-track");
-    if (track && TRACK_NAME.test(track)) return track;
+    if (track && isUxTrackName(track)) return track;
 
     const r = role(node);
     if (r && LANDMARK_ROLES[r]) return LANDMARK_ROLES[r];

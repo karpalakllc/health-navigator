@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { privacySignalHeader, privacySignalOn } from "@/lib/ux/privacy-signals";
-import type { UxBatch } from "@/lib/ux/schema";
+import { isUxTargetKey, type UxBatch } from "@/lib/ux/schema";
 import {
   BATCH_CLICKS,
   BATCH_DELAY_MS,
@@ -120,6 +120,44 @@ describe("dead clicks", () => {
 
     expect(allClicks().map((c) => c.k)).toEqual(["doctor-card/text"]);
     window.getSelection()!.removeAllRanges();
+  });
+});
+
+describe("target keys", () => {
+  it("ignore a data-track name outside the closed list", () => {
+    document.getElementById("blank")!.innerHTML =
+      `<section data-track="secret-word"><p id="free">x</p></section>`;
+    click(document.getElementById("free")!);
+    tracker.flush();
+
+    expect(allClicks()[0].k).toBe("main/text");
+  });
+
+  it("are always in the vocabulary the API accepts", () => {
+    document.getElementById("blank")!.innerHTML = `
+      <input type="hidden-ish" id="odd" />
+      <input type="email" id="mail" />
+      <div role="tab" id="tab">x</div>
+      <div role="madeup" id="madeup">x</div>
+      <select id="sel"></select>
+      <span tabindex="0" id="focus">x</span>
+      <svg><path id="path"></path></svg>`;
+    for (const id of ["odd", "mail", "tab", "madeup", "sel", "focus", "path"]) {
+      click(document.getElementById(id)!);
+    }
+    tracker.flush();
+
+    const keys = allClicks().map((c) => c.k);
+    expect(keys).toEqual([
+      "main/input-other",
+      "main/input-email",
+      "main/role-tab",
+      "main/area",
+      "main/select",
+      "main/focusable",
+      "main/icon",
+    ]);
+    expect(keys.every((k) => isUxTargetKey(k))).toBe(true);
   });
 });
 

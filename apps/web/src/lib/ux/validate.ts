@@ -7,11 +7,11 @@ import {
   UX_MAX_X,
   UX_MAX_Y,
   UX_SCROLL_MILESTONES,
-  UX_TARGET_KEY_PATTERN,
   UX_VIEWPORT_CLASSES,
   UX_WIDTH_STEP,
   type UxBatch,
   type UxClick,
+  isUxTargetKey,
   type UxView,
 } from "@/lib/ux/schema";
 
@@ -49,8 +49,7 @@ function click(raw: unknown): UxClick | null {
     wb % UX_WIDTH_STEP !== 0 ||
     x === null ||
     (c.y !== null && y === null) ||
-    typeof c.k !== "string" ||
-    !UX_TARGET_KEY_PATTERN.test(c.k) ||
+    !isUxTargetKey(c.k) ||
     typeof c.d !== "boolean" ||
     typeof c.g !== "boolean"
   ) {

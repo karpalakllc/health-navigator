@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Support\Ux\UxSchema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -117,6 +118,10 @@ class UxEventsTest extends TestCase
             'query string' => [['r' => '/search?q=болка']],
             'free text as target key' => [['k' => 'main/Болка во градите']],
             'target key with spaces' => [['k' => 'doctor card/heading']],
+            'well-formed words outside the vocabulary' => [['k' => 'secret-word/link']],
+            'unknown element kind' => [['k' => 'main/whatever']],
+            'unknown role' => [['k' => 'main/role-bogus']],
+            'unknown input type' => [['k' => 'main/input-hidden']],
             'x out of range' => [['x' => 100]],
             'y out of range' => [['y' => 2000]],
             'width not on the step' => [['wb' => 390]],
@@ -138,6 +143,23 @@ class UxEventsTest extends TestCase
 
         $this->assertSame(0, DB::table('ux_heatmap_cells')->count());
         $this->assertSame(0, DB::table('ux_element_stats')->count());
+    }
+
+    public function test_every_target_key_the_tracker_can_produce_is_accepted(): void
+    {
+        $keys = ['doctor-card/input-other', 'main/role-tab', 'page/area', 'home-how-it-works/focusable', 'tab-bar/link'];
+
+        $this->postJson('/api/v1/ux/events', [
+            'clicks' => array_map(fn (string $k): array => $this->click(['k' => $k]), $keys),
+            'views' => [],
+        ])->assertNoContent();
+
+        $this->assertEqualsCanonicalizing($keys, DB::table('ux_element_stats')->pluck('target_key')->all());
+
+        // The longest key the lists allow fits the length limit.
+        $longest = collect(UxSchema::targetKeys())->sortByDesc(fn (string $k): int => strlen($k))->first();
+        $this->postJson('/api/v1/ux/events', ['clicks' => [$this->click(['k' => $longest])], 'views' => []])
+            ->assertNoContent();
     }
 
     public function test_views_are_validated_too(): void
