@@ -25,11 +25,9 @@ test.describe("verification badges", () => {
     await page.keyboard.press("Enter");
     await expect(why).toHaveAttribute("aria-expanded", "true");
     await expect(
-      page
-        .getByRole("status")
-        .filter({
-          hasText: mk.verification.verifiedInfoBasis.split("{basis}")[0],
-        }),
+      page.getByRole("status").filter({
+        hasText: mk.verification.verifiedInfoBasis.split("{basis}")[0],
+      }),
     ).toBeVisible();
 
     await page.getByRole("link", { name: mk.integrity.disclosureMore }).click();

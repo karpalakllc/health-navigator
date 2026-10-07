@@ -118,7 +118,9 @@ describe("VerificationBadge", () => {
   it("uses the short feminine forms for places, with no noun", () => {
     expect(t("verification.verifiedFeminine")).toBe("Верификувана");
     expect(t("verification.unverifiedFeminine")).toBe("Неверификувана");
-    expect(t("verification.verifiedInfoPharmacy")).not.toMatch(/ФЗОМ|Министерство/);
+    expect(t("verification.verifiedInfoPharmacy")).not.toMatch(
+      /ФЗОМ|Министерство/,
+    );
   });
 
   it("explains an unverified profile calmly, from the keyboard", async () => {
