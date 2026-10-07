@@ -108,16 +108,40 @@ class ProfileReportController extends Controller
     }
 
     /**
-     * HMAC of the address and the profile under the app key: the same guest
-     * on the same profile gives the same value, but it cannot be reversed or
-     * linked across profiles without the key.
+     * HMAC of the guest's network and the profile under the app key: the
+     * same guest on the same profile gives the same value, but it cannot be
+     * reversed or linked across profiles without the key. An IPv6 visitor
+     * usually holds a whole /64, so that is the guest; IPv4 is per address.
      */
     public static function guestHash(string $ip, Model $subject): string
     {
         return hash_hmac(
             'sha256',
-            'profile-report|'.$ip.'|'.$subject::class.'|'.$subject->getKey(),
+            'profile-report|'.self::guestNetwork($ip).'|'.$subject::class.'|'.$subject->getKey(),
             (string) config('app.key'),
         );
+    }
+
+    /**
+     * IPv4: the address (/32). IPv6: its /64 prefix, normalised.
+     */
+    public static function guestNetwork(string $ip): string
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return $ip;
+        }
+
+        $packed = inet_pton($ip);
+
+        if ($packed === false) {
+            return $ip;
+        }
+
+        // ::ffff:a.b.c.d is an IPv4 visitor.
+        if (str_starts_with($packed, str_repeat("\0", 10)."\xff\xff")) {
+            return (string) inet_ntop(substr($packed, 12));
+        }
+
+        return (string) inet_ntop(substr($packed, 0, 8).str_repeat("\0", 8)).'/64';
     }
 }

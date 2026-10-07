@@ -99,6 +99,26 @@ class ProfileReportTest extends TestCase
         $this->assertSame(4, ProfileCorrection::query()->count());
     }
 
+    public function test_ipv6_guests_are_keyed_by_their_64_network(): void
+    {
+        $doctor = Doctor::factory()->create();
+
+        // One visitor rotating addresses inside their /64: one report.
+        foreach (['2001:db8:1:2::1', '2001:db8:1:2::2', '2001:db8:1:2:ffff::3'] as $ip) {
+            $this->report("doctors/{$doctor->slug}", ip: $ip)->assertCreated();
+        }
+        $this->assertSame(1, ProfileCorrection::query()->count());
+
+        // Another /64 is another guest; IPv4 stays per address.
+        $this->report("doctors/{$doctor->slug}", ip: '2001:db8:1:3::1')->assertCreated();
+        $this->report("doctors/{$doctor->slug}", ip: '203.0.113.8')->assertCreated();
+        $this->assertSame(3, ProfileCorrection::query()->count());
+
+        $this->assertSame(ProfileReportController::guestHash('2001:db8:1:2::1', $doctor), ProfileReportController::guestHash('2001:0db8:0001:0002:aaaa::9', $doctor));
+        $this->assertNotSame(ProfileReportController::guestHash('203.0.113.8', $doctor), ProfileReportController::guestHash('203.0.113.9', $doctor));
+        $this->assertSame('203.0.113.8', ProfileReportController::guestNetwork('::ffff:203.0.113.8'));
+    }
+
     public function test_a_member_has_one_open_report_per_profile(): void
     {
         $doctor = Doctor::factory()->create();
