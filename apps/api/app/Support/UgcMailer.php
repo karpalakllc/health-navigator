@@ -18,9 +18,11 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Moderation outcome e-mails to authors and reporters. Since W8-B they go
- * through MemberNotifier: type „moderation“ (the member can switch the
- * e-mails off with the link in each), and decisions also appear in the
- * member's „Известувања“ (not the „received“ confirmation).
+ * through MemberNotifier: type „moderation“, and decisions also appear in
+ * the member's „Известувања“ (not the „received“ confirmation). The
+ * „received“, „published“ and report-outcome e-mails follow the member's
+ * settings (an unsubscribe link in each); a refusal or removal is the
+ * statement of reasons (DSA Art. 17) and is always sent, without one.
  */
 final class UgcMailer
 {
@@ -90,7 +92,7 @@ final class UgcMailer
                 canResubmit: ! $removed && $model instanceof Review && $model->canBeResubmitted(),
                 finalRefusal: ! $removed && $model instanceof Review && ! $model->isRemoved()
                     && (int) $model->resubmission_count >= Review::MAX_RESUBMISSIONS,
-            ));
+            ), always: true);
         });
     }
 

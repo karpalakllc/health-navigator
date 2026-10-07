@@ -3,17 +3,23 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\NotificationType;
+use App\Enums\ReviewStatus;
 use App\Mail\ImpactDigestMail;
 use App\Mail\ReviewHelpfulMail;
 use App\Mail\ReviewReminderMail;
 use App\Mail\ReviewReplyMail;
+use App\Mail\UgcApprovedMail;
+use App\Mail\UgcRejectedMail;
 use App\Models\Doctor;
 use App\Models\MemberNotification;
 use App\Models\NotificationPreference;
+use App\Models\Review;
 use App\Models\ReviewReminder;
 use App\Models\User;
 use App\Support\Notifications\UnsubscribeToken;
+use App\Support\UgcMailer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -160,6 +166,35 @@ class NotificationPreferencesTest extends TestCase
 
         $this->assertStringContainsString('Дали сте биле во „Клиника Здравје“?', strip_tags((string) $mails[2][0]->render()));
         $this->assertStringContainsString('не дека секој ја прочитал', (string) $mails[3][0]->render());
+    }
+
+    /**
+     * A refusal or removal is the statement of reasons (DSA Art. 17): it is
+     * e-mailed even with every e-mail switched off, and carries no
+     * unsubscribe link. „Published“ still follows the settings.
+     */
+    public function test_refusals_and_removals_are_always_emailed(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create();
+        $preferences = NotificationPreference::for($user);
+        $preferences->forceFill(['email_enabled' => false, 'moderation' => false])->save();
+        $refused = Review::factory()->create(['user_id' => $user->id, 'status' => ReviewStatus::Rejected, 'rejection_note' => 'Лични податоци.']);
+        $removed = Review::factory()->create(['user_id' => $user->id]);
+        $published = Review::factory()->create(['user_id' => $user->id]);
+
+        UgcMailer::notifyRejected($refused);
+        UgcMailer::notifyRejected($removed, removed: true);
+        UgcMailer::notifyApproved($published);
+
+        Mail::assertQueued(UgcRejectedMail::class, 2);
+        Mail::assertNotQueued(UgcApprovedMail::class);
+        Mail::assertQueued(UgcRejectedMail::class, function (UgcRejectedMail $mail): bool {
+            $html = (string) $mail->render();
+
+            return ! str_contains($html, '/unsubscribe?token=') && ! str_contains($html, 'Исклучи ги со еден клик');
+        });
+        $this->assertSame(3, MemberNotification::query()->where('user_id', $user->id)->where('type', NotificationType::Moderation)->count());
     }
 
     public function test_a_deleted_accounts_link_no_longer_works(): void

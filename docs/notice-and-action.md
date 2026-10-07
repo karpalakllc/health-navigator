@@ -71,7 +71,10 @@ that item at once:
     in the topic's reply total;
   - the author receives the „Содржината е отстранета“ email with the reason —
     this is the **statement of reasons**. Write reasons in Macedonian, without
-    naming the reporter;
+    naming the reporter. Refusal and removal emails are always sent, whatever
+    the member's notification settings say, and carry no unsubscribe link
+    (`UgcMailer::notifyRejected`, `MemberNotifier::send(always: true)`); the
+    reason also stays in „Мои рецензии“ / „Мој форум“ and „Известувања“;
   - every reporter of the item receives the outcome email.
 
 There is no interim or partial hide: a report ends as kept or removed. Two

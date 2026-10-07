@@ -16,14 +16,18 @@ use Illuminate\Support\Facades\Mail;
  * signed unsubscribe link. A deleted account gets neither.
  *
  * The in-app line is kept whatever the e-mail settings say, so a member who
- * turned e-mails off still finds a moderation decision in their account.
+ * turned e-mails off still finds a moderation decision in their account. A
+ * refusal or removal (the DSA statement of reasons, docs/notice-and-action.md)
+ * is e-mailed even then: it is not a preference.
  */
 final class MemberNotifier
 {
     /**
      * @param  array<string, mixed>|null  $data  the in-app line; null sends the e-mail only
+     * @param  bool  $always  a statement of reasons (a refusal or removal):
+     *                        e-mailed whatever the settings say, without an unsubscribe link
      */
-    public static function send(User $user, NotificationType $type, ?array $data, ?Mailable $mail = null): bool
+    public static function send(User $user, NotificationType $type, ?array $data, ?Mailable $mail = null, bool $always = false): bool
     {
         if ($user->isAnonymised()) {
             return false;
@@ -37,11 +41,11 @@ final class MemberNotifier
             ]);
         }
 
-        if ($mail === null || ! NotificationPreference::for($user)->allowsEmail($type)) {
+        if ($mail === null || (! $always && ! NotificationPreference::for($user)->allowsEmail($type))) {
             return false;
         }
 
-        if ($mail instanceof Unsubscribable) {
+        if ($mail instanceof Unsubscribable && ! $always) {
             $mail->withUnsubscribe($user, $type);
         }
 

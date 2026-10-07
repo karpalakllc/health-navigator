@@ -14,7 +14,11 @@ namespace App\Enums;
  */
 enum NotificationType: string
 {
-    /** Decisions about the member's reviews, topics, replies and reports. */
+    /**
+     * Decisions about the member's reviews, topics, replies and reports. The
+     * switch covers „received“, „published“ and report outcomes; a refusal
+     * or removal (statement of reasons) is e-mailed regardless.
+     */
     case Moderation = 'moderation';
 
     /** The doctor or facility replied publicly to the member's review. */
