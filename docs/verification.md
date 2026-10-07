@@ -100,8 +100,11 @@ the ФЗОМ import marked `no_specialty` (§8).
   a mail to the import alert inbox.
 - **Websites:** every website import stamps `last_seen_at` on each
   institution and staff-page entry it lists, changed or not. An entry older
-  than its institution's record was missing from the latest import of that
-  site → `website_removed`. An entry no import listed within
+  than the latest import of the slice that listed it was missing from that
+  import → `website_removed`. Several research slices may describe one
+  facility; a later slice that does not list a person says nothing about the
+  entry another slice made (entries stored before the slice was recorded
+  compare with the newest import of any slice). An entry no import listed within
   `IMPORT_WEBSITE_MAX_AGE_DAYS` (180) → `website_outdated`. Entries stored
   before this stamp existed are refreshed by the next import of their slice.
 
