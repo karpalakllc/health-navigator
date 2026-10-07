@@ -38,6 +38,22 @@ export function isSafeCampaignValue(value: string): boolean {
   );
 }
 
+/**
+ * Pages that send no pageview at all. The unsubscribe page is reached only
+ * from a member's e-mail, so even its bare path would say „a member opened
+ * an opt-out link“ — nothing the statistics need.
+ */
+export const ANALYTICS_EXCLUDED_PATHS: readonly string[] = ["/unsubscribe"];
+
+export function isAnalyticsExcludedPath(pathname: string): boolean {
+  const path =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  return ANALYTICS_EXCLUDED_PATHS.includes(path);
+}
+
 export function redactPageUrl(
   href: string,
   allowedParams: readonly string[] = ANALYTICS_ALLOWED_PARAMS,
