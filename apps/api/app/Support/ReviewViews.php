@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Models\Doctor;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\Levels\LevelRules;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -72,7 +73,8 @@ final class ReviewViews
             return 0;
         }
 
-        $month = now()->startOfMonth()->toDateString();
+        // The month in Macedonian time, like the digest and the levels.
+        $month = now(LevelRules::TIMEZONE)->startOfMonth()->toDateString();
 
         DB::transaction(function () use ($counted, $month): void {
             Review::query()->whereIn('id', $counted)->toBase()->increment('view_count');

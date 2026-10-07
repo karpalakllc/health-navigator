@@ -6,6 +6,7 @@ use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
 use App\Support\DataOps\ImportAlerter;
 use App\Support\DataOps\ImportSchedule;
+use App\Support\Levels\LevelRules;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('triage:purge-old-sessions')
@@ -136,8 +137,11 @@ Schedule::command('reviews:send-reminders')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily: each member gets the previous month once (a missed 1st is caught up
+// on the next run); see SendImpactDigestCommand.
 Schedule::command('notifications:send-impact-digest')
-    ->monthlyOn(1, '09:00')
+    ->dailyAt('09:00')
+    ->timezone(LevelRules::TIMEZONE)
     ->onOneServer()
     ->withoutOverlapping();
 

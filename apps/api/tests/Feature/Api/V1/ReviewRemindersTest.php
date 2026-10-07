@@ -150,7 +150,7 @@ class ReviewRemindersTest extends TestCase
 
         $this->assertSame('0 * * * *', $find('reviews:send-reminders'));
         $this->assertSame('0 18 * * *', $find('reviews:notify-helpful'));
-        $this->assertSame('0 9 1 * *', $find('notifications:send-impact-digest'));
+        $this->assertSame('0 9 * * *', $find('notifications:send-impact-digest'));
         $this->assertSame('55 4 * * *', $find('MemberNotification'));
     }
 

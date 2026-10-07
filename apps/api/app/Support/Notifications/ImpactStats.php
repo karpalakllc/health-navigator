@@ -8,6 +8,8 @@ use App\Enums\ReviewStatus;
 use App\Models\ForumPost;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\Levels\LevelRules;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -25,8 +27,11 @@ final class ImpactStats
      */
     public static function forMonth(User $user, CarbonInterface $month): array
     {
-        $start = $month->copy()->startOfMonth();
-        $end = $month->copy()->endOfMonth();
+        // The calendar month in Macedonian time (as the levels and the
+        // monthly view buckets use), compared as UTC instants.
+        $local = CarbonImmutable::create($month->year, $month->month, 1, 0, 0, 0, LevelRules::TIMEZONE);
+        $start = $local->utc();
+        $end = $local->endOfMonth()->utc();
         $reviewIds = Review::query()
             ->where('user_id', $user->getKey())
             ->where('status', ReviewStatus::Approved)
@@ -35,7 +40,7 @@ final class ImpactStats
         return [
             'review_views' => (int) DB::table('review_views_monthly')
                 ->whereIn('review_id', $reviewIds)
-                ->where('month', $start->toDateString())
+                ->where('month', $local->toDateString())
                 ->sum('views'),
             'helpful_votes' => DB::table('review_helpful_votes')
                 ->whereIn('review_id', $reviewIds)

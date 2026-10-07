@@ -13,6 +13,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Support\ForumPostHelpfulVotes;
 use App\Support\ReviewHelpfulVotes;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -143,6 +144,45 @@ class ReviewImpactTest extends TestCase
             && $mail->stats['forum_replies_received'] === 1
             && $mail->unsubscribeType === 'impact_digest');
         $this->assertSame(1, MemberNotification::query()->where('type', 'impact_digest')->count());
+    }
+
+    /**
+     * Each member gets a month once: a rerun, a manual --month and the daily
+     * catch-up send nothing more; a 1st the machine missed is caught up once.
+     * Months are Macedonian time.
+     */
+    public function test_the_digest_is_sent_once_per_member_and_month_and_catches_up_once(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-15 12:00', 'Europe/Skopje'));
+        $review = $this->review();
+        $this->reportViews([$review->id]);
+        NotificationPreference::query()->create(['user_id' => $this->author->id, 'impact_digest' => true]);
+
+        // 2026-09-30 22:30 UTC is already 1 October in Skopje: the next digest's.
+        $this->travelTo(CarbonImmutable::parse('2026-09-30 22:30', 'UTC'));
+        ReviewHelpfulVotes::add($review, User::factory()->create());
+
+        // The machine was off on the 1st; the daily run on the 4th catches up.
+        $this->travelTo(CarbonImmutable::parse('2026-10-04 09:00', 'Europe/Skopje'));
+        $this->artisan('notifications:send-impact-digest')->assertSuccessful();
+        $this->artisan('notifications:send-impact-digest')->assertSuccessful();
+        $this->artisan('notifications:send-impact-digest', ['--month' => '2026-09'])->assertSuccessful();
+        $this->travelTo(CarbonImmutable::parse('2026-10-05 09:00', 'Europe/Skopje'));
+        $this->artisan('notifications:send-impact-digest')->assertSuccessful();
+
+        Mail::assertQueued(ImpactDigestMail::class, 1);
+        Mail::assertQueued(ImpactDigestMail::class, fn (ImpactDigestMail $mail): bool => $mail->monthLabel === 'септември 2026'
+            && $mail->stats['review_views'] === 1
+            && $mail->stats['helpful_votes'] === 0);
+        $this->assertSame(1, MemberNotification::query()->where('type', 'impact_digest')->count());
+        $this->assertSame('2026-09', NotificationPreference::query()->find($this->author->id)?->impact_digest_month);
+
+        // October: the vote of the 1st (Skopje) and the October views bucket.
+        $this->travelTo(CarbonImmutable::parse('2026-11-01 09:00', 'Europe/Skopje'));
+        $this->artisan('notifications:send-impact-digest')->assertSuccessful();
+        Mail::assertQueued(ImpactDigestMail::class, fn (ImpactDigestMail $mail): bool => $mail->monthLabel === 'октомври 2026'
+            && $mail->stats['helpful_votes'] === 1);
+        Mail::assertQueued(ImpactDigestMail::class, 2);
     }
 
     public function test_the_digest_respects_the_global_switch(): void

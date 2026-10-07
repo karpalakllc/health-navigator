@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property bool $review_helpful
  * @property bool $impact_digest
  * @property Carbon|null $digest_invited_at
+ * @property string|null $impact_digest_month the last month (YYYY-MM) the digest was handled for
  */
 class NotificationPreference extends Model
 {
