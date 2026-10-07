@@ -11,11 +11,21 @@ namespace App\Support\Import\Names;
  */
 final class Homoglyphs
 {
-    /** @var array<string, string> */
+    /**
+     * Only letters whose Latin and Cyrillic shapes are the same AND whose
+     * Cyrillic twin is the letter the typist meant. Not folded (a person
+     * decides, `unresolved`): S/s (it looks like Ѕ/ѕ, but in a Macedonian
+     * word it is almost always a mistyped С/с — folding it to ѕ reads right
+     * and still breaks search), J/j (Ј is a letter of its own, and a Latin j
+     * often stands for й-like spellings or a Latin name), Y (not the shape
+     * of У).
+     *
+     * @var array<string, string>
+     */
     private const LATIN_TO_CYRILLIC = [
-        'A' => 'А', 'B' => 'В', 'C' => 'С', 'E' => 'Е', 'H' => 'Н', 'J' => 'Ј', 'K' => 'К', 'M' => 'М',
-        'O' => 'О', 'P' => 'Р', 'S' => 'Ѕ', 'T' => 'Т', 'X' => 'Х', 'Y' => 'У',
-        'a' => 'а', 'c' => 'с', 'e' => 'е', 'j' => 'ј', 'o' => 'о', 'p' => 'р', 's' => 'ѕ', 'x' => 'х', 'y' => 'у',
+        'A' => 'А', 'B' => 'В', 'C' => 'С', 'E' => 'Е', 'H' => 'Н', 'K' => 'К', 'M' => 'М',
+        'O' => 'О', 'P' => 'Р', 'T' => 'Т', 'X' => 'Х',
+        'a' => 'а', 'c' => 'с', 'e' => 'е', 'o' => 'о', 'p' => 'р', 'x' => 'х', 'y' => 'у',
     ];
 
     /**

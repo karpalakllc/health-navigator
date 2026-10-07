@@ -99,6 +99,39 @@ class NameNormalisersTest extends TestCase
     }
 
     /**
+     * Latin letters whose Cyrillic look-alike is a different Macedonian
+     * letter (s/ѕ, j/ј) are never folded: a person decides, and the value
+     * stays as it was.
+     *
+     * @return array<string, array{0: string}>
+     */
+    public static function notFolded(): array
+    {
+        return [
+            'latin s' => ["Првана Петров\u{0073}ка"],
+            'latin S' => ["\u{0053}тојна Примеровска"],
+            'latin j' => ["Првана Примеров\u{006A}ска"],
+            'latin J' => ["\u{004A}ана Примеровска"],
+            'latin Y' => ["Првана \u{0059}росимовска"],
+        ];
+    }
+
+    #[DataProvider('notFolded')]
+    public function test_latin_letters_with_a_distinct_macedonian_twin_are_left_for_a_person(string $raw): void
+    {
+        $cleaned = PersonName::clean($raw);
+
+        $this->assertSame($raw, $cleaned->value);
+        $this->assertSame('mixed_script', $cleaned->uncertain);
+        $this->assertSame([], $cleaned->changes);
+
+        $facility = FacilityName::clean('ПЗУ '.$raw, null);
+        $this->assertSame('mixed_script', $facility->uncertain);
+        $this->assertStringNotContainsString('ѕ', $facility->value);
+        $this->assertStringNotContainsString('Ѕ', $facility->value);
+    }
+
+    /**
      * Cosmetic fixes never change the matching keys (Комора, ФЗОМ and
      * website matching give the same result before and after).
      */
