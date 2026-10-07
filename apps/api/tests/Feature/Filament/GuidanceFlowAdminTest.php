@@ -103,7 +103,7 @@ class GuidanceFlowAdminTest extends TestCase
         $component->callTableAction('review', $version, [
             'decision' => 'approved',
             'reviewer_name' => 'д-р Тест',
-            'reviewer_registration' => '',
+            'reviewer_registration' => 'ЛК-0001',
             'reviewed_on' => now()->toDateString(),
             'note' => 'Прегледано во симулаторот.',
         ])->assertHasNoTableActionErrors();
@@ -111,11 +111,51 @@ class GuidanceFlowAdminTest extends TestCase
         $this->assertSame('reviewed', $version->fresh()->status);
         $this->assertSame($staff->id, $version->fresh()->latestReview->recorded_by);
 
+        // The recorder cannot publish their own approval; a second staff member can.
         $component->callTableAction('publish', $version);
+        $this->assertSame('reviewed', $version->fresh()->status);
+
+        $second = $this->staff();
+        Livewire::actingAs($second)
+            ->test(VersionsRelationManager::class, ['ownerRecord' => $version->flow, 'pageClass' => ViewGuidanceFlow::class])
+            ->callTableAction('publish', $version);
         $this->assertSame('published', $version->fresh()->status);
-        $this->assertSame($staff->id, $version->fresh()->published_by);
+        $this->assertSame($second->id, $version->fresh()->published_by);
 
         $this->getJson('/api/v1/triage/v2/catalog')->assertOk()->assertJsonPath('data.flows.0.key', 'example-sore-throat');
+    }
+
+    public function test_the_form_requires_name_and_registration_for_an_approval(): void
+    {
+        $version = $this->exampleVersion();
+
+        Livewire::actingAs($this->staff())
+            ->test(VersionsRelationManager::class, ['ownerRecord' => $version->flow, 'pageClass' => ViewGuidanceFlow::class])
+            ->callTableAction('review', $version, [
+                'decision' => 'approved',
+                'reviewer_name' => '',
+                'reviewer_registration' => '',
+                'reviewed_on' => now()->toDateString(),
+                'note' => 'Прегледано во симулаторот.',
+            ])->assertHasTableActionErrors(['reviewer_name' => 'required', 'reviewer_registration' => 'required']);
+
+        $this->assertSame(0, $version->reviews()->count());
+    }
+
+    public function test_changes_requested_on_a_published_version_unpublishes_it_with_a_notification(): void
+    {
+        $version = $this->exampleVersion();
+        $version->update(['status' => 'published', 'published_at' => now()]);
+
+        Livewire::actingAs($this->staff())
+            ->test(VersionsRelationManager::class, ['ownerRecord' => $version->flow, 'pageClass' => ViewGuidanceFlow::class])
+            ->callTableAction('review', $version, [
+                'decision' => 'changes_requested',
+                'reviewed_on' => now()->toDateString(),
+                'note' => 'Грешка во препораката.',
+            ])->assertNotified('Review recorded; the version was unpublished');
+
+        $this->assertSame('retired', $version->fresh()->status);
     }
 
     public function test_the_simulator_steps_through_any_version_and_shows_the_path_and_outcome(): void

@@ -4,6 +4,7 @@ namespace App\Services\Triage\V2;
 
 use App\Models\TriageFlow;
 use App\Models\TriageFlowVersion;
+use App\Support\DeploymentEnvironment;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -96,7 +97,11 @@ final class FlowImporter
                 'is_published' => false,
             ]);
 
-            $grandfathered = in_array($fileKey, (array) config('triage.grandfathered_flows', []), true)
+            // The one flow that was live before sign-off existed keeps running
+            // on a developer machine; a deployed environment imports it as a
+            // draft like every other flow and it needs a clinician review.
+            $grandfathered = ! DeploymentEnvironment::isDeployed()
+                && in_array($fileKey, (array) config('triage.grandfathered_flows', []), true)
                 && ! $flow->versions()->exists();
 
             $version = TriageFlowVersion::query()->create([

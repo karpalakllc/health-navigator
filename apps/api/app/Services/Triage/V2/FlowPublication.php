@@ -33,6 +33,14 @@ final class FlowPublication
             throw ValidationException::withMessages(['note' => 'A review note is required.']);
         }
 
+        if ($data['decision'] === TriageFlowReview::DECISION_APPROVED) {
+            foreach (['reviewer_name' => 'The clinician\'s name', 'reviewer_registration' => 'The clinician\'s registration / licence number'] as $field => $label) {
+                if (self::blankToNull($data[$field] ?? null) === null) {
+                    throw ValidationException::withMessages([$field => "{$label} is required to record an approval."]);
+                }
+            }
+        }
+
         return DB::transaction(function () use ($version, $data, $staff): TriageFlowReview {
             $review = $version->reviews()->create([
                 'decision' => $data['decision'],
@@ -51,6 +59,11 @@ final class FlowPublication
                 ]);
             }
 
+            // A clinician who finds a problem in the live version takes it down at once.
+            if ($version->isPublished() && $data['decision'] === TriageFlowReview::DECISION_CHANGES_REQUESTED) {
+                $this->unpublish($version);
+            }
+
             return $review;
         });
     }
@@ -58,7 +71,7 @@ final class FlowPublication
     /**
      * Why the version cannot be published, or null when it can.
      */
-    public function blocker(TriageFlowVersion $version): ?string
+    public function blocker(TriageFlowVersion $version, ?User $staff = null): ?string
     {
         if ($version->isPublished()) {
             return 'This version is already published.';
@@ -72,6 +85,12 @@ final class FlowPublication
             return 'Record a clinician review (approved) for this version first.';
         }
 
+        $recorder = ($version->relationLoaded('latestReview') ? $version->latestReview : $version->latestReview()->first())?->recorded_by;
+
+        if ($staff !== null && $recorder !== null && $recorder === $staff->id) {
+            return 'The staff member who recorded the clinician\'s approval cannot publish the same version. Ask a second staff member to publish it (the owner can create another staff account).';
+        }
+
         $report = $this->lint($version);
 
         if (! $report->ok()) {
@@ -83,7 +102,7 @@ final class FlowPublication
 
     public function publish(TriageFlowVersion $version, ?User $staff): void
     {
-        $blocker = $this->blocker($version);
+        $blocker = $this->blocker($version, $staff);
 
         if ($blocker !== null) {
             throw ValidationException::withMessages(['version' => $blocker]);

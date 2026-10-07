@@ -37,8 +37,11 @@ v2 extends 3f-a; everything above still holds unless stated here.
 - **Clinician sign-off before publication.** A new or changed flow is a draft
   („нацрт — чека лекарски преглед“) and is hidden from visitors until a staff
   member records a clinician's approving review of that exact version and
-  publishes it. Only the v1 general flow, live before sign-off existed, was
-  carried over without one (config `triage.grandfathered_flows`). Staff preview
+  publishes it (a different staff member from the one who recorded the approval;
+  the approval names the clinician and their registration number; „changes
+  requested“ on a live version unpublishes it). Only on non-deployed
+  environments is the v1 general flow, live before sign-off existed, carried
+  over without one (config `triage.grandfathered_flows`). Staff preview
   any version in the admin simulator; nothing is stored by it.
 - **Linter** (`php artisan triage:lint`, also on import and publish): every
   path ends in an outcome, nothing unreachable, red flags first and cited, every

@@ -25,6 +25,8 @@ trait PublishesGuidanceFlows
             $publication = app(FlowPublication::class);
             $publication->recordReview($version, [
                 'decision' => TriageFlowReview::DECISION_APPROVED,
+                'reviewer_name' => 'д-р Тест',
+                'reviewer_registration' => 'ЛК-0001',
                 'reviewed_on' => '2026-10-07',
                 'note' => 'Reviewed for the test.',
             ], null);

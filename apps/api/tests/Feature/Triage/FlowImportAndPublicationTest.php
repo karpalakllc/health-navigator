@@ -5,8 +5,10 @@ namespace Tests\Feature\Triage;
 use App\Models\TriageFlow;
 use App\Models\TriageFlowReview;
 use App\Models\TriageFlowVersion;
+use App\Models\User;
 use App\Services\Triage\V2\FlowImporter;
 use App\Services\Triage\V2\FlowPublication;
+use App\Support\DeploymentEnvironment;
 use Database\Seeders\TriageFlowSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -54,7 +56,8 @@ class FlowImportAndPublicationTest extends TestCase
     {
         app(FlowPublication::class)->recordReview($version, [
             'decision' => TriageFlowReview::DECISION_APPROVED,
-            'reviewer_name' => '',
+            'reviewer_name' => 'д-р Тест',
+            'reviewer_registration' => 'ЛК-0001',
             'reviewed_on' => '2026-10-07',
             'note' => 'Прегледано.',
         ], null);
@@ -115,10 +118,88 @@ class FlowImportAndPublicationTest extends TestCase
 
         $this->approve($version->fresh());
         $this->assertSame(TriageFlowVersion::STATUS_REVIEWED, $version->fresh()->status);
-        $this->assertNull($version->fresh()->latestReview->reviewer_name);
+        $this->assertSame('д-р Тест', $version->fresh()->latestReview->reviewer_name);
 
         $publication->publish($version->fresh(), null);
         $this->assertSame(TriageFlowVersion::STATUS_PUBLISHED, $version->fresh()->status);
+    }
+
+    public function test_an_approval_needs_the_clinicians_name_and_registration(): void
+    {
+        $this->writeExample();
+        app(FlowImporter::class)->import();
+        $version = $this->version(1);
+
+        foreach ([['reviewer_name' => '', 'reviewer_registration' => 'ЛК-1'], ['reviewer_name' => 'д-р Тест', 'reviewer_registration' => ' ']] as $who) {
+            try {
+                app(FlowPublication::class)->recordReview($version, $who + [
+                    'decision' => TriageFlowReview::DECISION_APPROVED,
+                    'reviewed_on' => '2026-10-07',
+                    'note' => 'Прегледано.',
+                ], null);
+                $this->fail('Approval recorded without a named, registered clinician.');
+            } catch (ValidationException) {
+            }
+        }
+
+        $this->assertSame(0, $version->reviews()->count());
+
+        // Requesting changes does not need an identity.
+        app(FlowPublication::class)->recordReview($version, [
+            'decision' => TriageFlowReview::DECISION_CHANGES_REQUESTED,
+            'reviewed_on' => '2026-10-07',
+            'note' => 'Додадете прашање.',
+        ], null);
+        $this->assertSame(1, $version->reviews()->count());
+    }
+
+    public function test_the_staff_member_who_recorded_the_approval_cannot_publish_that_version(): void
+    {
+        $this->writeExample();
+        app(FlowImporter::class)->import();
+        $version = $this->version(1);
+        $recorder = User::factory()->create();
+        $other = User::factory()->create();
+        $publication = app(FlowPublication::class);
+
+        $publication->recordReview($version, [
+            'decision' => TriageFlowReview::DECISION_APPROVED,
+            'reviewer_name' => 'д-р Тест',
+            'reviewer_registration' => 'ЛК-0001',
+            'reviewed_on' => '2026-10-07',
+            'note' => 'Прегледано.',
+        ], $recorder);
+
+        try {
+            $publication->publish($version->fresh(), $recorder);
+            $this->fail('The recorder published their own approval.');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('cannot publish the same version', $e->errors()['version'][0]);
+        }
+
+        $this->assertSame(TriageFlowVersion::STATUS_REVIEWED, $version->fresh()->status);
+
+        $publication->publish($version->fresh(), $other);
+        $this->assertSame(TriageFlowVersion::STATUS_PUBLISHED, $version->fresh()->status);
+    }
+
+    public function test_changes_requested_on_the_published_version_unpublishes_it(): void
+    {
+        $this->writeExample();
+        app(FlowImporter::class)->import();
+        $this->approve($this->version(1));
+        app(FlowPublication::class)->publish($this->version(1), null);
+        $this->getJson('/api/v1/triage/v2/catalog')->assertJsonCount(1, 'data.flows');
+
+        app(FlowPublication::class)->recordReview($this->version(1), [
+            'decision' => TriageFlowReview::DECISION_CHANGES_REQUESTED,
+            'reviewed_on' => '2026-10-07',
+            'note' => 'Грешка во препораката.',
+        ], null);
+
+        $this->assertSame(TriageFlowVersion::STATUS_RETIRED, $this->version(1)->status);
+        $this->assertSame([], $this->getJson('/api/v1/triage/v2/catalog')->json('data.flows') ?? []);
+        $this->assertNotNull(app(FlowPublication::class)->blocker($this->version(1)));
     }
 
     public function test_a_changed_file_is_a_new_draft_and_the_published_version_stays_live_until_replaced(): void
@@ -156,6 +237,21 @@ class FlowImportAndPublicationTest extends TestCase
         $version->update(['definition' => $definition]);
 
         $this->assertStringContainsString('linter errors', (string) app(FlowPublication::class)->blocker($version->fresh()));
+    }
+
+    public function test_in_a_deployed_environment_general_imports_as_a_draft_needing_review(): void
+    {
+        config(['triage.flows_path' => database_path('data/triage/flows')]);
+        $this->app['env'] = 'production';
+        $this->assertTrue(DeploymentEnvironment::isDeployed());
+
+        app(FlowImporter::class)->import();
+
+        $general = TriageFlow::query()->where('key', 'general')->firstOrFail();
+        $this->assertSame(TriageFlowVersion::STATUS_DRAFT, $general->versions()->firstOrFail()->status);
+        $this->assertNull($general->versions()->firstOrFail()->review_exempt_reason);
+        $this->assertSame(0, TriageFlowVersion::query()->where('status', 'published')->count());
+        $this->assertSame([], $this->getJson('/api/v1/triage/v2/catalog')->json('data.flows') ?? []);
     }
 
     public function test_the_seeder_publishes_the_grandfathered_general_flow_only(): void

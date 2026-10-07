@@ -15,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
@@ -68,21 +69,31 @@ class VersionsRelationManager extends RelationManager
                     ->color('info')
                     ->authorize(fn (): bool => $this->canManage())
                     ->visible(fn (TriageFlowVersion $record): bool => $record->status !== TriageFlowVersion::STATUS_RETIRED)
-                    ->modalDescription('Record what a clinician concluded about THIS version (stepped through in the simulator or on the printed checklist). The name and registration number are optional; the date and note are not.')
+                    ->modalDescription('Record what a clinician concluded about THIS version (stepped through in the simulator or on the printed checklist). Approving needs the name and registration number of the clinician; a different staff member must then publish. Requesting changes on a published version unpublishes it.')
                     ->schema([
                         Radio::make('decision')
                             ->options([
                                 TriageFlowReview::DECISION_APPROVED => 'Approved for publication',
                                 TriageFlowReview::DECISION_CHANGES_REQUESTED => 'Changes requested',
                             ])
-                            ->required(),
-                        TextInput::make('reviewer_name')->label('Clinician name (optional)')->maxLength(120),
-                        TextInput::make('reviewer_registration')->label('Registration / licence no. (optional)')->maxLength(64),
+                            ->required()->live(),
+                        TextInput::make('reviewer_name')->label('Clinician name')->maxLength(120)
+                            ->required(fn (Get $get): bool => $get('decision') === TriageFlowReview::DECISION_APPROVED)->live(),
+                        TextInput::make('reviewer_registration')->label('Registration / licence no.')->maxLength(64)
+                            ->required(fn (Get $get): bool => $get('decision') === TriageFlowReview::DECISION_APPROVED)->live(),
                         DatePicker::make('reviewed_on')->label('Reviewed on')->required()->maxDate(now())->default(now()),
                         Textarea::make('note')->label('Review note')->required()->minLength(5)->maxLength(4000)->rows(4),
                     ])
                     ->action(function (TriageFlowVersion $record, array $data, FlowPublication $publication): void {
+                        $wasPublished = $record->isPublished();
                         $publication->recordReview($record, $data, $this->staff());
+
+                        if ($wasPublished && $data['decision'] === TriageFlowReview::DECISION_CHANGES_REQUESTED) {
+                            Notification::make()->title('Review recorded; the version was unpublished')->body("v{$record->version} is no longer public until a corrected version is approved and published.")->warning()->send();
+
+                            return;
+                        }
+
                         Notification::make()->title('Review recorded')->success()->send();
                     }),
                 Action::make('publish')
@@ -92,7 +103,7 @@ class VersionsRelationManager extends RelationManager
                     ->authorize(fn (): bool => $this->canManage())
                     ->visible(fn (TriageFlowVersion $record): bool => ! $record->isPublished())
                     ->requiresConfirmation()
-                    ->modalDescription(fn (TriageFlowVersion $record): string => app(FlowPublication::class)->blocker($record)
+                    ->modalDescription(fn (TriageFlowVersion $record): string => app(FlowPublication::class)->blocker($record, $this->staff())
                         ?? 'Visitors will get this version from now on; the currently published version (if any) is retired. Sessions already running keep the version they started with.')
                     ->action(function (TriageFlowVersion $record, FlowPublication $publication): void {
                         try {

@@ -25,6 +25,10 @@ the guidance engine (T-ENGINE: `app/Services/Triage/V2`, `php artisan triage:imp
   database (Filament). `php artisan triage:import` loads files as **draft** versions; an
   unchanged file (same canonical hash) is a no-op, a changed one becomes a new draft
   version. The published version stays live until a newer one is reviewed and published.
+- The one exception is `general` (config `triage.grandfathered_flows`): on a developer
+  machine, shared dev box or in tests (`DeploymentEnvironment::isDeployed()` is false) its
+  first import is published without a review; in a deployed environment it imports as a
+  draft like every other flow and needs a clinician review.
 
 ## 2. Flow file — top level
 
@@ -500,10 +504,13 @@ without an `unknown` branch; source domain outside the public list; banned wordi
    „Guidance flows → Import from files“) stores it as a **draft version**.
 3. Admin → Guidance flows → the flow → Versions: **Simulate** (any answers, the
    path, scores and each node's routing; nothing stored), then **Record
-   clinician review** (approved / changes requested, date, note; name and
-   registration optional), then **Publish** (blocked unless approved and
-   lint-clean). Publishing retires the previous version; running sessions keep
-   the version they started with.
+   clinician review** (approved / changes requested, date, note; an approval
+   needs the clinician's name and registration number), then **Publish**
+   (blocked unless approved and lint-clean). The staff member who recorded the
+   approval cannot publish that version: a second staff member does it (the
+   owner can create another staff account). Recording „changes requested“ on
+   the published version unpublishes it at once. Publishing retires the
+   previous version; running sessions keep the version they started with.
 4. Admin → Guidance outcomes: anonymous weekly counts per flow and outcome.
 
 Fixtures used by the tests live in `apps/api/tests/Fixtures/triage/` (the §14
