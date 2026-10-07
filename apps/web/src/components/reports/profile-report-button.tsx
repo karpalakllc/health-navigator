@@ -193,7 +193,9 @@ function ProfileReportForm({
         return;
       }
 
-      setSent(payload?.data?.message ?? t("profileReports.successBody"));
+      // Our own body under the „Ви благодариме“ title: the API's message
+      // thanks the reporter too, which would say it twice.
+      setSent(t("profileReports.successBody"));
       // Focus follows the content swap, so it is not lost on <body>.
       requestAnimationFrame(() => successRef.current?.focus());
     } catch {

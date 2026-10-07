@@ -90,7 +90,11 @@ describe("ProfileReportButton", () => {
 
   it("posts the profile, reason, note, solved ALTCHA and empty honeypot, then confirms", async () => {
     const fetchMock = mockFetch(201, {
-      data: { status: "received", message: "Пријавата е примена." },
+      data: {
+        status: "received",
+        message:
+          "Ви благодариме. Пријавата е примена и тимот ќе го провери профилот.",
+      },
     });
     const { user, dialog } = await openSheet("facility");
 
@@ -132,7 +136,9 @@ describe("ProfileReportButton", () => {
       }),
     );
     const status = await within(dialog).findByRole("status");
-    expect(status).toHaveTextContent("Пријавата е примена.");
+    expect(status).toHaveTextContent(t("profileReports.successBody"));
+    // The thanks is the title; the body does not say it again.
+    expect(status.textContent?.match(/Ви благодариме/g)).toHaveLength(1);
     await waitFor(() => expect(status).toHaveFocus());
   });
 
