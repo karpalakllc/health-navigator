@@ -1,0 +1,76 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "example-cough",
+  "title": "Кашлица (пример)",
+  "summary_en": "Test fixture: a short flow with an info node, a multi question and a local emergency outcome.",
+  "audience": { "age_bands": ["adult_18_64", "older_65_plus"] },
+  "urgency_rank": 60,
+  "body_areas": ["chest"],
+  "search_terms": ["кашлица", "кашлам", "искашлување"],
+  "red_flags": [
+    {
+      "code": "coughing_blood",
+      "label": "Искашлувате многу крв",
+      "outcome": "o_er",
+      "source": "nhs-cough"
+    }
+  ],
+  "entry": "i_intro",
+  "nodes": {
+    "i_intro": {
+      "type": "info",
+      "title": "Неколку прашања за кашлицата",
+      "text": "Одговорете колку што можете поточно.",
+      "next": "q_symptoms"
+    },
+    "q_symptoms": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што од следново го имате?",
+      "options": [
+        { "value": "breathless", "label": "Недостиг на воздух при мирување" },
+        { "value": "fever", "label": "Температура" },
+        { "value": "none", "label": "Ништо од наведеното", "exclusive": true }
+      ],
+      "next": [
+        { "when": { "answer": "q_symptoms", "includes": "breathless" }, "goto": "o_er" },
+        { "when": { "any": [
+            { "answer": "q_symptoms", "includes": "fever" },
+            { "demo": "age_band", "eq": "older_65_plus" },
+            { "demo": "conditions", "includes": "lung_disease" }
+          ] }, "goto": "o_gp" },
+        { "goto": "global:emergency_now" }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_er": {
+      "level": "emergency_now",
+      "title": "Веднаш јавете се на 194",
+      "summary": "Недостигот на воздух при мирување бара итна помош.",
+      "reasons": ["Имате недостиг на воздух при мирување."],
+      "do_now": ["Јавете се на 194 или 112.", "Седнете исправено додека чекате."],
+      "watch_for": [],
+      "call": [
+        { "number": "194", "label": "Итна медицинска помош" },
+        { "number": "112", "label": "Единствен број за итни случаи" }
+      ],
+      "care": { "setting": "emergency_department", "specialties": ["pulmologija"], "facility_types": ["hospital"] }
+    },
+    "o_gp": {
+      "level": "see_gp_this_week",
+      "title": "Закажете преглед кај матичниот лекар",
+      "summary": "Кашлицата со температура е добро да ја погледне лекар.",
+      "reasons": ["Имате температура."],
+      "do_now": ["Закажете преглед оваа недела."],
+      "watch_for": ["Ако почнете тешко да дишете, веднаш јавете се на 194."],
+      "care": { "setting": "gp", "specialties": ["opsta-medicina", "kardiologija"], "facility_types": ["clinic"] }
+    }
+  },
+  "populations": {
+    "pregnancy": "Fixture only."
+  },
+  "sources": [
+    { "id": "nhs-cough", "title": "NHS — Cough", "url": "https://www.nhs.uk/conditions/cough/", "accessed": "2026-10-07" }
+  ]
+}

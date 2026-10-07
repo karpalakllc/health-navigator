@@ -1,0 +1,105 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "general",
+  "title": "Општи симптоми",
+  "summary_en": "The pre-v2 general flow carried over: concern, severity and duration decide between seeing a doctor soon and self-care with safety-netting. Offered when no specific symptom matches. Infants, pregnancy, older adults and chronic conditions are escalated one level.",
+  "notes_en": "Grandfathered (config triage.grandfathered_flows): published without a clinician review because it was live before sign-off existed. Same questions and rules as the v1 TriageSeeder flow; the age question moved to the engine's demographics.",
+  "audience": {
+    "age_bands": ["infant_0_3m", "infant_3_12m", "child_1_4", "child_5_12", "teen_13_17", "adult_18_64", "older_65_plus"]
+  },
+  "urgency_rank": 10,
+  "body_areas": ["general"],
+  "search_terms": ["општо", "друго", "не знам", "лошо ми е", "замор", "слабост", "болка"],
+  "red_flags": [
+    {
+      "code": "rapid_worsening",
+      "label": "Состојбата нагло и многу се влошува во последните часови",
+      "source": "nhs-when-to-call-999"
+    }
+  ],
+  "entry": "concern",
+  "nodes": {
+    "concern": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што најдобро го опишува она што ве загрижува?",
+      "options": [
+        { "value": "general", "label": "Општи симптоми (болка, температура, замор)" },
+        { "value": "injury", "label": "Повреда или незгода" },
+        { "value": "wellbeing", "label": "Стрес или психичка благосостојба" }
+      ],
+      "next": "severity"
+    },
+    "severity": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку се изразени симптомите денес?",
+      "options": [
+        { "value": "mild", "label": "Благи — се забележуваат, но се поднесливи" },
+        { "value": "moderate", "label": "Умерени — ги попречуваат секојдневните активности" },
+        { "value": "severe", "label": "Силни — многу тешко се поднесуваат" }
+      ],
+      "next": "duration"
+    },
+    "duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго ги имате овие симптоми?",
+      "options": [
+        { "value": "under_24h", "label": "Помалку од 24 часа" },
+        { "value": "1_7_days", "label": "1–7 дена" },
+        { "value": "over_week", "label": "Повеќе од една недела" }
+      ],
+      "next": [
+        { "when": { "demo": "age_band", "eq": "infant_0_3m" }, "goto": "same_day" },
+        { "when": { "answer": "severity", "eq": "severe" }, "goto": "seek_care_soon" },
+        { "when": { "all": [
+            { "answer": "duration", "eq": "over_week" },
+            { "answer": "severity", "in": ["moderate", "severe"] }
+          ] }, "goto": "seek_care_soon" },
+        { "when": { "any": [
+            { "demo": "age_band", "in": ["infant_3_12m", "older_65_plus"] },
+            { "demo": "pregnancy", "in": ["pregnant", "postpartum", "unsure"] },
+            { "demo": "conditions", "includes_any": ["immunosuppressed", "heart_disease", "lung_disease", "kidney_disease", "diabetes"] }
+          ] }, "goto": "seek_care_soon" },
+        { "goto": "general_information" }
+      ]
+    }
+  },
+  "outcomes": {
+    "same_day": {
+      "level": "urgent_same_day",
+      "title": "Бебето нека го прегледа лекар денес",
+      "summary": "Кај бебиња помлади од 3 месеци и благите симптоми е добро да ги процени лекар истиот ден.",
+      "reasons": ["Бебињата помлади од 3 месеци можат побрзо да се разболат сериозно."],
+      "do_now": ["Јавете се кај педијатарот или во дежурна служба денес."],
+      "watch_for": ["Ако бебето е млитаво, не сака да цица или тешко дише, веднаш јавете се на 194."],
+      "care": { "setting": "pediatrics", "specialties": ["pedijatrija"], "facility_types": ["clinic", "hospital"] }
+    },
+    "seek_care_soon": {
+      "level": "see_doctor_24_48h",
+      "title": "Размислете за преглед наскоро",
+      "summary": "Вашите одговори упатуваат дека можеби е разумно наскоро да разговарате со здравствен работник, особено ако симптомите се влошат.",
+      "reasons": ["Симптомите се силни, траат подолго, или имате поголем ризик од компликации."],
+      "do_now": ["Закажете преглед кај вашиот матичен лекар во наредните 1–2 дена."],
+      "watch_for": ["Ако симптомите нагло се влошат, веднаш јавете се на 194 или 112."],
+      "care": { "setting": "gp", "specialties": ["opsta-medicina", "semejna-medicina"], "facility_types": ["clinic"] }
+    },
+    "general_information": {
+      "level": "self_care_with_safety_net",
+      "title": "Општи информации",
+      "summary": "Според оваа листа за проверка, вашите одговори не упатуваат на непосредна итна состојба. Следете ги симптомите и побарајте стручен совет ако и понатаму сте загрижени.",
+      "reasons": ["Симптомите се благи или умерени и не траат долго."],
+      "do_now": ["Одморајте и пијте доволно течности.", "Ако имате прашања за лекови, прашајте фармацевт."],
+      "watch_for": ["Ако симптомите се влошат или не поминат за една недела, јавете се кај матичниот лекар."],
+      "care": { "setting": "self_care", "specialties": [], "facility_types": [] }
+    }
+  },
+  "populations": {
+    "child": "Children follow the same severity/duration rules as adults, as in the v1 flow; the global screen carries the child red flags."
+  },
+  "sources": [
+    { "id": "nhs-when-to-call-999", "title": "NHS — When to call 999", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-call-999/", "accessed": "2026-10-07" },
+    { "id": "nhs-111", "title": "NHS — When to use 111", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-use-111/", "accessed": "2026-10-07" }
+  ]
+}

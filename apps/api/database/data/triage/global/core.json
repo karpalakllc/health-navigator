@@ -1,0 +1,139 @@
+{
+  "schema": "zdravje.triage.global/1",
+  "red_flags": [
+    {
+      "code": "severe_breathing",
+      "label": "Многу тешко дишење, гушење, или усните или лицето посинуваат",
+      "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "chest_pain",
+      "label": "Силна болка или притисок во градите, особено ако се шири кон раката, вратот, вилицата или грбот",
+      "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "stroke_signs",
+      "label": "Ненадејно паднат агол на лицето, слабост во раката или ногата, или тешкотии со говорот",
+      "help": "Знаци на мозочен удар: лице, рака, говор — времето е важно.",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "unconscious_or_confused",
+      "label": "Губење на свеста, тешко будење или ненадејна збунетост",
+      "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад со грчеви што трае подолго од 5 минути, или прв напад во животот",
+      "source": "nhs-seizure"
+    },
+    {
+      "code": "severe_bleeding",
+      "label": "Обилно крварење што не престанува",
+      "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "allergic_swelling",
+      "label": "Ненадејно отекување на усните, јазикот или грлото, или тешко дишење по храна, лек или каснување",
+      "help": "Можна тешка алергиска реакција (анафилакса).",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "non_blanching_rash",
+      "label": "Дамки на кожата што не бледеат кога ќе се притисне со стаклена чаша, со температура или чувство на тешка болест",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "serious_injury",
+      "label": "Тешка повреда, на пример сообраќајна несреќа, пад од висина или длабока рана",
+      "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "self_harm",
+      "label": "Мисли за самоповредување или самоубиство, или сте се повредиле себеси",
+      "outcome": "global:crisis",
+      "source": "nhs-suicidal-thoughts"
+    },
+    {
+      "code": "infant_fever_under_3m",
+      "label": "Бебето е помладо од 3 месеци и има температура 38 °C или повеќе",
+      "when": { "demo": "age_band", "eq": "infant_0_3m" },
+      "source": "nice-ng143"
+    },
+    {
+      "code": "infant_very_unwell",
+      "label": "Бебето е млитаво, многу поспано, не сака да цица или да јаде, или плаче невообичаено (висок, слаб плач)",
+      "when": { "demo": "age_band", "in": ["infant_0_3m", "infant_3_12m"] },
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "pregnancy_bleeding_pain",
+      "label": "Обилно вагинално крварење или силна болка во стомакот",
+      "when": { "demo": "pregnancy", "in": ["pregnant", "postpartum", "unsure"] },
+      "source": "nhs-pregnancy-bleeding"
+    },
+    {
+      "code": "pregnancy_preeclampsia",
+      "label": "Силна главоболка со заматен вид, светкања пред очите или нагло отекување на лицето и рацете",
+      "help": "Може да е знак на прееклампсија (висок притисок во бременост или по породување).",
+      "when": { "demo": "pregnancy", "in": ["pregnant", "postpartum", "unsure"] },
+      "source": "nhs-pre-eclampsia"
+    }
+  ],
+  "outcomes": {
+    "emergency_now": {
+      "level": "emergency_now",
+      "title": "Веднаш јавете се на 194",
+      "summary": "Според вашите одговори, ова може да е итна состојба. Веднаш повикајте итна медицинска помош.",
+      "reasons": [
+        "Означивте знак што може да укажува на сериозна состојба за која е потребна итна помош."
+      ],
+      "do_now": [
+        "Јавете се на 194 (итна медицинска помош) или на 112 и кажете што се случува.",
+        "Следете ги упатствата на диспечерот.",
+        "Не возете сами до болница. Ако сте сами, отклучете ја вратата ако можете.",
+        "Додека чекате, седнете или легнете на безбедно место."
+      ],
+      "watch_for": [],
+      "call": [
+        { "number": "194", "label": "Итна медицинска помош" },
+        { "number": "112", "label": "Единствен број за итни случаи" }
+      ],
+      "care": { "setting": "emergency_department", "specialties": ["urgentna-medicina"], "facility_types": ["hospital"] },
+      "sources": ["nhs-when-to-call-999"]
+    },
+    "crisis": {
+      "level": "emergency_now",
+      "crisis": true,
+      "title": "Веднаш побарајте помош — не сте сами",
+      "summary": "Ако мислите да се повредите себеси или веќе сте се повредиле, веднаш побарајте помош. Тоа е важно и има кој да помогне.",
+      "reasons": [
+        "Означивте мисли за самоповредување или самоубиство."
+      ],
+      "do_now": [
+        "Јавете се на 194 или 112 сега, или одете во најблиското одделение за итна помош.",
+        "Не останувајте сами. Кажете му на некој близок како се чувствувате.",
+        "Ако можете, тргнете ги од близина предметите или лековите со кои би можеле да се повредите."
+      ],
+      "watch_for": [],
+      "call": [
+        { "number": "194", "label": "Итна медицинска помош" },
+        { "number": "112", "label": "Единствен број за итни случаи" }
+      ],
+      "care": { "setting": "emergency_department", "specialties": ["psihijatrija"], "facility_types": ["hospital"] },
+      "sources": ["nhs-suicidal-thoughts"]
+    }
+  },
+  "sources": [
+    { "id": "nhs-when-to-call-999", "title": "NHS — When to call 999", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-call-999/", "accessed": "2026-10-07" },
+    { "id": "nhs-stroke", "title": "NHS — Stroke: symptoms", "url": "https://www.nhs.uk/conditions/stroke/symptoms/", "accessed": "2026-10-07" },
+    { "id": "nhs-seizure", "title": "NHS — What to do if someone has a seizure", "url": "https://www.nhs.uk/conditions/epilepsy/what-to-do-if-someone-has-a-seizure-fit/", "accessed": "2026-10-07" },
+    { "id": "nhs-anaphylaxis", "title": "NHS — Anaphylaxis", "url": "https://www.nhs.uk/conditions/anaphylaxis/", "accessed": "2026-10-07" },
+    { "id": "nhs-meningitis", "title": "NHS — Meningitis", "url": "https://www.nhs.uk/conditions/meningitis/", "accessed": "2026-10-07" },
+    { "id": "nhs-sepsis", "title": "NHS — Sepsis", "url": "https://www.nhs.uk/conditions/sepsis/", "accessed": "2026-10-07" },
+    { "id": "nhs-suicidal-thoughts", "title": "NHS — Help for suicidal thoughts", "url": "https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/behaviours/help-for-suicidal-thoughts/", "accessed": "2026-10-07" },
+    { "id": "nice-ng143", "title": "NICE NG143 — Fever in under 5s: assessment and initial management", "url": "https://www.nice.org.uk/guidance/ng143", "accessed": "2026-10-07" },
+    { "id": "nhs-pregnancy-bleeding", "title": "NHS — Vaginal bleeding in pregnancy", "url": "https://www.nhs.uk/pregnancy/related-conditions/common-symptoms/vaginal-bleeding/", "accessed": "2026-10-07" },
+    { "id": "nhs-pre-eclampsia", "title": "NHS — Pre-eclampsia", "url": "https://www.nhs.uk/conditions/pre-eclampsia/", "accessed": "2026-10-07" }
+  ]
+}

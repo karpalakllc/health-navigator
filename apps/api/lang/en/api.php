@@ -117,6 +117,18 @@ return [
         'invalid_red_flag' => 'Invalid red-flag code.',
         'answer_required' => 'Please answer: :step',
         'red_flags_required' => 'Please answer the warning-signs question first.',
+        'v2' => [
+            'invalid_age' => 'Enter an age between 0 and 120 years.',
+            'invalid_choice' => 'An invalid answer was selected.',
+            'demographics_required' => 'First say who the guidance is for.',
+            'symptoms_required' => 'Choose at least one symptom.',
+            'too_many_symptoms' => 'Choose at most :max symptoms.',
+            'unknown_flow' => 'This guidance is not available.',
+            'not_for_age' => 'This guidance is not meant for the selected age.',
+            'screen_required' => 'First answer the warning-signs question.',
+            'not_current' => 'This question is no longer part of your guidance. Continue from the current question.',
+            'stage_closed' => 'This step is already complete.',
+        ],
         'fallback' => [
             'title' => 'General information',
             'body' => 'We could not load detailed guidance. If you are worried about your health, contact a healthcare professional or emergency services (194 / 112).',
