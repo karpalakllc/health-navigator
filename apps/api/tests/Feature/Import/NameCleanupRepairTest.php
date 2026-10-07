@@ -3,6 +3,7 @@
 namespace Tests\Feature\Import;
 
 use App\Enums\ImportReviewKind;
+use App\Enums\ImportReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\FieldProvenance;
@@ -137,6 +138,20 @@ class NameCleanupRepairTest extends TestCase
         $this->assertSame($entries, Activity::query()->count());
         $this->assertSame($items, ImportReviewItem::query()->count());
         $this->assertSame('ПЗУ „До Дент“', $quoted->fresh()->name);
+    }
+
+    public function test_a_batch_left_without_proposals_is_closed_and_each_name_gets_its_item(): void
+    {
+        $doctor = $this->doctor();
+        $doctor->forceFill(['full_name' => 'Maxim Wolf'])->saveQuietly();
+        $batch = NameCleanup::raiseBatch('latin_script', [
+            ['subject_type' => 'doctor', 'subject_id' => $doctor->id, 'field' => 'full_name', 'current' => 'Maxim Wolf', 'suggestion' => 'Маxим Wолф'],
+        ], null);
+
+        $this->artisan('import:repair-name-cleanup', ['--apply' => true])->assertSuccessful();
+
+        $this->assertSame(ImportReviewStatus::Dismissed, $batch->fresh()->status);
+        $this->assertTrue(ImportReviewItem::query()->open()->where('item_key', 'name:doctor:'.$doctor->id.':full_name')->exists());
     }
 
     public function test_a_field_a_person_decided_on_is_never_repaired(): void

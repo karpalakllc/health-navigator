@@ -372,7 +372,7 @@ final class NameCleanupRepair
             $problem = (string) ($item->details['problem'] ?? 'latin_script');
 
             if ($kept === []) {
-                $item->resolve(ImportReviewStatus::Dismissed, 'repaired');
+                $item->resolve(ImportReviewStatus::Dismissed, 'repaired', null);
             } else {
                 NameCleanup::raiseBatch($problem, $kept, (int) $this->run?->getKey());
             }
