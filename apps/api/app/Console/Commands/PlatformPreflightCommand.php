@@ -88,6 +88,8 @@ class PlatformPreflightCommand extends Command
         $this->checkSearch();
         $this->checkDatabaseExtensions();
         $this->checkMonitoring();
+        $this->checkAltcha();
+        $this->checkImportPublishing();
     }
 
     private function checkApp(): void
@@ -391,6 +393,27 @@ class PlatformPreflightCommand extends Command
 
         if (! is_string($alertEmail) || filter_var(trim($alertEmail), FILTER_VALIDATE_EMAIL) === false) {
             $this->addWarning('zdravje.alerts.email', 'PLATFORM_ALERT_EMAIL is not set (or not an address); a failed queued job — verification or reset mail included — alerts nobody. Set it to an inbox someone reads.');
+        }
+    }
+
+    private function checkAltcha(): void
+    {
+        if (config('zdravje.altcha.enabled') !== true) {
+            $this->addError('zdravje.altcha.enabled', 'ALTCHA_ENABLED is off: sign-up, reports, corrections and claims then accept requests without the proof of work. The switch exists for the test suite only; remove it from the environment.');
+        }
+
+        // Never echo the value. Unset is fine: the key is derived from APP_KEY.
+        $key = config('zdravje.altcha.hmac_key');
+
+        if (filled($key) && strlen((string) $key) < 32) {
+            $this->addError('zdravje.altcha.hmac_key', 'ALTCHA_HMAC_KEY is shorter than 32 characters, so challenges can be forged offline. Use a long random value (`openssl rand -base64 48`), or unset it to derive the key from APP_KEY.');
+        }
+    }
+
+    private function checkImportPublishing(): void
+    {
+        if (config('import.verification.auto_publish') === true || config('import.verification.auto_publish_fzom_unverified') === true) {
+            $this->addWarning('import.verification.auto_publish', 'IMPORT_AUTO_PUBLISH_VERIFIED or IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED is on: imported drafts become public after a run without anyone looking. The owner\'s default is off (bulk publish from Import review).');
         }
     }
 

@@ -41,7 +41,7 @@ class ImportLockTest extends TestCase
             '--pzz' => base_path('tests/Fixtures/import/fzom/pzz.xml'),
             '--spec' => base_path('tests/Fixtures/import/fzom/spec.xml'),
         ])->assertSuccessful();
-        $this->assertSame(1, ImportRun::query()->count());
+        $this->assertSame(1, ImportRun::query()->where('source', 'fzom')->count());
         $this->assertTrue(Cache::lock('import:fzom', 60)->get(), 'The lock is released after the run.');
     }
 

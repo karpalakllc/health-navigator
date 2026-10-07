@@ -81,6 +81,88 @@ final class SourcePolicy
     }
 
     /**
+     * Every Guzzle option the import fetchers share: redirects (above) and
+     * TLS (below).
+     *
+     * @param  list<string>  $allowedHosts
+     * @return array<string, mixed>
+     */
+    public static function requestOptions(array $allowedHosts): array
+    {
+        return self::redirectOptions($allowedHosts) + self::tlsOptions();
+    }
+
+    /**
+     * TLS for the import fetchers: the system trust store, plus the extra
+     * public CA certificates of IMPORT_CA_BUNDLE (`import.ca_bundle`) — an
+     * intermediate a source host fails to send (arhiva.fzo.org.mk). The two
+     * are written into one PEM file (Guzzle's `verify` replaces the store,
+     * it does not add to it), cached by content under storage/framework.
+     * Certificate verification is never turned off: a missing or unreadable
+     * bundle is an error, not a fallback.
+     *
+     * @return array{verify?: string}
+     */
+    public static function tlsOptions(): array
+    {
+        $extra = trim((string) config('import.ca_bundle'));
+
+        return $extra === '' ? [] : ['verify' => self::combinedCaBundle($extra)];
+    }
+
+    private static function combinedCaBundle(string $extra): string
+    {
+        $path = str_starts_with($extra, '/') ? $extra : base_path($extra);
+        $pem = is_file($path) && is_readable($path) ? (string) file_get_contents($path) : '';
+        $count = preg_match_all('/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/', $pem, $blocks);
+
+        if ($count === 0 || $count === false) {
+            throw new RuntimeException("IMPORT_CA_BUNDLE {$extra} is not a readable PEM file with a certificate.");
+        }
+
+        foreach ($blocks[0] as $block) {
+            if (openssl_x509_read($block) === false) {
+                throw new RuntimeException("IMPORT_CA_BUNDLE {$extra} holds a certificate that cannot be read.");
+            }
+        }
+
+        $system = self::systemCaFile();
+        $combined = rtrim((string) file_get_contents($system))."\n\n# IMPORT_CA_BUNDLE {$extra}\n".implode("\n", $blocks[0])."\n";
+        $target = storage_path('framework/cache/import-ca-'.hash('sha256', $combined).'.pem');
+
+        if (! is_file($target)) {
+            $temporary = $target.'.'.bin2hex(random_bytes(4));
+            file_put_contents($temporary, $combined);
+            rename($temporary, $target);
+        }
+
+        return $target;
+    }
+
+    /**
+     * The CA file curl would use by default (php.ini curl.cainfo, then
+     * openssl.cafile, then OpenSSL's default / SSL_CERT_FILE).
+     */
+    private static function systemCaFile(): string
+    {
+        $locations = openssl_get_cert_locations();
+        $candidates = [
+            ini_get('curl.cainfo'),
+            ini_get('openssl.cafile'),
+            getenv((string) ($locations['default_cert_file_env'] ?? 'SSL_CERT_FILE')),
+            $locations['default_cert_file'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '' && is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        throw new RuntimeException('No system CA bundle found to add IMPORT_CA_BUNDLE to (set curl.cainfo in php.ini).');
+    }
+
+    /**
      * The robots.txt body to apply ('' = no rules).
      */
     public static function robotsBody(Response $response, string $host): string

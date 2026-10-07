@@ -12,6 +12,8 @@ type ReportPayload = {
   target?: Partial<ReportTarget> & { kind?: string };
   reason?: string;
   note?: string | null;
+  /** ALTCHA payload from the sheet's invisible widget; the API checks it. */
+  altcha?: unknown;
 };
 
 function isId(value: unknown): value is number {
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         reason: body.reason,
         note: typeof body.note === "string" ? body.note : null,
+        altcha: typeof body.altcha === "string" ? body.altcha : null,
       }),
     }),
   );

@@ -171,4 +171,52 @@ class KomoraLicenceMatcherTest extends TestCase
             $this->decide($source, [$this->row('ЗОРАН ЗАБОВСКИ', 'доктор на медицина во ПЗЗ')]),
         );
     }
+
+    public function test_a_website_only_draft_is_matched_only_when_no_fzom_profile_carries_the_name(): void
+    {
+        $source = (new FakeLicenceCandidateSource)
+            // Only on an institution's staff page: matched like anyone else.
+            ->add(1, 'Ана Сајтовска', ['ПЕДИЈАТАР'], fallback: true)
+            // The ФЗОМ profile comes first; its website twin is not a rival.
+            ->add(2, 'Бојан Двоен', ['ПЕДИЈАТАР'])
+            ->add(3, 'Бојан Двоен', ['ПЕДИЈАТАР'], fallback: true)
+            // ФЗОМ has the name but not the specialty, the website draft has both: two people, or one twice.
+            ->add(4, 'Вера Спорна', ['ОФТАЛМОЛОГИЈА'])
+            ->add(5, 'Вера Спорна', ['ПЕДИЈАТАР'], fallback: true)
+            // Two website drafts of one name (two pages): never guessed.
+            ->add(6, 'Гоце Повторен', ['ПЕДИЈАТАР'], fallback: true)
+            ->add(7, 'Гоце Повторен', ['ПЕДИЈАТАР'], fallback: true);
+
+        $this->assertSame([
+            [1, null, [1]],
+            [2, null, [2]],
+            [null, 'ambiguous', [4, 5]],
+            [null, 'ambiguous', [6, 7]],
+        ], $this->decide($source, [
+            $this->row('АНА САЈТОВСКА', 'педијатрија'),
+            $this->row('БОЈАН ДВОЕН', 'педијатрија'),
+            $this->row('ВЕРА СПОРНА', 'педијатрија'),
+            $this->row('ГОЦЕ ПОВТОРЕН', 'педијатрија'),
+        ]));
+    }
+
+    public function test_a_general_doctors_licence_fits_a_profile_with_no_specialty_but_not_a_website_draft(): void
+    {
+        // Both say "no specialisation"; a website draft may have a wording
+        // nobody mapped yet, which a general licence would contradict.
+        $source = (new FakeLicenceCandidateSource)
+            ->add(1, 'Дане Безспецијалност', [])
+            ->add(2, 'Ѓорѓи Немапиран', [], fallback: true)
+            ->add(3, 'Ели Лабораториска', []);
+
+        $this->assertSame([
+            [1, null, [1]],
+            [null, 'specialty_mismatch', [2]],
+            [null, 'specialty_mismatch', [3]],
+        ], $this->decide($source, [
+            $this->row('ДАНЕ БЕЗСПЕЦИЈАЛНОСТ', 'доктор на медицина во ПЗЗ'),
+            $this->row('ЃОРЃИ НЕМАПИРАН', 'доктор на медицина во ПЗЗ'),
+            $this->row('ЕЛИ ЛАБОРАТОРИСКА', 'педијатрија'),
+        ]));
+    }
 }

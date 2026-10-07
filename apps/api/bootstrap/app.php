@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRegistrationsEnabled;
 use App\Http\Middleware\IgnoreRememberMeCookie;
 use App\Http\Middleware\OptionalSanctumAuth;
+use App\Http\Middleware\RequireAltcha;
 use App\Http\Middleware\SetApiLocale;
 use App\Http\Middleware\SetPublicCacheHeaders;
 use App\Http\Middleware\SetSecurityHeaders;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'maintenance' => EnsureNotInMaintenance::class,
             'auth.sanctum.optional' => OptionalSanctumAuth::class,
             'cache.public' => SetPublicCacheHeaders::class,
+            'altcha' => RequireAltcha::class,
             // Overrides the framework alias so refusals use this API's envelope.
             'verified' => EnsureEmailIsVerified::class,
         ]);

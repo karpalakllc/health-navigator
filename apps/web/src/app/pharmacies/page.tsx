@@ -16,6 +16,7 @@ type PharmaciesPageProps = {
   searchParams: Promise<{
     city?: string;
     q?: string;
+    verified?: string;
     page?: string;
   }>;
 };
@@ -48,15 +49,21 @@ export default async function PharmaciesPage({
 
   const params = await searchParams;
   const page = parseListPage(params.page);
+  const onlyVerified = params.verified === "1";
 
   const pharmacies = await fetchPharmacies({
     city: params.city,
     q: params.q,
+    verified: onlyVerified ? "1" : undefined,
     page,
   });
 
-  const applied = { q: params.q ?? "", city: params.city ?? "" };
-  const hasFilters = Boolean(applied.q || applied.city);
+  const applied = {
+    q: params.q ?? "",
+    city: params.city ?? "",
+    verified: onlyVerified ? "1" : "",
+  };
+  const hasFilters = Boolean(applied.q || applied.city || applied.verified);
 
   return (
     <PharmaciesDirectory applied={applied} total={pharmacies.meta.total}>

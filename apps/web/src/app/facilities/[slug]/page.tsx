@@ -9,6 +9,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -40,6 +41,7 @@ import {
   facilitySchemaType,
   placeJsonLd,
 } from "@/lib/structured-data";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t, tCount } from "@/i18n/t";
 
 type FacilityDetailPageProps = {
@@ -197,6 +199,15 @@ export default async function FacilityDetailPage({
               subtitle={[facilityKindLabel(facility.type), facility.city]
                 .filter(Boolean)
                 .join(" · ")}
+              verification={
+                <VerificationBadge
+                  verification={facility.verification}
+                  kind="facility"
+                />
+              }
+              reportAction={
+                <ProfileReportButton subject="facility" slug={slug} compact />
+              }
               summary={facility.review_summary}
               tags={
                 <>

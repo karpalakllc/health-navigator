@@ -87,6 +87,14 @@ return [
         'received_objection' => 'Your request has been received. The team will contact you to confirm the profile is yours and will reply with reasons within 30 days at the latest.',
     ],
 
+    'profile_report' => [
+        'received' => 'Thank you. The report has been received and the team will check the profile.',
+    ],
+
+    'altcha' => [
+        'failed' => 'We could not confirm that the form was sent by a person. Please try again.',
+    ],
+
     'report' => [
         'received' => 'Thank you. The report has been received and a moderator will review it.',
         'hidden_default_note' => 'The content was removed after a report and a moderator review because it does not follow the community rules.',
@@ -141,6 +149,30 @@ return [
             'city' => 'city',
             'specialties' => 'specialties',
             'facilities' => 'workplaces',
+        ],
+    ],
+
+    // Public labels for `verification.basis_label` (VerificationBasis).
+    'verification' => [
+        'basis' => [
+            'doctor' => [
+                'official_registers' => 'ФЗОМ register and the Medical Chamber',
+                'licence_and_website' => 'Valid licence and the institution\'s website',
+                'website_and_register' => 'The institution\'s website and the ФЗОМ register',
+                'staff' => 'Confirmed by our team',
+                'owner_claim' => 'Claimed by the doctor (identity confirmed)',
+            ],
+            // A dentist verified by the ФЗОМ contract alone (no Комора licence).
+            'dentist' => [
+                'official_registers' => 'ФЗОМ register',
+            ],
+            'facility' => [
+                'official_registers' => 'ФЗОМ register',
+                'licence_and_website' => 'The institution\'s website and the ФЗОМ register',
+                'website_and_register' => 'The institution\'s website and the ФЗОМ register',
+                'staff' => 'Confirmed by our team',
+                'owner_claim' => 'Claimed by the facility (identity confirmed)',
+            ],
         ],
     ],
 

@@ -79,6 +79,8 @@ class LoginThrottleTest extends TestCase
 
     public function test_volume_from_a_single_source_is_capped(): void
     {
+        // One window: on a slow machine the loop must not outlive the minute.
+        $this->freezeTime();
         $this->makeUser('target@example.com');
 
         // The api-login limiter allows 40/min per address; past that, 429 regardless

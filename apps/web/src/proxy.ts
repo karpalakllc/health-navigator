@@ -49,6 +49,12 @@ export function proxy(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    // ALTCHA's proof-of-work worker (src/lib/altcha). Workers fall back to
+    // script-src, where 'strict-dynamic' disregards 'self' and a worker
+    // script cannot carry a nonce, so without this they are blocked. Only
+    // same-origin worker files (the bundled /_next/static chunk): no blob:
+    // or data: workers, which is why the widget's CSP-friendly build is used.
+    "worker-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     [
       "img-src 'self'",

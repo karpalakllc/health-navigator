@@ -10,6 +10,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -30,6 +31,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { placeJsonLd } from "@/lib/structured-data";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t } from "@/i18n/t";
 
 type PharmacyDetailPageProps = {
@@ -178,6 +180,15 @@ export default async function PharmacyDetailPage({
               subtitle={[t("pharmacies.kind"), pharmacy.city]
                 .filter(Boolean)
                 .join(" · ")}
+              verification={
+                <VerificationBadge
+                  verification={pharmacy.verification}
+                  kind="pharmacy"
+                />
+              }
+              reportAction={
+                <ProfileReportButton subject="pharmacy" slug={slug} compact />
+              }
               summary={pharmacy.review_summary}
               tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />

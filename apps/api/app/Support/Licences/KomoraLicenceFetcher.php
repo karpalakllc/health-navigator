@@ -233,7 +233,7 @@ final class KomoraLicenceFetcher
         $max = (int) config('licences.komora.max_bytes', 20 * 1024 * 1024);
 
         return Http::withHeaders($headers + ['User-Agent' => SourcePolicy::userAgent()])
-            ->withOptions(SourcePolicy::redirectOptions($this->allowedHosts()) + [
+            ->withOptions(SourcePolicy::requestOptions($this->allowedHosts()) + [
                 // Aborted as soon as a response passes the cap, not after buffering it.
                 'progress' => function (int $total, int $downloaded) use ($max): void {
                     if ($total > $max || $downloaded > $max) {

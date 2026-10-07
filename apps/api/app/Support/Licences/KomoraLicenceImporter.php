@@ -32,11 +32,25 @@ use RuntimeException;
  * staff to review.
  * A staging row that stays off the next complete list too, attached to no
  * profile, is deleted (retention).
+ *
+ * Only genuinely open questions reach the review queue: a licence several
+ * profiles fit (Ambiguous) and conflicts. A licence of somebody with no
+ * profile here (NoMatch — most of the list) is not a profile and stays in
+ * staging only; a name match whose specialty does not fit stays in staging
+ * too, and the verification engine reports those per pair of wordings
+ * (docs/verification.md), where one mapping fix settles them all.
+ * rematchStaged() re-decides the unattached staging rows against today's
+ * profiles and mapping: the verification engine runs it after every import
+ * and nightly, so a new website draft or a mapping fix is picked up without
+ * waiting for the next list.
  */
 final class KomoraLicenceImporter
 {
     /** import_runs.source and the provenance source of attached licences. */
     public const SOURCE = 'komora';
+
+    /** Undecided rows that go to the review queue; the rest are staging only. */
+    private const QUEUED_REASONS = [LicenceReviewReason::Ambiguous];
 
     public function __construct(
         private readonly LicenceCandidateSource $candidates,
@@ -126,6 +140,11 @@ final class KomoraLicenceImporter
             }
         });
 
+        $this->closeStagingOnlyItems(array_values(array_map(
+            fn (LicenceDecision $decision): string => $decision->row->licenceNumber,
+            array_filter($decisions, fn (LicenceDecision $decision): bool => ! $decision->attaches() && ! in_array($decision->reason, self::QUEUED_REASONS, true)),
+        )));
+
         if ($completeList && $parsed->failures === []) {
             // Licences attached to a profile that left the list: the profile
             // stops showing „Лиценца: важечка“ (Doctor::hasValidLicence())
@@ -203,9 +222,96 @@ final class KomoraLicenceImporter
         }
 
         $reason = $decision->reason ?? LicenceReviewReason::NoMatch;
-        $sink->queueForReview($record, $reason, $decision->candidateDoctorIds);
+
+        if (in_array($reason, self::QUEUED_REASONS, true)) {
+            $sink->queueForReview($record, $reason, $decision->candidateDoctorIds);
+        }
 
         return $reason->value;
+    }
+
+    /**
+     * Re-decides every unattached licence still on the list (not locked, not
+     * in conflict) against the current profiles and specialty mapping, and
+     * attaches what now fits exactly one profile. Staging follows; review
+     * items of rows that are staging-only now are closed.
+     *
+     * @return array<string, int>
+     */
+    public function rematchStaged(?int $importRunId = null): array
+    {
+        $counts = ['rematched' => 0, 'attached' => 0, 'ambiguous' => 0, 'no_match' => 0, 'specialty_mismatch' => 0, 'other' => 0];
+        $sink = $this->sink ?? throw new RuntimeException('No DoctorLicenceSink is bound.');
+
+        $staged = KomoraLicence::query()
+            ->whereNull('missing_since')
+            ->whereNull('doctor_id')
+            ->where(fn ($query) => $query->whereNull('outcome')->orWhereNotIn('outcome', ['locked', 'conflict']))
+            ->orderBy('id')
+            ->get();
+
+        if ($staged->isEmpty()) {
+            return $counts;
+        }
+
+        $rows = $staged->map(fn (KomoraLicence $licence): ParsedLicenceRow => new ParsedLicenceRow(
+            fullName: $licence->full_name,
+            specialty: $licence->specialty,
+            validUntil: CarbonImmutable::parse($licence->valid_until ?? $licence->list_date),
+            licenceNumber: $licence->licence_number,
+            sourceReference: (string) $licence->source_reference,
+        ))->values()->all();
+        $byNumber = $staged->keyBy('licence_number');
+        $decisions = (new KomoraLicenceMatcher($this->candidates, new LicenceSpecialtyMap))->decide($rows);
+        $now = now();
+        $stagingOnly = [];
+
+        DB::transaction(function () use ($sink, $decisions, $byNumber, $importRunId, $now, &$counts, &$stagingOnly): void {
+            foreach ($decisions as $decision) {
+                /** @var KomoraLicence $licence */
+                $licence = $byNumber[$decision->row->licenceNumber];
+                $outcome = $this->apply($sink, $decision, $this->record($decision->row, CarbonImmutable::parse($licence->list_date), $importRunId));
+                $counts['rematched']++;
+                $counts[array_key_exists($outcome, $counts) ? $outcome : 'other']++;
+
+                if (! $decision->attaches() && ! in_array($decision->reason, self::QUEUED_REASONS, true)) {
+                    $stagingOnly[] = $licence->licence_number;
+                }
+
+                $attached = in_array($outcome, ['attached', 'unchanged'], true);
+                $licence->fill([
+                    'outcome' => $outcome,
+                    'doctor_id' => $attached ? $decision->doctorId : null,
+                    'candidate_doctor_ids' => $decision->candidateDoctorIds === [] ? null : $decision->candidateDoctorIds,
+                    'matched_at' => $attached ? $now : null,
+                ]);
+
+                if ($licence->isDirty()) {
+                    $licence->save();
+                }
+            }
+        });
+
+        $this->closeStagingOnlyItems($stagingOnly);
+
+        return $counts;
+    }
+
+    /**
+     * Review items of licences that are staging-only now (no profile, or a
+     * specialty pair the verification engine reports) are closed.
+     *
+     * @param  list<string>  $licenceNumbers
+     */
+    private function closeStagingOnlyItems(array $licenceNumbers): void
+    {
+        foreach (array_chunk($licenceNumbers, 500) as $chunk) {
+            ImportReviewItem::query()->open()
+                ->where('source', self::SOURCE)
+                ->where('kind', ImportReviewKind::Unmatched)
+                ->whereIn('item_key', array_map(fn (string $number): string => 'licence:'.$number, $chunk))
+                ->update(['status' => 'resolved', 'resolution' => 'staging_only', 'resolved_at' => now(), 'updated_at' => now()]);
+        }
     }
 
     private function record(ParsedLicenceRow $row, CarbonImmutable $listDate, ?int $importRunId): LicenceRecord

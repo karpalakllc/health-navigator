@@ -17,6 +17,7 @@ type FacilitiesPageProps = {
     q?: string;
     has_emergency?: string;
     department?: string;
+    verified?: string;
     page?: string;
   }>;
 };
@@ -35,6 +36,7 @@ export default async function FacilitiesPage({
   const params = await searchParams;
   const page = parseListPage(params.page);
   const hasEmergency = params.has_emergency === "1";
+  const onlyVerified = params.verified === "1";
 
   const [facilities, departments] = await Promise.all([
     fetchFacilities({
@@ -43,6 +45,7 @@ export default async function FacilitiesPage({
       q: params.q,
       has_emergency: hasEmergency ? true : undefined,
       department: params.department,
+      verified: onlyVerified ? true : undefined,
       page,
     }),
     fetchDepartments().catch(() => []),
@@ -54,6 +57,7 @@ export default async function FacilitiesPage({
     department: params.department ?? "",
     city: params.city ?? "",
     has_emergency: hasEmergency ? "1" : "",
+    verified: onlyVerified ? "1" : "",
   };
   const hasFilters = Object.values(applied).some(Boolean);
 

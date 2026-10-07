@@ -111,8 +111,12 @@ class KomoraLicenceImportTest extends TestCase
         $this->assertSame('А-В#p1', $record->sourceReference);
 
         $this->assertSame(['0000002'], $this->sink->queued(LicenceReviewReason::Ambiguous));
-        $this->assertSame(['0000003'], $this->sink->queued(LicenceReviewReason::NoMatch));
-        $this->assertSame(['0000004'], $this->sink->queued(LicenceReviewReason::SpecialtyMismatch));
+        // Only the ambiguous row is a question for staff. A licence of
+        // somebody with no profile here is not a profile (staging only), and
+        // a specialty that does not fit is reported per wording pair by the
+        // verification engine — neither floods the review queue.
+        $this->assertSame([], $this->sink->queued(LicenceReviewReason::NoMatch));
+        $this->assertSame([], $this->sink->queued(LicenceReviewReason::SpecialtyMismatch));
         $this->assertEqualsCanonicalizing(
             [$this->doctors['Горан Истоименовски'], $this->doctors['Горан Истоименовски ']],
             $this->sink->review['0000002']['candidates'],

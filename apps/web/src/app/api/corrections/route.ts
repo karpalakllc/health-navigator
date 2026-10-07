@@ -18,6 +18,7 @@ type CorrectionPayload = {
   field?: unknown;
   message?: unknown;
   contact?: unknown;
+  altcha?: unknown;
   [CORRECTION_HONEYPOT]?: unknown;
 };
 
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         field: text(body.field),
         message: text(body.message) ?? "",
         contact: text(body.contact),
+        altcha: text(body.altcha),
         [CORRECTION_HONEYPOT]: text(body[CORRECTION_HONEYPOT]),
       }),
     }),

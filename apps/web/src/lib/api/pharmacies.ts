@@ -14,6 +14,8 @@ import { pathSegment } from "@/lib/api/path";
 export type PharmacyListParams = {
   city?: string;
   q?: string;
+  /** „Само верификувани“: "1" or nothing. */
+  verified?: "1";
   page?: number;
   per_page?: number;
 };
@@ -40,7 +42,7 @@ export async function fetchPharmacies(
 ) {
   return apiGetPaginated<PharmacyListItem>(
     `/pharmacies${toQuery(params)}`,
-    options ?? directoryCache(params),
+    options ?? directoryCache(params, { booleans: ["verified"] }),
   );
 }
 

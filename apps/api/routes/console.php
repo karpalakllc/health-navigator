@@ -104,3 +104,11 @@ Schedule::command(ImportSchedule::command('komora'))
     ->withoutOverlapping(180)
     ->when(fn (): bool => ImportSchedule::shouldRun('komora'))
     ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora', ImportSchedule::command('komora')));
+
+// W7-A: the verification engine re-evaluates every profile nightly (it also
+// runs after each import apply), so an expired licence loses its badge on
+// the day it expires. Always on: it reads and writes only the database.
+Schedule::command('import:adjudicate')
+    ->dailyAt('05:50')
+    ->onOneServer()
+    ->withoutOverlapping(120);

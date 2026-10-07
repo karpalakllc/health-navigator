@@ -130,6 +130,15 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // ALTCHA challenges (W7-C): one per form opened, so a person needs a
+        // handful an hour; the limits stop anyone stockpiling solved ones.
+        RateLimiter::for('api-altcha', function (Request $request) {
+            return [
+                Limit::perMinute(20)->by('altcha:'.$request->ip()),
+                Limit::perHour(120)->by('altcha-hour:'.$request->ip()),
+            ];
+        });
+
         RateLimiter::for('api-reviews', function (Request $request) {
             $userId = $request->user()?->id;
 

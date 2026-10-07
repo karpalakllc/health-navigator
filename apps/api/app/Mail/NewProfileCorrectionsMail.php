@@ -27,6 +27,8 @@ class NewProfileCorrectionsMail extends Mailable implements ShouldQueue
         public readonly int $overdueRequests,
         public readonly array $types,
         public readonly string $queueUrl,
+        /** Profiles at or over the profile-report priority threshold. */
+        public readonly int $priorityProfiles = 0,
     ) {}
 
     public function envelope(): Envelope

@@ -19,6 +19,14 @@ enum ImportReviewKind: string
     /** The import could not place something: an ambiguous match, an unmapped specialty, a licence without a doctor. */
     case Unmatched = 'unmatched';
 
+    /**
+     * The verification engine could not decide on its own: the sources
+     * nearly agree but one fact needs a person (a specialty wording pair, a
+     * flagged website, a published profile that lost its verification).
+     * See docs/verification.md.
+     */
+    case Uncertain = 'uncertain';
+
     public function label(): string
     {
         return ucfirst($this->value);

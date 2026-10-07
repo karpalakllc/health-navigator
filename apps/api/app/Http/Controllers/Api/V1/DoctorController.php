@@ -43,6 +43,10 @@ class DoctorController extends Controller
             $query->featured();
         }
 
+        if (! empty($validated['verified'])) {
+            $query->verified();
+        }
+
         if (isset($validated['min_reviews']) && $validated['min_reviews'] > 0) {
             $query->where('doctors.reviews_count', '>=', (int) $validated['min_reviews']);
         }

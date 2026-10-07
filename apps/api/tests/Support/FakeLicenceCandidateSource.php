@@ -18,12 +18,13 @@ final class FakeLicenceCandidateSource implements LicenceCandidateSource
     /**
      * @param  list<string>  $specialtyNames
      */
-    public function add(int $doctorId, string $fullName, array $specialtyNames = [], ?string $licenceNumber = null): self
+    public function add(int $doctorId, string $fullName, array $specialtyNames = [], ?string $licenceNumber = null, bool $fallback = false): self
     {
         $this->byName[NameKey::for($fullName)][] = new LicenceCandidate(
             doctorId: $doctorId,
             licenceNumber: $licenceNumber,
             specialtyNames: $specialtyNames,
+            fallback: $fallback,
         );
 
         return $this;

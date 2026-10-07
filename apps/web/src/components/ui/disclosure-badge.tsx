@@ -7,6 +7,9 @@ import { tagTones, type TagTone } from "@/components/ui/tag-tones";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
+/** A position utility (absolute / fixed / sticky) in the caller's className. */
+const OWN_POSITION = /(?:^|\s)(?:absolute|fixed|sticky)(?:\s|$)/;
+
 /** Where „Повеќе“ in every badge explanation leads: how results are ordered. */
 export const DISCLOSURE_MORE_HREF = "/transparency#redosled";
 
@@ -35,6 +38,7 @@ export function DisclosureBadge({
   tone = "outline",
   icon,
   className,
+  moreHref = DISCLOSURE_MORE_HREF,
 }: {
   label: string;
   explanation: string;
@@ -43,6 +47,8 @@ export function DisclosureBadge({
   tone?: TagTone;
   icon?: IconName;
   className?: string;
+  /** Where „Повеќе“ leads (default: how results are ordered). */
+  moreHref?: string;
 }) {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -87,7 +93,15 @@ export function DisclosureBadge({
   return (
     <span
       ref={rootRef}
-      className={cn("relative inline-flex shrink-0", className)}
+      className={cn(
+        "inline-flex shrink-0",
+        // The panel's anchor. A caller that places the badge itself
+        // (`absolute left-3 top-3` on a card cover) already makes it one;
+        // both classes together would leave it in the flow, because
+        // `.relative` comes later in the stylesheet.
+        !OWN_POSITION.test(className ?? "") && "relative",
+        className,
+      )}
       onBlur={(event) => {
         // Only when focus lands on something else outside: a press on the
         // panel's own text moves focus nowhere (relatedTarget null), and
@@ -147,7 +161,7 @@ export function DisclosureBadge({
           <span className="block w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-line bg-white px-4 py-3 text-left text-[0.9375rem] font-normal leading-[1.375rem] text-ink shadow-card">
             {explanation}{" "}
             <Link
-              href={DISCLOSURE_MORE_HREF}
+              href={moreHref}
               className="link-underline font-semibold text-ink"
             >
               {t("integrity.disclosureMore")}

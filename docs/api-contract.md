@@ -202,6 +202,8 @@ limiters are layered on top:
 | `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
 | `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
 | `api-corrections-burst` / `api-corrections-hourly` | `POST /doctors/{slug}/corrections`, `POST /facilities/{slug}/corrections` (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
+| `api-profile-reports-burst` / `api-profile-reports-hourly` | `POST /doctors/{slug}/profile-reports` and the facility and pharmacy ones (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
+| `api-altcha` | `GET /altcha/challenge` | 20/min and 120/hour per IP |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -223,6 +225,7 @@ nobody can hold an account locked by merely sending traffic.
 | `DELETE` | `/me/tokens` | `auth:sanctum` |
 | `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
 | `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
+| `GET` | `/altcha/challenge` | `throttle:api-altcha` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
 | `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | `cache.public:60` |
@@ -273,22 +276,25 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/auth/forgot-password` | `throttle:api-login` |
 | `POST` | `/auth/login` | `throttle:api-login` |
 | `POST` | `/auth/logout` | `auth:sanctum` |
-| `POST` | `/auth/register` | `registrations`, `throttle:api-login` |
+| `POST` | `/auth/register` | `registrations`, `throttle:api-login`, `altcha` |
 | `POST` | `/auth/reset-password` | `throttle:api-login` |
-| `POST` | `/doctors/{slug}/claim-requests` | `auth:sanctum`, `verified`, `throttle:5,1440,api-doctor-claims` |
-| `POST` | `/doctors/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly` |
+| `POST` | `/doctors/{slug}/claim-requests` | `auth:sanctum`, `verified`, `throttle:5,1440,api-doctor-claims`, `altcha` |
+| `POST` | `/doctors/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly`, `altcha` |
+| `POST` | `/doctors/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha` |
 | `POST` | `/doctors/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
-| `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly` |
+| `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly`, `altcha` |
+| `POST` | `/facilities/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
-| `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
-| `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `module:forum` |
+| `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |
+| `POST` | `/forum/posts/{post}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
 | `POST` | `/me/doctor/avatar` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `POST` | `/me/doctor/change-requests` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `POST` | `/pharmacies/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha`, `module:pharmacies` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
-| `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily` |
+| `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
@@ -318,6 +324,16 @@ nobody can hold an account locked by merely sending traffic.
   Лекарска комора licence is on file and not expired today („Лиценца:
   важечка“). The licence number, its expiry date and the ФЗО facsimile
   number are internal and never in any payload (docs/data-import.md).
+- Doctor, facility and pharmacy list and detail items carry
+  `verification: {status, basis, basis_label}`: `status` is `verified` or
+  `unverified` („Верификуван“ / „Неверификуван“); while verified, `basis` is
+  one of `official_registers`, `licence_and_website`,
+  `website_and_register`, `staff`, `owner_claim` and `basis_label` its
+  localised public wording (both `null` while unverified; a dentist
+  verified by the ФЗОМ contract alone reads „Регистар на ФЗОМ“). The evidence
+  behind a decision is internal and never in any payload. `GET /doctors`,
+  `/facilities` and `/pharmacies` accept `verified=1` („Само
+  верификувани“).
 - Images are URLs or `null`: doctors `avatar_url` (photo); facilities and
   pharmacies `avatar_url` (logo) and `cover_url` (wide header, WebP, at most
   1600×900), on both list and detail payloads.
@@ -478,6 +494,34 @@ nobody can hold an account locked by merely sending traffic.
   `message` / `contact`. 429 from the limiters above. Staff answer a
   correction within 15 days and an objection within 30 (admin → Directory →
   Corrections).
+- **ALTCHA (anti-bot proof of work, W7-C).** `GET /altcha/challenge` returns
+  a signed challenge as plain JSON (no envelope; `Cache-Control: no-store`)
+  for the web's ALTCHA widget: `{parameters: {algorithm: "PBKDF2/SHA-256",
+  cost, keyLength, keyPrefix, keySignature, nonce, salt, expiresAt, data:
+  {iat}}, signature}`. Routes with the `altcha` middleware — `POST
+  /auth/register`, the content-report routes, `POST
+  /doctors/{slug}/claim-requests`, the corrections routes and the
+  profile-report routes — need the widget's base64 payload in the body field
+  `altcha`. It must be a solved challenge issued here, unexpired (30 min by
+  default), returned at least `ALTCHA_MIN_FILL_SECONDS` (2) after issue, and
+  never used before (each solution opens one request). Anything else is 422
+  with `errors.altcha` (`api.altcha.failed`, one message whatever the reason).
+  The check runs after the route's throttles, so refused attempts count.
+- `POST /doctors/{slug}/profile-reports`, `POST
+  /facilities/{slug}/profile-reports` and `POST
+  /pharmacies/{slug}/profile-reports` („Пријави профил“; anonymous or signed
+  in; the pharmacy route only while that module is on). Body: `reason`
+  (`fake_profile`, `wrong_person`, `no_longer_here`, `inappropriate_content`,
+  `other`), optional `note` (≤ 500, plain text), the honeypot `website` and
+  `altcha`. Always 201 `{status: "received", message}`
+  (`api.profile_report.received`), also for a repeat — a member's second
+  report while their first on the profile is open, a guest's second report
+  on the profile from the same address within 24 hours — and for a filled
+  honeypot; none of those is stored. 404 `errors.not_found` for an unknown
+  or unpublished profile; 422 with `errors.reason` / `note`. Reports join the
+  corrections queue as type `report` (answer target 7 days); profiles with 3
+  or more independent open reports are listed first. Nothing is hidden
+  automatically.
 - **Forum keywords (tags).** `POST …/topics` accepts optional `tags` (up to 5
   strings, 2–40 characters each once normalised; 422 `api.forum.tag_invalid`
   otherwise); unknown tags are created. Topic detail payloads carry `tags`

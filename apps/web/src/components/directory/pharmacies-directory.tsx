@@ -1,14 +1,22 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { TextFilter } from "@/components/directory/filter-controls";
+import {
+  FilterGroup,
+  SwitchRow,
+  TextFilter,
+} from "@/components/directory/filter-controls";
 import {
   DirectoryListView,
   type ActiveFilter,
 } from "@/components/directory/directory-list-view";
 import { t } from "@/i18n/t";
 
-export type PharmaciesFilterValues = { q: string; city: string };
+export type PharmaciesFilterValues = {
+  q: string;
+  city: string;
+  verified: string;
+};
 
 /** The pharmacies list: search strip, filter sheet / rail, results. */
 export function PharmaciesDirectory({
@@ -23,6 +31,9 @@ export function PharmaciesDirectory({
   const activeFilters: ActiveFilter[] = [
     applied.q ? { name: "q", label: `„${applied.q}“` } : null,
     applied.city ? { name: "city", label: applied.city } : null,
+    applied.verified
+      ? { name: "verified", label: t("verification.filterLabel") }
+      : null,
   ].filter((filter): filter is ActiveFilter => filter !== null);
 
   return (
@@ -65,6 +76,15 @@ export function PharmaciesDirectory({
             autoComplete="address-level2"
             onChange={(value) => set("city", value, { debounce: true })}
           />
+          <FilterGroup legend={t("verification.filterLegend")}>
+            <SwitchRow
+              name="verified"
+              icon="shield-check"
+              label={t("verification.filterLabel")}
+              checked={values.verified === "1"}
+              onChange={(checked) => set("verified", checked ? "1" : "")}
+            />
+          </FilterGroup>
         </>
       )}
     >

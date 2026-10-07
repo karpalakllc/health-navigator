@@ -19,6 +19,8 @@ export type FacilityListParams = {
   has_emergency?: boolean | string;
   department?: string;
   featured?: boolean | string;
+  /** „Само верификувани“. */
+  verified?: boolean | string;
   page?: number;
   per_page?: number;
 };
@@ -69,7 +71,7 @@ async function facilitiesCache(
       department: departments.map(({ slug }) => slug),
       type: FACILITY_TYPES,
     },
-    booleans: ["has_emergency", "featured"],
+    booleans: ["has_emergency", "featured", "verified"],
   });
 }
 

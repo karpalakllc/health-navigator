@@ -60,6 +60,7 @@ describe("ProfileCorrectionForm (correction)", () => {
       field: "office_hours",
       message: "Во петок работи до 14 часот.",
       contact: "pacient@example.test",
+      altcha: "test-altcha-1",
       website: "",
     });
     expect(screen.queryByRole("button")).toBeNull();

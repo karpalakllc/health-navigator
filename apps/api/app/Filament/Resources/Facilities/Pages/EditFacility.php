@@ -7,6 +7,7 @@ use App\Filament\Resources\Facilities\Concerns\SyncsFacilityDepartments;
 use App\Filament\Resources\Facilities\Concerns\SyncsFacilityDoctors;
 use App\Filament\Resources\Facilities\FacilityResource;
 use App\Filament\Support\ImportLockAction;
+use App\Filament\Support\VerificationActions;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -25,6 +26,7 @@ class EditFacility extends EditRecord
         return [
             $this->getPublicPreviewAction(),
             ImportLockAction::make(),
+            ...VerificationActions::all(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),
