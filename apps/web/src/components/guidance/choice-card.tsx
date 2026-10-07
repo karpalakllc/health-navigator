@@ -14,6 +14,8 @@ export function ChoiceCard({
   checked,
   onChange,
   label,
+  hint,
+  disabled = false,
 }: {
   type: "radio" | "checkbox";
   id: string;
@@ -22,6 +24,9 @@ export function ChoiceCard({
   checked: boolean;
   onChange: () => void;
   label: string;
+  /** A short explanation under the label, tied to the control. */
+  hint?: string | null;
+  disabled?: boolean;
 }) {
   const round = type === "radio";
 
@@ -33,6 +38,7 @@ export function ChoiceCard({
         checked
           ? "font-semibold ring-2 ring-inset ring-ink"
           : "hover:ring-[1.5px] hover:ring-inset hover:ring-line-strong",
+        disabled && !checked && "cursor-not-allowed text-ink-2 hover:ring-0",
       )}
     >
       <span className="relative inline-flex size-6 shrink-0">
@@ -43,6 +49,8 @@ export function ChoiceCard({
           value={value}
           checked={checked}
           onChange={onChange}
+          disabled={disabled}
+          aria-describedby={hint ? `${id}-hint` : undefined}
           className={cn(
             "peer size-6 cursor-[inherit] appearance-none border-[1.5px] border-line-strong bg-white",
             "checked:border-ink checked:bg-ink",
@@ -62,7 +70,14 @@ export function ChoiceCard({
           />
         )}
       </span>
-      <span>{label}</span>
+      <span className="flex min-w-0 flex-col gap-1">
+        <span>{label}</span>
+        {hint ? (
+          <span id={`${id}-hint`} className="type-meta font-normal text-ink-2">
+            {hint}
+          </span>
+        ) : null}
+      </span>
     </label>
   );
 }

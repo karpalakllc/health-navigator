@@ -763,6 +763,15 @@
     opacity: 1 !important;
     transform: none !important;
   }
+
+  /* „Печати или зачувај PDF“ on a guidance result prints only the summary
+     for the doctor: the site chrome stays off the page. */
+  body:has([data-guidance-summary]) :is(header, footer, nav, [data-skip-link]) {
+    display: none !important;
+  }
+  body:has([data-guidance-summary]) {
+    background: #fff;
+  }
 }
 
 @keyframes shimmer {

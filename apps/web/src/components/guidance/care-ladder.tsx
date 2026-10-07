@@ -3,38 +3,40 @@ import { Icon, type IconName } from "@/components/ui/icons";
 import { NoticeTelLink } from "@/components/ui/notice";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/cn";
+import type { OutcomeLevel } from "@/lib/api/guidance-v2";
 import type { MessageKey } from "@/i18n/t";
 import { t } from "@/i18n/t";
 
 /*
  * The care ladder (NHS 111's care settings, simplified as Ada does): every
- * outcome is placed on one of four rungs, from looking after yourself at home
- * to calling emergency services. Showing all four, with the result marked,
+ * outcome is placed on one rung, from looking after yourself at home to
+ * calling emergency services. Showing all of them, with the result marked,
  * tells the visitor where to go next and where to go if things get worse.
  */
-export const CARE_LEVELS = ["home", "pharmacy", "gp", "emergency"] as const;
+export const CARE_LEVELS = [
+  "home",
+  "pharmacy",
+  "gp",
+  "urgent",
+  "emergency",
+] as const;
 
 export type CareLevel = (typeof CARE_LEVELS)[number];
 
-/*
- * Outcome codes are authored by staff in Filament. The seeded ones, plus the
- * obvious names a new outcome would get, map to a rung; anything else marks
- * no rung rather than guessing one.
- */
-const OUTCOME_LEVELS: Record<string, CareLevel> = {
-  general_information: "home",
-  self_care: "home",
-  home_care: "home",
-  pharmacy: "pharmacy",
-  see_pharmacist: "pharmacy",
-  seek_care_soon: "gp",
-  see_gp: "gp",
-  gp: "gp",
-  emergency: "emergency",
+/** Every v2 outcome level sits on exactly one rung (docs/triage-flows.md §8.1). */
+const OUTCOME_LEVELS: Record<OutcomeLevel, CareLevel> = {
+  self_care_with_safety_net: "home",
+  pharmacy_advice: "pharmacy",
+  see_gp_this_week: "gp",
+  see_doctor_24_48h: "gp",
+  urgent_same_day: "urgent",
+  emergency_now: "emergency",
 };
 
-export function careLevelForOutcome(code: string): CareLevel | null {
-  return Object.hasOwn(OUTCOME_LEVELS, code) ? OUTCOME_LEVELS[code] : null;
+export function careLevelForOutcome(level: string): CareLevel | null {
+  return Object.hasOwn(OUTCOME_LEVELS, level)
+    ? OUTCOME_LEVELS[level as OutcomeLevel]
+    : null;
 }
 
 type Rung = {
@@ -46,7 +48,11 @@ type Rung = {
 };
 
 /** Directory pages the ladder itself links to (handoffs repeating them are dropped). */
-export const LADDER_HREFS = ["/pharmacies", "/doctors"] as const;
+export const LADDER_HREFS = [
+  "/pharmacies",
+  "/doctors",
+  "/facilities?has_emergency=1",
+] as const;
 
 function rungs(pharmaciesOn: boolean): Rung[] {
   return [
@@ -71,6 +77,16 @@ function rungs(pharmaciesOn: boolean): Rung[] {
       title: "guidance.ladderGpTitle",
       body: "guidance.ladderGpBody",
       link: { href: "/doctors", label: "guidance.ladderGpLink" },
+    },
+    {
+      level: "urgent",
+      icon: "building",
+      title: "guidance.ladderUrgentTitle",
+      body: "guidance.ladderUrgentBody",
+      link: {
+        href: "/facilities?has_emergency=1",
+        label: "guidance.ladderUrgentLink",
+      },
     },
     {
       level: "emergency",

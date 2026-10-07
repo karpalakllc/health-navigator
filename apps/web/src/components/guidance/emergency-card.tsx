@@ -12,11 +12,14 @@ export function EmergencyCard({
   title,
   body,
   headingRef,
+  extraCalls = [],
   children,
 }: {
   title: string;
   body: string;
   headingRef: Ref<HTMLHeadingElement>;
+  /** Further verified lines (e.g. a crisis line) after 194 and 112. */
+  extraCalls?: Array<{ number: string; label: string }>;
   children?: ReactNode;
 }) {
   return (
@@ -38,7 +41,7 @@ export function EmergencyCard({
           {title}
         </h2>
         <p className="type-reading measure text-ink">{body}</p>
-        <EmergencyCallLinks />
+        <EmergencyCallLinks extra={extraCalls} />
         {children}
       </div>
     </section>
