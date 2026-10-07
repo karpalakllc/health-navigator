@@ -83,4 +83,20 @@ class EloquentLicenceCandidateSourceTest extends TestCase
         $this->assertNull(app(LicenceCandidateSource::class)->doctorIdForLicence('0009999'));
         $this->assertSame('0001234', app(LicenceCandidateSource::class)->candidatesFor('МАЈА НОСИТЕЛСКА')[0]->licenceNumber);
     }
+
+    public function test_website_only_drafts_are_fallback_candidates(): void
+    {
+        $fzom = $this->doctor('Нина Изворска');
+        $website = $this->doctor('Нина Изворска', importSource: 'website');
+        $this->doctor('Нина Изворска', importSource: 'manual');
+
+        $candidates = collect(app(LicenceCandidateSource::class)->candidatesFor('НИНА ИЗВОРСКА'))->keyBy('doctorId');
+
+        $this->assertEqualsCanonicalizing([$fzom->id, $website->id], $candidates->keys()->all());
+        $this->assertFalse($candidates[$fzom->id]->fallback);
+        $this->assertTrue($candidates[$website->id]->fallback);
+
+        config(['licences.match.fallback_sources' => []]);
+        $this->assertSame([$fzom->id], $this->ids('НИНА ИЗВОРСКА'));
+    }
 }

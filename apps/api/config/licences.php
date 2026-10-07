@@ -39,8 +39,19 @@ return [
         // null considers every profile.
         'imported_source' => env('KOMORA_MATCH_IMPORTED_SOURCE', 'fzom'),
 
+        // Drafts these imports created without a ФЗОМ record (the
+        // institutions' own staff pages) are candidates too, but only for a
+        // name no ФЗОМ profile carries: the ФЗОМ profile always comes first.
+        // Empty: website-only drafts are never matched automatically.
+        'fallback_sources' => array_values(array_filter(explode(',', (string) env('KOMORA_MATCH_FALLBACK_SOURCES', 'website')))),
+
         // Imported dentists sit under specialties with this slug prefix; they
         // have no licence on the Комора list.
         'dental_slug_prefix' => 'stomatologija',
+
+        // The group of a doctor of medicine without a specialisation
+        // („доктор на медицина во ПЗЗ“). Such a licence fits a profile with no
+        // specialty at all: both say "no specialisation".
+        'general_group' => env('KOMORA_GENERAL_GROUP', 'opsta-medicina'),
     ],
 ];

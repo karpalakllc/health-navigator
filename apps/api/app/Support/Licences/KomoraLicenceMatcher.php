@@ -21,7 +21,11 @@ use App\Support\Licences\Contracts\LicenceCandidateSource;
  *   nobody has mapped yet) → SpecialtyMismatch;
  * - and the list's own namesakes: when one profile would take two licence
  *   rows (two doctors of the same name and a fitting specialty on the list),
- *   neither is attached — both go to review as Ambiguous.
+ *   neither is attached — both go to review as Ambiguous;
+ * - fallback candidates (website-only drafts, LicenceCandidate::$fallback)
+ *   are decided the same way, but only when no ФЗОМ profile carries the
+ *   name. When ФЗОМ profiles do but none fits while a fallback one does,
+ *   that is Ambiguous: two people, or one person with two profiles.
  *
  * Expiry plays no part in the decision: an expired licence is still
  * attached (the profile then shows it as not valid) and is never a reason to
@@ -76,10 +80,22 @@ final class KomoraLicenceMatcher
                 continue;
             }
 
-            $fitting = array_values(array_filter(
-                $candidates,
+            $primary = array_values(array_filter($candidates, fn (LicenceCandidate $candidate): bool => ! $candidate->fallback));
+            $fits = fn (array $tier): array => array_values(array_filter(
+                $tier,
                 fn (LicenceCandidate $candidate): bool => $this->specialties->fits($groups, $candidate),
             ));
+            $fitting = $fits($primary === [] ? $candidates : $primary);
+
+            if ($primary !== [] && $fitting === []) {
+                $fallbackFits = $fits(array_values(array_filter($candidates, fn (LicenceCandidate $candidate): bool => $candidate->fallback)));
+
+                if ($fallbackFits !== []) {
+                    $decisions[$index] = LicenceDecision::review($row, LicenceReviewReason::Ambiguous, $candidateIds);
+
+                    continue;
+                }
+            }
 
             $decisions[$index] = match (count($fitting)) {
                 0 => LicenceDecision::review($row, LicenceReviewReason::SpecialtyMismatch, $candidateIds),

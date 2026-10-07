@@ -109,10 +109,33 @@ final class LicenceSpecialtyMap
     }
 
     /**
+     * Whether a licence with these groups fits the profile: they share a
+     * group — or the profile has no specialty at all and the licence is a
+     * general doctor's (config licences.match.general_group), which says
+     * "no specialisation" too. Not for a website-only draft: its page may
+     * state a specialty nobody has mapped yet, which a general licence
+     * would contradict.
+     *
      * @param  list<string>  $licenceGroups
      */
     public function fits(array $licenceGroups, LicenceCandidate $candidate): bool
     {
+        if ($candidate->specialtyIds === [] && $candidate->specialtyNames === [] && $candidate->specialtySlugs === []) {
+            return ! $candidate->fallback && $this->isGeneral($licenceGroups);
+        }
+
         return array_intersect($licenceGroups, $this->candidateGroups($candidate)) !== [];
+    }
+
+    /**
+     * A general doctor's licence (its own group is the general group).
+     *
+     * @param  list<string>  $licenceGroups  as licenceGroups() returns them: own group first
+     */
+    public function isGeneral(array $licenceGroups): bool
+    {
+        $general = config('licences.match.general_group');
+
+        return is_string($general) && $general !== '' && ($licenceGroups[0] ?? null) === $general;
     }
 }
