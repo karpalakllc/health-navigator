@@ -205,6 +205,9 @@ export default async function DoctorDetailPage({
                   kind="doctor"
                 />
               }
+              reportAction={
+                <ProfileReportButton subject="doctor" slug={slug} compact />
+              }
               summary={doctor.review_summary}
               tags={
                 <>
@@ -263,7 +266,6 @@ export default async function DoctorDetailPage({
                 ) : undefined
               }
             />
-            <ProfileReportButton subject="doctor" slug={slug} />
 
             <ProfileContactList info={contact} />
 

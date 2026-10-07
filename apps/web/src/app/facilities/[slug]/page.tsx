@@ -205,6 +205,9 @@ export default async function FacilityDetailPage({
                   kind="facility"
                 />
               }
+              reportAction={
+                <ProfileReportButton subject="facility" slug={slug} compact />
+              }
               summary={facility.review_summary}
               tags={
                 <>
@@ -225,7 +228,6 @@ export default async function FacilityDetailPage({
                 </>
               }
             />
-            <ProfileReportButton subject="facility" slug={slug} />
 
             <ProfileContactList info={contact} />
 

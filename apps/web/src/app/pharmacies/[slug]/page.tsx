@@ -186,10 +186,12 @@ export default async function PharmacyDetailPage({
                   kind="pharmacy"
                 />
               }
+              reportAction={
+                <ProfileReportButton subject="pharmacy" slug={slug} compact />
+              }
               summary={pharmacy.review_summary}
               tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
             />
-            <ProfileReportButton subject="pharmacy" slug={slug} />
 
             <ProfileContactList info={contact} />
 

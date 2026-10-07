@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
-import { pharmacySlug } from "./support/fixtures";
+import { doctor, facilitySlug, pharmacySlug } from "./support/fixtures";
 
 /*
  * „Пријави профил“ (W7-C) end to end, as a guest: the flag opens the sheet,
@@ -59,4 +59,29 @@ test.describe("profile reports", () => {
     );
     expect(violations).toEqual([]);
   });
+
+  for (const path of [
+    `/doctors/${doctor.slug}`,
+    `/facilities/${facilitySlug}`,
+    `/pharmacies/${pharmacySlug}`,
+  ]) {
+    test(`the flag sits in the profile header's title row (${path})`, async ({
+      page,
+    }) => {
+      await page.goto(path);
+      const actions = page.locator('[data-slot="profile-actions"]');
+      const flag = actions.getByRole("button", {
+        name: mk.profileReports.action,
+      });
+      await expect(flag).toBeVisible();
+      // Icon-only, 44px touch target, and the only flag on the page.
+      await expect(flag).toHaveText("");
+      const box = await flag.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      await expect(
+        page.getByRole("button", { name: mk.profileReports.action }),
+      ).toHaveCount(1);
+    });
+  }
 });
