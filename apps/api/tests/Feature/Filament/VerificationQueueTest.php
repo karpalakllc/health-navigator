@@ -149,7 +149,7 @@ class VerificationQueueTest extends TestCase
 
         $this->assertTrue($first->fresh()->is_published);
         $this->assertTrue($second->fresh()->is_published);
-        $this->assertFalse($first->fresh()->isVerified(), 'Published, still „Неверифициран“.');
+        $this->assertFalse($first->fresh()->isVerified(), 'Published, still „Неверификуван“.');
         foreach ([$blocked, $ambiguous, $disagreeing, $mismatch, $websiteOnly, $stale, $staffDecided, $verified] as $doctor) {
             $this->assertFalse($doctor->fresh()->is_published, $doctor->full_name);
         }

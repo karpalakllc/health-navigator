@@ -439,8 +439,8 @@ class E2ESeeder extends Seeder
     }
 
     /**
-     * e2e/verification.spec.ts: the E2E doctor is „Верифициран“ (official
-     * registers), the clinic stays „Неверифицирана установа“.
+     * e2e/verification.spec.ts: the E2E doctor is „Верификуван“ (official
+     * registers), the clinic stays „Неверификувана“.
      */
     private function seedVerification(): void
     {

@@ -5,12 +5,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * „Верифициран“ / „Неверифициран“ on doctor, facility and pharmacy profiles
+ * „Верификуван“ / „Неверификуван“ on doctor, facility and pharmacy profiles
  * (pharmacies are facilities with type pharmacy). Written only through
  * App\Support\Verification\VerificationWriter.
  *
  * - verified_at: set while the profile is verified, null otherwise (the
- *   public status and the „Само верифицирани“ filter read only this).
+ *   public status and the „Само верификувани“ filter read only this).
  * - verification_basis: why it is verified (VerificationBasis); the public
  *   label is derived from it. Cleared when the profile is unverified.
  * - verification_reasons: internal evidence / reasons (never in the API).

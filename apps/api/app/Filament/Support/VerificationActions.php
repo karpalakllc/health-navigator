@@ -16,7 +16,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * „Верифициран“ / „Неверифициран“ on the doctor, facility and pharmacy edit
+ * „Верификуван“ / „Неверификуван“ on the doctor, facility and pharmacy edit
  * pages. A staff decision needs a reason, goes to the audit log (log
  * „verification“, VerificationWriter) and is kept by later automatic import
  * runs until staff hand the profile back with „Return to automatic“.
@@ -41,7 +41,7 @@ final class VerificationActions
             ->visible(fn (Doctor|Facility $record): bool => self::allowed($record))
             ->modalHeading('Mark the profile as verified')
             ->modalDescription(fn (Doctor|Facility $record): string => self::summary($record)
-                .' The public badge reads „Верифициран“ with the basis below. Automatic import runs will not change this decision until you return the profile to automatic checks.')
+                .' The public badge reads „Верификуван“ (places: „Верификувана“) with the basis below. Automatic import runs will not change this decision until you return the profile to automatic checks.')
             ->modalSubmitActionLabel('Verify')
             ->fillForm(fn (Doctor|Facility $record): array => [
                 'basis' => ($record->verification_basis ?? VerificationBasis::Staff)->value,
@@ -82,7 +82,7 @@ final class VerificationActions
                 && ($record->isVerified() || ! $record->hasStaffVerificationDecision()))
             ->modalHeading('Mark the profile as unverified')
             ->modalDescription(fn (Doctor|Facility $record): string => self::summary($record)
-                .' The public badge reads „Неверифициран“. Automatic import runs will not verify it again until you return the profile to automatic checks.')
+                .' The public badge reads „Неверификуван“ (places: „Неверификувана“). Automatic import runs will not verify it again until you return the profile to automatic checks.')
             ->modalSubmitActionLabel('Unverify')
             ->schema([
                 Textarea::make('reason')

@@ -51,7 +51,7 @@ class ListImportReviewItems extends ListRecords
     {
         return [
             Action::make('publishVerified')
-                ->label('Објави ги сите верифицирани')
+                ->label('Објави ги сите верификувани')
                 ->icon('heroicon-o-check-badge')
                 ->color('success')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->count() > 0)
@@ -74,10 +74,10 @@ class ListImportReviewItems extends ListRecords
                 }),
             // Owner's decision: ФЗОМ lists them today, the Комора list has no
             // licence of their name, nothing else is open on them → public,
-            // but „Неверифициран“ (verified later automatically if a licence
+            // but „Неверификуван“ (verified later automatically if a licence
             // appears).
             Action::make('publishFzomUnverified')
-                ->label('Објави ги и неверифицираните од ФЗОМ')
+                ->label('Објави ги и неверификуваните од ФЗОМ')
                 ->icon('heroicon-o-eye')
                 ->color('gray')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->countFzomUnverified() > 0)
@@ -121,7 +121,7 @@ class ListImportReviewItems extends ListRecords
 
     /**
      * Doctor drafts current in ФЗОМ with no licence on the Комора list and
-     * no other open review item: they become public as „Неверифициран“.
+     * no other open review item: they become public as „Неверификуван“.
      */
     private function fzomUnverifiedSampleDescription(): Htmlable
     {
@@ -130,7 +130,7 @@ class ListImportReviewItems extends ListRecords
             ->implode('');
 
         return new HtmlString(
-            '<p>Doctors ФЗОМ lists today whose name has no licence on the Комора list become public, still „Неверифициран“. '
+            '<p>Doctors ФЗОМ lists today whose name has no licence on the Комора list become public, still „Неверификуван“. '
             .'Ambiguous names, disagreeing sources, specialty mismatches, website-only drafts, drafts without a specialty, drafts with any other open item '
             .'and profiles staff unpublished stay hidden. '
             .'A random sample to glance at:</p>'

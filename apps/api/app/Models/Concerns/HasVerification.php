@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Read side of „Верифициран“ / „Неверифициран“ on doctors and facilities
+ * Read side of „Верификуван“ / „Неверификуван“ on doctors and facilities
  * (incl. pharmacies). The columns are written only by
  * App\Support\Verification\VerificationWriter.
  *
@@ -60,7 +60,7 @@ trait HasVerification
     }
 
     /**
-     * „Само верифицирани“.
+     * „Само верификувани“.
      *
      * @param  Builder<static>  $query
      * @return Builder<static>

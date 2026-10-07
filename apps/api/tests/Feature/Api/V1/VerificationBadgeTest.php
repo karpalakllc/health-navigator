@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * „Верифициран“ / „Неверифициран“ in the public API: every doctor,
+ * „Верификуван“ / „Неверификуван“ in the public API: every doctor,
  * facility and pharmacy item carries `verification` (status + public basis
  * label, never the evidence), and the lists filter with `verified=1`.
  */

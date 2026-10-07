@@ -15,13 +15,13 @@ use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Publishes imported drafts the engine verified: in bulk from the review
- * queue („Објави ги сите верифицирани“), or automatically right after a run
+ * queue („Објави ги сите верификувани“), or automatically right after a run
  * when IMPORT_AUTO_PUBLISH_VERIFIED is on.
  *
  * A second set (owner's decision): doctor drafts current in ФЗОМ with no
  * licence on the Комора list (engine reason fzom_no_licence) and no other
- * open review item on them are published but stay „Неверифициран“ — in bulk
- * („Објави ги и неверифицираните од ФЗОМ“) or with
+ * open review item on them are published but stay „Неверификуван“ — in bulk
+ * („Објави ги и неверификуваните од ФЗОМ“) or with
  * IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED. Ambiguous names, disagreeing sources,
  * specialty mismatches and website-only drafts never enter it.
  *
