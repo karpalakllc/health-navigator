@@ -46,10 +46,15 @@ class UrgentCareController extends Controller
             $query->cityContains($city);
         }
 
-        // Emergency departments first, then emergency medical services, on-duty
-        // clinics and dental services; round-the-clock first within each.
-        foreach (Facility::URGENT_CARE_SERVICES as $column) {
+        // Round-the-clock first within each service.
+        // Confirmed emergency departments, then likely ones, then emergency
+        // medical services, on-duty clinics and dental services.
+        foreach (Facility::URGENT_CARE_SERVICES as $service => $column) {
             $query->orderByDesc($column);
+
+            if ($service === 'ed') {
+                $query->orderByRaw('CASE WHEN emergency_department_status = ? THEN 1 ELSE 0 END DESC', [Facility::ED_UNCONFIRMED_LIKELY]);
+            }
         }
 
         $facilities = $query
@@ -97,7 +102,7 @@ class UrgentCareController extends Controller
             ->clinical()
             ->urgentCare()
             ->whereNotNull('city')
-            ->get(['city', ...array_values($columns)]);
+            ->get(['city', 'emergency_department_status', ...array_values($columns)]);
 
         /** @var array<string, array{name: string, total: int, ed: int, ems: int, clinic: int, dental: int}> $merged */
         $merged = [];
@@ -114,7 +119,8 @@ class UrgentCareController extends Controller
             $merged[$key]['total']++;
 
             foreach ($columns as $service => $column) {
-                if ((bool) $facility->getAttribute($column)) {
+                if ((bool) $facility->getAttribute($column)
+                    || ($service === 'ed' && $facility->emergency_department_status === Facility::ED_UNCONFIRMED_LIKELY)) {
                     $merged[$key][$service]++;
                 }
             }

@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\DB;
 final class UrgentCareDeriver
 {
     /**
-     * @return array{facilities_with_evidence: int, flags_set: int, kept_off_by_staff: int, confirmed_by_staff: int, candidates: int, set: list<array{facility_id: int, name: string, city: string|null, flags: list<string>}>}
+     * @return array{facilities_with_evidence: int, flags_set: int, kept_off_by_staff: int, confirmed_by_staff: int, candidates: int, ed_likely_set: int, set: list<array{facility_id: int, name: string, city: string|null, flags: list<string>}>}
      */
     public function run(?ImportContext $context = null, bool $write = true): array
     {
@@ -39,12 +39,13 @@ final class UrgentCareDeriver
             'kept_off_by_staff' => 0,
             'confirmed_by_staff' => 0,
             'candidates' => 0,
+            'ed_likely_set' => 0,
             'set' => [],
         ];
 
         Facility::query()
             ->where('type', '<>', FacilityType::Pharmacy->value)
-            ->select(['id', 'name', 'city', 'urgent_care_evidence', 'urgent_care_checked_at', ...array_values(UrgentCareClassifier::COLUMNS)])
+            ->select(['id', 'name', 'city', 'ownership', 'emergency_department_status', 'urgent_care_evidence', 'urgent_care_checked_at', ...array_values(UrgentCareClassifier::COLUMNS)])
             ->chunkById(500, function ($facilities) use (&$summary, $context, $write): void {
                 $ids = $facilities->modelKeys();
                 $texts = $this->texts($ids);
@@ -53,7 +54,9 @@ final class UrgentCareDeriver
                     $items = UrgentCareClassifier::classify((string) $facility->name, $texts[$facility->getKey()] ?? []);
                     $previous = is_array($facility->urgent_care_evidence) ? $facility->urgent_care_evidence : [];
 
-                    if ($items === [] && $previous === []) {
+                    $likely = self::likelyEmergencyDepartment($facility);
+
+                    if ($items === [] && $previous === [] && ! $likely) {
                         continue;
                     }
 
@@ -80,7 +83,8 @@ final class UrgentCareDeriver
                             continue;
                         }
 
-                        if (in_array($flag, $derived, true)) {
+                        if (in_array($flag, $derived, true)
+                            || ($flag === UrgentCareClassifier::FLAG_ED && $facility->emergency_department_status === Facility::ED_NONE)) {
                             $summary['kept_off_by_staff']++;
 
                             continue;
@@ -89,6 +93,19 @@ final class UrgentCareDeriver
                         $updates[$column] = true;
                         $derived[] = $flag;
                         $setNow[] = $flag;
+
+                        if ($flag === UrgentCareClassifier::FLAG_ED) {
+                            $updates['emergency_department_status'] = Facility::ED_CONFIRMED;
+                        }
+                    }
+
+                    // A public general or clinical hospital with no emergency
+                    // unit named in the sources: „likely“, shown as
+                    // unconfirmed until staff decide (owner, 2026-10-07).
+                    if ($likely && ! isset($updates['emergency_department_status'])) {
+                        $updates['emergency_department_status'] = Facility::ED_UNCONFIRMED_LIKELY;
+                        $setNow[] = 'ed_likely';
+                        $summary['ed_likely_set']++;
                     }
 
                     $evidence = [
@@ -107,7 +124,7 @@ final class UrgentCareDeriver
                     $updates['urgent_care_evidence'] = json_encode($evidence, JSON_UNESCAPED_UNICODE);
 
                     if ($setNow !== []) {
-                        $summary['flags_set'] += count($setNow);
+                        $summary['flags_set'] += count(array_diff($setNow, ['ed_likely']));
                         $summary['set'][] = ['facility_id' => (int) $facility->getKey(), 'name' => (string) $facility->name, 'city' => $facility->city, 'flags' => $setNow];
                         $context?->increment('urgent_care_flags_set', count($setNow));
                         $context?->record('facility', 'update', $facility, (string) $facility->name, 'urgent_care', null, implode(',', $setNow), 'Urgent care derived from the source wording.');
@@ -120,6 +137,27 @@ final class UrgentCareDeriver
             });
 
         return $summary;
+    }
+
+    /**
+     * Not decided by anyone yet (no status, no staff check, no confirmed
+     * department) and a public general or clinical hospital by name.
+     * Special hospitals are left out: they count only with evidence of an
+     * emergency unit.
+     */
+    private static function likelyEmergencyDepartment(Facility $facility): bool
+    {
+        if ($facility->emergency_department_status !== null
+            || $facility->urgent_care_checked_at !== null
+            || (bool) $facility->has_emergency_services) {
+            return false;
+        }
+
+        $name = mb_strtolower((string) $facility->name, 'UTF-8');
+        $public = $facility->ownership === 'public'
+            || ($facility->ownership === null && str_starts_with($name, 'јзу'));
+
+        return $public && preg_match('/(општа|клиничка)\s+болница/u', $name) === 1;
     }
 
     /**

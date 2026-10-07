@@ -33,6 +33,12 @@ export type UrgentCarePlace = {
   phone: string | null;
   emergency_phone: string | null;
   services: UrgentService[];
+  /**
+   * The emergency department: confirmed, or likely (a public general or
+   * clinical hospital staff have not checked yet — shown as „непотврдено“).
+   * Optional until every API serves it.
+   */
+  ed_status?: "confirmed" | "unconfirmed_likely" | null;
   is_open_24h: boolean;
   /** Same format as office_hours; null = not confirmed. */
   emergency_hours: Record<string, string> | null;

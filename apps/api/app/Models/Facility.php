@@ -37,6 +37,15 @@ class Facility extends Model
         'dental' => 'has_dental_emergency',
     ];
 
+    /** emergency_department_status (docs/urgent-care.md § Data). */
+    public const ED_CONFIRMED = 'confirmed';
+
+    public const ED_UNCONFIRMED_LIKELY = 'unconfirmed_likely';
+
+    public const ED_NONE = 'none';
+
+    public const ED_STATUSES = [self::ED_CONFIRMED, self::ED_UNCONFIRMED_LIKELY, self::ED_NONE];
+
     /** @use HasFactory<FacilityFactory> */
     use DeletesReplacedMedia, HasFactory, HasImportDraftLifecycle, HasVerification, InvalidatesTaxonomyCache, Searchable, SoftDeletes;
 
@@ -50,6 +59,7 @@ class Facility extends Model
         'latitude',
         'longitude',
         'has_emergency_services',
+        'emergency_department_status',
         'has_emergency_medical_service',
         'has_on_duty_clinic',
         'has_dental_emergency',
@@ -83,6 +93,21 @@ class Facility extends Model
     {
         // The import rows about this facility go with it (ImportBookkeeping).
         static::forceDeleted(fn (Facility $facility) => ImportBookkeeping::forget(FieldProvenance::SUBJECT_FACILITY, (int) $facility->getKey()));
+
+        // has_emergency_services is true exactly when the emergency
+        // department is confirmed: the status wins when it changed, else the
+        // flag (older code and the public filter still set the flag).
+        static::saving(function (Facility $facility): void {
+            if ($facility->isDirty('emergency_department_status')) {
+                $facility->has_emergency_services = $facility->emergency_department_status === self::ED_CONFIRMED;
+            } elseif ($facility->isDirty('has_emergency_services')) {
+                if ($facility->has_emergency_services) {
+                    $facility->emergency_department_status = self::ED_CONFIRMED;
+                } elseif ($facility->emergency_department_status === self::ED_CONFIRMED) {
+                    $facility->emergency_department_status = null;
+                }
+            }
+        });
     }
 
     protected function casts(): array
@@ -213,13 +238,30 @@ class Facility extends Model
      */
     public function scopeUrgentCare(Builder $query, ?string $service = null): Builder
     {
-        $columns = $service !== null && isset(self::URGENT_CARE_SERVICES[$service])
-            ? [self::URGENT_CARE_SERVICES[$service]]
-            : array_values(self::URGENT_CARE_SERVICES);
+        return self::whereUrgentCare($query, $service);
+    }
 
-        return $query->where(function (Builder $inner) use ($columns): void {
-            foreach ($columns as $column) {
-                $inner->orWhere($column, true);
+    /**
+     * The urgent-care filter as a plain static (Filament filters call it on
+     * a generic builder). An emergency department counts when confirmed or
+     * likely (a public general/clinical hospital awaiting staff).
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    public static function whereUrgentCare(Builder $query, ?string $service = null): Builder
+    {
+        $services = $service !== null && isset(self::URGENT_CARE_SERVICES[$service])
+            ? [$service]
+            : array_keys(self::URGENT_CARE_SERVICES);
+
+        return $query->where(function (Builder $inner) use ($services): void {
+            foreach ($services as $name) {
+                $inner->orWhere(self::URGENT_CARE_SERVICES[$name], true);
+
+                if ($name === 'ed') {
+                    $inner->orWhere('emergency_department_status', self::ED_UNCONFIRMED_LIKELY);
+                }
             }
         });
     }

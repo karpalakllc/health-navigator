@@ -196,6 +196,7 @@ function PlaceCard({
   const urgentTel = telHref(place.emergency_phone);
   const tel = telHref(place.phone);
   const where = [place.address, place.city].filter(Boolean).join(", ");
+  const likely = place.ed_status === "unconfirmed_likely";
 
   return (
     <article
@@ -212,7 +213,9 @@ function PlaceCard({
               key={service}
               className="rounded-full bg-chip-tint px-2.5 py-0.5 text-sm font-semibold leading-5 text-ink"
             >
-              {t(SERVICE_LABEL_KEYS[service])}
+              {service === "ed" && likely
+                ? t("urgentCare.serviceEdLikely")
+                : t(SERVICE_LABEL_KEYS[service])}
             </li>
           ))}
         </ul>
@@ -249,6 +252,10 @@ function PlaceCard({
           <span>{t("urgentCare.hoursUnknown")}</span>
         </p>
       )}
+
+      {likely ? (
+        <p className="type-meta text-ink-2">{t("urgentCare.edLikelyNote")}</p>
+      ) : null}
 
       {place.note ? <p className="type-body text-ink">{place.note}</p> : null}
 

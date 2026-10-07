@@ -7,6 +7,7 @@ use App\Filament\Support\DirectoryTableColumns;
 use App\Filament\Support\UrgentCareForm;
 use App\Filament\Support\VerificationActions;
 use App\Filament\Tables\Filters\PublicationStatusFilter;
+use App\Models\Facility;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -42,9 +43,20 @@ class FacilitiesTable
                 TextColumn::make('city')
                     ->searchable()
                     ->sortable(),
-                IconColumn::make('has_emergency_services')
+                TextColumn::make('emergency_department_status')
                     ->label('Emergency dept.')
-                    ->boolean()
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        Facility::ED_CONFIRMED => 'Confirmed',
+                        Facility::ED_UNCONFIRMED_LIKELY => 'Likely',
+                        Facility::ED_NONE => 'No',
+                        default => '—',
+                    })
+                    ->color(fn (?string $state): string => match ($state) {
+                        Facility::ED_CONFIRMED => 'success',
+                        Facility::ED_UNCONFIRMED_LIKELY => 'warning',
+                        default => 'gray',
+                    })
                     ->sortable(),
                 IconColumn::make('has_emergency_medical_service')
                     ->label('Emergency medical service')
@@ -62,7 +74,8 @@ class FacilitiesTable
                 SelectFilter::make('urgent_care')
                     ->label('Urgent care')
                     ->options([
-                        'ed' => 'Emergency department',
+                        'ed' => 'Emergency department (confirmed or likely)',
+                        'ed_likely' => 'Emergency department likely, not confirmed',
                         'ems' => 'Emergency medical service',
                         'clinic' => 'On-duty clinic',
                         'dental' => 'Dental emergency',
@@ -72,6 +85,7 @@ class FacilitiesTable
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
                         'ed', 'ems', 'clinic', 'dental' => UrgentCareForm::scopeService($query, $data['value']),
                         'any' => UrgentCareForm::scopeService($query, null),
+                        'ed_likely' => $query->where('emergency_department_status', Facility::ED_UNCONFIRMED_LIKELY),
                         'to_check' => UrgentCareForm::scopeToCheck($query),
                         default => $query,
                     }),

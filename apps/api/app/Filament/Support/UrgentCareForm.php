@@ -24,8 +24,13 @@ use Illuminate\Support\HtmlString;
  */
 final class UrgentCareForm
 {
+    public const ED_STATUS_LABELS = [
+        Facility::ED_CONFIRMED => 'Confirmed — runs an emergency department',
+        Facility::ED_UNCONFIRMED_LIKELY => 'Likely, not confirmed (public general / clinical hospital)',
+        Facility::ED_NONE => 'No emergency department (checked)',
+    ];
+
     public const SERVICE_LABELS = [
-        'has_emergency_services' => 'Emergency department (ургентен центар / ургентно одделение)',
         'has_emergency_medical_service' => 'Emergency medical service (служба за итна медицинска помош)',
         'has_on_duty_clinic' => 'On-duty clinic (дежурна амбуланта)',
         'has_dental_emergency' => 'Dental emergency (итна / дежурна стоматолошка служба)',
@@ -42,6 +47,13 @@ final class UrgentCareForm
         return Fieldset::make('Urgent care („Каде веднаш“)')
             ->columns(2)
             ->schema([
+                Select::make('emergency_department_status')
+                    ->label('Emergency department (итно одделение / ургентен центар)')
+                    ->options(self::ED_STATUS_LABELS)
+                    ->placeholder('Unknown')
+                    ->native(false)
+                    ->helperText('„Likely“ is shown publicly as „итно одделение (непотврдено)“ with the main phone. Confirm or set „No“ once checked with the institution; the import never overrides your choice.')
+                    ->columnSpanFull(),
                 ...$toggles,
                 Toggle::make('is_open_24h')
                     ->label('Urgent service open 24/7')
@@ -143,15 +155,7 @@ final class UrgentCareForm
      */
     public static function scopeService(Builder $query, ?string $service): Builder
     {
-        $columns = $service !== null && isset(Facility::URGENT_CARE_SERVICES[$service])
-            ? [Facility::URGENT_CARE_SERVICES[$service]]
-            : array_values(Facility::URGENT_CARE_SERVICES);
-
-        return $query->where(function (Builder $inner) use ($columns): void {
-            foreach ($columns as $column) {
-                $inner->orWhere($column, true);
-            }
-        });
+        return Facility::whereUrgentCare($query, $service);
     }
 
     /**

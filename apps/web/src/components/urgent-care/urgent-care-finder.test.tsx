@@ -74,7 +74,7 @@ describe("UrgentCareFinder", () => {
     );
 
     const first = screen.getByRole("article", { name: hospital.name });
-    expect(within(first).getByText("Ургентен центар")).toBeInTheDocument();
+    expect(within(first).getByText("Итно одделение")).toBeInTheDocument();
     expect(within(first).getByText("Отворено 24 часа")).toBeInTheDocument();
     expect(
       within(first).getByRole("link", {
@@ -152,6 +152,31 @@ describe("UrgentCareFinder", () => {
       screen.getByText("Подредено по оддалеченост од вас."),
     ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("labels a likely emergency department as unconfirmed and offers its main phone", async () => {
+    const likely = place({
+      slug: "ob-strumica",
+      name: "ЈЗУ Општа болница Струмица",
+      type: "hospital",
+      services: ["ed"],
+      ed_status: "unconfirmed_likely",
+      phone: "034 000 000",
+    });
+    const { container } = render(<UrgentCareFinder places={[likely]} />);
+
+    const card = screen.getByRole("article", { name: likely.name });
+    expect(
+      within(card).getByText("Итно одделение (непотврдено)"),
+    ).toBeInTheDocument();
+    expect(within(card).queryByText("Итно одделение")).toBeNull();
+    expect(
+      within(card).getByText(/сè уште не сме потврдиле/),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByRole("link", { name: `Јави се: ${likely.name}` }),
+    ).toHaveAttribute("href", "tel:034000000");
+    expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
   it("hides the distance sort when no place has coordinates", () => {

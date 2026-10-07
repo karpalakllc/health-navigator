@@ -22,8 +22,12 @@ class UrgentCareFacilityResource extends JsonResource
     {
         $services = [];
 
+        $edStatus = (bool) $this->has_emergency_services
+            ? Facility::ED_CONFIRMED
+            : ($this->emergency_department_status === Facility::ED_UNCONFIRMED_LIKELY ? Facility::ED_UNCONFIRMED_LIKELY : null);
+
         foreach (Facility::URGENT_CARE_SERVICES as $service => $column) {
-            if ((bool) $this->getAttribute($column)) {
+            if ((bool) $this->getAttribute($column) || ($service === 'ed' && $edStatus !== null)) {
                 $services[] = $service;
             }
         }
@@ -42,6 +46,8 @@ class UrgentCareFacilityResource extends JsonResource
             'emergency_phone' => $this->emergency_phone,
             // ed | ems | clinic | dental, in that order.
             'services' => $services,
+            // confirmed | unconfirmed_likely („итно одделение (непотврдено)“) | null
+            'ed_status' => $edStatus,
             'is_open_24h' => (bool) $this->is_open_24h,
             // Same format as office_hours; null = not confirmed.
             'emergency_hours' => $hours,
