@@ -42,9 +42,11 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/search', SearchController::class);
     // Anonymous UX statistics (docs/ux-heatmaps.md): tracker batches relayed by
     // the web tier, and the staff-only heatmap read (overlay token, 403 without).
-    // Address-keyed limits last at most an hour; nothing about the address is stored.
+    // The address is not stored with the counters. The batch limit's cache key
+    // is an HMAC of the visitor's network (api-ux-events): it expires with its
+    // window (at most an hour) and expired rows are purged hourly.
     Route::post('/ux/events', [UxController::class, 'store'])
-        ->middleware(['throttle:60,1,api-ux-events-burst', 'throttle:600,60,api-ux-events-hourly']);
+        ->middleware('throttle:api-ux-events');
     Route::get('/ux/heatmap', [UxController::class, 'heatmap'])
         ->middleware('throttle:120,1,api-ux-heatmap');
     // Anonymous, identical-for-everyone taxonomies: shared caches may keep them

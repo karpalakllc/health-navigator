@@ -3,8 +3,10 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Support\Ux\UxSchema;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -192,5 +194,51 @@ class UxEventsTest extends TestCase
 
         $this->postJson('/api/v1/ux/events', $batch)->assertTooManyRequests();
         $this->assertSame(60, (int) DB::table('ux_page_stats')->value('views'));
+    }
+
+    public function test_one_ipv6_network_shares_one_limit(): void
+    {
+        $batch = ['clicks' => [], 'views' => [$this->pageView()]];
+
+        // An IPv6 visitor usually holds a whole /64 and could rotate through it.
+        for ($i = 0; $i < 60; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2::'.dechex($i + 1)])
+                ->postJson('/api/v1/ux/events', $batch)->assertNoContent();
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2:ffff::1'])
+            ->postJson('/api/v1/ux/events', $batch)->assertTooManyRequests();
+        // Another network is not affected.
+        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:3::1'])
+            ->postJson('/api/v1/ux/events', $batch)->assertNoContent();
+    }
+
+    public function test_the_limiter_key_cannot_be_reversed_to_the_address(): void
+    {
+        // The database cache store keeps limiter keys as rows: a plain hash of
+        // the address there could be reversed by trying every IPv4 address.
+        $limiter = app(RateLimiter::class);
+        $onDatabase = new RateLimiter(Cache::store('database'));
+        $named = (fn (): array => $this->limiters)->call($limiter);
+        (function () use ($named): void {
+            $this->limiters = $named;
+        })->call($onDatabase);
+        $this->app->instance(RateLimiter::class, $onDatabase);
+        $ip = '203.0.113.7';
+
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])
+            ->postJson('/api/v1/ux/events', ['clicks' => [], 'views' => [$this->pageView()]])
+            ->assertNoContent();
+
+        $keys = DB::table('cache')->pluck('key')->implode("\n");
+        $this->assertNotSame('', $keys);
+
+        foreach ([$ip, sha1($ip), sha1('|'.$ip), md5($ip), hash('sha256', $ip)] as $reversible) {
+            $this->assertStringNotContainsString($reversible, $keys);
+        }
+
+        // Only an HMAC under the app key leads back to it.
+        $hmac = hash_hmac('sha256', 'ux-events|'.$ip, (string) config('app.key'));
+        $this->assertStringContainsString(md5('api-ux-events'.'ux-min:'.$hmac), $keys);
     }
 }

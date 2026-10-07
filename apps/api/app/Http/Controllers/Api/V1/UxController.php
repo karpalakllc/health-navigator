@@ -19,8 +19,9 @@ use Illuminate\Validation\Rule;
  * Anonymous UX statistics (docs/ux-heatmaps.md).
  *
  * POST /ux/events is open: the web tier relays tracker batches here. Only
- * counters are written, and the address is used for the rate limit alone
- * (a hashed, expiring cache key), never stored.
+ * counters are written. The address is not stored with them; it is used for
+ * the rate limit alone, as an HMAC of its network under the app key (the
+ * `api-ux-events` limiter), a cache key that expires with its window.
  *
  * GET /ux/heatmap is for staff only, through the overlay token minted on the
  * admin „UX анализа“ page; without a valid one it answers 403 and reads

@@ -16,6 +16,14 @@ Schedule::command('analytics:purge-old-events')
     ->onOneServer()
     ->withoutOverlapping();
 
+// The database cache store never deletes an expired row nobody reads again,
+// and rate-limiter keys are derived from visitor addresses: purge them hourly
+// so none outlives its window by more than an hour (docs/data-inventory.md).
+Schedule::command('cache:purge-expired')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // One summary of newly arrived reports at most every 10 minutes, so the
 // 24-hour review goal in the terms does not depend on someone opening the panel.
 Schedule::command('reports:alert-staff')

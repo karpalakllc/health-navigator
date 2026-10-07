@@ -64,7 +64,13 @@ the name to both lists, and give it words in
   (shared origin guard, JSON only, 16 KB cap, rebuilt field by field), which
   relays them to `POST /api/v1/ux/events`. The API validates every value
   against a fixed vocabulary (anything else → the whole batch is refused) and
-  rate-limits per address (60/min, 600/h; cache keys only, never stored).
+  rate-limits per visitor network — the IPv4 address or the IPv6 /64 — at
+  60/min and 600/h (the `api-ux-events` limiter). The address is never stored
+  with the counters. The limiter's cache key is an HMAC-SHA256 of the network
+  under `APP_KEY`, so it cannot be turned back into an address without the
+  key; it expires with its window (at most an hour), and with the database
+  cache store expired rows are deleted hourly by `cache:purge-expired`, so a
+  key is gone at most two hours after the last batch.
 - Retention: 180 days (`analytics:purge-old-events`, `--ux-days`,
   `UX_RETENTION_DAYS`).
 
