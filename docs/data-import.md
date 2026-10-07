@@ -200,14 +200,22 @@ matches it to a profile:
 - Candidates are profiles the **ФЗОМ import created** (`doctors.import_source
   = 'fzom'`, `KOMORA_MATCH_IMPORTED_SOURCE`), never dentists, never
   hand-made profiles: a licence is evidence about a doctor we know works
-  somewhere. Website-only drafts are not matched automatically; check their
-  licence by hand before publishing (their review item says so).
+  somewhere. Website-only drafts are *fallback* candidates, considered only
+  for a name no ФЗОМ profile carries (`KOMORA_MATCH_FALLBACK_SOURCES`,
+  [`verification.md`](verification.md) §6).
 - The name must match exactly after normalisation (`NameKey`, either word
   order) **and** the licence's specialty must fit the doctor's (§7). One fit
   attaches; several fits are *ambiguous*; a name without a fitting specialty
   (or with wording nobody has mapped yet) is a *specialty mismatch*; no name
-  is *no match*. Namesakes on the list never share a profile. Everything not
-  attached goes to the review queue as *unmatched*.
+  is *no match*. Namesakes on the list never share a profile. Only
+  *ambiguous* rows go to the review queue as *unmatched*: a *no match* row is
+  the licence of somebody with no profile here (most of the list) and a
+  *specialty mismatch* is reported per wording pair by the verification
+  engine — both stay in the staging table only. A general doctor's licence
+  fits a ФЗОМ profile with no specialty at all.
+- The verification engine re-matches the unattached rows after every import
+  and nightly, so a later website draft or a mapping fix is picked up
+  without waiting for the next list.
 - Attaching goes through the import core
   (`App\Support\Import\Contracts\DoctorLicenceSink` →
   `EloquentDoctorLicenceSink`): one licence number per doctor, never moved
@@ -249,7 +257,12 @@ Provenance source `website`, with the page URL per field.
 - **Doctors**: physicians and dentists only (nurses and other staff are
   skipped). Matched to a doctor already at that facility, or by name +
   specialty + town; otherwise a hidden draft whose review item says
-  *verify licence before publishing*. Website specialties are free text;
+  *verify licence before publishing* (the verification engine matches its
+  licence and verifies it when the evidence agrees).
+- **Warnings about the site** in the research `notes` (compromised,
+  stale) are kept as flags on the facility's source record; such a site's
+  staff list is not verification evidence until staff trust it
+  ([`verification.md`](verification.md) §5). Website specialties are free text;
   `SpecialtyText` reduces „Специјалист по општа хирургија“, „хирург-уролог“,
   „Офталмолог“ to catalogue wordings; the rest are stored as unmapped
   aliases (source `website`) and listed in the review queue.
@@ -297,11 +310,16 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 | Changed | an imported value replaced the old one on a **published** profile (one item per profile per run) | Mark seen |
 | Conflict | the source disagrees with a value someone else set, or two records claim the same key (licence number); nothing was overwritten | Use imported value, Keep current and lock |
 | Missing | absent from consecutive snapshots | Hide profile (reviews kept), Dismiss |
-| Unmatched | ambiguous match, unmapped specialty wording, licence row without a single fitting doctor, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
+| Unmatched | ambiguous match, unmapped specialty wording, licence several doctors fit, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
+| Uncertain | the verification engine needs one decision: a licence/profile specialty wording pair, a flagged website, a published profile that lost its verification ([`verification.md`](verification.md) §4) | Map the wording, **Trust this website**, Hide, or Dismiss |
 
-1. Check each draft against the source before publishing: imported data is
-   not verified. **Publish selected drafts** (bulk) once a batch is checked;
-   it also publishes the hidden imported specialties the doctor uses.
+1. Drafts the verification engine verified (two sources agree,
+   [`verification.md`](verification.md)) can go public together:
+   **„Објави ги сите верифицирани“** shows their number and a random sample
+   of 20, then publishes them all. Check other drafts against the source
+   before publishing: **Publish selected drafts** (bulk) once a batch is
+   checked; it also publishes the hidden imported specialties the doctor
+   uses. The queue is sorted by priority (what matters most first).
 2. **Missing**: check whether the doctor still works there; hide only on
    evidence. The profile keeps its reviews.
 3. The public profile may show „Лиценца: важечка“ (from the Комора list); the
@@ -347,6 +365,9 @@ review items and lifted suppressions are deleted `IMPORT_RETENTION_DAYS`
 (365) days after the run / the decision. Deleting a doctor or facility for
 good (force delete) also deletes its source records, field provenance and
 review items; a doctor's suppression stays (§11).
+
+`import:adjudicate` (the verification engine, [`verification.md`](verification.md))
+runs daily at 05:50 (always on) and after every successful import apply.
 
 `routes/console.php` registers both source imports. They are **off by
 default**:
