@@ -323,6 +323,33 @@ class ContributorLevelsTest extends TestCase
         $this->assertCount(LevelRules::LEADERBOARD_SIZE, ContributorLevels::leaderboards()['reviewers']);
     }
 
+    /**
+     * The cached boards hold scores only: an erased, suspended or renamed
+     * member is gone or renamed on the next read, not after six hours.
+     */
+    public function test_the_cached_lists_follow_erasure_suspension_and_renames_at_once(): void
+    {
+        config(['cache.default' => 'array']);
+        $this->travelTo(CarbonImmutable::parse('2026-10-07 12:00', LevelRules::TIMEZONE));
+        $september = CarbonImmutable::parse('2026-09-15 10:00', LevelRules::TIMEZONE);
+        $erased = User::factory()->create(['username' => 'izbrishan']);
+        $suspended = User::factory()->create(['username' => 'suspendiran']);
+        $renamed = User::factory()->create(['username' => 'staroime']);
+
+        foreach ([$erased, $suspended, $renamed] as $author) {
+            $this->review($author, ['created_at' => $september, 'published_at' => $september]);
+        }
+
+        $this->assertEqualsCanonicalizing(['izbrishan', 'suspendiran', 'staroime'], array_column(ContributorLevels::leaderboards()['reviewers'], 'username'));
+
+        app(AnonymiseUser::class)->handle($erased);
+        $suspended->forceFill(['suspended_at' => now()])->save();
+        $renamed->forceFill(['username' => 'novoime'])->save();
+
+        $this->assertSame(['novoime'], array_column(ContributorLevels::leaderboards()['reviewers'], 'username'));
+        $this->assertStringNotContainsString('izbrishan', (string) json_encode(Cache::get('levels:leaderboards:v2:2026-09')));
+    }
+
     public function test_deleting_the_account_removes_its_levels_and_the_nightly_run_does_not_bring_them_back(): void
     {
         $member = User::factory()->create();

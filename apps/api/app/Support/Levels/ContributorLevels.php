@@ -152,7 +152,10 @@ final class ContributorLevels
     /**
      * The calendar month before $now (Macedonian time): „Најкорисни
      * рецензенти“ and „Најактивни во форумот“, top LEADERBOARD_SIZE each, by
-     * username only. Cached.
+     * username only. The scores are cached (user ids and numbers only); who
+     * is shown and under which username is decided on every read, so an
+     * erased, suspended or renamed member drops out or shows the new name at
+     * once.
      *
      * @return array{month: string, reviewers: list<array<string, mixed>>, forum: list<array<string, mixed>>}
      */
@@ -162,23 +165,29 @@ final class ContributorLevels
         $month = $now->setTimezone(LevelRules::TIMEZONE)->startOfMonth()->subMonthNoOverflow();
         $key = self::leaderboardKey($month);
 
-        /** @var array{month: string, reviewers: list<array<string, mixed>>, forum: list<array<string, mixed>>} */
-        return Cache::remember($key, self::LEADERBOARD_TTL_SECONDS, function () use ($month): array {
+        /** @var array{month: string, reviewers: list<array{user_id: int, points: int, helpful: int, stats: array<string, int>}>, forum: list<array{user_id: int, points: int, helpful: int, stats: array<string, int>}>} $scores */
+        $scores = Cache::remember($key, self::LEADERBOARD_TTL_SECONDS, function () use ($month): array {
             $window = ContributorScoring::monthWindow($month);
 
             return [
                 'month' => $month->format('Y-m'),
-                'reviewers' => self::rank(ContributorScoring::reviews(null, $window), fn (array $tally): array => [
+                'reviewers' => self::scores(ContributorScoring::reviews(null, $window), fn (array $tally): array => [
                     'reviews' => $tally['reviews'],
                     'helpful' => $tally['helpful'],
-                ], 'review'),
-                'forum' => self::rank(ContributorScoring::forum(null, $window), fn (array $tally): array => [
+                ]),
+                'forum' => self::scores(ContributorScoring::forum(null, $window), fn (array $tally): array => [
                     'topics' => $tally['topics'],
                     'replies' => $tally['replies'],
                     'helpful' => $tally['helpful'],
-                ], 'forum'),
+                ]),
             ];
         });
+
+        return [
+            'month' => $scores['month'],
+            'reviewers' => self::rank($scores['reviewers'], 'review'),
+            'forum' => self::rank($scores['forum'], 'forum'),
+        ];
     }
 
     /**
@@ -221,27 +230,48 @@ final class ContributorLevels
 
     private static function leaderboardKey(CarbonImmutable $month): string
     {
-        return 'levels:leaderboards:'.$month->format('Y-m');
+        // v2: scores only (the v1 entries held usernames).
+        return 'levels:leaderboards:v2:'.$month->format('Y-m');
     }
 
     /**
+     * The cacheable part of a board: user ids and numbers, no names.
+     *
      * @template T of array{points: int, helpful: int}
      *
      * @param  array<int, T>  $tallies
      * @param  callable(T): array<string, int>  $stats
+     * @return list<array{user_id: int, points: int, helpful: int, stats: array<string, int>}>
+     */
+    private static function scores(array $tallies, callable $stats): array
+    {
+        $scores = [];
+
+        foreach ($tallies as $userId => $tally) {
+            if ($tally['points'] > 0) {
+                $scores[] = ['user_id' => (int) $userId, 'points' => $tally['points'], 'helpful' => $tally['helpful'], 'stats' => $stats($tally)];
+            }
+        }
+
+        return $scores;
+    }
+
+    /**
+     * The board as shown: members who may be shown now, under their current
+     * username.
+     *
+     * @param  list<array{user_id: int, points: int, helpful: int, stats: array<string, int>}>  $scores
      * @param  'review'|'forum'  $ladder
      * @return list<array<string, mixed>>
      */
-    private static function rank(array $tallies, callable $stats, string $ladder): array
+    private static function rank(array $scores, string $ladder): array
     {
-        $tallies = array_filter($tallies, fn (array $tally): bool => $tally['points'] > 0);
-
-        if ($tallies === []) {
+        if ($scores === []) {
             return [];
         }
 
         $users = User::query()
-            ->whereKey(array_keys($tallies))
+            ->whereKey(array_column($scores, 'user_id'))
             ->with('contributorLevel')
             ->get()
             ->filter(fn (User $user): bool => $user->showsContributorLevel())
@@ -249,8 +279,8 @@ final class ContributorLevels
 
         $rows = [];
 
-        foreach ($tallies as $userId => $tally) {
-            $user = $users->get($userId);
+        foreach ($scores as $score) {
+            $user = $users->get($score['user_id']);
 
             if ($user === null) {
                 continue;
@@ -259,9 +289,9 @@ final class ContributorLevels
             $rows[] = [
                 'username' => (string) $user->username,
                 'level' => self::storedLevel($user, $ladder),
-                'points' => $tally['points'],
-                ...$stats($tally),
-                '_helpful' => $tally['helpful'],
+                'points' => $score['points'],
+                ...$score['stats'],
+                '_helpful' => $score['helpful'],
             ];
         }
 
