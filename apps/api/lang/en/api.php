@@ -71,6 +71,7 @@ return [
     'forum' => [
         'topic_locked' => 'This topic is locked and does not accept new replies.',
         'tag_invalid' => 'Each keyword needs 2–40 letters or digits and cannot be only a number.',
+        'helpful_own' => 'You cannot mark your own reply as helpful.',
     ],
 
     'review' => [
@@ -174,6 +175,17 @@ return [
                 'owner_claim' => 'Claimed by the facility (identity confirmed)',
             ],
         ],
+    ],
+
+    // W8-B review reminders and notifications.
+    'reminder' => [
+        'own_profile' => 'You cannot set a reminder for the profile you manage.',
+        'already_reviewed' => 'You have already reviewed this profile.',
+        'too_many' => 'You have too many active reminders. Cancel one in your notification settings.',
+    ],
+
+    'notifications' => [
+        'unsubscribe_invalid' => 'This unsubscribe link is not valid. You can change your settings in your account.',
     ],
 
 ];

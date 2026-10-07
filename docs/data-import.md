@@ -368,6 +368,7 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 | Missing | absent from consecutive snapshots | Hide profile (reviews kept), Dismiss |
 | Unmatched | ambiguous match, unmapped specialty wording, licence several doctors fit, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
 | Uncertain | the verification engine needs one decision: a licence/profile specialty wording pair, a flagged website, a published profile that lost its verification ([`verification.md`](verification.md) §4) | Map the wording, **Trust this website**, Hide, or Dismiss |
+| Uncertain (source `cleanup`) | the name cleanup needs one decision: a proposed name or title, or a group of possible duplicates (§12) | **„Прифати предлог“**, **„Спои ги“**, **„Остави“** |
 
 1. Drafts the verification engine verified (two sources agree,
    [`verification.md`](verification.md)) can go public together:
@@ -376,10 +377,22 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
    ФЗОМ“** does the same for ФЗОМ doctors with no licence on the Комора list
    and nothing else open on them: public, still „Неверификуван“
    ([`verification.md`](verification.md) §8;
-   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Check other drafts against the source
+   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Both run **in the
+   background**, in chunks (thousands of drafts do not fit in one request):
+   „Објавувањето започна…“, a progress bar above the table, and a
+   notification in the panel's bell when done (counts and any failed items).
+   One bulk publish at a time; one that stopped shows **Продолжи** /
+   **Прекини** and continues from where it stopped, publishing no more than
+   the modal counted. The same from a terminal:
+   `php artisan import:publish verified|fzom-unverified --by=<staff email>`
+   (`--dry-run` counts; running it again continues a stopped run). With a
+   queue worker running the page may be closed; without one (`sync` queue,
+   or no worker for 90 s) the open page publishes a chunk every few seconds
+   ([`infra/deploy.md`](../infra/deploy.md#bulk-publish-of-imported-drafts)).
+   Check other drafts against the source
    before publishing: **Publish selected drafts** (bulk) once a batch is
    checked; it also publishes the hidden imported specialties the doctor
-   uses. The queue is sorted by priority (what matters most first).
+   uses (more than 100 selected: in the background, as above). The queue is sorted by priority (what matters most first).
 2. **Missing**: check whether the doctor still works there; hide only on
    evidence. The profile keeps its reviews.
 3. The public profile may show „Лиценца: важечка“ (from the Комора list); the
@@ -555,3 +568,143 @@ Closed requests are deleted 365 days after they were closed
 (`CORRECTION_RETENTION_DAYS`, `model:prune` daily at 04:50); open ones are
 never pruned. When a member deletes their account, their requests stay for
 staff but lose the account link and the contact.
+
+## 12. Names: how they are cleaned (`import:clean-names`)
+
+Every import writes names through the same rules
+(`apps/api/app/Support/Import/Names/**`), and `import:clean-names` applies
+them to profiles already in the directory.
+
+| Rule | Doctors (`full_name`, `title`) | Facilities (`name`) |
+|---|---|---|
+| Casing | A word in capitals or lower case is capitalised, each part of a double surname too; mixed case („МекДоналд“) and title words („д-р“) are left alone | Register capitals → title case; „Д-Р“ / „Др“ before a name → „д-р“ (capital after an opening quote); function words („по“, „за“, „и“…) and generic words in a descriptive run in lower case („Здравствен дом“, „Ординација по општа медицина“); a brand keeps its capitals, and a function word that starts the name, a quoted or bracketed name („ДО ДЕНТ“ → „До Дент“, never „до Дент“) or the name after the legal form keeps its capital |
+| Titles and roles | Titles before or after the name („Проф. д-р“, „dr.“, „Mr. sc.“ — Latin `sc`, `med`, `mag`, `univ`, `subspec`… are understood) move to `title`; a trailing profession („стоматолог“, „специјалист …“, also after a spaced dash: „Ана Петрова - специјалист по педијатрија“) is dropped. Titles are canonical: „проф. д-р д-р сци.“, „асс. д-р“, „д-р (специјализант)“; job roles („раководител на оддел“) and spelled-out specialties are dropped | — |
+| Script | Latin look-alike letters inside Cyrillic words („Бaјрaми“) → Cyrillic: only a, c, e, o, p, x, y and A, B, C, E, H, K, M, O, P, T, X. A Latin s/S, j/J or Y is **not** folded (a Latin s in a Macedonian word is almost always a mistyped с, and ѕ/ј are letters of their own): the name is left as it is, with a review item | the same |
+| Punctuation | „Петрова - Ристова“ → „Петрова-Ристова“; „К.Петрова“ → „К. Петрова“; „Ана К Петрова“ → „Ана К. Петрова“; stray dots and quotes | Quotes → „…“; „Пзу-“, „Приватна здравствена установа -“ → „ПЗУ “; „Орд.“, „Спец. Орд.“, „Поликл.“, „Опш.“, „Кл.“, „Универзи.“ written out |
+| Town | — | The facility's own town (or „С. village“) at the end of a **private** institution's name is dropped when the rest still names it; public institutions (ЈЗУ, health centres, hospitals) keep it |
+| Order | Two-word names written surname first, when the whole directory says so clearly (the first word is otherwise only ever a surname, the second a common given name) | — |
+
+The matching keys (`NameKey`) of these fixes are the same as the
+original's, so ФЗОМ, Комора and website matching find the same profiles
+(`NameNormalisersTest`, `NameCleanupTest`); the only exceptions are names
+whose words were glued by a dot („К.Петрова“), which never matched a
+Комора row anyway. The register check of facilities compares the name as
+the import shows it too ([`verification.md`](verification.md) §3).
+
+**Never decided by a rule — review items** (kind *Uncertain*, source
+`cleanup`, reason `name_cleanup`), each with one click:
+
+- names in Latin script (one item for all, with a Cyrillic proposal each;
+  check the proposals of non-Macedonian names — see the transliteration
+  below; a name with a letter that has no certain Cyrillic counterpart gets
+  no proposal and an item of its own, for a manual edit), a Latin letter with no
+  Cyrillic twin in a Cyrillic word, an institution or a role inside a
+  person's name, text after a comma that is not a title, a less clear
+  surname-first name, a cleaned name that would no longer match its
+  Комора licence, a title the rules do not know. An uncertain name keeps
+  its value exactly as it was (no partial cleaning); the proposal is only on
+  the item. **„Прифати предлог“**
+  sets the proposed value (a profile changed since is skipped; the value
+  is then a staff value that imports do not overwrite), **„Остави“** keeps
+  the current one (the item stays dismissed while nothing changes);
+- **possible duplicates** (reason `possible_duplicate`): the same
+  normalised name on several profiles. Two profiles are the same person
+  for certain only with the same licence number or ФЗО facsimile, and both
+  are unique per profile, so nothing is merged automatically. A hidden
+  website draft (never published, no owner, reviews or licence) with
+  exactly one ФЗОМ profile of its name — or website profiles of one name
+  in one town — is proposed for merging, grouped per institution whose
+  staff page listed it. **„Спои ги“** moves each draft's workplace
+  (department kept), its title and, only when the profile has none, its
+  specialties into the other profile, points the staff-page source records
+  at it (the next import of that site updates the profile) and deletes the
+  draft without a suppression; **„Остави“** keeps them apart. Groups with
+  several ФЗОМ namesakes beside a public website profile, or ФЗОМ profiles
+  sharing a workplace, are listed to compare, without a merge.
+
+**Latin-script names → Cyrillic proposals** (`PersonName::LATIN_TO_CYRILLIC`).
+Most Latin-script names on the clinics' websites are Albanian; the
+proposals follow the way Macedonian Cyrillic writes Albanian names
+(„Xhaferi“ → „Џафери“, „Qazim“ → „Ќазим“, „Thaçi“ → „Тачи“): xh → џ,
+gj → ѓ, zh → ж, sh → ш, ç → ч, q → ќ, dh → д, th → т, ll → л, rr → р,
+nj → њ, ë → е, y → и (ј before a vowel: „Yusuf“ → „Јусуф“). Serbo-Croatian
+spellings: č ć š ž đ dž lj nj, a final „-ic“ as „-иќ“, and „dj“ (đ typed
+without the accent) → ѓ („Djordjevic“ → „Ѓорѓевиќ“). The ASCII Macedonian
+digraphs kj, ch, dzh, dz as in search. A plain x (Albanian ѕ, but „кс“ in
+„Maxim“), w and any other letter without one certain counterpart are not
+mapped, and a proposal is never made while a Latin letter would remain.
+There is no codified state standard we could cite for this (no web check
+was possible at the time of writing); it is the common practice in
+Macedonian-language registers and media, so staff check each proposal.
+
+**Repair after the 2026-10 rule fixes** (`import:repair-name-cleanup`, a
+one-off): the first real-data run used rules since fixed — a function word
+starting a quoted facility name was lower-cased, a Latin s became ѕ, and an
+uncertain name could be partly rewritten. The command recomputes every
+automatic change in the **Name cleanup** activity log from its original
+value with today's rules, and writes the result only where the cleanup
+still owns the field (never a locked, staff-set or since-imported value);
+any other difference is only counted. Restored uncertain names get their
+review item; the open Latin-script batch gets today's proposals. Repairs
+are logged (category `repair:b1` / `repair:s2` / `repair:s3`), counts only
+on screen, and a second run changes nothing:
+
+```sh
+php artisan import:repair-name-cleanup --dry-run
+php artisan import:repair-name-cleanup --apply
+```
+
+### Running it
+
+```sh
+php artisan import:clean-names --dry-run    # decide and count, change nothing
+php artisan import:clean-names --apply      # write the fixes, queue the rest
+php artisan import:adjudicate               # then re-verify
+```
+
+- Only values an import wrote and nobody changed since: a **locked** field,
+  or one whose value differs from its provenance (staff, the doctor), is
+  counted as skipped and never touched.
+- A rewritten value keeps its provenance row with the source `cleanup` (and
+  the source record it came from); the next import treats it as its own
+  value, so it neither raises a conflict nor writes it back.
+- When an import's value differs from its own earlier value (or the
+  cleanup's) **only in casing** — e.g. after the 2026-10 fix of
+  `TextCase::institution`, which missed „во“, „до“, „по“, „со“ next to a
+  multibyte quote rule — the new casing is written and listed in the run's
+  diff, but a published profile gets no „changed“ review item for it —
+  unless the change lower-cases the word the name or a quoted name starts
+  with („До Дент“ → „до Дент“): that one is listed for staff.
+- A surname-first fix („Петрова Ана“ → „Ана Петрова“) stays: the source
+  sending the same words in the old order again is treated as unchanged
+  while the provenance is „cleanup“. Any other change of the name is taken
+  as usual.
+- Each change is one activity-log entry (log **Name cleanup**, field, old →
+  new); a merge is one entry on the profile that stayed.
+- Each run is an `import_runs` row (source `cleanup`) whose **Diff (CSV)**
+  lists every change, skip, uncertain case and duplicate (names of people:
+  private import disk only, do not share). The command prints counts only.
+- Running it again changes nothing; items already decided stay decided.
+
+### First run on the real data (2026-10-07, counts only)
+
+| | Before | Fixed automatically | Left for the owner |
+|---|---|---|---|
+| Doctors checked | 8,657 | | |
+| Latin look-alike letters in a Cyrillic name | 13 | 13 | 0 |
+| Double surnames with a spaced hyphen or dash | 52 | 52 | 0 |
+| Glued or stray initials and dots | 21 | 21 | 0 |
+| Surname written first | 2 | 2 | 0 |
+| Names in Latin script (website drafts) | 45 | 0 | 38 in one item; 7 inside merge groups |
+| Professions, titles, institutions inside a name; capitals; lower case | 0 | — | — |
+| Titles not in canonical form | 498 | 497 | 1 (unknown title) |
+| Facilities checked | 2,793 | | |
+| Facility names rewritten | 1,657 | 1,657 | 0 |
+| … casing / town dropped / abbreviations / legal form / quotes / Latin look-alikes | 1,390 / 722 / 271 / 139 / 9 / 3 | | |
+| Hidden website drafts with the name of another profile | 454 | 0 | 66 merge groups (433 into a ФЗОМ profile, 21 into another website profile) |
+| Namesake groups to compare | | | 8 (18 profiles) |
+| Fields skipped because staff edited or locked them | 0 | | |
+
+Open items for the owner: 76. Verification was the same after
+`import:adjudicate` (every doctor unchanged; all 2,623 ФЗОМ facilities
+still verified).

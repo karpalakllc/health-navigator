@@ -47,6 +47,8 @@ export const UX_TARGET_CONTEXTS = [
   "pagination",
   "home-how-it-works",
   "home-forum-band",
+  "home-help",
+  "review-prompt",
   "header",
   "nav",
   "main",

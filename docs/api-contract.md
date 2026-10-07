@@ -198,14 +198,21 @@ limiters are layered on top:
 | `api-forum-posts` | reply creation | 30/day |
 | `api-reports-burst` / `api-reports-daily` | content reports (inline `throttle:` with a prefix) | 10 per 10 min, 40/day per user |
 | `api-review-helpful` | „Корисно“ on/off (inline `throttle:` with a prefix) | 60 per 10 min per user |
+| `api-forum-post-helpful` | „Корисно“ on forum replies on/off (W8-C, inline) | 60 per 10 min per user |
+| `api-me-levels` | `GET /me/levels` (W8-C, inline) | 60/min per user |
 | `api-doctor-dashboard` | everything under `/me/doctor` (inline `throttle:`) | 120/min per user |
 | `api-doctor-dashboard-writes` | `/me/doctor` saves, photo, change requests, replies (inline, on top) | 60/hour per user |
 | `api-doctor-claims` | `POST /doctors/{slug}/claim-requests` (inline) | 5/day per user |
 | `api-corrections-burst` / `api-corrections-hourly` | `POST /doctors/{slug}/corrections`, `POST /facilities/{slug}/corrections` (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-profile-reports-burst` / `api-profile-reports-hourly` | `POST /doctors/{slug}/profile-reports` and the facility and pharmacy ones (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-altcha` | `GET /altcha/challenge` | 20/min and 120/hour per IP |
+| `api-forum-unanswered-search` | `GET /forum/topics/unanswered` with `?q=` (uncached text search; the plain list is not limited) | 30/min per IP |
 | `api-ux-events` | `POST /ux/events` (anonymous UX counters) | 60/min and 600/hour per network (keyed hash of the IPv4 address or IPv6 /64) |
 | `api-ux-heatmap` | `GET /ux/heatmap` (staff overlay, signed token; inline `throttle:`) | 120/min per IP |
+| `api-review-views` | `POST /reviews/views` (inline, signed in or not) | 60/min per user, or per IP when anonymous |
+| `api-notifications` | `/me/notifications*`, `/me/notification-preferences`, `/me/review-reminders*` (inline) | 120/min per user |
+| `api-review-reminders` | `POST /me/review-reminders` (inline) | 30/hour per user |
+| `api-unsubscribe` | `GET`/`POST /notifications/unsubscribe` (inline, no sign-in) | 30/min per IP |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
@@ -221,14 +228,17 @@ nobody can hold an account locked by merely sending traffic.
 <!-- BEGIN generated route table -->
 | Method | Path | Guards |
 |--------|------|--------|
+| `DELETE` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `DELETE` | `/me` | `auth:sanctum`, `throttle:api-account-delete` |
 | `DELETE` | `/me/doctor/change-requests/{changeRequest}` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `DELETE` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `DELETE` | `/me/review-reminders/{reminder}` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `DELETE` | `/me/tokens` | `auth:sanctum` |
 | `DELETE` | `/me/tokens/{token}` | `auth:sanctum` |
 | `DELETE` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `GET` | `/altcha/challenge` | `throttle:api-altcha` |
 | `GET` | `/auth/email/verify/{id}/{hash}` | `signed`, `throttle:api-login` |
+| `GET` | `/community/leaderboards` | `cache.public:300` |
 | `GET` | `/departments` | `cache.public` |
 | `GET` | `/doctors` | `cache.public:60` |
 | `GET` | `/doctors/{slug}` | `cache.public:60` |
@@ -244,6 +254,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/forum/topics/related` | `module:forum`, `cache.public:60` |
+| `GET` | `/forum/topics/unanswered` | `module:forum`, `cache.public:60`, `throttle:api-forum-unanswered-search` |
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |
@@ -255,8 +266,13 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
+| `GET` | `/me/levels` | `auth:sanctum`, `throttle:60,1,api-me-levels` |
+| `GET` | `/me/notification-preferences` | `auth:sanctum`, `throttle:120,1,api-notifications` |
+| `GET` | `/me/notifications` | `auth:sanctum`, `throttle:120,1,api-notifications` |
+| `GET` | `/me/review-reminders` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `GET` | `/me/reviews` | `auth:sanctum` |
 | `GET` | `/me/tokens` | `auth:sanctum` |
+| `GET` | `/notifications/unsubscribe` | `throttle:30,1,api-unsubscribe` |
 | `GET` | `/pharmacies` | `module:pharmacies`, `cache.public:60` |
 | `GET` | `/pharmacies/{slug}` | `module:pharmacies`, `cache.public:60` |
 | `GET` | `/pharmacies/{slug}/products` | `module:pharmacies`, `cache.public:60` |
@@ -294,14 +310,20 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
 | `POST` | `/me/doctor/avatar` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `POST` | `/me/doctor/change-requests` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `POST` | `/me/notifications/read` | `auth:sanctum`, `throttle:120,1,api-notifications` |
+| `POST` | `/me/review-reminders` | `auth:sanctum`, `throttle:120,1,api-notifications`, `verified`, `throttle:30,60,api-review-reminders` |
+| `POST` | `/notifications/unsubscribe` | `throttle:30,1,api-unsubscribe` |
 | `POST` | `/pharmacies/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha`, `module:pharmacies` |
 | `POST` | `/pharmacies/{slug}/reviews` | `auth:sanctum`, `module:pharmacies`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/reviews/views` | `auth.sanctum.optional`, `throttle:60,1,api-review-views` |
 | `POST` | `/reviews/{review}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha` |
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/ux/events` | `throttle:api-ux-events` |
+| `PUT` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `PUT` | `/me/notification-preferences` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
 <!-- END generated route table -->
@@ -535,6 +557,13 @@ nobody can hold an account locked by merely sending traffic.
   /forum/topics/related?doctor={slug}` or `?facility={slug}` (`limit` 1–10,
   default 5) lists visible topics related to a published profile. All three
   are anonymous and `cache.public:60`.
+- **Unanswered questions.** `GET /forum/topics/unanswered` (`category` slug,
+  `q`, `min_age_hours` 0–720, `per_page` ≤ 20, default 10) lists visible
+  topics that have no published reply from anyone but their own author,
+  newest first; pinned and locked topics are left out. Same item shape as
+  `/forum/topics/recent`; 404 for an unknown or unpublished category.
+  Anonymous, `cache.public:60`, and cached server side for 5 minutes (busted
+  by topic saves and reply approvals or removals).
 - `GET /locations/cities` lists every city with at least one published
   profile (doctors, clinical facilities, and pharmacies while that module is
   on) as `[{name, doctors_count, facilities_count}]`; spellings differing only

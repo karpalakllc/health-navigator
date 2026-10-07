@@ -18,6 +18,7 @@ return [
         '/privacy',
         '/terms',
         '/transparency',
+        '/community',
         '/search',
         '/guidance',
         '/doctors',

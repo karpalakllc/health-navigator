@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\User;
+use App\Support\Levels\ContributorLevels;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,6 +27,7 @@ class ForumAuthorResource extends JsonResource
                 'posts_count' => 0,
                 'is_team_member' => false,
                 'is_forum_moderator' => false,
+                'level' => null,
             ];
         }
 
@@ -36,6 +38,8 @@ class ForumAuthorResource extends JsonResource
             'posts_count' => (int) ($this->forum_posts_count ?? 0),
             'is_team_member' => $this->isStaff(),
             'is_forum_moderator' => $this->isForumModerator(),
+            // W8-C: the forum level („Помошник“…), or null.
+            'level' => ContributorLevels::publicLevel($this->resource, 'forum'),
         ];
     }
 }

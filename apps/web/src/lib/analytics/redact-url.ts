@@ -3,11 +3,59 @@
  *
  * Query strings here carry what people searched for (`/search?q=…`), and on a
  * health platform that is often a symptom; filters (`?city=…&specialty=…`) are
- * not much better. So only origin + path are reported, plus any parameter
- * explicitly listed as harmless. None is, by default — add one only after
- * checking it can never carry free text or anything about the visitor.
+ * not much better. So only origin + path are reported, plus the parameters
+ * listed here. Add one only after checking it can never carry free text or
+ * anything about the visitor.
+ *
+ * The four campaign tags are the exception we make: they are written by
+ * whoever shares a link („viber“, „newsletter“, „esen-2026“), not typed by a
+ * visitor, and they let the owner see which posts and mails bring people in
+ * (Plausible's „Campaigns“ report). `utm_term` is left out on purpose: it is
+ * meant for search keywords, i.e. what someone looked for. Even the allowed
+ * tags pass only as short slugs (see isSafeCampaignValue), so a hand-edited
+ * link cannot smuggle a sentence, an e-mail address or a phone number through.
  */
-export const ANALYTICS_ALLOWED_PARAMS: readonly string[] = [];
+export const ANALYTICS_ALLOWED_PARAMS: readonly string[] = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+];
+
+const MAX_CAMPAIGN_VALUE_LENGTH = 64;
+
+/**
+ * A campaign tag value worth keeping: 1–64 letters (any script), digits, `.`,
+ * `_` or `-`, and no run of six or more digits, also when separators split it
+ * („070-123-456“, „070.123.456“: a phone number, an ID). Anything else —
+ * spaces, `@`, `+`, `/`, `%`… — drops the parameter.
+ */
+export function isSafeCampaignValue(value: string): boolean {
+  return (
+    value.length > 0 &&
+    value.length <= MAX_CAMPAIGN_VALUE_LENGTH &&
+    /^[\p{L}\p{N}._-]+$/u.test(value) &&
+    !(value.match(/\d+(?:[._-]+\d+)*/g) ?? []).some(
+      (run) => run.replace(/\D/g, "").length >= 6,
+    )
+  );
+}
+
+/**
+ * Pages that send no pageview at all. The unsubscribe page is reached only
+ * from a member's e-mail, so even its bare path would say „a member opened
+ * an opt-out link“ — nothing the statistics need.
+ */
+export const ANALYTICS_EXCLUDED_PATHS: readonly string[] = ["/unsubscribe"];
+
+export function isAnalyticsExcludedPath(pathname: string): boolean {
+  const path =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  return ANALYTICS_EXCLUDED_PATHS.includes(path);
+}
 
 export function redactPageUrl(
   href: string,
@@ -26,7 +74,9 @@ export function redactPageUrl(
 
   for (const name of allowedParams) {
     for (const value of url.searchParams.getAll(name)) {
-      kept.append(name, value);
+      if (isSafeCampaignValue(value)) {
+        kept.append(name, value);
+      }
     }
   }
 

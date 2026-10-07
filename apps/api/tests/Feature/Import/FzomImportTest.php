@@ -6,12 +6,15 @@ use App\Enums\ImportReviewKind;
 use App\Enums\ImportRunStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
+use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
 use App\Models\SourceRecord;
 use App\Models\Specialty;
 use App\Support\Import\Fzom\FzomImportJob;
+use App\Support\Import\ImportContext;
 use App\Support\Import\ProvenanceWriter;
+use App\Support\Verification\Engine\VerificationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -87,7 +90,7 @@ class FzomImportTest extends TestCase
         $hospital = Facility::query()->where('fzo_code', '9000010')->firstOrFail();
         $this->assertSame('hospital', $hospital->type->value);
         $this->assertSame('public', $hospital->ownership);
-        $this->assertSame('ЈЗУ Општа Болница Тестово', $hospital->name);
+        $this->assertSame('ЈЗУ Општа болница Тестово', $hospital->name);
 
         // Imported specialties are created hidden.
         $this->assertFalse((bool) Specialty::query()->where('slug', 'kardiologija')->value('is_published'));
@@ -171,6 +174,35 @@ class FzomImportTest extends TestCase
             ->where('item_key', 'doctor:'.$doctor->getKey().':city')->firstOrFail();
         $this->assertSame('Друг Град', $conflict->details['current']);
         $this->assertSame('Ново Место', $conflict->details['incoming']);
+    }
+
+    /**
+     * Names are cleaned on the way in (PersonName, FacilityName), and a
+     * facility whose shown name dropped the town is still the register's.
+     */
+    public function test_names_are_cleaned_on_import_and_the_register_still_verifies_the_facility(): void
+    {
+        $spec = (string) file_get_contents(base_path('tests/Fixtures/import/fzom/spec.xml'));
+        $spec = str_replace(
+            ['ЈЗУ ОПШТА БОЛНИЦА ТЕСТОВО', '<Ime>ЧЕТВРТИ</Ime>', '<Prezime>СРЦЕВСКИ</Prezime>'],
+            ['ПЗУ-ОРД.ПО ИНТЕРНА МЕДИЦИНА ТЕСТ МЕДИКА ТЕСТОВО', "<Ime>ЧЕТВР\u{0054}И</Ime>", '<Prezime>СРЦЕВСКИ - ТЕСТОВСКИ</Prezime>'],
+            $spec,
+        );
+        $run = $this->import(files: $this->files($this->writeSpec($spec)));
+
+        $this->assertSame(ImportRunStatus::Succeeded, $run->status, (string) $run->error);
+        $this->assertSame('Четврти Срцевски-Тестовски', Doctor::query()->where('fzo_facsimile', '900010')->value('full_name'));
+        $facility = Facility::query()->where('fzo_code', '9000010')->firstOrFail();
+        $this->assertSame('ПЗУ Ординација по интерна медицина Тест Медика', $facility->name);
+
+        app(VerificationEngine::class)->run();
+
+        $this->assertTrue($facility->fresh()->isVerified(), 'The register lists it: name words as the import shows them.');
+
+        // The same files again: nothing to change, no conflict.
+        $again = $this->import(files: $this->files($this->writeSpec($spec)));
+        $this->assertSame(0, $again->count('fields_updated'));
+        $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->count());
     }
 
     public function test_a_locked_field_is_left_alone_without_a_conflict(): void
@@ -290,6 +322,70 @@ class FzomImportTest extends TestCase
         $changed = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)->where('subject_id', $doctor->getKey())->firstOrFail();
         $this->assertSame('Четврти Срцевски', $changed->details['fields']['full_name']['old']);
         $this->assertTrue($doctor->is_published);
+    }
+
+    /**
+     * A casing rule fixed between runs (TextCase: „ВО“, „ДО“… were missed)
+     * re-cases the import's own values on every published facility. That is
+     * not news for staff: the value is written, but no „changed“ item — also
+     * when import:clean-names rewrote it last (provenance „cleanup“).
+     */
+    public function test_a_casing_only_difference_on_the_imports_own_value_is_applied_without_a_changed_item(): void
+    {
+        $this->import();
+        $facilities = Facility::query()->whereNotNull('address')->orderBy('id')->take(2)->get();
+        $this->assertCount(2, $facilities);
+
+        foreach ($facilities as $index => $facility) {
+            $expected = (string) $facility->address;
+            $oldCasing = mb_strtoupper($expected, 'UTF-8');
+            $facility->forceFill(['address' => $oldCasing, 'is_published' => true, 'published_at' => now()])->save();
+            $provenance = FieldProvenance::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->where('field', 'address')->firstOrFail();
+            // The second one as import:clean-names leaves it.
+            $provenance->forceFill(['value' => $oldCasing] + ($index === 1 ? ['source' => ProvenanceWriter::CLEANUP_SOURCE] : []))->save();
+            // The stored payload must differ, or the record is skipped as unchanged.
+            SourceRecord::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())
+                ->update(['hash' => 'stale']);
+        }
+
+        $this->import();
+
+        foreach ($facilities as $facility) {
+            $this->assertNotSame(mb_strtoupper((string) $facility->address, 'UTF-8'), $facility->refresh()->address);
+            $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+                ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->exists());
+            $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Conflict)
+                ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())->exists());
+        }
+    }
+
+    /**
+     * A casing-only change that lower-cases the word a quoted name starts
+     * with („До Дент“ → „до Дент“) is still written, but staff see it.
+     */
+    public function test_a_casing_change_lowering_a_quoted_name_start_raises_a_changed_item(): void
+    {
+        $this->import();
+        [$lowered, $capitalised] = Facility::query()->orderBy('id')->take(2)->get()->all();
+        $context = new ImportContext(ImportRun::start('fzom', false), 'fzom', false);
+        $writer = new ProvenanceWriter($context);
+
+        foreach ([[$lowered, 'ПЗУ „До Дент“', 'ПЗУ „до Дент“'], [$capitalised, 'ПЗУ „ДО ДЕНТ“', 'ПЗУ „До Дент“']] as [$facility, $old, $new]) {
+            $facility->forceFill(['name' => $old, 'is_published' => true, 'published_at' => now()])->save();
+            FieldProvenance::query()->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $facility->getKey())
+                ->where('field', 'name')->update(['value' => $old, 'source' => 'fzom']);
+            $this->assertSame('written', $writer->scalar($facility->fresh(), 'name', $new, false, label: $old));
+        }
+
+        $writer->flushChanges();
+
+        $this->assertTrue(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $lowered->getKey())->exists());
+        $this->assertFalse(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::Changed)
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('subject_id', $capitalised->getKey())->exists());
+        $this->assertTrue(ProvenanceWriter::lowersANameStart('Аптека "Во Здравје"', 'Аптека "во Здравје"'));
+        $this->assertTrue(ProvenanceWriter::lowersANameStart('До Дент', 'до Дент'));
+        $this->assertFalse(ProvenanceWriter::lowersANameStart('ЈЗУ Здравствен Дом Во Скопје', 'ЈЗУ Здравствен дом во Скопје'));
     }
 
     public function test_a_doctor_missing_from_two_runs_is_queued_and_never_deleted(): void

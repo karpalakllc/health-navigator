@@ -146,6 +146,40 @@ stdout_logfile=/path/to/logs/worker.log
 
 Restart workers after each deploy.
 
+### Bulk publish of imported drafts
+
+„Објави ги сите верификувани“ / „Објави ги и неверификуваните од ФЗОМ“
+(Import review) and a large **Publish selected drafts** selection publish
+thousands of profiles: they run as a `bulk_operations` row driven by the
+queued `RunBulkPublish` job, which publishes 500-item chunks for ~45 s and
+then queues itself again (each job stays well under `--timeout`). Production
+needs nothing beyond the worker above. Progress shows above the review
+table; the staff member who started it gets a panel notification (the bell,
+`notifications` table) when it finishes. If no worker picks the job up
+within 90 s, the open review page carries on itself, a chunk per poll, so
+the publish never silently stalls. If a worker died in the middle of a
+chunk, its step lock is held until it expires (300 s), so the page takes
+over only after up to five minutes. `php artisan import:publish
+verified|fzom-unverified --by=<email>` does the same from a shell and
+continues a stopped run.
+
+**Local previews.** With `QUEUE_CONNECTION=sync` (tests, E2E) a dispatched
+job would run inside the click's request again — and hit PHP's 30 s limit
+— so the panel does not dispatch it: the first chunk is published in the
+click's request within a time budget (half of `max_execution_time`, at most
+15 s), then the progress widget publishes the next chunk on every poll
+(every 3 s, also in a background tab) until done; leave Import review open.
+With `QUEUE_CONNECTION=database` and no worker running, the page takes over
+after 90 s in the same way. To publish in the background instead (the page
+may be closed), run a worker next to the app:
+
+```bash
+cd apps/api && php artisan queue:work --tries=3 --timeout=120
+```
+
+or publish the whole set from the terminal:
+`php artisan import:publish verified --by=<your staff email>`.
+
 ### Failed jobs
 
 A job that exhausts its tries lands in `failed_jobs`. Verification and
@@ -404,7 +438,7 @@ One-off checks before the first deploy of the Part I remediation:
 - TLS terminated at the PaaS edge (required for production). `SESSION_SECURE_COOKIE=true`.
 - One `APP_KEY` per environment, generated once (see deploy step 2); never reuse the production key in staging.
 - Use strong unique passwords for staff accounts (Filament).
-- **Rotating `APP_KEY`:** staff two-factor secrets and recovery codes are encrypted with it. Move the old key into `APP_PREVIOUS_KEYS` when rotating, or every enrolled account is locked out of the panel.
+- **Rotating `APP_KEY`:** staff two-factor secrets and recovery codes are encrypted with it. Move the old key into `APP_PREVIOUS_KEYS` when rotating, or every enrolled account is locked out of the panel. The one-click unsubscribe links in e-mails already sent are also checked against `APP_PREVIOUS_KEYS`, so keep the old key listed as long as those e-mails may be used (they never expire). Today's „Прикажана N пати“ dedupe keys simply start over under the new key.
 
 ## Admin panel: two-factor, session, headers
 

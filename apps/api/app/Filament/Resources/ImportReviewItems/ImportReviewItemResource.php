@@ -8,11 +8,16 @@ use App\Filament\Resources\Doctors\DoctorResource;
 use App\Filament\Resources\Facilities\FacilityResource;
 use App\Filament\Resources\ImportReviewItems\Pages\ListImportReviewItems;
 use App\Filament\Resources\ImportReviewItems\Pages\ViewImportReviewItem;
+use App\Filament\Resources\ImportReviewItems\Widgets\BulkPublishProgress;
 use App\Models\Doctor;
 use App\Models\ImportReviewItem;
 use App\Models\User;
+use App\Support\Import\BulkPublish;
 use App\Support\Import\ImportReviewActions;
+use App\Support\Import\Names\NameCleanup;
+use App\Support\Import\Names\NameReviewActions;
 use App\Support\Verification\Engine\EvidenceLoader;
+use App\Support\Verification\Engine\VerifiedDraftPublisher;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -27,7 +32,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 
 /**
  * The import review queue („Увоз на податоци“): drafts to publish, values
@@ -128,6 +133,9 @@ class ImportReviewItemResource extends Resource
                 self::keepAction(),
                 self::hideAction(),
                 self::trustSiteAction(),
+                self::acceptSuggestionAction(),
+                self::mergeDuplicatesAction(),
+                self::keepNameAction(),
                 self::dismissAction(),
             ])
             ->toolbarActions([
@@ -139,16 +147,21 @@ class ImportReviewItemResource extends Resource
                         ->requiresConfirmation()
                         ->modalDescription('Publishes the doctor and facility profiles of the selected "new" items. Check each one first: imported drafts are not verified.')
                         ->visible(fn (): bool => self::canManage())
-                        ->action(function (Collection $records): void {
-                            $published = 0;
+                        // Keys only: "select all" can mean thousands of rows.
+                        ->fetchSelectedRecords(false)
+                        ->action(function (Collection $records, ListImportReviewItems $livewire): void {
+                            $ids = $records->map(fn ($key): int => (int) $key)->values()->all();
 
-                            foreach ($records as $record) {
-                                if ($record instanceof ImportReviewItem && $record->kind === ImportReviewKind::New
-                                    && $record->status === ImportReviewStatus::Open
-                                    && app(ImportReviewActions::class)->publish($record, self::actor())) {
-                                    $published++;
-                                }
+                            // A large selection goes to the background, like
+                            // „Објави ги сите верификувани“ (one request runs
+                            // out of time after a few thousand).
+                            if (count($ids) > app(BulkPublish::class)->selectionInlineLimit) {
+                                $livewire->startBulkPublish(BulkPublish::TYPE_SELECTED, null, $ids);
+
+                                return;
                             }
+
+                            $published = app(VerifiedDraftPublisher::class)->publishChunk($ids, self::actor())['published'];
 
                             Notification::make()->title("Published {$published} profiles")->success()->send();
                         })
@@ -158,11 +171,20 @@ class ImportReviewItemResource extends Resource
                         ->icon('heroicon-o-x-mark')
                         ->requiresConfirmation()
                         ->visible(fn (): bool => self::canManage())
+                        ->fetchSelectedRecords(false)
                         ->action(function (Collection $records): void {
-                            foreach ($records as $record) {
-                                if ($record instanceof ImportReviewItem && $record->status === ImportReviewStatus::Open) {
-                                    app(ImportReviewActions::class)->dismiss($record, self::actor());
-                                }
+                            // Set-based, a chunk at a time (as resolve() does
+                            // per item): fits one request for any selection.
+                            $by = self::actor();
+
+                            foreach ($records->chunk(500) as $chunk) {
+                                ImportReviewItem::query()->whereKey($chunk->all())->open()->update([
+                                    'status' => ImportReviewStatus::Dismissed->value,
+                                    'resolution' => 'dismissed',
+                                    'resolved_by_id' => $by->getKey(),
+                                    'resolved_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
                             }
                         })
                         ->deselectRecordsAfterCompletion(),
@@ -246,13 +268,69 @@ class ImportReviewItemResource extends Resource
             });
     }
 
+    /**
+     * Name cleanup (import:clean-names): set the proposed value.
+     */
+    public static function acceptSuggestionAction(): Action
+    {
+        return Action::make('acceptSuggestion')
+            ->label('Прифати предлог')
+            ->icon('heroicon-o-check-circle')
+            ->color('success')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && NameReviewActions::hasSuggestion($record))
+            ->requiresConfirmation()
+            ->modalDescription(fn (ImportReviewItem $record): string => isset($record->details['changes'])
+                ? (string) ($record->details['proposals'] ?? '')
+                : sprintf('„%s“ → „%s“', $record->details['current'] ?? '—', $record->details['suggestion'] ?? '—'))
+            ->action(function (ImportReviewItem $record): void {
+                if (self::open($record) && ! app(NameReviewActions::class)->accept($record, self::actor())) {
+                    Notification::make()->title('Not applied: the field is locked or changed since. Edit the profile.')->warning()->send();
+                }
+            });
+    }
+
+    /**
+     * Name cleanup: merge a group of duplicate website drafts.
+     */
+    public static function mergeDuplicatesAction(): Action
+    {
+        return Action::make('mergeDuplicates')
+            ->label('Спои ги')
+            ->icon('heroicon-o-arrows-pointing-in')
+            ->color('success')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && NameReviewActions::isMergeGroup($record))
+            ->requiresConfirmation()
+            ->modalDescription(fn (ImportReviewItem $record): string => (string) ($record->details['action'] ?? ''))
+            ->action(function (ImportReviewItem $record): void {
+                if (! self::open($record)) {
+                    return;
+                }
+
+                $result = app(NameReviewActions::class)->merge($record, self::actor());
+                Notification::make()->title("Merged {$result['merged']}, skipped {$result['skipped']} (no longer a hidden draft, or gone).")->success()->send();
+            });
+    }
+
+    /**
+     * Name cleanup: keep the current value (or keep duplicates apart).
+     */
+    public static function keepNameAction(): Action
+    {
+        return Action::make('keepName')
+            ->label('Остави')
+            ->icon('heroicon-o-hand-raised')
+            ->color('gray')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->source === NameCleanup::SOURCE)
+            ->action(fn (ImportReviewItem $record) => self::open($record) ? app(NameReviewActions::class)->keep($record, self::actor()) : null);
+    }
+
     public static function dismissAction(): Action
     {
         return Action::make('dismiss')
             ->label(fn (ImportReviewItem $record): string => $record->kind === ImportReviewKind::Changed ? 'Mark seen' : 'Dismiss')
             ->icon('heroicon-o-check')
             ->color('gray')
-            ->visible(fn (ImportReviewItem $record): bool => self::open($record))
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->source !== NameCleanup::SOURCE)
             ->action(fn (ImportReviewItem $record) => self::open($record) ? app(ImportReviewActions::class)->dismiss($record, self::actor()) : null);
     }
 
@@ -335,11 +413,25 @@ class ImportReviewItemResource extends Resource
             if (is_array($value) && ! array_is_list($value)) {
                 $flat += self::flatDetails($value, $name.'.');
             } else {
-                $flat[$name] = is_array($value) ? implode(', ', array_map('strval', $value)) : (is_bool($value) ? ($value ? 'yes' : 'no') : (string) $value);
+                $flat[$name] = match (true) {
+                    // A list of pairs or records (name cleanup): one JSON line.
+                    is_array($value) && array_filter($value, 'is_array') !== [] => (string) json_encode($value, JSON_UNESCAPED_UNICODE),
+                    is_array($value) => implode(', ', array_map('strval', $value)),
+                    is_bool($value) => $value ? 'yes' : 'no',
+                    default => (string) $value,
+                };
             }
         }
 
         return $flat;
+    }
+
+    /**
+     * @return list<class-string>
+     */
+    public static function getWidgets(): array
+    {
+        return [BulkPublishProgress::class];
     }
 
     public static function getPages(): array

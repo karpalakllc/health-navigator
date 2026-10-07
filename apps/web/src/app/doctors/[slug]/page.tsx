@@ -326,6 +326,7 @@ export default async function DoctorDetailPage({
             <ReviewSection
               kind="doctor"
               slug={slug}
+              profileName={doctor.full_name}
               summary={doctor.review_summary}
               searchParams={reviewQuery}
             />

@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
 use App\Models\ReviewAspectRating;
+use App\Support\Levels\ContributorLevels;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +26,8 @@ class PublicReviewResource extends JsonResource
             'rating' => $this->rating,
             'body' => $this->body,
             'author_name' => $this->user->publicName(),
+            // W8-C: the author's reviewer level („Активен рецензент“…), or null.
+            'author_level' => ContributorLevels::publicLevel($this->user, 'review'),
             'published_at' => $this->published_at?->toIso8601String(),
             'response' => $this->officialResponse(),
             'helpful_count' => (int) $this->helpful_count,

@@ -23,6 +23,8 @@ final class UxTargetDescriber
         'pagination' => 'Страничење',
         'home-how-it-works' => 'Почетна: „Како функционира“',
         'home-forum-band' => 'Почетна: форум и транспарентност',
+        'home-help' => 'Почетна: „Помогнете некому“ (прашања без одговор)',
+        'review-prompt' => 'Профил: покана „Дали сте биле кај…?“',
         // Landmarks, when no component is named.
         'header' => 'Заглавје',
         'nav' => 'Навигација',

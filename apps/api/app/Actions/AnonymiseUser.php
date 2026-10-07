@@ -6,10 +6,14 @@ use App\Actions\DoctorAccount\ForgetDoctorAccountData;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
+use App\Models\ContributorLevel;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\MemberNotification;
+use App\Models\NotificationPreference;
 use App\Models\ProfileCorrection;
 use App\Models\Review;
+use App\Models\ReviewReminder;
 use App\Models\User;
 use App\Models\UsernameHistory;
 use App\Support\Media\ImageOptimizer;
@@ -137,8 +141,20 @@ final class AnonymiseUser
             // request stays for staff; the link and the reply address go.
             ProfileCorrection::query()->where('user_id', $locked->getKey())->update(['user_id' => null, 'contact' => null]);
 
+            // W8-B: notifications, e-mail switches and pending reminders are
+            // about the member only, so they go.
+            MemberNotification::query()->where('user_id', $locked->getKey())->delete();
+            NotificationPreference::query()->where('user_id', $locked->getKey())->delete();
+            ReviewReminder::query()->where('user_id', $locked->getKey())->delete();
+            // The panel's bell (staff accounts): Laravel's notifications table.
+            $locked->notifications()->delete();
+
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);
+
+            // W8-C: levels are recognition for a person; a deleted account has
+            // none, and its posts must not be linkable through one.
+            ContributorLevel::query()->whereKey($locked->getKey())->delete();
 
             return $avatarPath;
         });

@@ -19,6 +19,8 @@ export type ForumAuthor = {
   posts_count: number;
   is_team_member: boolean;
   is_forum_moderator: boolean;
+  /** W8-C: the forum level (1–4), or null for none to show. */
+  level?: number | null;
 };
 
 export type ForumCategory = {
@@ -78,8 +80,10 @@ export type ForumPost = {
   published_at: string | null;
   /** Written by the topic's opener (the API decides; no ids are exposed). */
   is_topic_author?: boolean;
-  /** Signed-in requests only: the viewer wrote this reply. */
-  viewer?: { is_own: boolean };
+  /** W8-C: „Корисно“ votes on a reply. */
+  helpful_count?: number;
+  /** Signed-in requests only: the viewer wrote this reply / marked it „Корисно“. */
+  viewer?: { is_own: boolean; has_voted_helpful?: boolean };
 };
 
 export type ForumTopicPage = {
@@ -183,6 +187,42 @@ export async function fetchForumTopics(
 
   return apiGetPaginated<ForumTopicListItem>(
     `/forum/categories/${pathSegment(categorySlug)}/topics${query ? `?${query}` : ""}`,
+    options,
+  );
+}
+
+/** Unanswered lists are identical for everyone; the API caches them too. */
+export const FORUM_UNANSWERED_REVALIDATE_SECONDS = 60;
+
+/**
+ * „Прашања без одговор“ (GET /forum/topics/unanswered): visible topics with no
+ * published reply from anyone but their author, newest first; pinned and
+ * locked topics are left out.
+ */
+export async function fetchForumUnansweredTopics(
+  params: {
+    category?: string;
+    q?: string;
+    min_age_hours?: number;
+    page?: number;
+    per_page?: number;
+  } = {},
+  options: ApiCacheOptions = {
+    revalidate: FORUM_UNANSWERED_REVALIDATE_SECONDS,
+  },
+) {
+  const search = new URLSearchParams();
+  if (params.category) search.set("category", params.category);
+  if (params.q) search.set("q", params.q);
+  if (params.min_age_hours) {
+    search.set("min_age_hours", String(params.min_age_hours));
+  }
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  if (params.per_page) search.set("per_page", String(params.per_page));
+  const query = search.toString();
+
+  return apiGetPaginated<ForumTopicSearchItem>(
+    `/forum/topics/unanswered${query ? `?${query}` : ""}`,
     options,
   );
 }

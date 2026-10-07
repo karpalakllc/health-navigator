@@ -2,7 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { redactPageUrl } from "@/lib/analytics/redact-url";
+import {
+  isAnalyticsExcludedPath,
+  redactPageUrl,
+} from "@/lib/analytics/redact-url";
 
 type PlausibleOptions = { u?: string };
 type PlausibleFn = ((event: string, options?: PlausibleOptions) => void) & {
@@ -16,7 +19,8 @@ declare global {
 }
 
 /**
- * Sends one pageview per path, with the address redacted to origin + path.
+ * Sends one pageview per path, with the address redacted to origin + path
+ * (none for ANALYTICS_EXCLUDED_PATHS).
  *
  * Paired with Plausible's manual script, which never reports a pageview by
  * itself. Calls made before the script has loaded go into the queue the
@@ -31,6 +35,10 @@ export function PlausiblePageviews() {
         (queue.q = queue.q ?? []).push(args);
       };
       window.plausible = queue;
+    }
+
+    if (isAnalyticsExcludedPath(window.location.pathname)) {
+      return;
     }
 
     const url = redactPageUrl(window.location.href);

@@ -1,9 +1,12 @@
 <?php
 
+use App\Models\MemberNotification;
+use App\Models\PanelNotification;
 use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
 use App\Support\DataOps\ImportAlerter;
 use App\Support\DataOps\ImportSchedule;
+use App\Support\Levels\LevelRules;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('triage:purge-old-sessions')
@@ -120,3 +123,39 @@ Schedule::command('import:adjudicate')
     ->dailyAt('05:50')
     ->onOneServer()
     ->withoutOverlapping(120);
+
+// W8-B member notifications (docs/data-inventory.md). „Корисно“ notices go
+// out in one daily batch; reminders the member asked for are checked hourly
+// and deleted once sent; the opt-in impact digest covers the previous month.
+Schedule::command('reviews:notify-helpful')
+    ->dailyAt('18:00')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+Schedule::command('reviews:send-reminders')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// Daily: each member gets the previous month once (a missed 1st is caught up
+// on the next run); see SendImpactDigestCommand.
+Schedule::command('notifications:send-impact-digest')
+    ->dailyAt('09:00')
+    ->timezone(LevelRules::TIMEZONE)
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// In-app notifications — the members' „Известувања“ and the panel's bell —
+// are kept MemberNotification::RETENTION_DAYS (180).
+Schedule::command('model:prune', ['--model' => [MemberNotification::class, PanelNotification::class]])
+    ->dailyAt('04:55')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// W8-C: contributor levels and the monthly top lists, rebuilt from public
+// content (docs/levels.md). Moderation and vote events keep them current
+// during the day.
+Schedule::command('levels:recompute')
+    ->dailyAt('03:30')
+    ->onOneServer()
+    ->withoutOverlapping();

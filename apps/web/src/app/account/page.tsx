@@ -7,12 +7,14 @@ import {
 import { AccountPageHero } from "@/components/account/account-page-hero";
 import { AccountProfilePhoto } from "@/components/account/account-profile-photo";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { AccountLevelProgress } from "@/components/levels/account-level-progress";
 import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tag } from "@/components/ui/tag";
 import { AccountUsernameForm } from "@/components/usernames/account-username-form";
 import { getSessionToken } from "@/lib/auth/session";
+import { fetchMyLevels } from "@/lib/api/levels";
 import { fetchMe } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
 import { accountRoleLabel } from "@/lib/roles";
@@ -31,6 +33,8 @@ export default async function AccountOverviewPage() {
   }
 
   let user;
+  // W8-C: the member's levels; the card is left out if they cannot load.
+  const levelsPromise = fetchMyLevels();
 
   try {
     user = await fetchMe();
@@ -41,6 +45,8 @@ export default async function AccountOverviewPage() {
 
     throw error;
   }
+
+  const levels = await levelsPromise;
 
   return (
     <AccountPage>
@@ -87,6 +93,8 @@ export default async function AccountOverviewPage() {
             <AccountProfilePhoto user={user} />
           </div>
         </Card>
+
+        {levels ? <AccountLevelProgress levels={levels} /> : null}
 
         <section
           aria-labelledby="account-activity"

@@ -4,6 +4,7 @@ import { Pagination } from "@/components/directory/pagination";
 import {
   ForumCategoryToolbar,
   newTopicHref,
+  type ForumCategorySort,
 } from "@/components/forum/forum-category-toolbar";
 import {
   ForumColumns,
@@ -12,15 +13,24 @@ import {
   forumPageClass,
 } from "@/components/forum/forum-layout";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
-import { ForumTopicList } from "@/components/forum/forum-topic-row";
+import {
+  ForumTopicList,
+  type ForumTopicRowData,
+} from "@/components/forum/forum-topic-row";
 import { ForumTopicSearch } from "@/components/forum/forum-topic-search";
 import { BackLink } from "@/components/ui/back-link";
 import { Button, TextLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getSessionToken } from "@/lib/auth/session";
-import { fetchForumCategories, fetchForumTopics } from "@/lib/api/forum";
+import {
+  fetchForumCategories,
+  fetchForumTopics,
+  fetchForumUnansweredTopics,
+  type ForumCategory,
+} from "@/lib/api/forum";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
+import { forumAnswerHref } from "@/lib/forum/answer-link";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
 import { t, tCount } from "@/i18n/t";
@@ -76,20 +86,65 @@ export default async function CategoryTopicsPage({
   const { categorySlug } = await params;
   const query = await searchParams;
   const page = query.page ? Number(query.page) : 1;
-  const sort = query.sort === "active" ? "active" : "latest";
+  const sort: ForumCategorySort =
+    query.sort === "active" || query.sort === "unanswered"
+      ? query.sort
+      : "latest";
+  const listPage = Number.isFinite(page) ? page : 1;
   const token = await getSessionToken();
 
-  let categories;
-  let topics;
+  let categories: ForumCategory[];
+  let topics: {
+    rows: ForumTopicRowData[];
+    meta: { current_page: number; last_page: number; total: number };
+  };
   try {
-    [categories, topics] = await Promise.all([
-      fetchForumCategories(),
-      fetchForumTopics(categorySlug, {
-        q: query.q,
-        sort,
-        page: Number.isFinite(page) ? page : 1,
-      }),
-    ]);
+    if (sort === "unanswered") {
+      // Questions nobody has answered yet, newest first (W8-A).
+      const [all, unanswered] = await Promise.all([
+        fetchForumCategories(),
+        fetchForumUnansweredTopics({
+          category: categorySlug,
+          q: query.q,
+          page: listPage,
+          per_page: 15,
+        }),
+      ]);
+      categories = all;
+      topics = {
+        rows: unanswered.data.map((topic) => ({
+          href: `/forum/${categorySlug}/${topic.slug}`,
+          title: topic.title,
+          authorName: topic.author_name,
+          repliesCount: topic.replies_count,
+          lastActivityAt: topic.published_at ?? topic.last_post_at,
+          answerHref: forumAnswerHref(categorySlug, topic.slug),
+        })),
+        meta: unanswered.meta,
+      };
+    } else {
+      const [all, list] = await Promise.all([
+        fetchForumCategories(),
+        fetchForumTopics(categorySlug, {
+          q: query.q,
+          sort,
+          page: listPage,
+        }),
+      ]);
+      categories = all;
+      topics = {
+        rows: list.data.map((topic) => ({
+          href: `/forum/${categorySlug}/${topic.slug}`,
+          title: topic.title,
+          authorName: topic.author_name,
+          repliesCount: topic.replies_count,
+          lastActivityAt: topic.last_post_at ?? topic.published_at,
+          isPinned: topic.is_pinned,
+          isLocked: topic.is_locked,
+        })),
+        meta: list.meta,
+      };
+    }
   } catch {
     notFound();
   }
@@ -120,7 +175,14 @@ export default async function CategoryTopicsPage({
       <ForumPageHead
         title={category.name}
         lead={category.description ?? undefined}
-        meta={tCount("forum.topicsCount", topics.meta.total)}
+        meta={
+          // The „Без одговор“ total is not the category's size.
+          sort === "unanswered"
+            ? category.topics_count === undefined
+              ? undefined
+              : tCount("forum.topicsCount", category.topics_count)
+            : tCount("forum.topicsCount", topics.meta.total)
+        }
         actions={
           <Button
             href={newTopicHref(categorySlug, Boolean(token))}
@@ -155,9 +217,18 @@ export default async function CategoryTopicsPage({
               </div>
             </Card>
 
-            {topics.data.length === 0 ? (
+            {topics.rows.length === 0 ? (
               <ForumEmpty
-                title={t("forum.noTopics")}
+                title={
+                  sort === "unanswered" && !searching
+                    ? t("help.emptyTitle")
+                    : t("forum.noTopics")
+                }
+                description={
+                  sort === "unanswered" && !searching
+                    ? t("help.emptyBody")
+                    : undefined
+                }
                 action={
                   searching ? (
                     <Button href={`/forum/${categorySlug}`} variant="secondary">
@@ -169,16 +240,12 @@ export default async function CategoryTopicsPage({
             ) : (
               <ForumTopicList
                 headingLevel={2}
-                label={category.name}
-                topics={topics.data.map((topic) => ({
-                  href: `/forum/${categorySlug}/${topic.slug}`,
-                  title: topic.title,
-                  authorName: topic.author_name,
-                  repliesCount: topic.replies_count,
-                  lastActivityAt: topic.last_post_at ?? topic.published_at,
-                  isPinned: topic.is_pinned,
-                  isLocked: topic.is_locked,
-                }))}
+                label={
+                  sort === "unanswered"
+                    ? `${category.name}: ${t("help.listTitle")}`
+                    : category.name
+                }
+                topics={topics.rows}
               />
             )}
 

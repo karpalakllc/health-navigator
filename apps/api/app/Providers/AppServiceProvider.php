@@ -5,8 +5,12 @@ namespace App\Providers;
 use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Middleware\RejectInvalidUtf8;
 use App\Http\Responses\ApiResponse;
+use App\Models\ForumPost;
+use App\Models\ForumTopic;
+use App\Models\Review;
 use App\Models\TriageFlow;
 use App\Models\User;
+use App\Observers\ContributorLevelObserver;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
 use App\Support\DeploymentEnvironment;
@@ -36,6 +40,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
+
+        // W8-C: contributor levels follow moderation of their content.
+        Review::observe(ContributorLevelObserver::class);
+        ForumTopic::observe(ContributorLevelObserver::class);
+        ForumPost::observe(ContributorLevelObserver::class);
 
         // Staff sign in through the 2FA-protected panel, and API login refuses them
         // (auth.staff_use_admin). Apply the same rule to tokens they already hold:
@@ -193,6 +202,14 @@ class AppServiceProvider extends ServiceProvider
         // hash of an IPv4 address can be, by trying them all), and one IPv6
         // holder cannot rotate through its /64 for fresh buckets. Expired keys
         // in the database cache store are deleted hourly (cache:purge-expired).
+        // „Без одговор“ with a text search (`?q=`) is not cached: 30 a minute
+        // per IP. The plain list is cached and not limited here.
+        RateLimiter::for('api-forum-unanswered-search', function (Request $request) {
+            return trim((string) $request->query('q', '')) === ''
+                ? Limit::none()
+                : Limit::perMinute(30)->by('unanswered-q:'.$request->ip());
+        });
+
         RateLimiter::for('api-ux-events', function (Request $request) {
             $network = hash_hmac(
                 'sha256',

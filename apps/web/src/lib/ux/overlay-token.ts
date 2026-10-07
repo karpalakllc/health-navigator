@@ -42,6 +42,16 @@ export function readOverlayToken(win: TokenWindow): string | null {
   return stored && TOKEN.test(stored) ? stored : null;
 }
 
+/**
+ * Whether this tab is (or is about to become) a staff overlay tab, without
+ * adopting the token: other counters (the review views) stay out of it too.
+ */
+export function hasOverlayToken(win: TokenWindow): boolean {
+  if (FRAGMENT.test(win.location.hash)) return true;
+  const stored = storage(win)?.getItem(OVERLAY_TOKEN_KEY) ?? null;
+  return stored !== null && TOKEN.test(stored);
+}
+
 export function clearOverlayToken(win: TokenWindow): void {
   storage(win)?.removeItem(OVERLAY_TOKEN_KEY);
 }

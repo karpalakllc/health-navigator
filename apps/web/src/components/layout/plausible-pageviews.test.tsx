@@ -37,4 +37,15 @@ describe("PlausiblePageviews", () => {
       ["pageview", { u: `${window.location.origin}/doctors/dr-ana` }],
     ]);
   });
+
+  it("never reports the e-mail unsubscribe page", () => {
+    const plausible = vi.fn();
+    window.plausible = plausible;
+
+    window.history.replaceState(null, "", "/unsubscribe?token=1.moderation.x");
+    setPathname("/unsubscribe");
+    render(<PlausiblePageviews />);
+
+    expect(plausible).not.toHaveBeenCalled();
+  });
 });

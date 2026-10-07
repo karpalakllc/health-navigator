@@ -16,6 +16,8 @@ use App\Support\Import\DirectoryWriter;
 use App\Support\Import\ImportContext;
 use App\Support\Import\ImportSuppressions;
 use App\Support\Import\NameKey;
+use App\Support\Import\Names\FacilityName;
+use App\Support\Import\Names\PersonName;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
 use App\Support\Import\TextCase;
@@ -336,8 +338,8 @@ final class FzomImporter
                         default => FacilityType::Clinic,
                     };
                     $rawName = self::mostCommon($data['names']);
-                    $name = TextCase::institution($rawName);
                     $town = TextCase::place(self::mostCommon($data['towns']));
+                    $name = FacilityName::clean($rawName, $town)->value;
                     $address = TextCase::place(self::mostCommon($data['addresses']));
                     $ownership = self::ownership($rawName, array_values($data['contract_types']));
 
@@ -436,7 +438,7 @@ final class FzomImporter
 
                 foreach ($batch as $facsimile => $data) {
                     $facsimile = (string) $facsimile;
-                    $fullName = TextCase::person(trim($data['first'].' '.$data['last']));
+                    $fullName = PersonName::clean(trim($data['first'].' '.$data['last']))->value;
                     $contracts = $data['contracts'];
                     usort($contracts, fn (array $a, array $b): int => [
                         in_array($b['contract_type_id'], $primaryTypes, true), $b['valid_from'] ?? '',

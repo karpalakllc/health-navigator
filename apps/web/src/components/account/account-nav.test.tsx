@@ -17,6 +17,7 @@ describe("AccountSubNav", () => {
       "/account",
       "/account/reviews",
       "/account/forum",
+      "/account/notifications",
       "/account/devices",
       "/account/data",
     ]);

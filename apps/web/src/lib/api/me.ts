@@ -35,6 +35,7 @@ export type ManagedDoctorSummary = {
 };
 
 export type MyReview = {
+  id?: number;
   rating: number;
   body: string | null;
   status: string;
@@ -47,6 +48,25 @@ export type MyReview = {
     slug: string;
     name: string;
   } | null;
+  /**
+   * W8-B, published reviews only: how often the card was on a visitor's
+   * screen (at most once a day per network) and its „Корисно“ votes.
+   */
+  impact?: { views: number; helpful: number } | null;
+  /** The profile's reply, once it is public. */
+  reply?: {
+    body: string;
+    source: "doctor" | "staff" | null;
+    responded_at: string | null;
+  } | null;
+};
+
+/** W8-B: totals over the member's published reviews. */
+export type MyReviewImpact = {
+  views: number;
+  helpful: number;
+  replies: number;
+  published: number;
 };
 
 export async function fetchMe(): Promise<AuthUser> {
@@ -71,5 +91,11 @@ export const fetchManagedDoctor = cache(
 );
 
 export async function fetchMyReviews(page = 1) {
-  return apiGetPaginatedServer<MyReview>(`/me/reviews?page=${page}`);
+  const envelope = await apiGetPaginatedServer<MyReview>(
+    `/me/reviews?page=${page}`,
+  );
+
+  return envelope as typeof envelope & {
+    meta: typeof envelope.meta & { impact?: MyReviewImpact };
+  };
 }

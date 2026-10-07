@@ -18,17 +18,22 @@ use Illuminate\Support\Facades\DB;
  * 2. Equal values only refresh provenance.
  * 3. The import may write when the record is new, the field is empty, or the
  *    current value is exactly what THIS source wrote last time (nobody else
- *    touched it since).
+ *    touched it since) or what the name cleanup made of it.
  * 4. Otherwise someone else set the value (staff, the doctor's own edit,
  *    another source): nothing is overwritten and a "conflict" review item
  *    shows both values.
  *
  * A write to a PUBLISHED record is also reported as "changed", one review
  * item per record per run listing the fields, so staff see what moved on
- * live profiles.
+ * live profiles — except when only the casing of the source's own value
+ * changed (a fixed casing rule; still in the run's diff) and no name or
+ * quoted name loses the capital it starts with.
  */
 final class ProvenanceWriter
 {
+    /** Provenance source of a value import:clean-names rewrote. */
+    public const CLEANUP_SOURCE = 'cleanup';
+
     /** @var array<string, array<string, FieldProvenance>> provenance rows by "type:id", then field */
     private array $cache = [];
 
@@ -103,9 +108,21 @@ final class ProvenanceWriter
             return 'unchanged';
         }
 
+        // A value the name cleanup rewrote (import:clean-names) still belongs
+        // to the source that wrote it before: the cleanup only touches
+        // fields no person edited.
         $ownValue = $provenance !== null
-            && $provenance->source === $this->context->source
+            && $this->originalSource($provenance) === $this->context->source
             && $provenance->value === $current;
+
+        // The cleanup put a name's words in order („Петрова Ана“ → „Ана
+        // Петрова“, from the whole directory's evidence): the source writing
+        // the same words in its old order does not undo it (the provenance
+        // stays „cleanup“, so the next run decides the same).
+        if ($ownValue && $provenance->source === self::CLEANUP_SOURCE && $field === 'full_name' && $current !== null && $incoming !== null
+            && NameKey::sorted($current) === NameKey::sorted($incoming) && NameKey::for($current) !== NameKey::for($incoming)) {
+            return 'unchanged';
+        }
 
         if (! $isNew && $current !== null && ! $ownValue) {
             // An empty incoming value never clears what someone else entered.
@@ -124,10 +141,56 @@ final class ProvenanceWriter
         if (! $isNew) {
             $this->context->increment('fields_updated');
             $this->context->record(self::entity($subject), 'update', $subject, $label, $field, $current, $incoming);
-            $this->noteChange($subject, $label, $field, $current, $incoming);
+
+            // Only the casing of the import's own value moved (a casing rule
+            // fixed between runs, or a value import:clean-names re-cased):
+            // written, but not listed as a „changed“ profile for staff —
+            // unless it lower-cases the word a name or a quoted name starts
+            // with („До Дент“ → „до Дент“): that can read wrong, so staff see it.
+            $casingOnly = $ownValue && $current !== null && mb_strtolower($current, 'UTF-8') === mb_strtolower($incoming ?? '', 'UTF-8');
+
+            if (! $casingOnly || self::lowersANameStart($current, (string) $incoming)) {
+                $this->noteChange($subject, $label, $field, $current, $incoming);
+            }
         }
 
         return 'written';
+    }
+
+    /**
+     * Whether a casing-only change lower-cases the first letter of a word
+     * that starts the value, a quoted name („…, "…, «…) or a bracket.
+     */
+    public static function lowersANameStart(string $current, string $incoming): bool
+    {
+        $before = preg_split('/\s+/u', trim($current)) ?: [];
+        $after = preg_split('/\s+/u', trim($incoming)) ?: [];
+
+        if (count($before) !== count($after)) {
+            return false;
+        }
+
+        $start = true;
+
+        foreach ($before as $index => $word) {
+            $opens = preg_match('/^[„“"\'«(]/u', $word) === 1;
+            $isStart = $start || $opens;
+            // A quote standing alone opens the next word.
+            $start = $opens && preg_match('/\p{L}/u', $word) !== 1;
+
+            if (! $isStart) {
+                continue;
+            }
+
+            preg_match('/\p{L}/u', $word, $old);
+            preg_match('/\p{L}/u', $after[$index], $new);
+
+            if (isset($old[0], $new[0]) && preg_match('/\p{Lu}/u', $old[0]) === 1 && preg_match('/\p{Ll}/u', $new[0]) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -147,7 +210,36 @@ final class ProvenanceWriter
      */
     public function sourceOf(Model $subject, string $field): ?string
     {
-        return $subject->exists ? $this->provenance($subject, $field)?->source : null;
+        $row = $subject->exists ? $this->provenance($subject, $field) : null;
+
+        return $row !== null ? $this->originalSource($row) : null;
+    }
+
+    /** @var array<int, string|null> source of a source record, by id */
+    private array $recordSources = [];
+
+    /**
+     * The source behind a value: for one the name cleanup rewrote, the
+     * source of the record the value came from (kept on the row).
+     */
+    private function originalSource(FieldProvenance $row): ?string
+    {
+        if ($row->source !== self::CLEANUP_SOURCE) {
+            return $row->source;
+        }
+
+        $recordId = $row->source_record_id;
+
+        if ($recordId === null) {
+            return null;
+        }
+
+        if (! array_key_exists($recordId, $this->recordSources)) {
+            $source = DB::table('source_records')->where('id', $recordId)->value('source');
+            $this->recordSources[$recordId] = is_string($source) ? $source : null;
+        }
+
+        return $this->recordSources[$recordId];
     }
 
     /**

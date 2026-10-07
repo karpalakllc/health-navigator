@@ -31,11 +31,11 @@ test.describe("reviews", () => {
     for (const star of await stars.all()) {
       await expect(star).toHaveAttribute("aria-checked", "false");
     }
+    // Stars first (W8-B): the optional comment appears after a star.
+    await expect(comment).toHaveCount(0);
 
     // One tab stop for the whole group (WAI-ARIA radio pattern), then arrows.
-    await comment.focus();
-    await page.keyboard.press("Shift+Tab");
-    await expect(stars.nth(0)).toBeFocused();
+    await stars.nth(0).focus();
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowRight");
@@ -45,6 +45,11 @@ test.describe("reviews", () => {
     await page.keyboard.press("End");
     await page.keyboard.press("ArrowLeft");
     await expect(four).toHaveAttribute("aria-checked", "true");
+    // Tab leaves the group at once, onto the optional extras.
+    await page.keyboard.press("Tab");
+    await expect(
+      form.locator("summary", { hasText: mk.integrity.aspectsToggle }),
+    ).toBeFocused();
 
     await comment.fill("Внимателен и јасен преглед, препорачувам.");
     await page.getByRole("button", { name: mk.reviews.submit }).click();

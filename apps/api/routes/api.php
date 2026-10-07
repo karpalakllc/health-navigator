@@ -4,25 +4,31 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AltchaChallengeController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
+use App\Http\Controllers\Api\V1\ContributorLevelController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
+use App\Http\Controllers\Api\V1\ForumPostHelpfulController;
 use App\Http\Controllers\Api\V1\ForumTagController;
+use App\Http\Controllers\Api\V1\ForumUnansweredController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeAvatarController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PharmacyController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileCorrectionController;
 use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReviewHelpfulController;
+use App\Http\Controllers\Api\V1\ReviewReminderController;
+use App\Http\Controllers\Api\V1\ReviewViewController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\SpecialtyController;
@@ -269,4 +275,53 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('module:pharmacies')
                 ->name('profile-reports.pharmacy');
         });
+
+    // W8-A: „Прашања без одговор“ — visible topics nobody but their author has
+    // answered yet (home „Помогни некому“, the forum's „Без одговор“ view).
+    // Anonymous and identical for everyone; cached server side as well.
+    Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
+        Route::get('/forum/topics/unanswered', ForumUnansweredController::class)
+            ->middleware('throttle:api-forum-unanswered-search');
+    });
+
+    // W8-B review flow and impact. „Прикажана N пати“: the web reports the
+    // review cards a visitor had on screen (ReviewViews: once a day per
+    // network, no cookie); optional auth leaves the author's own views out.
+    Route::post('/reviews/views', [ReviewViewController::class, 'store'])
+        ->middleware(['auth.sanctum.optional', 'throttle:60,1,api-review-views']);
+
+    // The member's „Известувања“, e-mail switches and per-profile reminders.
+    Route::middleware(['auth:sanctum', 'throttle:120,1,api-notifications'])->prefix('me')->group(function (): void {
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/read', [NotificationController::class, 'markRead']);
+        Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
+        Route::put('/notification-preferences', [NotificationController::class, 'updatePreferences']);
+        Route::get('/review-reminders', [ReviewReminderController::class, 'index']);
+        Route::post('/review-reminders', [ReviewReminderController::class, 'store'])
+            ->middleware(['verified', 'throttle:30,60,api-review-reminders']);
+        Route::delete('/review-reminders/{reminder}', [ReviewReminderController::class, 'destroy'])
+            ->where('reminder', '[0-9]{1,18}');
+    });
+
+    // The signed one-click unsubscribe in every member e-mail: no sign-in,
+    // the token is the authorisation (UnsubscribeToken).
+    Route::middleware('throttle:30,1,api-unsubscribe')->group(function (): void {
+        Route::get('/notifications/unsubscribe', [NotificationController::class, 'showUnsubscribe']);
+        Route::post('/notifications/unsubscribe', [NotificationController::class, 'unsubscribe']);
+    });
+
+    // W8-C: contributor levels and the monthly top lists (docs/levels.md).
+    // „Корисно“ on forum replies mirrors the review vote: members who may
+    // post, one vote each, toggled.
+    Route::middleware(['auth:sanctum', 'verified', 'module:forum', 'can:create,'.ForumPost::class, 'throttle:60,10,api-forum-post-helpful'])
+        ->group(function (): void {
+            Route::put('/forum/posts/{post}/helpful', [ForumPostHelpfulController::class, 'store'])
+                ->where('post', '[0-9]{1,18}');
+            Route::delete('/forum/posts/{post}/helpful', [ForumPostHelpfulController::class, 'destroy'])
+                ->where('post', '[0-9]{1,18}');
+        });
+    Route::get('/me/levels', [ContributorLevelController::class, 'me'])
+        ->middleware(['auth:sanctum', 'throttle:60,1,api-me-levels']);
+    Route::get('/community/leaderboards', [ContributorLevelController::class, 'leaderboards'])
+        ->middleware('cache.public:300');
 });

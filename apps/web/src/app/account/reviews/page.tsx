@@ -12,10 +12,11 @@ import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
 import { Notice } from "@/components/ui/notice";
 import { StarRating } from "@/components/ui/star-rating";
+import { Tag } from "@/components/ui/tag";
 import { getSessionToken } from "@/lib/auth/session";
-import { fetchMyReviews } from "@/lib/api/me";
+import { fetchMyReviews, type MyReviewImpact } from "@/lib/api/me";
 import { ApiRequestError } from "@/lib/api/server";
-import { t } from "@/i18n/t";
+import { t, tCount, tFormat } from "@/i18n/t";
 import { pageMetadata } from "@/lib/metadata";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 
@@ -94,6 +95,9 @@ export default async function AccountReviewsPage({
         description={t("account.reviewsHeroDescription")}
       />
       <AccountLayout current="reviews">
+        {reviews.meta.impact && reviews.meta.impact.published > 0 ? (
+          <ImpactSummary impact={reviews.meta.impact} />
+        ) : null}
         {reviews.data.length === 0 ? (
           <Card className="flex flex-col items-start gap-4">
             <span className="inline-flex size-14 items-center justify-center rounded-full bg-apricot text-ink">
@@ -145,6 +149,37 @@ export default async function AccountReviewsPage({
                       {review.body}
                     </p>
                   ) : null}
+                  {review.impact ? (
+                    <ul
+                      aria-label={t("reviewFlow.impactTitle")}
+                      className="m-0 flex list-none flex-wrap gap-2 p-0"
+                    >
+                      <li>
+                        <Tag icon="eye">
+                          {tCount("reviewFlow.viewsCount", review.impact.views)}
+                        </Tag>
+                      </li>
+                      <li>
+                        <Tag icon="heart">
+                          {tFormat("reviewFlow.helpfulCount", {
+                            count: review.impact.helpful,
+                          })}
+                        </Tag>
+                      </li>
+                    </ul>
+                  ) : null}
+                  {review.reply ? (
+                    <section className="flex flex-col gap-1.5 rounded-2xl border-l-4 border-line-strong bg-sand p-4">
+                      <h3 className="type-label text-ink">
+                        {review.reply.source === "doctor"
+                          ? t("reviewFlow.replyFromDoctor")
+                          : t("reviewFlow.replyFromProfile")}
+                      </h3>
+                      <p className="whitespace-pre-line break-words type-reading text-ink">
+                        {review.reply.body}
+                      </p>
+                    </section>
+                  ) : null}
                   {review.status === "rejected" && review.rejection_note ? (
                     <Notice tone="info" title={t("account.rejectionNote")}>
                       {review.rejection_note}
@@ -172,5 +207,58 @@ export default async function AccountReviewsPage({
         />
       </AccountLayout>
     </AccountPage>
+  );
+}
+
+/**
+ * W8-B „Вашиот придонес“: totals over the member's published reviews, with
+ * the honest definition of a view right under the numbers.
+ */
+function ImpactSummary({ impact }: { impact: MyReviewImpact }) {
+  const figures = [
+    { label: t("reviewFlow.impactViews"), value: impact.views, icon: "eye" },
+    {
+      label: t("reviewFlow.impactHelpful"),
+      value: impact.helpful,
+      icon: "heart",
+    },
+    {
+      label: t("reviewFlow.impactReplies"),
+      value: impact.replies,
+      icon: "reply",
+    },
+  ] as const;
+
+  return (
+    <Card
+      as="section"
+      aria-labelledby="impact-title"
+      padding="md"
+      className="flex flex-col gap-4"
+    >
+      <h2 id="impact-title" className="type-h3 text-ink">
+        {t("reviewFlow.impactTitle")}
+      </h2>
+      {/* One row per figure on a phone (label left, number right); three
+          columns once each label fits on one line. Labels are never cut. */}
+      <dl className="m-0 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        {figures.map((figure) => (
+          <div
+            key={figure.label}
+            data-testid="impact-figure"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-sand px-4 py-3 sm:flex-col sm:items-start sm:justify-start sm:gap-1 sm:p-3 lg:p-4"
+          >
+            <dt className="flex min-w-0 items-center gap-1.5 type-meta text-ink-2">
+              <Icon name={figure.icon} size={16} className="shrink-0" />
+              <span className="break-words">{figure.label}</span>
+            </dt>
+            <dd className="m-0 type-h2 text-ink tabular-nums">
+              {figure.value.toLocaleString("mk-MK")}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="type-meta text-ink-2">{t("reviewFlow.impactExplain")}</p>
+    </Card>
   );
 }

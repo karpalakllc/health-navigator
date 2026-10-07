@@ -268,6 +268,7 @@ export default async function FacilityDetailPage({
             <ReviewSection
               kind="facility"
               slug={slug}
+              profileName={facility.name}
               summary={facility.review_summary}
               searchParams={reviewQuery}
             />

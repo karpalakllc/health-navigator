@@ -33,7 +33,7 @@ the time to the first click in buckets (< 1 s, 1–3, 3–10, 10–30, > 30 s, n
 **Target keys** never contain text. `context` is the nearest `data-track`
 attribute (`doctor-card`, `facility-card`, `pharmacy-card`, `forum-topic`,
 `site-nav`, `tab-bar`, `breadcrumbs`, `pagination`, `home-how-it-works`,
-`home-forum-band`) or else the landmark (`header`, `nav`, `main`, `footer`,
+`home-forum-band`, `home-help`, `review-prompt`) or else the landmark (`header`, `nav`, `main`, `footer`,
 `aside`, `search`, `dialog`, `form`, `page`). `element` is what was clicked:
 `link`, `button`, `input-<type>`, `select`, `label`, `summary`, `role-<role>`,
 `focusable`, `pointer` (a `cursor: pointer` element without semantics), or —
@@ -61,8 +61,9 @@ the name to both lists, and give it words in
   route handler also drops batches carrying `Sec-GPC: 1` / `DNT: 1`.
 - Not tracked at all: `/account/**`, `/login`, `/register`,
   `/forgot-password`, `/reset-password/**`, `/verify-email`, the doctor
-  claim/correction/objection forms, `/forum/new`, `/design-system`, unknown
-  pages (allow-list in `apps/web/src/lib/ux/routes.ts` = `apps/api/config/ux.php`).
+  claim/correction/objection forms, `/forum/new`, `/unsubscribe` (the e-mail
+  opt-out link), `/design-system`, unknown pages (allow-list in
+  `apps/web/src/lib/ux/routes.ts` = `apps/api/config/ux.php`).
 - Text-selection drags are ignored; script-dispatched clicks are ignored.
 - Batches go by `navigator.sendBeacon` to the same-origin `/api/ux/events`
   (shared origin guard, JSON only, 16 KB cap, rebuilt field by field), which
