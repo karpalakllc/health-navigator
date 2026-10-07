@@ -19,6 +19,7 @@ import {
 import { ReviewSection } from "@/components/reviews/review-section";
 import { JsonLd } from "@/components/seo/json-ld";
 import { FeaturedTag } from "@/components/ui/tag";
+import { OnDutyTag } from "@/components/urgent-care/on-duty-tag";
 import { fetchPharmacy, fetchPharmacyProducts } from "@/lib/api/pharmacies";
 import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
@@ -190,7 +191,14 @@ export default async function PharmacyDetailPage({
                 <ProfileReportButton subject="pharmacy" slug={slug} compact />
               }
               summary={pharmacy.review_summary}
-              tags={pharmacy.is_featured ? <FeaturedTag /> : undefined}
+              tags={
+                pharmacy.is_featured || pharmacy.on_duty_today ? (
+                  <>
+                    <OnDutyTag duty={pharmacy.on_duty_today} />
+                    {pharmacy.is_featured ? <FeaturedTag /> : null}
+                  </>
+                ) : undefined
+              }
             />
 
             <ProfileContactList info={contact} />

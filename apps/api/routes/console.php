@@ -119,6 +119,18 @@ Schedule::command(ImportSchedule::command('komora'))
     ->when(fn (): bool => ImportSchedule::shouldRun('komora'))
     ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora', ImportSchedule::command('komora')));
 
+// ФЗОМ on-duty pharmacies (docs/urgent-care.md): on the 1st (this month), a
+// mid-month retry on the 15th (ФЗОМ has published as late as the 7th), and
+// on the 28th (next month's file usually appears in the last days). ON by
+// default (owner, 2026-10-07); a conditional GET makes repeats cheap.
+Schedule::command(ImportSchedule::command('on-duty-pharmacies'))
+    ->cron('40 6 1,15,28 * *')
+    ->timezone('Europe/Skopje')
+    ->onOneServer()
+    ->withoutOverlapping(60)
+    ->when(fn (): bool => ImportSchedule::shouldRun('on-duty-pharmacies'))
+    ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('on-duty-pharmacies', ImportSchedule::command('on-duty-pharmacies')));
+
 // W7-A: the verification engine re-evaluates every profile nightly (it also
 // runs after each import apply), so an expired licence loses its badge on
 // the day it expires. Always on: it reads and writes only the database.

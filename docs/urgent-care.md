@@ -78,6 +78,19 @@ format as `office_hours`), `emergency_phone`, `urgent_care_note` (public, one
 line), `urgent_care_checked_at` (staff confirmation), `urgent_care_evidence`
 (internal JSON: what the imports read, which flags were set automatically).
 
+**Emergency department status** (`emergency_department_status`, migration
+`2026_10_18_200002`, owner decision 2026-10-07): `confirmed` (mirrors
+`has_emergency_services = true`; the model keeps the two in step),
+`unconfirmed_likely` — a **public general or clinical hospital** („ЈЗУ Општа
+/ Клиничка / Градска општа болница“, ownership public or a „ЈЗУ“ name) with no
+emergency unit named in the sources; shown publicly as „Итно одделение
+(непотврдено)“ with the main phone and a calm note, after the confirmed ones
+— `none` (staff checked: no emergency department), or null (unknown).
+Special hospitals and private hospitals are never „likely“: they count only
+with evidence. Strong evidence turns `null`/`unconfirmed_likely` into
+`confirmed`; `none`, or any staff check (`urgent_care_checked_at`), is never
+changed by the deriver.
+
 **Hours are never guessed.** With `emergency_hours` empty and `is_open_24h`
 off the page says „Работното време не е потврдено — ако можете, јавете се
 пред да тргнете.“ and never shows „Отворено“. `is_open_24h` is set
@@ -119,10 +132,13 @@ the diff CSV.
 
 ### Admin
 
-Facility form → **Urgent care („Каде веднаш“)**: the four services, 24/7,
+Facility form → **Urgent care („Каде веднаш“)**: the emergency department
+status (Confirmed / Likely, not confirmed / No / Unknown), the other three services, 24/7,
 hours, direct line, public note, „Confirmed by staff“, and the import
 evidence (read only). Facilities list → filter **Urgent care**: per service,
-any, or **„Import evidence, not confirmed by staff“** — the staff to-do list.
+any, **„Emergency department likely, not confirmed“**, or **„Import
+evidence, not confirmed by staff“** — the staff to-do lists. The list shows
+the status as a badge.
 
 ### Coverage on a copy of the real data (2026-10-07)
 
@@ -145,21 +161,90 @@ evidence, 37 with candidates to check.
   Скопје (Дежурна служба).
 - `is_open_24h` (6), each from the institution's own hours text.
 
-Gaps for staff: most general hospitals (Прилеп, Охрид, Струмица, Тетово,
-Гостивар, Штип, Велес, Кавадарци, Кочани, Гевгелија, Дебар, Кичево …) have no
-named emergency unit in the sources and are only candidates; several key
-emergency departments (ТОАРИЛУЦ, Св. Наум, КБ Битола) are still unpublished
-drafts. No `clinic` (on-duty) flags: the sources do not name on-duty
+After the „likely“ rule: **16 public general/clinical hospitals are
+`unconfirmed_likely`** (14 published): Битола (КБ), Велес, Гевгелија,
+Гостивар (2 records), Дебар, Кавадарци, Кичево, Кочани, Охрид, Прилеп (2
+records), Струга, Струмица, Тетово (КБ), Штип (КБ). With the 8 confirmed,
+every town with a public general hospital now shows an emergency department
+(confirmed or „непотврдено“). Duplicates to merge: Битола's published „ЈЗУ
+Клиничка болница Битола“ (likely) and the unpublished „ЈЗУ Клиничка болница
+„Д-р Трифун Пановски“ – Битола“ (confirmed) are the same hospital; Гостивар
+and Прилеп also have two records each.
+
+Gaps for staff: several key emergency departments (ТОАРИЛУЦ, Св. Наум, КБ
+Битола „Д-р Трифун Пановски“) are still unpublished drafts. No `clinic` (on-duty) flags: the sources do not name on-duty
 practices. No facility has confirmed `emergency_hours` yet.
 
 ### On-duty pharmacies
 
-No data field exists. The page shows „Податоците за дежурни аптеки наскоро“
-and links to ФЗОМ's monthly schedule (https://fzo.org.mk/dezurni-apteki, an
-.xlsx per month for every town, with columns town / pharmacy / date / phone /
-how the duty works). `GET /urgent-care` returns
-`meta.on_duty_pharmacies.available = false`. **Owner decision needed:** may
-we import that schedule (licence/terms of the file), and how often.
+Source: ФЗОМ's monthly „Распоред на дежурни аптеки“ (an .xlsx per month for
+every town, linked from https://fzo.org.mk/dezurni-apteki). Owner approved the
+import on 2026-10-07 (terms: docs/third-party-assets.md).
+
+```sh
+php artisan import:on-duty-pharmacies --dry-run            # this month (+ next, if listed)
+php artisan import:on-duty-pharmacies --month=2026-11
+php artisan import:on-duty-pharmacies --file=/path/x.xlsx --month=2026-11
+php artisan import:on-duty-pharmacies --force              # re-import an unchanged file
+```
+
+- **Fetching** (`OnDutyScheduleFetcher`): robots.txt first, our User-Agent
+  with the contact (`IMPORT_USER_AGENT`, `IMPORT_CONTACT`), https only and
+  only the page's host (`IMPORT_ON_DUTY_PHARMACIES_EXTRA_HOSTS` adds hosts),
+  redirects within those hosts, a 5 MB cap, a 2 s pause, and a conditional
+  GET (ETag / Last-Modified of the last run of that month, stored in its
+  `import_runs.source_meta`). The month comes from the link text („… за 2026
+  месец Октомври“) or the file name („…-10.2026.xlsx“). Raw files go to the
+  private import disk (`imports/on-duty-pharmacies/`); only the newest 3 are
+  kept (`IMPORT_ON_DUTY_PHARMACIES_KEEP_FILES`).
+- **Parsing** (`OnDutyScheduleParser`, OpenSpout): the month heading (text
+  „ОКТОМВРИ,2026“ or a date cell), town headings, then rows `№ | town |
+  pharmacy | dates | phone | how the duty works`. Every date form seen in the
+  2026 files is read (a date cell or its serial number, `01.10.2026`,
+  `01-10-2026`, ranges with `-`/`—`/`до`/`од … до …`, `01.10-31.10.2026`,
+  `29.12. до 01.01.2026`, `08/09-10-2026`, `1,2,3,4`, `6.14.22.30.`, a bare
+  day, `4(недела)`, `… 2026 г.`, `18.01. 2026`, a missing dot before the
+  year). The duty column gives the mode: `24/7` → all day, „по телефонски
+  повик …“ → on call, times → hours (kept as written), anything else is taken
+  for an address (Велес writes the street there). Only the **numbers** of the
+  phone column are kept (some towns add the pharmacist's name). Towns: „СКОПЈЕ-
+  КАРПОШ“ → Скопје + municipality Карпош; „М.БРОД“ → Македонски Брод.
+- **Writing** (`OnDutyPharmacyImporter`): the month is replaced as a whole,
+  one row per pharmacy and day (`pharmacy_duty_shifts`). A pharmacy is
+  linked when its name without „ПЗУ“/„Аптека“/quotes/the town matches exactly
+  one directory pharmacy in that town. **Nothing is created**: an unmatched
+  or ambiguous pharmacy goes to the import review queue once (kind
+  Unmatched, `on-duty-pharmacy:<town>:<name>`), and its rows still show on
+  „Каде веднаш“ under ФЗОМ's name, without a profile link. A row whose date
+  cannot be read goes to the queue too and is not guessed. A file with no
+  readable rows fails and replaces nothing.
+- **Schedule**: `40 6 1,15,28 * *` Skopje time — the 1st, a mid-month retry
+  on the 15th (ФЗОМ published October's file on the 7th), and the 28th
+  (next month's file usually appears in the last days). ON by default:
+  `IMPORT_ON_DUTY_PHARMACIES` (the command) and
+  `IMPORT_ON_DUTY_PHARMACIES_SCHEDULE` (the scheduler) switch it off. A month
+  not listed yet ends as „not modified“ (`not_published`), not as a failure.
+- **„Tonight“**: the schedule day in Skopje time; before 07:00 the previous
+  day's (night duties end in the morning). `GET /urgent-care?city=…` returns
+  `meta.on_duty_pharmacies = {available, date, source_url, items}` (items only
+  with a city; all-day first, then hours, on call); `available = false` when
+  the month is not imported → the placeholder with ФЗОМ's link.
+  `GET /pharmacies/{slug}` returns `on_duty_today` → „Дежурна денес · …“ on
+  the profile.
+
+Real files, 2026-10-07 (dry runs; October applied on the preview copy):
+
+| Month | Rows | Shift-days | Unreadable rows (first parser → final) |
+|---|---|---|---|
+| 2026-10 | 500 | 1116 | 0 → 0 |
+| 2026-09 | 487 | 1080 | 16 → 0 |
+| 2026-08 | 505 | 1116 | 17 → 0 |
+| 2026-01 | 503 | 1115 | 31 → 1: Куманово, a date cell with the year 2206 (a typo in ФЗОМ's file), queued for staff |
+
+32 towns, every day covered in October. **Matching: 0 of 329 pharmacies**
+link to a profile, because the directory holds no pharmacies yet (the
+pharmacy import is a separate, future source); all 329 are in the review
+queue once. The schedule still shows them by ФЗОМ's name.
 
 ## 3. API
 

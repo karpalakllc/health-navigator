@@ -8,6 +8,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\MacedonianSearchVariants;
 use App\Support\TaxonomyCache;
+use App\Support\UrgentCare\OnDutyPharmacies;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,8 +18,9 @@ use Illuminate\Validation\Rule;
  * urgent-care service — emergency department (ed), emergency medical service
  * (ems), on-duty clinic (clinic), dental emergency (dental).
  *
- * On-duty pharmacies: no source holds them yet, so `meta.on_duty_pharmacies`
- * says so and the site shows a placeholder.
+ * On-duty pharmacies come from ФЗОМ's monthly schedule (import:on-duty-
+ * pharmacies): `meta.on_duty_pharmacies` lists tonight's for the chosen city,
+ * or says the month is not imported (the site then shows a placeholder).
  */
 class UrgentCareController extends Controller
 {
@@ -70,7 +72,8 @@ class UrgentCareController extends Controller
                 'city' => $city !== '' ? $city : null,
                 'type' => $type,
                 'total' => $facilities->count(),
-                'on_duty_pharmacies' => ['available' => false],
+                // Tonight's on-duty pharmacies of the city, from ФЗОМ's schedule.
+                'on_duty_pharmacies' => OnDutyPharmacies::forCity($city !== '' ? $city : null),
             ],
         ]);
     }

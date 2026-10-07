@@ -5,8 +5,8 @@ import { CityPicker } from "@/components/home/city-picker";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/button";
 import { ChipLink } from "@/components/ui/chip";
-import { Notice } from "@/components/ui/notice";
 import { EmergencyStrip } from "@/components/urgent-care/emergency-strip";
+import { OnDutyPharmaciesSection } from "@/components/urgent-care/on-duty-pharmacies";
 import { UrgentCareFinder } from "@/components/urgent-care/urgent-care-finder";
 import type { UrgentCareList } from "@/lib/api/urgent-care";
 import type { LocationCity } from "@/lib/api/locations";
@@ -22,9 +22,6 @@ import {
   type UrgentService,
 } from "@/lib/urgent-care";
 import { t, tCount, tFormat } from "@/i18n/t";
-
-/** ФЗОМ's monthly on-duty pharmacy schedule (checked 2026-10-07). */
-const FZOM_ON_DUTY_PHARMACIES = "https://fzo.org.mk/dezurni-apteki";
 
 /**
  * schema.org for the list: each place as Hospital (a hospital with an
@@ -215,7 +212,12 @@ export function UrgentCarePage({
         <p className="type-meta text-ink-2">{t("urgentCare.dataNote")}</p>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+      <OnDutyPharmaciesSection
+        data={list.meta.on_duty_pharmacies}
+        cityName={cityName}
+      />
+
+      <div className="grid gap-4 lg:gap-6">
         <section
           aria-labelledby="urgent-what"
           className="flex flex-col gap-3 rounded-card bg-white p-5 ring-1 ring-line lg:p-6"
@@ -238,30 +240,6 @@ export function UrgentCarePage({
               {t("urgentCare.guidesLink")}
             </Link>
           </p>
-        </section>
-
-        <section aria-labelledby="urgent-pharmacies">
-          <Notice
-            tone="info"
-            icon="pill"
-            title={
-              <span id="urgent-pharmacies">
-                {t("urgentCare.pharmaciesTitle")}
-              </span>
-            }
-          >
-            <p>{t("urgentCare.pharmaciesBody")}</p>
-            <p className="mt-2">
-              <a
-                href={FZOM_ON_DUTY_PHARMACIES}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-underline"
-              >
-                {t("urgentCare.pharmaciesLink")}
-              </a>
-            </p>
-          </Notice>
         </section>
       </div>
 

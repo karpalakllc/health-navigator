@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use App\Models\Facility;
 use App\Support\Media\MediaUrl;
 use App\Support\ReviewSummary;
+use App\Support\UrgentCare\OnDutyPharmacies;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,6 +37,8 @@ class PharmacyDetailResource extends JsonResource
             // only — the evidence behind it stays internal.
             'verification' => $this->publicVerification(),
             'office_hours' => $this->office_hours ?? [],
+            // „Дежурна денес“ from ФЗОМ's schedule (docs/urgent-care.md), or null.
+            'on_duty_today' => OnDutyPharmacies::forPharmacy($this->resource),
             'review_summary' => ReviewSummary::for($this->resource),
         ];
     }

@@ -43,6 +43,16 @@ code; both packages ship it in their own directory. The widget's „Protected by
 ALTCHA“ footer link is hidden — the licence does not require attribution in
 the interface.
 
+## Spreadsheet reader (OpenSpout)
+
+| Package | Version | Licence | Used for |
+|---------|---------|---------|----------|
+| [`openspout/openspout`](https://github.com/openspout/openspout) (Composer) | 4.32.x (`apps/api/composer.lock`; requires PHP `~8.3.0 \|\| ~8.4.0 \|\| ~8.5.0`, so it runs on our 8.4 and 8.5; extensions dom, fileinfo, filter, libxml, xmlreader, zip) | [MIT](https://github.com/openspout/openspout/blob/4.x/LICENSE) — `vendor/openspout/openspout/LICENSE`; part of its code, taken from an earlier project, is under Apache-2.0 (`LICENSE-for-cc42c1d`, also permissive: keep the notice) | Reading ФЗОМ's monthly on-duty pharmacy schedules (.xlsx) in `App\Support\Import\Pharmacies\OnDutyScheduleParser` (`import:on-duty-pharmacies`). Approved by the owner on 2026-10-07. It was already installed as a dependency of `filament/actions` (exports, `^4.23`); it is now also a direct requirement (`^4.32`), so it stays when Filament changes. Filament pins the 4.x line, so 5.x cannot be used yet. |
+
+## Data: ФЗОМ on-duty pharmacy schedule
+
+ФЗОМ publishes „Распоред на дежурни аптеки“ monthly at <https://fzo.org.mk/dezurni-apteki> (an .xlsx per month). The site's footer says „© … СИТЕ ПРАВА ЗАДРЖАНИ“ and we found no separate terms of use; robots.txt (read 2026-10-07) allows the page and the files. We copy only the facts needed to tell visitors where to go tonight (town, pharmacy name as printed, date, phone numbers, the stated hours), always show them as „според распоредот на ФЗОМ“ with a link to the page, and drop everything else (pharmacists' names that some towns write in the phone column). The owner approved the import on 2026-10-07; whether a public-sector schedule's facts need ФЗОМ's permission is an open question for counsel (docs/legal/research-memo.md has the general reasoning for public registers).
+
 ## Images from institutions' websites
 
 Facility logos and cover photos imported by `import:institutions-json` come
