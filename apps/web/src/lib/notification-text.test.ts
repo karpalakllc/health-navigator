@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { t } from "@/i18n/t";
-import type { MemberNotification } from "@/lib/api/notifications";
+import type { MemberNotification } from "@/lib/notification-types";
 import {
   monthLabel,
   notificationLine,

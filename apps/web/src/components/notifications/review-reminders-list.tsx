@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
-import type { ReviewReminder } from "@/lib/api/notifications";
+import type { ReviewReminder } from "@/lib/notification-types";
 import { formatMkDate } from "@/lib/mk-date";
 import { t, tFormat } from "@/i18n/t";
 

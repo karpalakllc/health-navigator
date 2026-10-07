@@ -10,7 +10,7 @@ import {
   PREFERENCE_TYPES,
   type NotificationPreferences,
   type PreferenceType,
-} from "@/lib/api/notifications";
+} from "@/lib/notification-types";
 import { t } from "@/i18n/t";
 
 const LABELS: Record<

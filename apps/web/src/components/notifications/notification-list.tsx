@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { Tag } from "@/components/ui/tag";
-import type { MemberNotification } from "@/lib/api/notifications";
+import type { MemberNotification } from "@/lib/notification-types";
 import { formatMkDate } from "@/lib/mk-date";
 import { notificationLine } from "@/lib/notification-text";
 import { t } from "@/i18n/t";

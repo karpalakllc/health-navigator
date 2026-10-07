@@ -1,5 +1,5 @@
 import { t, tFormat } from "@/i18n/t";
-import type { MemberNotification } from "@/lib/api/notifications";
+import type { MemberNotification } from "@/lib/notification-types";
 
 /*
  * One „Известувања“ line: its sentence and where it leads. The API stores only
