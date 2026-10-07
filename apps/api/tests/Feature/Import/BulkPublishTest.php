@@ -14,6 +14,7 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use App\Support\Import\BulkPublish;
 use App\Support\Import\BulkPublishAlreadyRunning;
+use App\Support\Import\ImportReviewActions;
 use App\Support\RoleCatalog;
 use App\Support\Verification\Engine\VerifiedDraftPublisher;
 use App\Support\Verification\VerificationBasis;
@@ -21,6 +22,7 @@ use App\Support\Verification\VerificationWriter;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 use RuntimeException;
@@ -375,5 +377,31 @@ class BulkPublishTest extends TestCase
         $this->assertFalse($doctor->fresh()->isVerified());
         $this->assertFalse($verified->fresh()->is_published);
         $this->assertSame($admin->id, ImportReviewItem::query()->where('subject_id', $doctor->id)->value('resolved_by_id'));
+    }
+
+    /**
+     * „Спои ги“ deletes a website draft while a background bulk publish may
+     * be on the same item: the publish locks the profile first and finds it
+     * gone, instead of closing the item as published for a deleted draft.
+     */
+    public function test_a_draft_merged_away_after_it_was_loaded_is_not_counted_as_published(): void
+    {
+        $doctor = $this->draft('Ана Спојувана', verified: false);
+        $item = ImportReviewItem::query()->where('subject_id', $doctor->id)->firstOrFail();
+        $merged = false;
+
+        // The merge lands between loading the profile and publishing it.
+        Doctor::retrieved(function (Doctor $loaded) use ($doctor, &$merged): void {
+            if (! $merged && $loaded->is($doctor)) {
+                $merged = true;
+                DB::table('doctors')->where('id', $doctor->id)->delete();
+            }
+        });
+
+        $published = app(ImportReviewActions::class)->publish($item, $this->admin());
+
+        $this->assertTrue($merged);
+        $this->assertFalse($published);
+        $this->assertSame(ImportReviewStatus::Open, $item->refresh()->status);
     }
 }

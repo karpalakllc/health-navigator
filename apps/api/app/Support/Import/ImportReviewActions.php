@@ -42,6 +42,16 @@ final class ImportReviewActions
         }
 
         return DB::transaction(function () use ($subject, $item, $by): bool {
+            // The profile row first, then the item — the order DoctorMerger
+            // takes them in — so a background bulk publish and a „Спои ги“
+            // on the same draft queue up instead of deadlocking; a draft
+            // merged away meanwhile is gone by the time the lock is ours.
+            $subject = $subject->newQuery()->withTrashed()->lockForUpdate()->find($subject->getKey());
+
+            if ($subject === null || $subject->trashed()) {
+                return false;
+            }
+
             // Claim the item first: a second click, or a stale item in the
             // same bulk selection, publishes and counts nothing.
             if (! $item->resolve(ImportReviewStatus::Resolved, 'published', $by)) {
