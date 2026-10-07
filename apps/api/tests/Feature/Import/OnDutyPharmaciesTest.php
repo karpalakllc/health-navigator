@@ -182,10 +182,12 @@ class OnDutyPharmaciesTest extends TestCase
         $this->assertSame('Димитар Влахов бр.30', $veles->address);
         $this->assertNull($veles->hours_text);
 
-        // Unmatched pharmacies and the unreadable row go to the review queue; nothing is created.
+        // Unmatched pharmacies in a town the directory covers and the unreadable
+        // row go to the review queue; nothing is created. Дебар and Велес have
+        // no published pharmacy yet: their rows are in the run report only.
         $this->assertSame(2, Facility::query()->pharmacy()->count());
         $items = ImportReviewItem::query()->where('source', 'on-duty-pharmacies')->where('kind', ImportReviewKind::Unmatched)->get();
-        $this->assertSame(['ЗЕГИН', 'Магна Фарм 1', 'ПЗУ Аптека Непозната'], $items->where('details.reason', 'pharmacy_not_in_directory')->pluck('details.name')->sort()->values()->all());
+        $this->assertSame(['ПЗУ Аптека Непозната'], $items->where('details.reason', 'pharmacy_not_in_directory')->pluck('details.name')->sort()->values()->all());
         $this->assertSame(1, $items->where('details.reason', 'unreadable_date')->count());
         $this->assertSame(1, $run->count('rows_unreadable'));
 
@@ -193,6 +195,34 @@ class OnDutyPharmaciesTest extends TestCase
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'evil.example'));
         Http::assertSent(fn (Request $request) => str_contains($request->header('User-Agent')[0] ?? '', 'mailto:'));
         $this->assertCount(1, Storage::disk('local')->files('imports/on-duty-pharmacies'));
+    }
+
+    public function test_while_a_town_has_no_published_pharmacy_its_unmatched_ones_are_reported_not_queued(): void
+    {
+        // Битола: one published pharmacy. Дебар: a draft only. Велес, Скопје: none.
+        Facility::factory()->pharmacy()->create(['name' => 'Роса Вита', 'city' => 'Битола']);
+        Facility::factory()->pharmacy()->unpublished()->create(['name' => 'Друга', 'city' => 'Дебар']);
+        $this->fakeSource();
+
+        $this->artisan('import:on-duty-pharmacies', ['--month' => '2026-10'])->assertSuccessful();
+
+        $run = ImportRun::query()->where('source', 'on-duty-pharmacies')->latest('id')->firstOrFail();
+        $queued = ImportReviewItem::query()->where('source', 'on-duty-pharmacies')->get()
+            ->where('details.reason', 'pharmacy_not_in_directory')->pluck('details.name')->values()->all();
+        $this->assertSame(['ПЗУ Аптека Непозната'], $queued);
+        $this->assertSame(4, $run->count('pharmacies_unmatched'));
+        $this->assertSame(3, $run->count('pharmacies_unmatched_not_queued'));
+
+        // The run report lists every unmatched pharmacy, queued or not.
+        $this->assertNotNull($run->diff_path);
+        $report = (string) Storage::disk('local')->get($run->diff_path);
+        foreach (['ЕУРОФАРМ - ТАФТАЛИЏЕ, Скопје', 'ЗЕГИН, Дебар', 'Магна Фарм 1, Велес'] as $label) {
+            $this->assertStringContainsString($label, $report);
+        }
+        $this->assertStringContainsString('unmatched', $report);
+
+        // The rows still show under ФЗОМ's name.
+        $this->assertSame(4, PharmacyDutyShift::query()->where('town', 'Дебар')->whereNull('facility_id')->count());
     }
 
     public function test_a_second_run_is_a_conditional_get_and_a_changed_file_replaces_the_month(): void

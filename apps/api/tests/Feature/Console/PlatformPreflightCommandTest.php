@@ -72,6 +72,7 @@ class PlatformPreflightCommandTest extends TestCase
             'zdravje.altcha.hmac_key' => null,
             'import.verification.auto_publish' => false,
             'import.verification.auto_publish_fzom_unverified' => false,
+            'import.contact' => 'imports@zdravje360.mk',
         ]);
     }
 
@@ -342,6 +343,42 @@ class PlatformPreflightCommandTest extends TestCase
 
         $this->assertSame(['app.debug'], $result['errors']);
         $this->assertSame(0, $result['exit']);
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function placeholderImportContacts(): array
+    {
+        return [
+            'unset' => [null],
+            'blank' => ['  '],
+            'the shipped placeholder' => ['contact@example.invalid'],
+            'mailto placeholder' => ['mailto:contact@example.invalid'],
+            'example.com' => ['someone@example.com'],
+            'a test domain' => ['imports@zdravje360.test'],
+            'not an address' => ['imports'],
+        ];
+    }
+
+    #[DataProvider('placeholderImportContacts')]
+    public function test_an_unset_or_placeholder_import_contact_warns_in_a_deployment(mixed $contact): void
+    {
+        config(['import.contact' => $contact]);
+
+        $result = $this->preflight();
+
+        $this->assertSame(['import.contact'], $result['warnings']);
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(0, $result['exit']);
+    }
+
+    public function test_a_real_import_contact_passes_and_a_local_placeholder_is_not_reported(): void
+    {
+        config(['import.contact' => 'mailto:imports@zdravje360.mk']);
+        $this->assertSame([], $this->preflight()['warnings']);
+
+        $this->app['env'] = 'local';
+        config(['import.contact' => 'contact@example.invalid']);
+        $this->assertNotContains('import.contact', $this->preflight()['warnings']);
     }
 
     public function test_human_readable_output_separates_errors_and_warnings(): void

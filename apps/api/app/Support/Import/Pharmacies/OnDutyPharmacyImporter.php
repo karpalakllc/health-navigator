@@ -20,6 +20,11 @@ use RuntimeException;
  * never created: the schedule row still shows on „Каде веднаш“ under the
  * name ФЗОМ printed, just without a profile link. Rows whose date cannot be
  * read go to the queue too.
+ *
+ * Exception: while the directory has no published pharmacy in a town, its
+ * unmatched pharmacies are only listed in the run report (diff.csv), not
+ * queued — with no pharmacy import yet, every one of ФЗОМ's ~330 pharmacies
+ * would otherwise land in one person's review queue every month.
  */
 final class OnDutyPharmacyImporter
 {
@@ -32,6 +37,7 @@ final class OnDutyPharmacyImporter
     {
         $month = $parsed['month'];
         $index = $this->pharmacyIndex();
+        $coveredTowns = $this->townsWithPublishedPharmacies();
         $now = now();
         $shifts = [];
         $seen = [];
@@ -51,6 +57,10 @@ final class OnDutyPharmacyImporter
 
                 if ($facilityId !== null) {
                     $context->increment('pharmacies_matched');
+                } elseif (count($candidates) === 0 && ! isset($coveredTowns[$townKey])) {
+                    $context->increment('pharmacies_unmatched');
+                    $context->increment('pharmacies_unmatched_not_queued');
+                    $context->record('pharmacy', 'unmatched', null, $row['name'].', '.$row['town'], note: 'Not in the directory; no published pharmacy in this town yet, so not queued for review.');
                 } else {
                     $ambiguous = count($candidates) > 1;
                     $context->increment($ambiguous ? 'pharmacies_ambiguous' : 'pharmacies_unmatched');
@@ -122,6 +132,23 @@ final class OnDutyPharmacyImporter
         });
 
         $context->record('schedule', 'replace', null, $month, 'shifts', null, (string) count($shifts), (string) $sourceUrl);
+    }
+
+    /**
+     * Town keys with at least one published directory pharmacy.
+     *
+     * @return array<string, true>
+     */
+    private function townsWithPublishedPharmacies(): array
+    {
+        $towns = [];
+
+        Facility::query()->pharmacy()->published()->whereNotNull('city')->pluck('city')
+            ->each(function (string $city) use (&$towns): void {
+                $towns[OnDutyNames::townKey($city)] = true;
+            });
+
+        return $towns;
     }
 
     /**

@@ -215,7 +215,12 @@ php artisan import:on-duty-pharmacies --force              # re-import an unchan
   one directory pharmacy in that town. **Nothing is created**: an unmatched
   or ambiguous pharmacy goes to the import review queue once (kind
   Unmatched, `on-duty-pharmacy:<town>:<name>`), and its rows still show on
-  „Каде веднаш“ under ФЗОМ's name, without a profile link. A row whose date
+  „Каде веднаш“ under ФЗОМ's name, without a profile link. **While the
+  directory has no published pharmacy in a town** (today: none anywhere),
+  that town's unmatched pharmacies are not queued — the owner works alone
+  and 329 items a month would bury the queue — but listed in the run's
+  report (`diff.csv`, action `unmatched`; counters `pharmacies_unmatched`,
+  `pharmacies_unmatched_not_queued`) (integration decision 2026-10-07). A row whose date
   cannot be read goes to the queue too and is not guessed. A file with no
   readable rows fails and replaces nothing.
 - **Schedule**: `40 6 1,15,28 * *` Skopje time — the 1st, a mid-month retry
@@ -243,8 +248,9 @@ Real files, 2026-10-07 (dry runs; October applied on the preview copy):
 
 32 towns, every day covered in October. **Matching: 0 of 329 pharmacies**
 link to a profile, because the directory holds no pharmacies yet (the
-pharmacy import is a separate, future source); all 329 are in the review
-queue once. The schedule still shows them by ФЗОМ's name.
+pharmacy import is a separate, future source); since integration none of
+them is queued (no published pharmacy in any town), all 329 are in the run
+report. The schedule still shows them by ФЗОМ's name.
 
 ## 3. API
 
