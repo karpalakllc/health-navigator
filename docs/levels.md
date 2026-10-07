@@ -26,8 +26,8 @@ list does not belong in the forum, and /transparency is about moderation
 figures, not people; mixing them would blur both. One calm page holds both lists
 and the rules that produce them (the rules come from the API, so the page always
 states the numbers actually applied). It is linked from the footer („Ресурси“)
-and from the account card. A teaser on the home page or a link on the forum hub
-can be added later (the forum hub belongs to W8-A this wave).
+and from the account card, and the forum hub has a small card under the forum
+rules that links to it (`forum-community-card`).
 
 No public member pages exist: a level is only ever seen as a chip on content the
 member already published, on the monthly list, or by the member themselves.

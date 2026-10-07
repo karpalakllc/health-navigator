@@ -157,7 +157,9 @@ needs nothing beyond the worker above. Progress shows above the review
 table; the staff member who started it gets a panel notification (the bell,
 `notifications` table) when it finishes. If no worker picks the job up
 within 90 s, the open review page carries on itself, a chunk per poll, so
-the publish never silently stalls. `php artisan import:publish
+the publish never silently stalls. If a worker died in the middle of a
+chunk, its step lock is held until it expires (300 s), so the page takes
+over only after up to five minutes. `php artisan import:publish
 verified|fzom-unverified --by=<email>` does the same from a shell and
 continues a stopped run.
 

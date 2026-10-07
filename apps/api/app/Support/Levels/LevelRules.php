@@ -5,7 +5,7 @@ namespace App\Support\Levels;
 /**
  * The contributor-level rules in one place (docs/levels.md describes them
  * for people; keep the two in step). Titles live in the web app
- * (levels.review.N / levels.forum.N in mk.ts): the API only says the number.
+ * (levels.reviewLevelN / levels.forumLevelN in mk.ts): the API only says the number.
  *
  * Points come from approved, public content only. Anything else — pending
  * or refused content, a member's own votes, votes from suspended accounts —
@@ -62,9 +62,10 @@ final class LevelRules
     ];
 
     /**
-     * Forum ladder: level => [posts, points], both needed. Level 1 counts
-     * any published topic or reply; from level 2 on, only replies in other
-     * members' topics count, because answering is what helps people.
+     * Forum ladder: level => [posts, points], both needed. Posts are the
+     * member's published topics plus their published replies in other
+     * members' topics, at every level (a reply in one's own topic counts
+     * nothing); answering earns more points than asking (REPLY_POINTS).
      *
      * @var array<int, array{0: int, 1: int}>
      */
