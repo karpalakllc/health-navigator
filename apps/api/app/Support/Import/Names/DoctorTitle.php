@@ -53,6 +53,8 @@ final class DoctorTitle
     private const LATIN = [
         'dr' => 'д-р', 'prof' => 'проф', 'prim' => 'прим', 'spec' => 'спец', 'sci' => 'сци', 'mr' => 'м-р',
         'as' => 'асс', 'ass' => 'асс', 'doc' => 'доц', 'dр' => 'д-р', 'aс' => 'асс', 'мр' => 'м-р',
+        'sc' => 'сци', 'med' => 'мед', 'mag' => 'м-р', 'subspec' => 'субспец', 'univ' => 'унив', 'docent' => 'доцент',
+        'profesor' => 'професор', 'asist' => 'асс',
     ];
 
     public static function clean(?string $raw): ?CleanedName
@@ -97,7 +99,7 @@ final class DoctorTitle
     {
         $text = mb_strtolower($title, 'UTF-8');
         $text = (string) preg_replace_callback(
-            '/(?<![\p{L}])([a-zрс]{2,4})(?![\p{L}])/u',
+            '/(?<![\p{L}])([a-zрс]{2,8})(?![\p{L}])/u',
             fn (array $m): string => self::LATIN[$m[1]] ?? $m[1],
             $text,
         );

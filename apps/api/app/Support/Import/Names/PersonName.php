@@ -2,8 +2,6 @@
 
 namespace App\Support\Import\Names;
 
-use App\Support\MacedonianSearchVariants;
-
 /**
  * Cleans a doctor's name as a source wrote it („Д-Р АНА ПЕТРОВА - РИСТОВА“,
  * „Ана Петрова, стоматолог“, „Бaјрaми“ with a Latin „a“) into the form the
@@ -23,10 +21,13 @@ use App\Support\MacedonianSearchVariants;
  *   (each part of a hyphenated surname); mixed case is left alone.
  *
  * Everything else is `uncertain` (a person decides): an institution or
- * legal form inside the name, a role word in the middle, a name in Latin
- * script (`suggestion`: the Cyrillic transliteration), a Latin letter with
+ * legal form inside the name, a role word in the middle, a Latin letter with
  * no Cyrillic twin inside a Cyrillic word, text after a comma that is not a
- * title.
+ * title. Then `value` is the input exactly as given (no partial cleaning)
+ * and `suggestion` the proposal for the review item, if any. A name in
+ * Latin script is cleaned as usual and flagged `latin_script`, with the
+ * Cyrillic transliteration as `suggestion` — none when a letter has no
+ * certain Cyrillic counterpart.
  *
  * The matching keys (App\Support\Import\NameKey) of a cleaned name equal the
  * original's, except where the original glued words together („К.Петрова“)
@@ -49,10 +50,30 @@ final class PersonName
         'медика', 'дент', 'дентал', 'clinic', 'dental',
     ];
 
-    /** @var array<string, string> letters MacedonianSearchVariants does not know */
-    private const LATIN_LETTERS = [
-        'ć' => 'ќ', 'Ć' => 'Ќ', 'č' => 'ч', 'Č' => 'Ч', 'š' => 'ш', 'Š' => 'Ш', 'ž' => 'ж', 'Ž' => 'Ж',
-        'đ' => 'ѓ', 'Đ' => 'Ѓ', 'ç' => 'ч', 'Ç' => 'Ч', 'ë' => 'е', 'Ë' => 'Е', 'dj' => 'џ', 'Dj' => 'Џ', 'y' => 'ј', 'Y' => 'Ј',
+    /** Words that are never part of a person's name (lower case). */
+    private const NOT_A_NAME = ['и', 'за', 'со', 'на', 'во', 'од', 'по', 'до', 'при', 'кај'];
+
+    /**
+     * Latin → Macedonian Cyrillic for names (lower case; strtr takes the
+     * longest match first). Albanian spelling as Macedonian writes Albanian
+     * names („Xhaferi“ → „Џафери“, „Qazim“ → „Ќазим“, „Thaçi“ → „Тачи“):
+     * xh → џ, gj → ѓ, zh → ж, sh → ш, ç → ч, q → ќ, dh → д, th → т, ll → л,
+     * rr → р, nj → њ, ë → е, y → и (ј before a vowel). Serbo-Croatian:
+     * č ć š ž đ dž lj nj, and „dj“ (đ typed without the accent) → ѓ
+     * („Djordjevic“ → „Ѓорѓевиќ“). The ASCII Macedonian digraphs (kj, ch,
+     * dzh, dz) as MacedonianSearchVariants reads them. A plain x (Albanian
+     * ѕ, but кс in „Maxim“), w and other letters without one certain
+     * counterpart are not mapped: the name then gets no proposal.
+     *
+     * @var array<string, string>
+     */
+    private const LATIN_TO_CYRILLIC = [
+        'dzh' => 'џ', 'xh' => 'џ', 'dž' => 'џ', 'gj' => 'ѓ', 'dj' => 'ѓ', 'kj' => 'ќ', 'lj' => 'љ', 'nj' => 'њ',
+        'zh' => 'ж', 'sh' => 'ш', 'ch' => 'ч', 'dh' => 'д', 'th' => 'т', 'll' => 'л', 'rr' => 'р', 'dz' => 'ѕ',
+        'a' => 'а', 'b' => 'б', 'c' => 'ц', 'ç' => 'ч', 'č' => 'ч', 'ć' => 'ќ', 'd' => 'д', 'đ' => 'ѓ', 'e' => 'е',
+        'ë' => 'е', 'f' => 'ф', 'g' => 'г', 'h' => 'х', 'i' => 'и', 'j' => 'ј', 'k' => 'к', 'l' => 'л', 'm' => 'м',
+        'n' => 'н', 'o' => 'о', 'p' => 'п', 'q' => 'ќ', 'r' => 'р', 's' => 'с', 'š' => 'ш', 't' => 'т', 'u' => 'у',
+        'v' => 'в', 'y' => 'и', 'z' => 'з', 'ž' => 'ж',
     ];
 
     public static function clean(string $raw): CleanedName
@@ -81,6 +102,14 @@ final class PersonName
 
         // „Ана Петрова, специјалист по педијатрија“: the part after a comma
         // is a title or role, or something a person has to read.
+        // „Ана Петрова - специјалист по педијатрија“: a spaced dash before a
+        // role or a title separates like a comma (a double surname „Петрова -
+        // Ристова“ is not followed by one).
+        if (! str_contains($name, ',') && preg_match('/^(.*?\S)\s+-\s+(\S+)(.*)$/u', $name, $dash) === 1
+            && (self::isRole($dash[2]) || self::isTitle($dash[2]))) {
+            $name = $dash[1].', '.$dash[2].$dash[3];
+        }
+
         if (str_contains($name, ',')) {
             [$left, $right] = array_map('trim', explode(',', $name, 2));
             $tail = DoctorTitle::clean($right);
@@ -91,7 +120,8 @@ final class PersonName
                 $name = $left;
             } else {
                 $uncertain = 'text_after_comma';
-                $suggestion = $left;
+                $ignored = [];
+                $suggestion = self::finish($left, $ignored);
             }
         }
 
@@ -136,10 +166,9 @@ final class PersonName
 
         if ($institution !== [] || $roles !== []) {
             $uncertain ??= $institution !== [] ? 'institution_in_name' : 'role_in_name';
-            $last = max(array_keys($institution + $roles));
-            $rest = array_slice($words, $last + 1);
-            $ignored = [];
-            $suggestion ??= count($rest) >= 2 ? self::finish(implode(' ', $rest), $ignored) : null;
+            $flagged = array_keys($institution + $roles);
+            $suggestion ??= self::nameRun(array_slice($words, 0, min($flagged)))
+                ?? self::nameRun(array_slice($words, max($flagged) + 1));
         }
 
         $name = implode(' ', $words);
@@ -155,15 +184,51 @@ final class PersonName
             $uncertain ??= 'mixed_script';
         }
 
+        // Uncertain: the value stays exactly as it was — a partly cleaned
+        // name („Ана Петрова-Специјалист По Педијатрија“) reads worse than
+        // the original — and the proposal goes to the review item only.
+        if ($uncertain !== null) {
+            return new CleanedName($raw, [], $uncertain, $suggestion !== $raw ? $suggestion : null);
+        }
+
         $name = self::finish($name, $changes);
 
-        if ($uncertain === null && Homoglyphs::isLatinOnly($name)) {
+        // Latin script: every rule above applied with confidence (casing, a
+        // title moved out); only the script is a person's decision.
+        if (Homoglyphs::isLatinOnly($name)) {
             $uncertain = 'latin_script';
-            $ignored = [];
-            $suggestion = self::finish(self::transliterate($name), $ignored);
+            $suggestion = self::transliterate($name);
         }
 
         return new CleanedName($name, array_values(array_unique($changes)), $uncertain, $suggestion !== $name ? $suggestion : null, $title);
+    }
+
+    /**
+     * Words that can be a whole name on their own (two or more, none a
+     * function word, role, title or institution word), finished; else null.
+     *
+     * @param  list<string>  $words
+     */
+    private static function nameRun(array $words): ?string
+    {
+        $words = array_values(array_filter($words, fn (string $word): bool => trim($word, '-.,') !== ''));
+
+        if (count($words) < 2) {
+            return null;
+        }
+
+        foreach ($words as $word) {
+            $bare = self::bare($word);
+
+            if (in_array($bare, self::NOT_A_NAME, true) || in_array($bare, self::INSTITUTION_WORDS, true)
+                || self::isRole($word) || self::isTitle($word)) {
+                return null;
+            }
+        }
+
+        $ignored = [];
+
+        return self::finish(implode(' ', $words), $ignored);
     }
 
     /**
@@ -187,7 +252,8 @@ final class PersonName
             $name = $initials;
         }
 
-        $cased = implode(' ', array_map(self::casing(...), self::words($name)));
+        // A title word left inside a name keeps its form („д-р“, never „Д-Р“).
+        $cased = implode(' ', array_map(fn (string $word): string => self::isTitle($word) ? $word : self::casing($word), self::words($name)));
 
         if ($cased !== $name) {
             $changes[] = 'casing';
@@ -243,21 +309,34 @@ final class PersonName
         }, $word);
     }
 
-    private static function transliterate(string $name): string
+    /**
+     * The Cyrillic spelling of a Latin-script name, or null when a letter
+     * has no certain Macedonian counterpart (a person writes it). See
+     * LATIN_TO_CYRILLIC for the conventions.
+     */
+    private static function transliterate(string $name): ?string
     {
-        return implode(' ', array_map(
-            fn (string $word): string => (string) preg_replace_callback(
-                '/[A-Za-zČčŠšŽžĆćĐđÇçËë]+/u',
-                fn (array $match): string => MacedonianSearchVariants::latinToCyrillic(strtr(
-                    // Bosnian/Serbian „-ić“ written without the accent; „dj“ and
-                    // Turkish „y“ as Macedonian spells them.
-                    (string) preg_replace(['/ic$/u', '/IC$/u'], ['ić', 'IĆ'], $match[0]),
-                    self::LATIN_LETTERS,
-                )),
-                $word,
-            ),
-            self::words($name),
-        ));
+        $words = [];
+
+        foreach (self::words($name) as $word) {
+            // Bosnian/Serbian „-ić“ written without the accent.
+            $word = (string) preg_replace(['/ic$/u', '/IC$/u'], ['ić', 'IĆ'], $word);
+            $lower = mb_strtolower($word, 'UTF-8');
+            // Albanian and Turkish „y“: ј before a vowel („Yusuf“), else the
+            // vowel и („Ylber“, „Gjyla“).
+            $lower = (string) preg_replace('/y(?=[aeiouë])/u', 'ј', $lower);
+            $words[] = strtr($lower, self::LATIN_TO_CYRILLIC);
+        }
+
+        $cyrillic = implode(' ', $words);
+
+        if (preg_match('/[\p{Latin}]/u', $cyrillic) === 1) {
+            return null;
+        }
+
+        $ignored = [];
+
+        return self::finish($cyrillic, $ignored);
     }
 
     private static function isTitle(string $word): bool

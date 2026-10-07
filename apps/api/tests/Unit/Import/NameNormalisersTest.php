@@ -132,6 +132,75 @@ class NameNormalisersTest extends TestCase
     }
 
     /**
+     * Albanian and Serbo-Croatian names in Latin script: the proposal is all
+     * Cyrillic, or there is none.
+     *
+     * @return array<string, array{0: string, 1: string|null}>
+     */
+    public static function latinNames(): array
+    {
+        return [
+            'xh' => ['Xhevdet Rexhepi', 'Џевдет Реџепи'],
+            'dj (Serbo-Croatian đ)' => ['Marko Djordjevic', 'Марко Ѓорѓевиќ'],
+            'xh inside a word' => ['Arben Hoxha', 'Арбен Хоџа'],
+            'q and dh' => ['Qazim Dhimitri', 'Ќазим Димитри'],
+            'll and y before a consonant' => ['Yllka Llapi', 'Илка Лапи'],
+            'y before a vowel, gj' => ['Yusuf Gjyla', 'Јусуф Ѓила'],
+            'sh, th, ç' => ['Shpend Thaçi', 'Шпенд Тачи'],
+            'zh, ë, rr, nj' => ['Zhaneta Bërrnja', 'Жанета Берња'],
+            'no certain counterpart: no proposal' => ['Maxim Wolf', null],
+        ];
+    }
+
+    #[DataProvider('latinNames')]
+    public function test_latin_names_get_an_all_cyrillic_proposal_or_none(string $raw, ?string $expected): void
+    {
+        $cleaned = PersonName::clean($raw);
+
+        $this->assertSame($raw, $cleaned->value);
+        $this->assertSame('latin_script', $cleaned->uncertain);
+        $this->assertSame($expected, $cleaned->suggestion);
+
+        if ($cleaned->suggestion !== null) {
+            $this->assertDoesNotMatchRegularExpression('/\p{Latin}/u', $cleaned->suggestion);
+        }
+    }
+
+    /**
+     * An uncertain name keeps its value exactly; a role after a spaced dash
+     * and Latin academic abbreviations are understood.
+     */
+    public function test_uncertain_names_keep_their_value_and_roles_after_a_dash_separate(): void
+    {
+        $dash = PersonName::clean('Д-р Ана Петрова - специјалист по педијатрија');
+        $this->assertSame('Ана Петрова', $dash->value);
+        $this->assertNull($dash->uncertain);
+        $this->assertSame('д-р', $dash->title);
+
+        $latinTitles = PersonName::clean('Mr. sc. д-р Арбен Џафери');
+        $this->assertSame('Арбен Џафери', $latinTitles->value);
+        $this->assertSame('м-р сци. д-р', $latinTitles->title);
+        $this->assertSame('м-р сци.', DoctorTitle::clean('Mr. sc.')?->value);
+
+        // A double surname is not a role.
+        $this->assertSame('Ана Петрова-Ристова', PersonName::clean('Ана Петрова - Ристова')->value);
+
+        foreach ([
+            'ДР АНА ПЕТРОВА СТОМАТОЛОГ ПЗУ ДЕНТ' => 'Ана Петрова',
+            'Ана Петрова - Ристова, Тестово' => 'Ана Петрова-Ристова',
+            'специјалист по педијатрија д-р Ана Петрова Ристова' => 'Ана Петрова Ристова',
+            'Ана по Петрова д-р Ристова' => null,
+        ] as $raw => $suggestion) {
+            $cleaned = PersonName::clean($raw);
+            $this->assertSame($raw, $cleaned->value, $raw);
+            $this->assertNotNull($cleaned->uncertain, $raw);
+            $this->assertNull($cleaned->title, $raw);
+            $this->assertSame([], $cleaned->changes, $raw);
+            $this->assertSame($suggestion, $cleaned->suggestion, $raw);
+        }
+    }
+
+    /**
      * Cosmetic fixes never change the matching keys (Комора, ФЗОМ and
      * website matching give the same result before and after).
      */

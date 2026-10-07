@@ -233,6 +233,28 @@ class NameCleanupTest extends TestCase
     }
 
     /**
+     * An uncertain name is never partly rewritten: the profile keeps its
+     * value (and title), the proposal waits on the review item.
+     */
+    public function test_an_uncertain_name_keeps_its_value(): void
+    {
+        $doctor = $this->doctor('Д-р ПРВАНА ПРИМЕРОВСКА СТОМАТОЛОГ ПЗУ ТЕСТ');
+        $mixed = $this->doctor("Втора Примеров\u{0073}ка");
+
+        $this->artisan('import:clean-names', ['--apply' => true])->assertSuccessful();
+
+        $this->assertSame('Д-р ПРВАНА ПРИМЕРОВСКА СТОМАТОЛОГ ПЗУ ТЕСТ', $doctor->fresh()->full_name);
+        $this->assertNull($doctor->fresh()->title);
+        $this->assertSame("Втора Примеров\u{0073}ка", $mixed->fresh()->full_name);
+        $this->assertSame(0, Activity::query()->where('log_name', NameCleanup::LOG)->count());
+
+        $item = ImportReviewItem::query()->where('item_key', 'name:doctor:'.$doctor->id.':full_name')->firstOrFail();
+        $this->assertSame('institution_in_name', $item->details['problem']);
+        $this->assertSame('Првана Примеровска', $item->details['suggestion']);
+        $this->assertSame('mixed_script', ImportReviewItem::query()->where('item_key', 'name:doctor:'.$mixed->id.':full_name')->firstOrFail()->details['problem']);
+    }
+
+    /**
      * After the cleanup, the source's next run writes the same value: no
      * conflict, and a real change from the source is still taken.
      */
