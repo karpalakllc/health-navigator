@@ -127,22 +127,29 @@
                 "eq": "high"
               },
               {
-                "any": [
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
-                    ]
-                  },
-                  {
-                    "demo": "age_band",
-                    "in": [
-                      "infant_3_12m",
-                      "child_1_4",
-                      "child_5_12"
-                    ]
-                  }
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_3_12m",
+                  "child_1_4",
+                  "child_5_12"
                 ]
               }
             ]
@@ -239,22 +246,29 @@
                 "eq": "high"
               },
               {
-                "any": [
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
-                    ]
-                  },
-                  {
-                    "demo": "age_band",
-                    "in": [
-                      "infant_3_12m",
-                      "child_1_4",
-                      "child_5_12"
-                    ]
-                  }
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_3_12m",
+                  "child_1_4",
+                  "child_5_12"
                 ]
               }
             ]
@@ -392,22 +406,29 @@
                 "eq": "high"
               },
               {
-                "any": [
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
-                    ]
-                  },
-                  {
-                    "demo": "age_band",
-                    "in": [
-                      "infant_3_12m",
-                      "child_1_4",
-                      "child_5_12"
-                    ]
-                  }
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_3_12m",
+                  "child_1_4",
+                  "child_5_12"
                 ]
               }
             ]
@@ -563,22 +584,29 @@
                 "eq": "high"
               },
               {
-                "any": [
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
-                    ]
-                  },
-                  {
-                    "demo": "age_band",
-                    "in": [
-                      "infant_3_12m",
-                      "child_1_4",
-                      "child_5_12"
-                    ]
-                  }
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_3_12m",
+                  "child_1_4",
+                  "child_5_12"
                 ]
               }
             ]
@@ -720,22 +748,29 @@
                 "eq": "high"
               },
               {
-                "any": [
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
-                    ]
-                  },
-                  {
-                    "demo": "age_band",
-                    "in": [
-                      "infant_3_12m",
-                      "child_1_4",
-                      "child_5_12"
-                    ]
-                  }
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_3_12m",
+                  "child_1_4",
+                  "child_5_12"
                 ]
               }
             ]
@@ -944,7 +979,7 @@
       "title": "Побарајте помош денес",
       "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
       "reasons": [
-        "Кај деца и во бременост високиот шеќер треба да се процени истиот ден."
+        "Кај деца високиот шеќер треба да се процени истиот ден."
       ],
       "do_now": [
         "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
@@ -961,6 +996,38 @@
           "urgentna-medicina",
           "interna-medicina",
           "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_4_preg": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес",
+      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
+      "reasons": [
+        "Во бременост високиот шеќер треба да се процени истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
+        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina"
         ],
         "facility_types": [
           "clinic",
@@ -1068,7 +1135,7 @@
       ],
       "do_now": [
         "Изедете нешто со бавен шеќер (сендвич, оброк).",
-        "Размислете што го предизвикало (оброк, физичка активност, алкохол, лекови)."
+        "Размислете што го предизвикало (оброк, физичка активност, лекови)."
       ],
       "watch_for": [
         "Ако шеќерот повторно падне и не се крева, веднаш повикајте 194 или 112.",
