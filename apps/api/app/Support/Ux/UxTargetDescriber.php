@@ -5,7 +5,8 @@ namespace App\Support\Ux;
 /**
  * Turns a structural target key (`doctor-card/heading`) into words for the
  * admin „UX анализа“ page. Keys never carry page text, so this is the only
- * place that says what they mean. Keep in step with apps/web/src/lib/ux/target.ts.
+ * place that says what they mean. Every context and element in UxSchema has
+ * words here (UxTargetDescriberTest).
  */
 final class UxTargetDescriber
 {
@@ -15,13 +16,11 @@ final class UxTargetDescriber
         'doctor-card' => 'Картичка на лекар',
         'facility-card' => 'Картичка на установа',
         'pharmacy-card' => 'Картичка на аптека',
-        'product-card' => 'Картичка на производ',
         'forum-topic' => 'Тема во листа на форумот',
         'site-nav' => 'Главна навигација (заглавје)',
         'tab-bar' => 'Долна лента со јазичиња (мобилен)',
         'breadcrumbs' => 'Патека до страницата',
         'pagination' => 'Страничење',
-        'filters' => 'Филтри',
         'home-how-it-works' => 'Почетна: „Како функционира“',
         'home-forum-band' => 'Почетна: форум и транспарентност',
         // Landmarks, when no component is named.
@@ -58,6 +57,11 @@ final class UxTargetDescriber
 
     /** Elements that do nothing when clicked, as the tracker classifies them. */
     private const NON_INTERACTIVE = ['heading', 'img', 'icon', 'text', 'table', 'media', 'area', 'disabled'];
+
+    public static function knows(string $context): bool
+    {
+        return isset(self::CONTEXTS[$context]);
+    }
 
     public static function describe(string $key): string
     {
