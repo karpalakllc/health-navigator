@@ -54,6 +54,16 @@ class UxAnalysisPageTest extends TestCase
             ->assertSee('1 посети на /');
     }
 
+    public function test_it_states_the_configured_retention(): void
+    {
+        config(['ux.retention_days' => 90]);
+
+        Livewire::actingAs($this->staff())
+            ->test(UxAnalysis::class)
+            ->assertSee('Се чуваат 90 дена.')
+            ->assertDontSee('Се чуваат 180 дена.');
+    }
+
     public function test_it_is_hidden_from_staff_without_analytics(): void
     {
         $this->actingAs($this->staff(analytics: false))
