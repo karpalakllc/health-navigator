@@ -60,6 +60,7 @@ describe("POST /api/corrections", () => {
         field: "office_hours",
         message: "Во петок работи до 14 часот.",
         contact: "pacient@example.test",
+        altcha: "c29sdmVk",
         website: "",
         user_id: 7,
       }),
@@ -76,6 +77,7 @@ describe("POST /api/corrections", () => {
       field: "office_hours",
       message: "Во петок работи до 14 часот.",
       contact: "pacient@example.test",
+      altcha: "c29sdmVk",
       website: "",
     });
   });

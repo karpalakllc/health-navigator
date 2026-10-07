@@ -65,6 +65,7 @@ is still where the native review happens. Its email rows and row D28 were update
 | W9 | `errors.retry` | Обиди повторно | Обиди се повторно | Grammar: „обидува се“ is reflexive; „Обиди повторно“ is missing „се“. |
 | W10 | `search.retry` | Обиди повторно | Обиди се повторно | Same as errors.retry. |
 | W11 | `ui.verified` | Верификуван | Проверен | Native word; matches „Проверени профили“ in about.valueTrust. |
+| W11b | `ui.verified` → `ui.staffTag` (2026-10-07) | Проверен | Тим | The tag is the forum's staff marker (the role is passed in); „Проверен“ / „Верификуван“ belong to profile badges only. „Проверени профили“ in about.valueTrust became „Верификувани профили каде што е можно“ (not every profile is checked). |
 | W12 | `ui.emailRequired` | Внесете ја вашата е-пошта. | Внесете ја вашата е-адреса. | Terminology: the address is „е-адреса“ (as in the API messages and emails); „е-пошта“ is the medium. |
 | W13 | `ui.emailInvalid` | Внесете валидна е-пошта, на пример ime@primer.mk. | Внесете валидна е-адреса, на пример ime@primer.mk. | Terminology, as above. |
 | W14 | `common.email` | Е-пошта | Е-адреса | Terminology, as above (field and contact-row label). |
@@ -174,6 +175,7 @@ I checked that each one fails against the code before the fix.
 | emergency | **итна помош**, **итен случај**, **итност** | | Always give **194 или 112**. |
 | link | **линк** | врска | Kept as is; see questions. |
 | search | **пребарај / пребарување** | | Tab bar uses „Барај“ (short). |
+| verified / unverified (profile badge) | **верификуван / неверификуван** (doctors); **верификувана / неверификувана** (facilities and pharmacies, without a noun); plural **верификувани**; verb **верификува**; noun **верификација** | верифициран, проверен | Owner's decision 2026-10-07: the -ува form everywhere (UI, admin labels, docs). Both forms occur in Macedonian; please confirm with a native speaker. Staff accounts in the forum carry „Тим“ or their role, never „Верификуван“. |
 
 **Address: lowercase „вие / ваш / ви“** in running text, capitalised only at the start of a
 sentence. This is how the whole UI was already written, and it is common in Macedonian

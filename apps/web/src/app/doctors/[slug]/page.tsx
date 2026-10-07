@@ -11,6 +11,7 @@ import {
 } from "@/components/directory/profile-contact";
 import { LicenceStatusTag } from "@/components/directory/licence-status";
 import { ProfileHeader } from "@/components/directory/profile-header";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
   HoursTable,
@@ -35,6 +36,7 @@ import { pageMetadata, profileMeta } from "@/lib/metadata";
 import { officeHoursRows } from "@/lib/office-hours";
 import { absoluteUrl } from "@/lib/site-url";
 import { ApiRequestError } from "@/lib/api/server";
+import { ProfileReportButton } from "@/components/reports/profile-report-button";
 import { t, tFormat } from "@/i18n/t";
 
 type DoctorDetailPageProps = {
@@ -197,6 +199,15 @@ export default async function DoctorDetailPage({
               avatarUrl={doctor.avatar_url}
               name={doctor.full_name}
               subtitle={specialtyLine || undefined}
+              verification={
+                <VerificationBadge
+                  verification={doctor.verification}
+                  kind="doctor"
+                />
+              }
+              reportAction={
+                <ProfileReportButton subject="doctor" slug={slug} compact />
+              }
               summary={doctor.review_summary}
               tags={
                 <>

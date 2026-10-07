@@ -37,6 +37,10 @@ class PharmacyController extends Controller
             $query->searchName($validated['q']);
         }
 
+        if (! empty($validated['verified'])) {
+            $query->verified();
+        }
+
         $perPage = $validated['per_page'] ?? 15;
 
         $paginator = $query->paginate($perPage)->withQueryString();

@@ -157,6 +157,7 @@ describe("POST /api/doctor-dashboard/claim", () => {
         slug: "ana-petrovska",
         message: "Јас сум.",
         contact: "070 123 456",
+        altcha: "c29sdmVk",
       }),
     );
 
@@ -167,6 +168,7 @@ describe("POST /api/doctor-dashboard/claim", () => {
     expect(JSON.parse(String(init.body))).toEqual({
       message: "Јас сум.",
       contact: "070 123 456",
+      altcha: "c29sdmVk",
     });
   });
 

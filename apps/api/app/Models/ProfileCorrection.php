@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Enums\FacilityType;
 use App\Enums\ProfileCorrectionField;
 use App\Enums\ProfileCorrectionStatus;
 use App\Enums\ProfileCorrectionType;
+use App\Enums\ProfileReportReason;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -19,12 +22,19 @@ use Illuminate\Support\Facades\DB;
  * Staff fix the profile in its own edit page and close the request here with
  * a note; nothing on the profile changes by itself.
  *
+ * A profile report („Пријави профил“, type report, W7-C) is a third kind:
+ * a reason code and an optional note. Reports about one profile are decided
+ * together, and a profile with several independent open reports is sorted to
+ * the top of the queue (scopePrioritised); nothing is hidden automatically.
+ *
  * Closed requests are deleted zdravje.corrections.retention_days after they
- * were closed (model:prune, daily). Open ones are never pruned.
+ * were closed, closed reports zdravje.profile_reports.retention_days
+ * (model:prune, daily). Open ones are never pruned.
  *
  * @property ProfileCorrectionType $type
  * @property ProfileCorrectionStatus $status
  * @property ProfileCorrectionField|null $field
+ * @property ProfileReportReason|null $report_reason
  * @property Carbon $due_at
  * @property Carbon|null $resolved_at
  */
@@ -54,9 +64,11 @@ class ProfileCorrection extends Model
         'subject_type',
         'subject_id',
         'field',
+        'report_reason',
         'message',
         'contact',
         'user_id',
+        'reporter_hash',
         'status',
         'due_at',
         'resolved_by_id',
@@ -75,6 +87,7 @@ class ProfileCorrection extends Model
             'type' => ProfileCorrectionType::class,
             'status' => ProfileCorrectionStatus::class,
             'field' => ProfileCorrectionField::class,
+            'report_reason' => ProfileReportReason::class,
             'due_at' => 'datetime',
             'resolved_at' => 'datetime',
             'staff_alerted_at' => 'datetime',
@@ -125,6 +138,89 @@ class ProfileCorrection extends Model
         return $query->open()->where('due_at', '<', now());
     }
 
+    /**
+     * Adds `open_report_count`: independent open profile reports about the
+     * same profile (each account once, each guest address once — the hash is
+     * per profile — and a report from neither on its own).
+     *
+     * @param  Builder<ProfileCorrection>  $query
+     * @return Builder<ProfileCorrection>
+     */
+    public function scopeWithOpenReportCount(Builder $query): Builder
+    {
+        if ($query->getQuery()->columns === null) {
+            $query->select($this->qualifyColumn('*'));
+        }
+
+        return $query->selectSub(self::openReportCountQuery($this->getTable()), 'open_report_count');
+    }
+
+    /**
+     * Profiles with zdravje.profile_reports.priority_threshold or more
+     * independent open reports first, the most reported first; everything
+     * else keeps whatever order follows.
+     *
+     * @param  Builder<ProfileCorrection>  $query
+     * @return Builder<ProfileCorrection>
+     */
+    public function scopePrioritised(Builder $query): Builder
+    {
+        $count = self::openReportCountQuery($this->getTable());
+        $sql = $count->toSql();
+        $threshold = (int) config('zdravje.profile_reports.priority_threshold', 3);
+
+        return $query->orderByRaw(
+            "(case when ({$sql}) >= ? then ({$sql}) else 0 end) desc",
+            [...$count->getBindings(), $threshold, ...$count->getBindings()],
+        );
+    }
+
+    /**
+     * Only requests about a profile at or over the priority threshold.
+     *
+     * @param  Builder<ProfileCorrection>  $query
+     * @return Builder<ProfileCorrection>
+     */
+    public function scopeOnPriorityProfiles(Builder $query): Builder
+    {
+        $count = self::openReportCountQuery($this->getTable());
+
+        return $query->whereRaw(
+            "({$count->toSql()}) >= ?",
+            [...$count->getBindings(), (int) config('zdravje.profile_reports.priority_threshold', 3)],
+        );
+    }
+
+    /**
+     * Correlated count of independent open reports on the outer row's profile.
+     */
+    private static function openReportCountQuery(string $outer): QueryBuilder
+    {
+        return DB::table($outer.' as reports')
+            ->selectRaw("count(distinct coalesce('u' || reports.user_id, 'g' || reports.reporter_hash, 'r' || reports.id))")
+            ->whereColumn('reports.subject_type', $outer.'.subject_type')
+            ->whereColumn('reports.subject_id', $outer.'.subject_id')
+            ->where('reports.type', ProfileCorrectionType::Report->value)
+            ->where('reports.status', ProfileCorrectionStatus::Open->value);
+    }
+
+    /** Independent open reports on this row's profile (see scopeWithOpenReportCount). */
+    public function openReportCount(): int
+    {
+        $loaded = $this->getAttribute('open_report_count');
+
+        if ($loaded !== null) {
+            return (int) $loaded;
+        }
+
+        return (int) self::query()->withOpenReportCount()->whereKey($this->getKey())->value('open_report_count');
+    }
+
+    public function isPriority(): bool
+    {
+        return $this->openReportCount() >= (int) config('zdravje.profile_reports.priority_threshold', 3);
+    }
+
     public function isOpen(): bool
     {
         return $this->status === ProfileCorrectionStatus::Open;
@@ -147,9 +243,15 @@ class ProfileCorrection extends Model
         };
     }
 
-    /** „doctor“ or „facility“, for the panel. */
+    /** „doctor“, „facility“ or „pharmacy“, for the panel. */
     public function subjectKind(): string
     {
+        $subject = $this->subject;
+
+        if ($subject instanceof Facility && $subject->type === FacilityType::Pharmacy) {
+            return 'pharmacy';
+        }
+
         return array_search($this->subject_type, self::SUBJECT_TYPES, true) ?: 'profile';
     }
 
@@ -168,14 +270,29 @@ class ProfileCorrection extends Model
         }
 
         $closed = DB::transaction(function () use ($outcome, $staff, $note): int {
-            $closed = self::query()
-                ->whereKey($this->getKey())
+            // A decision on a profile report decides every open report on
+            // that profile: they are about the same thing, and the queue
+            // should not hold ten copies of a question already answered.
+            $rows = $this->type === ProfileCorrectionType::Report
+                ? self::query()
+                    ->where('subject_type', $this->subject_type)
+                    ->where('subject_id', $this->subject_id)
+                    ->where('type', ProfileCorrectionType::Report->value)
+                : self::query()->whereKey($this->getKey());
+
+            if ($this->type === ProfileCorrectionType::Report && ! self::query()->whereKey($this->getKey())->open()->exists()) {
+                return 0;
+            }
+
+            $closed = $rows
                 ->open()
                 ->update([
                     'status' => $outcome->value,
                     'resolved_by_id' => $staff->getKey(),
                     'resolved_at' => now(),
                     'resolution_note' => $note,
+                    // The guest-address hash only told open reports apart.
+                    'reporter_hash' => null,
                     'updated_at' => now(),
                 ]);
 
@@ -204,6 +321,7 @@ class ProfileCorrection extends Model
                 'type' => $this->type->value,
                 'subject_type' => $this->subject_type,
                 'subject_id' => $this->subject_id,
+                'requests_closed' => $closed,
             ])
             ->log('profile_correction_closed');
 
@@ -241,10 +359,17 @@ class ProfileCorrection extends Model
     public function prunable(): Builder
     {
         $days = max(30, (int) config('zdravje.corrections.retention_days', 365));
+        $reportDays = max(30, (int) config('zdravje.profile_reports.retention_days', 90));
 
         return self::query()
             ->where('status', '!=', ProfileCorrectionStatus::Open->value)
             ->whereNotNull('resolved_at')
-            ->where('resolved_at', '<', now()->subDays($days));
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $query) => $query
+                    ->where('type', ProfileCorrectionType::Report->value)
+                    ->where('resolved_at', '<', now()->subDays($reportDays)))
+                ->orWhere(fn (Builder $query) => $query
+                    ->where('type', '!=', ProfileCorrectionType::Report->value)
+                    ->where('resolved_at', '<', now()->subDays($days))));
     }
 }

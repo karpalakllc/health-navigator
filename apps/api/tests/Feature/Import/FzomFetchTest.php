@@ -73,7 +73,7 @@ class FzomFetchTest extends TestCase
 
         $this->artisan('import:fzom')->assertSuccessful();
 
-        $last = ImportRun::query()->latest('id')->firstOrFail();
+        $last = ImportRun::query()->where('source', 'fzom')->latest('id')->firstOrFail();
         $this->assertSame(ImportRunStatus::NotModified, $last->status);
         Http::assertSent(fn (Request $request): bool => ($request->header('If-None-Match')[0] ?? null) === '"pzz-v1"'
             && ($request->header('If-Modified-Since')[0] ?? null) === 'Tue, 06 Oct 2026 15:00:00 GMT');
@@ -152,7 +152,7 @@ class FzomFetchTest extends TestCase
         $this->assertStringContainsString('ПРИМЕРОВСКА', $stored);
 
         // The run keeps the original's fingerprint, not the minimised copy's.
-        $run = ImportRun::query()->latest('id')->firstOrFail();
+        $run = ImportRun::query()->where('source', 'fzom')->latest('id')->firstOrFail();
         $original = (string) file_get_contents(base_path('tests/Fixtures/import/fzom/pzz.xml'));
         $this->assertSame(hash('sha256', $original), $run->source_meta['files']['pzz']['sha256']);
         $this->assertSame(strlen($original), $run->source_meta['files']['pzz']['bytes']);

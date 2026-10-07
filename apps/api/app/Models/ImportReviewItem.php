@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ImportReviewKind $kind
  * @property ImportReviewStatus $status
  * @property array<string, mixed>|null $details
+ * @property int $priority
  */
 class ImportReviewItem extends Model
 {
@@ -36,10 +37,12 @@ class ImportReviewItem extends Model
         'resolved_by_id',
         'resolved_at',
         'resolution',
+        'priority',
     ];
 
     protected $attributes = [
         'status' => 'open',
+        'priority' => 0,
     ];
 
     protected function casts(): array
@@ -49,11 +52,13 @@ class ImportReviewItem extends Model
             'status' => ImportReviewStatus::class,
             'details' => 'array',
             'resolved_at' => 'datetime',
+            'priority' => 'integer',
         ];
     }
 
     /**
      * @param  array<string, mixed>  $details
+     * @param  int|null  $priority  higher first in the queue (null keeps the item's current one)
      */
     public static function raise(
         string $source,
@@ -63,6 +68,7 @@ class ImportReviewItem extends Model
         array $details = [],
         ?Model $subject = null,
         ?int $runId = null,
+        ?int $priority = null,
     ): self {
         $itemKey = self::key($itemKey);
         $same = fn () => static::query()->where('source', $source)->where('kind', $kind)->where('item_key', $itemKey);
@@ -90,6 +96,7 @@ class ImportReviewItem extends Model
             'subject_type' => $subject !== null ? self::subjectTypeOf($subject) : $item->subject_type,
             'subject_id' => $subject?->getKey() ?? $item->subject_id,
             'import_run_id' => $runId ?? $item->import_run_id,
+            'priority' => $priority ?? $item->priority ?? 0,
         ])->save();
 
         return $item;

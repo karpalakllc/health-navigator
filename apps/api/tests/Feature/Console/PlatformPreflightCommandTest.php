@@ -67,6 +67,11 @@ class PlatformPreflightCommandTest extends TestCase
             // The pg_trgm check is the only one that queries the database;
             // keep it out of the config-only cases (see the pg_trgm tests).
             'database.default' => 'sqlite',
+            // phpunit.xml turns ALTCHA off for the rest of the suite.
+            'zdravje.altcha.enabled' => true,
+            'zdravje.altcha.hmac_key' => null,
+            'import.verification.auto_publish' => false,
+            'import.verification.auto_publish_fzom_unverified' => false,
         ]);
     }
 
@@ -144,6 +149,8 @@ class PlatformPreflightCommandTest extends TestCase
             'meilisearch without key' => [['scout.meilisearch.key' => null], 'scout.meilisearch.key'],
             'meilisearch on localhost' => [['scout.meilisearch.host' => 'http://localhost:7700'], 'scout.meilisearch.host'],
             'local mfa exemption set' => [['zdravje.mfa.local_exempt_emails' => ['owner@zdravje360.mk']], 'zdravje.mfa.local_exempt_emails'],
+            'altcha off' => [['zdravje.altcha.enabled' => false], 'zdravje.altcha.enabled'],
+            'altcha hmac key too short' => [['zdravje.altcha.hmac_key' => str_repeat('a', 31)], 'zdravje.altcha.hmac_key'],
         ];
     }
 
@@ -162,6 +169,13 @@ class PlatformPreflightCommandTest extends TestCase
     public function test_a_strong_admin_password_is_accepted(): void
     {
         config(['zdravje.admin.password' => 'kettle7-orbit-lantern-quiet']);
+
+        $this->assertSame([], $this->preflight()['errors']);
+    }
+
+    public function test_a_long_altcha_hmac_key_is_accepted(): void
+    {
+        config(['zdravje.altcha.hmac_key' => str_repeat('a', 32)]);
 
         $this->assertSame([], $this->preflight()['errors']);
     }
@@ -221,6 +235,8 @@ class PlatformPreflightCommandTest extends TestCase
                 'logging.channels.inner' => ['driver' => 'stack', 'channels' => ['daily']],
                 'logging.channels.daily.level' => 'DEBUG',
             ], 'logging.level'],
+            'auto-publish verified drafts' => [['import.verification.auto_publish' => true], 'import.verification.auto_publish'],
+            'auto-publish unverified ФЗОМ drafts' => [['import.verification.auto_publish_fzom_unverified' => true], 'import.verification.auto_publish'],
         ];
     }
 

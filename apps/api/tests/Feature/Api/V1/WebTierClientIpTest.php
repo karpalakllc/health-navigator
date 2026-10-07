@@ -157,6 +157,8 @@ class WebTierClientIpTest extends TestCase
     public function test_a_direct_caller_cannot_pick_its_own_bucket_with_the_header(): void
     {
         // Rotating X-Client-IP without the secret must not mint fresh buckets.
+        // One window: on a slow machine the loop must not outlive the minute.
+        $this->freezeTime();
         $statuses = [];
         foreach (range(1, 45) as $i) {
             $statuses[] = $this->login("probe{$i}@example.com", ['X-Client-IP' => "203.0.113.{$i}"])->status();

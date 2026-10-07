@@ -186,6 +186,8 @@ describe("RegisterForm", () => {
       password: "lozinka12345",
       password_confirmation: "lozinka12345",
       accept_terms: true,
+      // The solved ALTCHA challenge (test/altcha.ts) goes along.
+      altcha: "test-altcha-1",
     });
   });
 

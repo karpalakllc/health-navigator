@@ -198,7 +198,7 @@ describe("StarRating, Monogram, tags, SectionHeader", () => {
     expect(screen.getByText(t("ui.featured")).parentElement).toHaveClass(
       "text-ink-2",
     );
-    expect(screen.getByText(t("ui.verified")).parentElement).toHaveClass(
+    expect(screen.getByText(t("ui.staffTag")).parentElement).toHaveClass(
       "text-care",
     );
   });

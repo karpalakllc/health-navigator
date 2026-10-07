@@ -15,6 +15,9 @@
 @if ($overdueRequests > 0)
 Со поминат рок: **{{ $overdueRequests }}**.
 @endif
+@if ($priorityProfiles > 0)
+Профили со повеќе пријави од различни лица (се прикажуваат први): **{{ $priorityProfiles }}**.
+@endif
 
 <x-mail::button :url="$queueUrl">
 Отвори ги барањата

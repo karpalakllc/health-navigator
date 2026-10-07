@@ -10,7 +10,9 @@ use App\Models\FacilityMedia;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
+use App\Models\SourceRecord;
 use App\Models\User;
+use App\Support\Import\Website\SourceNotes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -101,7 +103,7 @@ class InstitutionsJsonImportTest extends TestCase
     {
         $this->artisan('import:institutions-json', array_filter(['path' => $path, '--dry-run' => $dryRun]))->assertSuccessful();
 
-        return ImportRun::query()->latest('id')->firstOrFail();
+        return ImportRun::query()->where('source', 'website')->latest('id')->firstOrFail();
     }
 
     public function test_published_website_images_reach_the_public_profile_as_logo_and_cover(): void
@@ -178,6 +180,25 @@ class InstitutionsJsonImportTest extends TestCase
 
         $this->assertSame($counts, [Facility::query()->count(), Doctor::query()->count(), FacilityMedia::query()->count(), count(Storage::disk('public')->allFiles()), ImportReviewItem::query()->count()]);
         $this->assertSame(1, $second->count('facilities_unchanged'));
+    }
+
+    public function test_each_run_records_which_staff_page_entries_it_saw(): void
+    {
+        $this->travelTo(now()->startOfMinute());
+        $first = now()->toImmutable();
+        $this->runImport($this->dataset());
+
+        $this->travelTo($first->addDays(2));
+        $workers = [
+            ['full_name' => 'Забко Измислен', 'title' => 'д-р', 'role' => 'dentist', 'source_url' => 'https://www.bolnica.invalid/tim'],
+        ];
+        $this->runImport($this->dataset(['workers' => $workers]));
+
+        $seen = fn (string $like): string => (string) SourceRecord::query()->where('source', 'website')->where('external_key', 'like', $like)->value('last_seen_at');
+        // The institution and the unchanged dentist were seen by the second run; the cardiologist was not.
+        $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('institution:%'));
+        $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('worker:%:ЗАБКО ИЗМИСЛЕН'));
+        $this->assertSame($first->toDateTimeString(), $seen('worker:%:ИЗМИСЛЕНА КАРДИОЛОВСКА'));
     }
 
     public function test_it_matches_an_existing_register_facility_and_only_fills_gaps(): void
@@ -279,5 +300,28 @@ class InstitutionsJsonImportTest extends TestCase
         } finally {
             File::deleteDirectory($sibling);
         }
+    }
+
+    public function test_warnings_about_the_site_are_kept_as_flags_and_the_verification_engine_runs_after_an_apply(): void
+    {
+        $this->runImport($this->dataset(['notes' => 'Logo is white on transparent. Site carries unrelated casino spam posts (likely compromised WordPress); last news 2019.']), dryRun: true);
+        $this->assertSame(0, ImportRun::query()->where('source', 'verification')->count(), 'A dry run starts nothing.');
+
+        $this->runImport($this->dataset(['notes' => 'Logo is white on transparent. Site carries unrelated casino spam posts (likely compromised WordPress); last news 2019.']));
+
+        $payload = SourceRecord::query()->where('source', 'website')->where('subject_type', 'facility')->sole()->payload;
+        $this->assertSame(['compromised', 'stale'], $payload['source_flags']);
+        $this->assertStringContainsString('casino spam', (string) $payload['source_flag_note']);
+        $this->assertArrayNotHasKey('notes', $payload, 'Only the flags and the sentence behind them are kept.');
+        $this->assertSame(1, ImportRun::query()->where('source', 'verification')->where('dry_run', false)->count());
+    }
+
+    public function test_source_notes_flag_only_warnings_about_the_site(): void
+    {
+        $this->assertSame([], SourceNotes::flags('Site updated weekly; staff page lists heads of units only.'));
+        $this->assertSame([], SourceNotes::flags(null));
+        $this->assertSame(['stale'], SourceNotes::flags('ВНИМАНИЕ: сајтот изгледа застарен.'));
+        $this->assertSame(['compromised'], SourceNotes::flags('WARNING: site appears compromised — injected gambling links.'));
+        $this->assertSame(['stale'], SourceNotes::flags('The content looks dated (latest news 2019).'));
     }
 }

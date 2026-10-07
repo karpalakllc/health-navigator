@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Doctors\Tables;
 
 use App\Filament\Support\DirectoryTableColumns;
+use App\Filament\Support\VerificationActions;
 use App\Filament\Tables\Filters\PublicationStatusFilter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -30,11 +31,13 @@ class DoctorsTable
                 DirectoryTableColumns::sponsoredIcon(),
                 DirectoryTableColumns::acceptsPatientsIcon(),
                 DirectoryTableColumns::publicationBadge(),
+                VerificationActions::statusColumn(),
                 DirectoryTableColumns::updatedAt(),
             ])
             ->defaultSort('full_name')
             ->filters([
                 PublicationStatusFilter::make(),
+                VerificationActions::filter(),
                 TrashedFilter::make(),
             ])
             ->recordActions([

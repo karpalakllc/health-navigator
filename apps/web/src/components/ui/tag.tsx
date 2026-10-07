@@ -42,7 +42,7 @@ export function FeaturedTag({ className }: { className?: string }) {
   );
 }
 
-/** Care-green „Верификуван“ (or a custom label, e.g. „Здравствен работник“). */
+/** Care-green staff tag: „Тим“, or the role passed in (e.g. „Модератор“). */
 export function VerifiedTag({
   children,
   className,
@@ -52,7 +52,7 @@ export function VerifiedTag({
 }) {
   return (
     <Tag tone="care" icon="shield-check" className={className}>
-      {children ?? t("ui.verified")}
+      {children ?? t("ui.staffTag")}
     </Tag>
   );
 }

@@ -38,6 +38,8 @@ class ListDoctorsRequest extends FormRequest
             'featured' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'string', 'in:name,rating'],
             'min_reviews' => ['nullable', 'integer', 'min:0', 'max:100'],
+            // „Само верификувани“.
+            'verified' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

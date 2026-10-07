@@ -33,6 +33,15 @@ const MODERATION: MessageKey[] = [
   "integrity.moderation5",
 ];
 
+const VERIFIED_WHEN: MessageKey[] = [
+  "verification.howDoctor",
+  "verification.howDentist",
+  "verification.howDoctorWebsite",
+  "verification.howFacility",
+  "verification.howPharmacy",
+  "verification.howTeam",
+];
+
 const PAYMENT: MessageKey[] = [
   "integrity.payment1",
   "integrity.payment2",
@@ -168,6 +177,8 @@ export function TransparencyContent({
       </div>
 
       <DataSources />
+
+      <VerificationSection />
 
       <p className="type-body text-ink-2">
         <Link href="/terms#moderacija" className="link-underline text-ink">
@@ -480,6 +491,47 @@ function DataSources() {
             >
               {t("dataSources.privacyLink")}
             </Link>
+          </p>
+        </div>
+      </div>
+    </TextCard>
+  );
+}
+
+/**
+ * „Верификувани профили“ (W7-B): what the „Верификуван“ / „Неверификуван“
+ * badges on profiles mean. Every badge's „Повеќе“ links here
+ * (VERIFICATION_MORE_HREF). Must match VerificationBasis on the API.
+ */
+function VerificationSection() {
+  return (
+    <TextCard id="verifikacija" title={t("verification.sectionTitle")}>
+      <p className="measure type-reading text-ink">
+        {t("verification.sectionLead")}
+      </p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h3 className="flex flex-wrap items-center gap-3 type-h3 text-ink">
+            {t("verification.howTitle")}
+            <Tag tone="care" icon="shield-check">
+              {t("verification.verified")}
+            </Tag>
+          </h3>
+          <CheckList items={VERIFIED_WHEN} />
+        </div>
+        <div className="flex flex-col gap-3">
+          <h3 className="flex flex-wrap items-center gap-3 type-h3 text-ink">
+            {t("verification.unverifiedTitle")}
+            <Tag>{t("verification.unverified")}</Tag>
+          </h3>
+          <p className="type-body text-ink">
+            {t("verification.unverifiedBody")}
+          </p>
+          <h3 className="mt-2 type-h3 text-ink">
+            {t("verification.keptCurrentTitle")}
+          </h3>
+          <p className="type-body text-ink">
+            {t("verification.keptCurrentBody")}
           </p>
         </div>
       </div>

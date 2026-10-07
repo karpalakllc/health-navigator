@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProfileCorrections;
 use App\Enums\ProfileCorrectionField;
 use App\Enums\ProfileCorrectionStatus;
 use App\Enums\ProfileCorrectionType;
+use App\Enums\ProfileReportReason;
 use App\Filament\Resources\Doctors\DoctorResource;
 use App\Filament\Resources\Facilities\FacilityResource;
 use App\Filament\Resources\ProfileCorrections\Pages\ListProfileCorrections;
@@ -24,6 +25,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +38,11 @@ use Illuminate\Database\Eloquent\Model;
  * Nothing is emailed to the requester automatically: reply to the contact
  * they left (an objection refused needs the reasons and the right to
  * complain to АЗЛП or go to court).
+ *
+ * Profile reports („Пријави профил“, W7-C) share the queue. A profile with
+ * several independent open reports is sorted to the top with a red count;
+ * one decision closes every open report on that profile. Nothing is hidden
+ * automatically: unpublish or fix the profile on its edit page.
  */
 class ProfileCorrectionResource extends Resource
 {
@@ -67,7 +74,10 @@ class ProfileCorrectionResource extends Resource
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return ProfileCorrection::query()->overdue()->exists() ? 'danger' : 'warning';
+        return ProfileCorrection::query()->overdue()->exists()
+            || ProfileCorrection::query()->open()->onPriorityProfiles()->exists()
+            ? 'danger'
+            : 'warning';
     }
 
     public static function infolist(Schema $schema): Schema
@@ -92,14 +102,29 @@ class ProfileCorrectionResource extends Resource
             TextEntry::make('field')
                 ->label('Part of the profile')
                 ->formatStateUsing(fn (?ProfileCorrectionField $state): string => $state?->label() ?? '—')
-                ->placeholder('—'),
+                ->placeholder('—')
+                ->hidden(fn (ProfileCorrection $record): bool => $record->type === ProfileCorrectionType::Report),
+            TextEntry::make('report_reason')
+                ->label('Reason')
+                ->formatStateUsing(fn (?ProfileReportReason $state): string => $state?->label() ?? '—')
+                ->visible(fn (ProfileCorrection $record): bool => $record->type === ProfileCorrectionType::Report),
+            TextEntry::make('open_reports')
+                ->label('Open reports on this profile')
+                ->state(fn (ProfileCorrection $record): int => $record->openReportCount())
+                ->badge()
+                ->color(fn (ProfileCorrection $record): string => $record->isPriority() ? 'danger' : 'gray')
+                ->helperText('Independent reporters: each account and each guest address once.')
+                ->visible(fn (ProfileCorrection $record): bool => $record->type === ProfileCorrectionType::Report),
             TextEntry::make('due_at')
                 ->label('Answer due')
                 ->date()
                 ->color(fn (ProfileCorrection $record): ?string => $record->isOverdue() ? 'danger' : null),
             TextEntry::make('message')
+                ->label(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Report ? 'Note (optional)' : 'Message')
+                ->placeholder('—')
                 ->columnSpanFull(),
             TextEntry::make('contact')
+                ->hidden(fn (ProfileCorrection $record): bool => $record->type === ProfileCorrectionType::Report)
                 ->label(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Objection
                     ? 'Contact for verification'
                     : 'Contact e-mail (optional)')
@@ -131,13 +156,29 @@ class ProfileCorrectionResource extends Resource
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (ProfileCorrectionType $state): string => $state->label())
-                    ->color(fn (ProfileCorrectionType $state): string => $state === ProfileCorrectionType::Objection ? 'danger' : 'info'),
+                    ->color(fn (ProfileCorrectionType $state): string => match ($state) {
+                        ProfileCorrectionType::Objection => 'danger',
+                        ProfileCorrectionType::Report => 'warning',
+                        ProfileCorrectionType::Correction => 'info',
+                    }),
                 TextColumn::make('subject_name')
                     ->label('Profile')
-                    ->state(fn (ProfileCorrection $record): string => $record->subjectName()),
+                    ->state(fn (ProfileCorrection $record): string => $record->subjectName())
+                    ->description(fn (ProfileCorrection $record): string => ucfirst($record->subjectKind())),
                 TextColumn::make('field')
-                    ->label('Part')
-                    ->formatStateUsing(fn (?ProfileCorrectionField $state): string => $state?->label() ?? '—')
+                    ->label('Part / reason')
+                    ->state(fn (ProfileCorrection $record): ?string => $record->type === ProfileCorrectionType::Report
+                        ? $record->report_reason?->label()
+                        : $record->field?->label())
+                    ->placeholder('—'),
+                TextColumn::make('open_report_count')
+                    ->label('Reports')
+                    ->badge()
+                    ->state(fn (ProfileCorrection $record): ?int => $record->type === ProfileCorrectionType::Report && $record->isOpen()
+                        ? $record->openReportCount()
+                        : null)
+                    ->color(fn (ProfileCorrection $record): string => $record->isPriority() ? 'danger' : 'gray')
+                    ->tooltip('Independent open reports on this profile')
                     ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge()
@@ -155,7 +196,9 @@ class ProfileCorrectionResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('due_at', 'asc')
-            ->modifyQueryUsing(fn ($query) => $query->with(['subject', 'user']))
+            // Profiles with several independent open reports first; then the
+            // chosen sort (answer due date by default).
+            ->modifyQueryUsing(fn ($query) => $query->with(['subject', 'user'])->withOpenReportCount()->prioritised())
             ->filters([
                 SelectFilter::make('status')
                     ->options(collect(ProfileCorrectionStatus::cases())->mapWithKeys(
@@ -166,6 +209,9 @@ class ProfileCorrectionResource extends Resource
                     ->options(collect(ProfileCorrectionType::cases())->mapWithKeys(
                         fn (ProfileCorrectionType $type) => [$type->value => $type->label()],
                     )->all()),
+                Filter::make('priority')
+                    ->label('Often reported profiles only')
+                    ->query(fn ($query) => $query->onPriorityProfiles()),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -177,15 +223,19 @@ class ProfileCorrectionResource extends Resource
     public static function resolveAction(): Action
     {
         return Action::make('resolve')
-            ->label(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Objection
-                ? 'Uphold (profile removed)'
-                : 'Mark corrected')
+            ->label(fn (ProfileCorrection $record): string => match ($record->type) {
+                ProfileCorrectionType::Objection => 'Uphold (profile removed)',
+                ProfileCorrectionType::Report => 'Acted on',
+                ProfileCorrectionType::Correction => 'Mark corrected',
+            })
             ->color('success')
             ->icon('heroicon-o-check')
             ->visible(fn (ProfileCorrection $record): bool => self::canClose($record))
-            ->modalDescription(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Objection
-                ? 'Upholding unpublishes the doctor profile now and stops every import from adding or publishing the person again (Data import → Suppressed profiles). Delete the profile on its edit page as well if it should go entirely. The note is staff-only; tell the person by the contact they left.'
-                : 'Correct the profile on its edit page first. The note is staff-only.')
+            ->modalDescription(fn (ProfileCorrection $record): string => match ($record->type) {
+                ProfileCorrectionType::Objection => 'Upholding unpublishes the doctor profile now and stops every import from adding or publishing the person again (Data import → Suppressed profiles). Delete the profile on its edit page as well if it should go entirely. The note is staff-only; tell the person by the contact they left.',
+                ProfileCorrectionType::Report => self::reportCloseHint($record, 'Fix, unpublish or delete the profile on its edit page first; nothing changes on the profile from here.'),
+                ProfileCorrectionType::Correction => 'Correct the profile on its edit page first. The note is staff-only.',
+            })
             ->schema([self::noteField('What was changed')])
             ->action(fn (ProfileCorrection $record, array $data) => self::close($record, ProfileCorrectionStatus::Resolved, $data));
     }
@@ -199,11 +249,23 @@ class ProfileCorrectionResource extends Resource
             ->color('gray')
             ->icon('heroicon-o-x-mark')
             ->visible(fn (ProfileCorrection $record): bool => self::canClose($record))
-            ->modalDescription(fn (ProfileCorrection $record): string => $record->type === ProfileCorrectionType::Objection
-                ? 'Record the balancing test: why the public interest in a complete directory prevails here. Reply to the person with these reasons and their right to complain to АЗЛП or go to court (ЗЗЛП чл. 16(4)).'
-                : 'Say why nothing changes (already correct, not verifiable, not about this profile).')
+            ->modalDescription(fn (ProfileCorrection $record): string => match ($record->type) {
+                ProfileCorrectionType::Objection => 'Record the balancing test: why the public interest in a complete directory prevails here. Reply to the person with these reasons and their right to complain to АЗЛП or go to court (ЗЗЛП чл. 16(4)).',
+                ProfileCorrectionType::Report => self::reportCloseHint($record, 'Say why the profile stays as it is.'),
+                ProfileCorrectionType::Correction => 'Say why nothing changes (already correct, not verifiable, not about this profile).',
+            })
             ->schema([self::noteField('Reasons')])
             ->action(fn (ProfileCorrection $record, array $data) => self::close($record, ProfileCorrectionStatus::Declined, $data));
+    }
+
+    /** A report's decision covers every open report on the profile: say so. */
+    private static function reportCloseHint(ProfileCorrection $record, string $lead): string
+    {
+        $open = $record->openReportCount();
+
+        return $open > 1
+            ? $lead." This closes all {$open} open reports on this profile. The note is staff-only."
+            : $lead.' The note is staff-only.';
     }
 
     private static function noteField(string $label): Textarea

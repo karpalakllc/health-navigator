@@ -211,8 +211,9 @@ Counsel should confirm it.
    Risks: errors (wrong workplace, a doctor who left), and being listed
    against one's will. "Public" alone is not a basis; the minimisation above
    and the safeguards below are what tip the balance.
-4. **Safeguards.** New profiles from an import stay hidden until staff
-   review and publish them; an import never deletes or unpublishes, and a
+4. **Safeguards.** New profiles from an import stay hidden until they are
+   published — by the owner, in bulk after a sample (§2.1.2, 2026-10-07);
+   an import never deletes or unpublishes, and a
    doctor missing from the source twice goes to staff review; editor locks
    survive re-imports; correction (15 days) and objection (30 days, reasons,
    АЗЛП) on every profile; the platform stays neutral: no paid ranking or
@@ -228,6 +229,57 @@ Counsel should confirm it.
    database maker's right against reuse is untested in MK; ask both in
    writing (FOI drafts in the source research) and name them as sources on
    the site (done on `/transparency` and the privacy page).
+
+#### 2.1.2 Owner decision: bulk publish and the public verification label (2026-10-07)
+
+**Decision (owner, 2026-10-07).** The owner works alone; reviewing
+thousands of imported drafts one by one is not possible. Imported profiles
+are therefore published by the owner with one click per set, after
+glancing at a random sample of 20 (Import review):
+
+- **„Објави ги сите верификувани“:** drafts the verification engine
+  verified because two independent sources agree on the person (ФЗОМ and
+  the Комора licence list; the institution's own staff page and a unique
+  licence; ФЗОМ and the staff page of the same institution;
+  docs/verification.md);
+- **„Објави ги и неверификуваните од ФЗОМ“:** doctors ФЗОМ lists today
+  whose name has no licence on the Комора list. They are public, but shown
+  as „Неверификуван“.
+
+Neither set includes a draft with any other open review item (possible
+duplicate, conflicting data, ambiguous name, missing from the source,
+uncertain), a draft the import marked as having no specialty (often
+laboratory staff), or a profile staff unpublished: unpublishing is a
+decision that sticks. Two optional flags publish the same sets
+automatically after a run (IMPORT_AUTO_PUBLISH_VERIFIED,
+IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED); both are **off by default** and
+`platform:preflight` warns when either is on.
+
+**The public label.** Every doctor profile shows „Верификуван“ or
+„Неверификуван“ (facilities and pharmacies „Верификувана“ /
+„Неверификувана“). „Верификуван“ states that the name, specialty and
+workplace were confirmed in an independent source (ФЗОМ, the Комора list,
+the institution's website) or by our team, with the public basis named in
+the badge. „Неверификуван“ states only that this has not been done yet; the
+badge text and the transparency page say it is not a judgement of the
+doctor. The label is withdrawn automatically when a licence expires or
+leaves the list, a doctor leaves ФЗОМ or the staff page, or a source is
+older than its maximum age (ФЗОМ 45 days, websites 180 days). Pharmacies are
+verified only by staff (no pharmacy register is imported).
+
+**Balancing test, re-run.** The purpose and the data are unchanged
+(§2.1.1 items 1–3). What changes is the safeguard „staff review before
+publication“: it becomes a sample review plus rules that keep every
+uncertain case hidden. The precision of the verified set (two sources must
+agree; ambiguity, missing specialty or any open item excludes a draft) and
+the ФЗОМ-current requirement for the unverified set keep the error risk
+close to that of an individual review, while correction (15 days),
+objection (30 days) and the „Пријави профил“ flag stay on every profile.
+The label itself adds a statement about each named doctor; it is factual,
+sourced and neutral, and it is worded so that „Неверификуван“ cannot read
+as an accusation. **Outcome:** the interest still prevails with these
+safeguards. Revisit if the auto-publish flags are turned on, or if a new
+source feeds the label. Counsel should confirm.
 
 ### 2.2 Health data in reviews, the forum and guidance
 

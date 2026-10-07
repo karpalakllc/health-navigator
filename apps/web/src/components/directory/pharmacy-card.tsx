@@ -8,6 +8,7 @@ import {
 } from "@/components/directory/cover-media";
 import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
+import { VerificationBadge } from "@/components/directory/verification-badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import type { PharmacyListItem } from "@/lib/api/types";
@@ -49,6 +50,11 @@ export function PharmacyCard({ pharmacy }: { pharmacy: PharmacyListItem }) {
           </Link>
         </h2>
         <p className="type-meta mt-0.5 text-ink-2">{t("pharmacies.kind")}</p>
+        <VerificationBadge
+          verification={pharmacy.verification}
+          kind="pharmacy"
+          className="mt-2 self-start"
+        />
 
         <div className="mt-4 flex flex-col gap-2">
           {pharmacy.city ? (

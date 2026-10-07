@@ -7,7 +7,7 @@ import {
 } from "@/components/directory/doctors-directory";
 import type { DoctorLanguage } from "@/lib/api/languages";
 import type { Specialty } from "@/lib/api/types";
-import { t } from "@/i18n/t";
+import { t, tFormat } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 import { router } from "../../../test/next-navigation";
 
@@ -37,6 +37,7 @@ const none: DoctorsFilterValues = {
   language: "",
   city: "",
   min_reviews: "",
+  verified: "",
   sort: "",
 };
 
@@ -136,6 +137,36 @@ describe("Doctors filter sheet", () => {
       scroll: false,
     });
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("„Само верификувани“ applies verified=1 and shows as an active filter", async () => {
+    const { user, sheet } = await openSheet();
+
+    // Under its own legend, not „Достапност“.
+    const group = within(sheet).getByRole("group", {
+      name: t("verification.filterLegend"),
+    });
+    await user.click(
+      within(group).getByRole("switch", {
+        name: t("verification.filterLabel"),
+      }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith("/doctors?verified=1", {
+      scroll: false,
+    });
+  });
+
+  it("lists an applied „Само верификувани“ among the removable filters", () => {
+    renderList({ verified: "1" });
+
+    expect(
+      screen.getAllByRole("link", {
+        name: tFormat("ui.removeFilter", {
+          label: t("verification.filterLabel"),
+        }),
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   it("only stages a choice moved with the arrow keys; Enter applies it", async () => {

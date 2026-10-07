@@ -4,7 +4,13 @@ import { isSlug, pathSegment } from "@/lib/api/path";
 import { relayToApi } from "@/lib/api/doctor-dashboard-proxy";
 import { t } from "@/i18n/t";
 
-type ClaimPayload = { slug?: unknown; message?: unknown; contact?: unknown };
+type ClaimPayload = {
+  slug?: unknown;
+  message?: unknown;
+  contact?: unknown;
+  /** ALTCHA payload from the form's invisible widget; the API checks it. */
+  altcha?: unknown;
+};
 
 /** „Ова е мој профил“: ask staff to link this account to a doctor profile. */
 export async function POST(request: Request) {
@@ -14,7 +20,7 @@ export async function POST(request: Request) {
     return guarded.response;
   }
 
-  const { slug, message, contact } = guarded.value;
+  const { slug, message, contact, altcha } = guarded.value;
 
   if (!isSlug(slug)) {
     return NextResponse.json({ message: t("notFound.title") }, { status: 404 });
@@ -26,6 +32,7 @@ export async function POST(request: Request) {
     body: {
       message: typeof message === "string" ? message : "",
       contact: typeof contact === "string" ? contact : "",
+      altcha: typeof altcha === "string" ? altcha : null,
     },
   });
 }

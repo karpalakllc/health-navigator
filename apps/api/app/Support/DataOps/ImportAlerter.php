@@ -11,7 +11,7 @@ use Throwable;
 
 /**
  * Mails the import alert inbox (config/data_ops.php) about a failed or
- * unusually large source import.
+ * unusually large source import, or a register too old to verify from.
  *
  * - Sent synchronously: the scheduler's failure hook may run while the queue
  *   worker is the very thing that is broken.
@@ -25,6 +25,9 @@ class ImportAlerter
     public const KIND_FAILED = 'failed';
 
     public const KIND_LARGE_DIFF = 'large_diff';
+
+    /** The verification engine found the ФЗОМ register older than its maximum age. */
+    public const KIND_STALE_REGISTER = 'stale_register';
 
     private const ERROR_LIMIT = 300;
 

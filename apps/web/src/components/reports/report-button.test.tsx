@@ -105,6 +105,7 @@ describe("ReportButton", () => {
       target: { kind: "review", id: 7 },
       reason: "personal_data",
       note: "Има телефонски број.",
+      altcha: "test-altcha-1",
     });
     expect(await within(dialog).findByRole("status")).toHaveTextContent(
       t("reports.successBody"),

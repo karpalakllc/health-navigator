@@ -205,7 +205,7 @@ class SourceFetcher
 
         $request = Http::withUserAgent($this->userAgent())
             ->withHeaders($headers)
-            ->withOptions(SourcePolicy::redirectOptions($this->allowedHosts()))
+            ->withOptions(SourcePolicy::requestOptions($this->allowedHosts()))
             ->timeout((int) config('import.timeout_seconds'));
 
         if ($sink !== null) {

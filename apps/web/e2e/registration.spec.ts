@@ -6,7 +6,7 @@ import {
   login,
   submitLogin,
 } from "./support/auth";
-import { freshEmail, uniqueSuffix } from "./support/fixtures";
+import { freshEmail } from "./support/fixtures";
 import { latestLink } from "./support/mail";
 
 async function register(
@@ -15,8 +15,11 @@ async function register(
 ): Promise<void> {
   await page.goto("/register");
   await page.locator('input[name="name"]').fill(name);
-  // Public and unique: a fresh one per sign-up („e2e_“ + time + random).
-  await page.locator('input[name="username"]').fill(`e2e_${uniqueSuffix()}`);
+  // Public and unique: a fresh one per sign-up. Digits only after the
+  // prefix — random letters can spell a blocked word and fail the test.
+  await page
+    .locator('input[name="username"]')
+    .fill(`e2e_${Date.now()}${Math.floor(Math.random() * 1e4)}`);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('input[name="password_confirmation"]').fill(password);

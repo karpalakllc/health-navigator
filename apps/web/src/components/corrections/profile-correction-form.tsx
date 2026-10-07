@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useAltcha } from "@/components/altcha/use-altcha";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
 import { FormError, FormSuccess } from "@/components/ui/form-message";
@@ -67,6 +68,7 @@ export function ProfileCorrectionForm({
     n: number;
   } | null>(null);
   const honeypotId = useId();
+  const altcha = useAltcha();
 
   useEffect(() => {
     if (focusRequest === null) {
@@ -133,6 +135,15 @@ export function ProfileCorrectionForm({
     setPending(true);
 
     try {
+      const altchaPayload = await altcha.solve();
+
+      if (altchaPayload === null) {
+        setError(t("altcha.failed"));
+        requestFocus("error");
+
+        return;
+      }
+
       const response = await fetch("/api/corrections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,12 +154,14 @@ export function ProfileCorrectionForm({
           field: objection ? null : field,
           message,
           contact: contact.trim() === "" ? null : contact.trim(),
+          altcha: altchaPayload,
           [CORRECTION_HONEYPOT]: honeypot.current?.value ?? "",
         }),
       });
       const payload = (await response.json().catch(() => null)) as ApiPayload;
 
       if (!response.ok) {
+        altcha.renew();
         const server: Errors = {
           field: payload?.errors?.field?.[0],
           message: payload?.errors?.message?.[0],
@@ -175,6 +188,7 @@ export function ProfileCorrectionForm({
           t(objection ? "corrections.objectionSent" : "corrections.sent"),
       );
     } catch {
+      altcha.renew();
       setError(
         t(objection ? "corrections.objectionError" : "corrections.error"),
       );
@@ -278,6 +292,7 @@ export function ProfileCorrectionForm({
             />
           </div>
           {error ? <FormError tabIndex={-1}>{error}</FormError> : null}
+          {altcha.widget}
           <Button
             type="submit"
             loading={pending}

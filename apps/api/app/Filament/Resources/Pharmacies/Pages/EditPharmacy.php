@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Pharmacies\Pages;
 use App\Filament\Concerns\HasPublicPreviewAction;
 use App\Filament\Resources\Pharmacies\Concerns\SetsPharmacyDefaults;
 use App\Filament\Resources\Pharmacies\PharmacyResource;
+use App\Filament\Support\VerificationActions;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -21,6 +22,7 @@ class EditPharmacy extends EditRecord
     {
         return [
             $this->getPublicPreviewAction(),
+            ...VerificationActions::all(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),

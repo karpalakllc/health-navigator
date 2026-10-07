@@ -80,8 +80,9 @@ final class AccountExport
             'resolved_at' => $report->resolved_at?->toIso8601String(),
         ]);
         echo ',';
-        // Profile corrections and objections sent while signed in: what was
-        // asked and its status — not who handled it or the staff note.
+        // Profile corrections, objections and profile reports sent while
+        // signed in: what was asked and its status — not who handled it or
+        // the staff note.
         $this->writeList('profile_corrections', ProfileCorrection::query()->where('user_id', $this->user->getKey()), fn (ProfileCorrection $request): array => [
             'type' => $request->type->value,
             'about' => [
@@ -90,6 +91,7 @@ final class AccountExport
                 'slug' => $request->subject?->getAttribute('slug'),
             ],
             'field' => $request->field?->value,
+            'report_reason' => $request->report_reason?->value,
             'message' => $request->message,
             'contact' => $request->contact,
             'status' => $request->status->value,

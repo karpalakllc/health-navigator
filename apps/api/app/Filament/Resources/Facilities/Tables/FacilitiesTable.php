@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Facilities\Tables;
 
 use App\Enums\FacilityType;
 use App\Filament\Support\DirectoryTableColumns;
+use App\Filament\Support\VerificationActions;
 use App\Filament\Tables\Filters\PublicationStatusFilter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -43,11 +44,13 @@ class FacilitiesTable
                     ->boolean()
                     ->sortable(),
                 DirectoryTableColumns::publicationBadge(),
+                VerificationActions::statusColumn(),
                 DirectoryTableColumns::updatedAt(),
             ])
             ->defaultSort('name')
             ->filters([
                 PublicationStatusFilter::make(),
+                VerificationActions::filter(),
                 TrashedFilter::make(),
             ])
             ->recordActions([

@@ -111,6 +111,25 @@ php artisan import:institutions-json /path/<slice>/institutions.json --dry-run
 php artisan import:institutions-json /path/<slice>/institutions.json
 ```
 
+**TLS.** `arhiva.fzo.org.mk` sends its certificate with the wrong
+intermediate (GeoTrust EV RSA CA G2 instead of GeoTrust TLS RSA CA G1), so
+PHP's curl cannot build the chain („unable to get local issuer
+certificate“; browsers fetch the missing one by themselves). The import
+fetchers (ФЗОМ and Комора only — nothing else in the app) therefore trust
+the system store **plus** the PEM file in `IMPORT_CA_BUNDLE` (default
+`resources/tls/import-extra-ca.crt`, relative to `apps/api`), combined into
+one cached file under `storage/framework/cache`
+(`App\Support\Import\SourcePolicy::tlsOptions()`). Verification is never
+turned off: a missing or unreadable bundle stops the run. The shipped file
+is the public intermediate GeoTrust TLS RSA CA G1 (issuer DigiCert Global
+Root G2; SHA-256 `C0:6E:30:7F:7C:FC:1D:32:FA:72:A4:C0:33:C8:7B:90:01:9A:F2:16:F0:77:5D:64:97:8A:2E:CA:6C:8A:23:0E`;
+valid until **2027-11-02**), taken from the AIA URL in ФЗОМ's certificate
+and checked against DigiCert's copy and the leaf's key identifier on
+2026-10-07. ФЗОМ's own certificate expires **2026-11-12**: after it is
+renewed, check the chain again (`openssl s_client -connect
+arhiva.fzo.org.mk:443 -showcerts`) and replace the file if the issuer
+changed (`ImportCaBundleTest` fails once the shipped one expires).
+
 A downloaded Комора list counts as unchanged only when its files are the
 same (sha256) as those of the last **successful apply**: a dry run or a
 failed apply does not use a new list up, so "dry run first, then apply"
@@ -200,14 +219,22 @@ matches it to a profile:
 - Candidates are profiles the **ФЗОМ import created** (`doctors.import_source
   = 'fzom'`, `KOMORA_MATCH_IMPORTED_SOURCE`), never dentists, never
   hand-made profiles: a licence is evidence about a doctor we know works
-  somewhere. Website-only drafts are not matched automatically; check their
-  licence by hand before publishing (their review item says so).
+  somewhere. Website-only drafts are *fallback* candidates, considered only
+  for a name no ФЗОМ profile carries (`KOMORA_MATCH_FALLBACK_SOURCES`,
+  [`verification.md`](verification.md) §6).
 - The name must match exactly after normalisation (`NameKey`, either word
   order) **and** the licence's specialty must fit the doctor's (§7). One fit
   attaches; several fits are *ambiguous*; a name without a fitting specialty
   (or with wording nobody has mapped yet) is a *specialty mismatch*; no name
-  is *no match*. Namesakes on the list never share a profile. Everything not
-  attached goes to the review queue as *unmatched*.
+  is *no match*. Namesakes on the list never share a profile. Only
+  *ambiguous* rows go to the review queue as *unmatched*: a *no match* row is
+  the licence of somebody with no profile here (most of the list) and a
+  *specialty mismatch* is reported per wording pair by the verification
+  engine — both stay in the staging table only. A general doctor's licence
+  fits a ФЗОМ profile with no specialty at all.
+- The verification engine re-matches the unattached rows after every import
+  and nightly, so a later website draft or a mapping fix is picked up
+  without waiting for the next list.
 - Attaching goes through the import core
   (`App\Support\Import\Contracts\DoctorLicenceSink` →
   `EloquentDoctorLicenceSink`): one licence number per doctor, never moved
@@ -249,7 +276,12 @@ Provenance source `website`, with the page URL per field.
 - **Doctors**: physicians and dentists only (nurses and other staff are
   skipped). Matched to a doctor already at that facility, or by name +
   specialty + town; otherwise a hidden draft whose review item says
-  *verify licence before publishing*. Website specialties are free text;
+  *verify licence before publishing* (the verification engine matches its
+  licence and verifies it when the evidence agrees).
+- **Warnings about the site** in the research `notes` (compromised,
+  stale) are kept as flags on the facility's source record; such a site's
+  staff list is not verification evidence until staff trust it
+  ([`verification.md`](verification.md) §5). Website specialties are free text;
   `SpecialtyText` reduces „Специјалист по општа хирургија“, „хирург-уролог“,
   „Офталмолог“ to catalogue wordings; the rest are stored as unmapped
   aliases (source `website`) and listed in the review queue.
@@ -282,6 +314,43 @@ replaces only the specialty links it made itself, never staff-made ones. The
 navigation badge counts unmapped wordings. Aliases are neither created nor
 deleted by hand (a deleted one would come back with the catalogue default).
 
+### Website wordings mapped in 2026-10
+
+The first real website import left 133 wordings unmapped. Each was reviewed
+and 94 are mapped where the meaning is certain
+(`App\Support\Import\Website\SpecialtyText::WEBSITE_WORDINGS`): new imports
+map them on first sight, and the data migration
+`2026_10_16_130000_map_website_specialty_wordings` maps the aliases already
+stored — only those still unmapped, not excluded and never edited by staff
+(`updated_at = created_at`), so it never overrides a staff decision; their
+open review items are resolved (`alias_mapped`). Re-import the website
+slices afterwards to re-link the doctors. Rules: a subspecialty on a base
+specialty takes the precise field („Интерна медицина - пневмофтизиолог“ →
+Пулмологија), a paediatric subspecialty stays Педијатрија, a doctor in
+specialisation keeps today's specialty (Општа медицина / Стоматологија), a
+precise surgical field wins over „општа хирургија“.
+
+Left unmapped on purpose (39; staff decide in **Specialty aliases** if a
+person is affected): job titles and degrees (FOUNDER, МЕДИЦИНСКИ ДИРЕКТОР,
+ДИРЕКТОР ПЗУ …, ОСНОВАЧ И ИЗВРШЕН ДИРЕКТОР, РАКОВОДИТЕЛ НА МИКРОБИОЛОШКА И
+МОЛЕКУЛАРНА ЛАБОРАТОРИЈА, ШЕФ НА ИВФ-ОДДЕЛОТ, ОДДЕЛ, НАУКИ, MR.SCI, PHD IN
+ORAL AND MAXILLOFACIAL SURGERY, МАСТЕР ПО ПРОТЕТИКА, МАГИСТЕР ПО ОРАЛНА
+ХИРУРГИЈА И ИМПЛАНТОЛОГИЈА, МАГИСТЕР ПО ХУМАНА АСИСТИРАНА РЕПРОДУКЦИЈА …,
+SPECIALIST); specialisations in progress (ВО ТЕК, СУПСПЕЦИЈАЛИЗАЦИЈА ПО
+НЕФРОЛОГИЈА, НА СУПСПЕЦИЈАЛИЗАЦИЈА [ПО ТРАУМАТОЛОГИЈА / ПО ОСТЕОАРТИКУЛАРНА
+РАДИОДИЈАГНОСТИКА], СПЕЦИЈАЛИЗАЦИЈА ПО ПСИХИЈАТРИЈА / НЕВРОПСИХИЈАТРИЈА —
+finished or not is unclear); fragments of a split wording (ПУЛМО, ХЕМАТО);
+fields the catalogue lacks or that are not specialties (ТРАНСПЛАНТОЛОГИЈА,
+ТОКСИКОЛОГИЈА, ВАСКУЛАРНА МЕДИЦИНА, ЕСТЕТСКА МЕДИЦИНА, ДЕБЕЛИНА, ДИЕТЕТИКА И
+ДИЕТОТЕРАПИЈА, ПРОБЛЕМИ НА КОСА, ИВФ, СТЕРИЛИТЕТ, ИНФЕРТИЛИТЕТ); and
+ambiguous ones (ЕЛЕКТРОФИЗИОЛОГИЈА — cardiac or neuro; ДЕТСКА
+КАРДИОХИРУРГИЈА — paediatric or cardiac surgery; СУПСПЕЦ. ПЕДИЈАТРИСКА
+ДИЈАГНОСТИКА; MJEKE FAMILJARE — family-medicine specialist or GP; РАДИОЛОГИЈА
+И НУКЛЕАРНА МЕДИЦИНА and ИНТЕРНА МЕДИЦИНА И СЕМЕЈНА МЕДИЦИНА — two separate
+specialties). Most of these people get a specialty from another part of
+their wording; the few who do not keep none from the website until staff
+map the wording.
+
 The two tables are kept apart on purpose: an alias picks exactly one of our
 specialties, while the licence mapping groups wordings of two sources and
 lets a licence fit several groups (a cardiologist contracted as an
@@ -297,11 +366,20 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 | Changed | an imported value replaced the old one on a **published** profile (one item per profile per run) | Mark seen |
 | Conflict | the source disagrees with a value someone else set, or two records claim the same key (licence number); nothing was overwritten | Use imported value, Keep current and lock |
 | Missing | absent from consecutive snapshots | Hide profile (reviews kept), Dismiss |
-| Unmatched | ambiguous match, unmapped specialty wording, licence row without a single fitting doctor, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
+| Unmatched | ambiguous match, unmapped specialty wording, licence several doctors fit, partial name match | Dismiss after fixing by hand (an unmapped wording: map it in **Specialty aliases** or **Licence specialty mapping**) |
+| Uncertain | the verification engine needs one decision: a licence/profile specialty wording pair, a flagged website, a published profile that lost its verification ([`verification.md`](verification.md) §4) | Map the wording, **Trust this website**, Hide, or Dismiss |
 
-1. Check each draft against the source before publishing: imported data is
-   not verified. **Publish selected drafts** (bulk) once a batch is checked;
-   it also publishes the hidden imported specialties the doctor uses.
+1. Drafts the verification engine verified (two sources agree,
+   [`verification.md`](verification.md)) can go public together:
+   **„Објави ги сите верификувани“** shows their number and a random sample
+   of 20, then publishes them all. **„Објави ги и неверификуваните од
+   ФЗОМ“** does the same for ФЗОМ doctors with no licence on the Комора list
+   and nothing else open on them: public, still „Неверификуван“
+   ([`verification.md`](verification.md) §8;
+   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Check other drafts against the source
+   before publishing: **Publish selected drafts** (bulk) once a batch is
+   checked; it also publishes the hidden imported specialties the doctor
+   uses. The queue is sorted by priority (what matters most first).
 2. **Missing**: check whether the doctor still works there; hide only on
    evidence. The profile keeps its reviews.
 3. The public profile may show „Лиценца: важечка“ (from the Комора list); the
@@ -348,6 +426,9 @@ review items and lifted suppressions are deleted `IMPORT_RETENTION_DAYS`
 good (force delete) also deletes its source records, field provenance and
 review items; a doctor's suppression stays (§11).
 
+`import:adjudicate` (the verification engine, [`verification.md`](verification.md))
+runs daily at 05:50 (always on) and after every successful import apply.
+
 `routes/console.php` registers both source imports. They are **off by
 default**:
 
@@ -370,12 +451,18 @@ short error line only — never names or numbers):
 
 - **Failed scheduled run**: the command exited non-zero (the scheduler's
   failure hook).
+- **Stale register** („Застарен регистар“): the verification engine found
+  no ФЗОМ import or 304 within `IMPORT_FZOM_MAX_AGE_DAYS` (45); nothing from
+  ФЗОМ verifies a profile until it is imported again
+  ([`verification.md`](verification.md) §2b).
 - **ImportRunFinished**: dispatched by `ImportRunAnnouncer` when a real
   (not dry, not *not modified*) `import:fzom` or `import:komora-licences` run
   ends, by hand or scheduled; `AlertOnImportRun` mails on a failed run or a
   large diff. Contract: `source` (`fzom` / `komora`), `succeeded`, `seen`
   (source records after filtering), `created`, `updated`, `missing`
-  (profiles or licence links), `conflicts`, `unmatched` (review entries),
+  (profiles or licence links), `conflicts`, `unmatched` (records not tied to
+  one profile: ФЗОМ review entries; for the Комора, staging rows, most of
+  which never become review items),
   `runId`, `error`, `reviewUrl` (the run in **Import runs**). Website imports
   are run by hand and not announced.
 

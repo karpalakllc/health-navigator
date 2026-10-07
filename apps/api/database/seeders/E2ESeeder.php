@@ -17,6 +17,8 @@ use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Support\RoleCatalog;
+use App\Support\Verification\VerificationBasis;
+use App\Support\Verification\VerificationWriter;
 use Database\Seeders\Concerns\SeedsUsernames;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +132,7 @@ class E2ESeeder extends Seeder
         $this->seedReviews();
         $this->seedReportableReviews();
         $this->seedDoctorClaimProfiles();
+        $this->seedVerification();
     }
 
     /**
@@ -433,5 +436,16 @@ class E2ESeeder extends Seeder
             );
             $review->removeResponse();
         }
+    }
+
+    /**
+     * e2e/verification.spec.ts: the E2E doctor is „Верификуван“ (official
+     * registers), the clinic stays „Неверификувана“.
+     */
+    private function seedVerification(): void
+    {
+        $writer = app(VerificationWriter::class);
+        $writer->verify(Doctor::query()->where('slug', self::DOCTOR_SLUG)->firstOrFail(), VerificationBasis::OfficialRegisters, ['e2e']);
+        $writer->unverify(Facility::query()->where('slug', self::FACILITY_SLUG)->firstOrFail(), 'e2e');
     }
 }

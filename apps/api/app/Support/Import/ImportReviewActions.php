@@ -29,9 +29,11 @@ final class ImportReviewActions
      * Publishes the draft behind a "new" item (and the imported specialties
      * it uses, which were created hidden). Returns false when there is
      * nothing to publish, or the doctor is suppressed (removed on
-     * objection; staff lift that first, deliberately).
+     * objection; staff lift that first, deliberately). $by is null when
+     * the verification engine auto-publishes a verified draft
+     * (IMPORT_AUTO_PUBLISH_VERIFIED).
      */
-    public function publish(ImportReviewItem $item, User $by): bool
+    public function publish(ImportReviewItem $item, ?User $by): bool
     {
         $subject = $item->subject();
 
@@ -166,7 +168,7 @@ final class ImportReviewActions
         $item->resolve(ImportReviewStatus::Dismissed, 'dismissed', $by);
     }
 
-    private function closeAllNew(ImportReviewItem $item, User $by, string $resolution): void
+    private function closeAllNew(ImportReviewItem $item, ?User $by, string $resolution): void
     {
         ImportReviewItem::query()->open()
             ->where('kind', ImportReviewKind::New)

@@ -12,6 +12,7 @@ use App\Models\Doctor;
 use App\Models\ImportReviewItem;
 use App\Models\User;
 use App\Support\Import\ImportReviewActions;
+use App\Support\Verification\Engine\EvidenceLoader;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -94,6 +95,7 @@ class ImportReviewItemResource extends Resource
                         ImportReviewKind::Changed => 'gray',
                         ImportReviewKind::Conflict, ImportReviewKind::Missing => 'warning',
                         ImportReviewKind::Unmatched => 'danger',
+                        ImportReviewKind::Uncertain => 'primary',
                     }),
                 TextColumn::make('title')->searchable()->wrap(),
                 TextColumn::make('summary')
@@ -102,9 +104,12 @@ class ImportReviewItemResource extends Resource
                     ->wrap(),
                 TextColumn::make('source')->badge()->color('gray'),
                 TextColumn::make('status')->badge()->formatStateUsing(fn (ImportReviewStatus $state): string => ucfirst($state->value))->toggleable(),
+                TextColumn::make('priority')->numeric()->sortable()->toggleable(),
                 TextColumn::make('created_at')->label('Raised')->dateTime()->sortable(),
             ])
-            ->defaultSort('created_at', 'desc')
+            // What decides the most first (the verification engine ranks by
+            // impact: published profiles, many doctors behind one decision).
+            ->defaultSort(fn ($query) => $query->orderByDesc('priority')->orderByDesc('created_at'))
             ->modifyQueryUsing(fn ($query) => $query->with('run'))
             ->filters([
                 SelectFilter::make('status')
@@ -122,6 +127,7 @@ class ImportReviewItemResource extends Resource
                 self::acceptAction(),
                 self::keepAction(),
                 self::hideAction(),
+                self::trustSiteAction(),
                 self::dismissAction(),
             ])
             ->toolbarActions([
@@ -218,6 +224,28 @@ class ImportReviewItemResource extends Resource
             ->action(fn (ImportReviewItem $record) => self::open($record) ? app(ImportReviewActions::class)->hide($record, self::actor()) : null);
     }
 
+    /**
+     * A website flagged as compromised or stale (verification engine): staff
+     * looked and its staff list is current. The engine then counts it as
+     * evidence again on its next run; the decision sticks.
+     */
+    public static function trustSiteAction(): Action
+    {
+        return Action::make('trustSite')
+            ->label('Trust this website')
+            ->icon('heroicon-o-shield-check')
+            ->color('success')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::Uncertain
+                && ($record->details['reason'] ?? null) === 'flagged_source')
+            ->requiresConfirmation()
+            ->modalDescription('Its staff list counts as verification evidence again, for every doctor it lists. Do this only after checking that the site is current and clean.')
+            ->action(function (ImportReviewItem $record): void {
+                if (self::open($record) && $record->resolve(ImportReviewStatus::Resolved, EvidenceLoader::TRUSTED_RESOLUTION, self::actor())) {
+                    Notification::make()->title('Trusted. The next verification run (nightly, or import:adjudicate) uses it.')->success()->send();
+                }
+            });
+    }
+
     public static function dismissAction(): Action
     {
         return Action::make('dismiss')
@@ -289,6 +317,7 @@ class ImportReviewItemResource extends Resource
             ImportReviewKind::Missing => 'Absent '.($details['runs'] ?? '?').' runs'.(($details['published'] ?? false) ? ', public' : ''),
             ImportReviewKind::Unmatched => str_replace('_', ' ', (string) ($details['reason'] ?? 'unmatched')),
             ImportReviewKind::New => ($details['needs_licence_verification'] ?? false) ? 'Verify licence before publishing' : (string) ($details['source_url'] ?? ''),
+            ImportReviewKind::Uncertain => (string) ($details['action'] ?? str_replace('_', ' ', (string) ($details['reason'] ?? ''))),
         };
     }
 

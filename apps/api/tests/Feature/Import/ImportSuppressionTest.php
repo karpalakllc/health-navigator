@@ -97,8 +97,10 @@ class ImportSuppressionTest extends TestCase
         $suppression = ImportSuppression::query()->active()->where('doctor_id', $doctor->getKey())->firstOrFail();
         $this->assertSame(ImportSuppression::REASON_OBJECTION, $suppression->reason);
 
-        // The open "new" item from the first import cannot publish it.
-        $item = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::New)->where('subject_type', 'doctor')->where('subject_id', $doctor->getKey())->firstOrFail();
+        // Publishing closed the import's "new" item; one left open (raised
+        // again, e.g. by a later run) still cannot publish it.
+        $this->assertSame(0, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::New)->where('subject_type', 'doctor')->where('subject_id', $doctor->getKey())->count());
+        $item = ImportReviewItem::raise('fzom', ImportReviewKind::New, 'doctor:'.$doctor->getKey(), 'draft', [], $doctor);
         $this->assertFalse(app(ImportReviewActions::class)->publish($item, $staff), 'Publish refuses.');
         $this->assertFalse($doctor->refresh()->is_published);
 

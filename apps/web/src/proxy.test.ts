@@ -61,6 +61,27 @@ describe("proxy CSP img-src", () => {
   });
 });
 
+describe("proxy CSP worker-src", () => {
+  function directive(name: string): string | undefined {
+    const csp =
+      proxy(new NextRequest("https://www.example.com/")).headers.get(
+        "Content-Security-Policy",
+      ) ?? "";
+
+    return csp.split("; ").find((part) => part.startsWith(`${name} `));
+  }
+
+  it("allows same-origin workers only (ALTCHA), never blob: or data:", () => {
+    expect(directive("worker-src")).toBe("worker-src 'self'");
+  });
+
+  it("keeps scripts on nonces, without unsafe-inline", () => {
+    expect(directive("script-src")).toContain("'strict-dynamic'");
+    expect(directive("script-src")).not.toContain("'unsafe-inline'");
+    expect(directive("script-src")).not.toContain("blob:");
+  });
+});
+
 describe("proxy request ID", () => {
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 

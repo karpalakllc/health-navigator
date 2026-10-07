@@ -86,4 +86,40 @@ return [
         'max_image_bytes' => (int) env('IMPORT_WEBSITE_MAX_IMAGE_BYTES', 2 * 1024 * 1024),
     ],
 
+    // Extra public CA certificates (PEM) the import fetchers trust in
+    // addition to the system store: intermediates a source host fails to
+    // send. Relative to apps/api. Shipped: the intermediate of
+    // arhiva.fzo.org.mk (resources/tls/import-extra-ca.crt, with its
+    // fingerprint and expiry). Empty = the system store only. Verification
+    // is never turned off.
+    'ca_bundle' => env('IMPORT_CA_BUNDLE', 'resources/tls/import-extra-ca.crt'),
+
+    // The verification engine (import:adjudicate, docs/verification.md).
+    'verification' => [
+        // Re-evaluate every profile right after each successful import apply
+        // (ФЗОМ, Комора, websites). The nightly run happens regardless.
+        'after_import' => (bool) env('IMPORT_VERIFY_AFTER_IMPORT', true),
+
+        // Publish the drafts a run newly verifies, without staff. Off: staff
+        // publish them with „Објави ги сите верификувани“ in Import review.
+        'auto_publish' => (bool) env('IMPORT_AUTO_PUBLISH_VERIFIED', false),
+
+        // Publish, still unverified, the drafts a run newly finds current in
+        // ФЗОМ with no licence on the Комора list (reason fzom_no_licence)
+        // and no open review item on them (owner's decision). Off: staff use
+        // „Објави ги и неверификуваните од ФЗОМ“ in Import review.
+        'auto_publish_fzom_unverified' => (bool) env('IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED', false),
+
+        // ФЗОМ evidence stops verifying when ФЗОМ has not been imported (or
+        // confirmed unchanged with a 304) for this many days: reason
+        // stale_register, a warning in `import:adjudicate --report` and a
+        // mail to the import alert inbox.
+        'fzom_max_age_days' => (int) env('IMPORT_FZOM_MAX_AGE_DAYS', 45),
+
+        // A staff-page entry no import of its site has listed for this many
+        // days stops counting (reason website_outdated). An entry the latest
+        // import of its site no longer lists stops at once (website_removed).
+        'website_max_age_days' => (int) env('IMPORT_WEBSITE_MAX_AGE_DAYS', 180),
+    ],
+
 ];
