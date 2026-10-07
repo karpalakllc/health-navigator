@@ -146,6 +146,8 @@ final class AnonymiseUser
             MemberNotification::query()->where('user_id', $locked->getKey())->delete();
             NotificationPreference::query()->where('user_id', $locked->getKey())->delete();
             ReviewReminder::query()->where('user_id', $locked->getKey())->delete();
+            // The panel's bell (staff accounts): Laravel's notifications table.
+            $locked->notifications()->delete();
 
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);

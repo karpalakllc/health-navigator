@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\MemberNotification;
+use App\Models\PanelNotification;
 use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
 use App\Support\DataOps\ImportAlerter;
@@ -140,8 +141,9 @@ Schedule::command('notifications:send-impact-digest')
     ->onOneServer()
     ->withoutOverlapping();
 
-// In-app notifications are kept MemberNotification::RETENTION_DAYS (180).
-Schedule::command('model:prune', ['--model' => [MemberNotification::class]])
+// In-app notifications — the members' „Известувања“ and the panel's bell —
+// are kept MemberNotification::RETENTION_DAYS (180).
+Schedule::command('model:prune', ['--model' => [MemberNotification::class, PanelNotification::class]])
     ->dailyAt('04:55')
     ->onOneServer()
     ->withoutOverlapping();

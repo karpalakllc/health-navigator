@@ -15,6 +15,7 @@ use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\MemberNotification;
 use App\Models\NotificationPreference;
+use App\Models\PanelNotification;
 use App\Models\ProfileCorrection;
 use App\Models\Review;
 use App\Models\ReviewAspectRating;
@@ -115,6 +116,14 @@ final class AccountExport
             'about' => ProfileRef::for($reminder->reviewable),
             'remind_at' => $reminder->remind_at->toIso8601String(),
             'created_at' => $reminder->created_at?->toIso8601String(),
+        ]);
+        echo ',';
+        // The admin panel's bell (staff accounts): title, text, when, read.
+        $this->writeList('panel_notifications', PanelNotification::query()->where('notifiable_type', $this->user->getMorphClass())->where('notifiable_id', $this->user->getKey()), fn (PanelNotification $row): array => [
+            'title' => $row->data['title'] ?? null,
+            'body' => $row->data['body'] ?? null,
+            'created_at' => $row->created_at?->toIso8601String(),
+            'read_at' => $row->read_at?->toIso8601String(),
         ]);
         echo ',';
         $this->writeForumHelpfulVotes();
