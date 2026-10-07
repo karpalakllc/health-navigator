@@ -88,6 +88,7 @@ class AdjudicateCommand extends Command
         $this->newLine();
         $drafts = ImportReviewItem::query()->open()->where('kind', ImportReviewKind::New)->count();
         $this->line(sprintf('Imported drafts waiting („new“): %d, of which verified and ready for „Објави ги сите верифицирани“: %d', $drafts, $publisher->count()));
+        $this->line(sprintf('… unverified, in ФЗОМ without a licence, ready for „Објави ги и неверифицираните од ФЗОМ“: %d', $publisher->countFzomUnverified()));
     }
 
     private static function subject(string $key): string

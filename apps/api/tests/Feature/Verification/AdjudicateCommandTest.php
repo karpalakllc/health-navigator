@@ -35,6 +35,7 @@ class AdjudicateCommandTest extends TestCase
         $this->assertStringContainsString('specialty_mapping', $output);
         $this->assertStringContainsString('unmapped_specialty_wording', $output);
         $this->assertStringContainsString('Total open: 2', $output);
+        $this->assertStringContainsString('in ФЗОМ without a licence, ready for „Објави ги и неверифицираните од ФЗОМ“: 0', $output);
         $this->assertStringNotContainsString('Тајновски', $output);
         $this->assertNull($doctor->fresh()->verification_checked_at, 'The report writes nothing.');
         $this->assertTrue(ImportRun::query()->where('source', 'verification')->sole()->dry_run);

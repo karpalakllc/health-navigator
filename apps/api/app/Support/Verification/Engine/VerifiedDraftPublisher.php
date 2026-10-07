@@ -9,15 +9,25 @@ use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\User;
 use App\Support\Import\ImportReviewActions;
+use App\Support\Verification\VerificationSource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Publishes imported drafts the engine verified: in bulk from the review
  * queue („Објави ги сите верифицирани“), or automatically right after a run
- * when IMPORT_AUTO_PUBLISH_VERIFIED is on. Every publication goes through
- * ImportReviewActions::publish (suppressed doctors refused, hidden imported
- * specialties published along, the "new" item closed).
+ * when IMPORT_AUTO_PUBLISH_VERIFIED is on.
+ *
+ * A second set (owner's decision): doctor drafts current in ФЗОМ with no
+ * licence on the Комора list (engine reason fzom_no_licence) and no other
+ * open review item on them are published but stay „Неверифициран“ — in bulk
+ * („Објави ги и неверифицираните од ФЗОМ“) or with
+ * IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED. Ambiguous names, disagreeing sources,
+ * specialty mismatches and website-only drafts never enter it.
+ *
+ * Every publication goes through ImportReviewActions::publish (suppressed
+ * doctors refused, hidden imported specialties published along, the "new"
+ * item closed).
  */
 final class VerifiedDraftPublisher
 {
@@ -59,6 +69,68 @@ final class VerifiedDraftPublisher
     public function publishAll(?User $by): int
     {
         return $this->publishItems($this->pending()->orderBy('id')->pluck('id')->all(), $by);
+    }
+
+    /**
+     * Open "new" items of doctor drafts the engine left unverified only for
+     * want of a licence while ФЗОМ lists them today — never a staff decision
+     * (verification_source auto) — with no other open review item (conflict,
+     * missing, possible duplicate, uncertain…) on the same doctor.
+     *
+     * @return Builder<ImportReviewItem>
+     */
+    public function pendingFzomUnverified(): Builder
+    {
+        $blocked = ImportReviewItem::query()->open()
+            ->where('kind', '!=', ImportReviewKind::New->value)
+            ->where('subject_type', FieldProvenance::SUBJECT_DOCTOR)
+            ->whereNotNull('subject_id')
+            ->select('subject_id');
+
+        return ImportReviewItem::query()->open()
+            ->where('kind', ImportReviewKind::New)
+            ->where('subject_type', FieldProvenance::SUBJECT_DOCTOR)
+            ->whereIn('subject_id', Doctor::query()->select('id')
+                ->whereNull('verified_at')
+                ->where('is_published', false)
+                ->where('verification_source', VerificationSource::Auto->value)
+                ->where('verification_reasons->reason', Reason::FZOM_NO_LICENCE))
+            ->whereNotIn('subject_id', $blocked);
+    }
+
+    public function countFzomUnverified(): int
+    {
+        return $this->pendingFzomUnverified()->count();
+    }
+
+    /**
+     * @return Collection<int, ImportReviewItem>
+     */
+    public function sampleFzomUnverified(int $size = 20): Collection
+    {
+        return $this->pendingFzomUnverified()->inRandomOrder()->limit($size)->get();
+    }
+
+    public function publishAllFzomUnverified(?User $by): int
+    {
+        return $this->publishItems($this->pendingFzomUnverified()->orderBy('id')->pluck('id')->all(), $by);
+    }
+
+    /**
+     * Auto-publish (IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED): only the doctors
+     * that entered the set in this run.
+     *
+     * @param  list<int>  $doctorIds
+     */
+    public function publishNewlyFzomUnverified(array $doctorIds): int
+    {
+        $ids = [];
+
+        foreach (array_chunk($doctorIds, 500) as $chunk) {
+            $ids = [...$ids, ...$this->pendingFzomUnverified()->whereIn('subject_id', $chunk)->pluck('id')->all()];
+        }
+
+        return $this->publishItems($ids, null);
     }
 
     /**

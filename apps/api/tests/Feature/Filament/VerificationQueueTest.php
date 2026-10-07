@@ -94,6 +94,52 @@ class VerificationQueueTest extends TestCase
         Livewire::test(ListImportReviewItems::class)->assertActionHidden('publishVerified');
     }
 
+    public function test_publish_fzom_unverified_publishes_only_fzom_drafts_without_a_licence_and_without_blocking_items(): void
+    {
+        $unverified = function (string $name, string $reason): Doctor {
+            $doctor = $this->draft(false, $name);
+            app(VerificationWriter::class)->unverify($doctor, $reason);
+
+            return $doctor;
+        };
+        $first = $unverified('Ана Фзомска', 'fzom_no_licence');
+        $second = $unverified('Бранко Фзомски', 'fzom_no_licence');
+        $blocked = $unverified('Вера Спорна', 'fzom_no_licence');
+        ImportReviewItem::raise('fzom', ImportReviewKind::Conflict, 'conflict:'.$blocked->id, 'Conflict', ['field' => 'city'], $blocked);
+        $ambiguous = $unverified('Горан Истоимен', 'ambiguous_name');
+        $disagreeing = $unverified('Дана Несогласна', 'sources_disagree');
+        $mismatch = $unverified('Ѓорѓи Неусогласен', 'specialty_mismatch');
+        $websiteOnly = $unverified('Елена Сајтовска', 'no_licence');
+        $stale = $unverified('Жаклина Застарена', 'stale_source');
+        $staffDecided = $this->draft(false, 'Зоран Одлучен');
+        app(VerificationWriter::class)->unverify($staffDecided, 'Called the clinic', $this->staff(RoleCatalog::ADMINISTRATOR));
+        $verified = $this->draft(true, 'Ивана Верификувана');
+
+        $viewer = $this->staff(RoleCatalog::MODERATOR);
+        $viewer->givePermissionTo(Permission::findByName('imports.view'));
+        $this->actingAs($viewer);
+        Livewire::test(ListImportReviewItems::class)->assertActionHidden('publishFzomUnverified');
+
+        $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
+        Livewire::test(ListImportReviewItems::class)
+            ->assertActionVisible('publishFzomUnverified')
+            ->mountAction('publishFzomUnverified')
+            ->assertMountedActionModalSee('Publish 2 unverified ФЗОМ drafts?')
+            ->assertMountedActionModalSee('Ана Фзомска')
+            ->assertMountedActionModalDontSee('Вера Спорна')
+            ->assertMountedActionModalDontSee('Ивана Верификувана')
+            ->callMountedAction();
+
+        $this->assertTrue($first->fresh()->is_published);
+        $this->assertTrue($second->fresh()->is_published);
+        $this->assertFalse($first->fresh()->isVerified(), 'Published, still „Неверифициран“.');
+        foreach ([$blocked, $ambiguous, $disagreeing, $mismatch, $websiteOnly, $stale, $staffDecided, $verified] as $doctor) {
+            $this->assertFalse($doctor->fresh()->is_published, $doctor->full_name);
+        }
+
+        Livewire::test(ListImportReviewItems::class)->assertActionHidden('publishFzomUnverified');
+    }
+
     public function test_uncertain_items_come_first_and_a_flagged_website_can_be_trusted(): void
     {
         $facility = Facility::factory()->create();

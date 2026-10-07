@@ -214,7 +214,7 @@ class VerificationEngineTest extends TestCase
 
         $this->adjudicate();
 
-        $this->assertSame('no_licence', $this->reasons($noLicence)['reason']);
+        $this->assertSame('fzom_no_licence', $this->reasons($noLicence)['reason']);
         $this->assertSame('dentist_single_source', $this->reasons($dentist)['reason']);
         $this->assertSame('no_licence', $this->reasons($websiteOnly)['reason']);
         $this->assertSame('no_import_evidence', $this->reasons($handMade)['reason']);
@@ -508,5 +508,43 @@ class VerificationEngineTest extends TestCase
         $this->assertFalse($first->fresh()->is_published);
         $this->assertFalse($facility->fresh()->is_published);
         $this->assertSame(1, $run->counts['auto_published']);
+    }
+
+    public function test_fzom_drafts_without_a_licence_are_auto_published_unverified_only_with_their_own_flag(): void
+    {
+        $facility = $this->facility();
+        $backlog = $this->fzomDoctor('Анита Заостаната', $facility);
+        ImportReviewItem::raise('fzom', ImportReviewKind::New, 'doctor:'.$backlog->id, 'draft', [], $backlog);
+
+        config(['import.verification.auto_publish' => true]);
+        $this->adjudicate();
+        $this->assertFalse($backlog->fresh()->is_published, 'IMPORT_AUTO_PUBLISH_VERIFIED alone publishes verified drafts only.');
+        $this->assertSame('fzom_no_licence', $this->reasons($backlog)['reason']);
+
+        config(['import.verification.auto_publish_fzom_unverified' => true]);
+        $fresh = $this->fzomDoctor('Бојан Новодојден', $facility);
+        ImportReviewItem::raise('fzom', ImportReviewKind::New, 'doctor:'.$fresh->id, 'draft', [], $fresh);
+        $duplicate = $this->fzomDoctor('Весна Двојничка', $facility);
+        ImportReviewItem::raise('fzom', ImportReviewKind::New, 'doctor:'.$duplicate->id, 'draft', [], $duplicate);
+        ImportReviewItem::raise('fzom', ImportReviewKind::Unmatched, 'possible-duplicate:'.$duplicate->id, 'possible duplicate', ['reason' => 'possible_duplicate'], $duplicate);
+        // Two ФЗОМ doctors of one name, one licence on the list: either could hold it.
+        $ambiguous = $this->fzomDoctor('Горан Двосмислен', $facility);
+        $twin = $this->fzomDoctor('Горан Двосмислен', $this->facility('ЈЗУ Друга', 'Битола', '4030000000002'));
+        foreach ([$ambiguous, $twin] as $doctor) {
+            ImportReviewItem::raise('fzom', ImportReviewKind::New, 'doctor:'.$doctor->id, 'draft', [], $doctor);
+        }
+        $this->licence('Горан Двосмислен', 'педијатрија');
+
+        $run = $this->adjudicate();
+
+        // Newly in the set this run: published, and still unverified.
+        $this->assertTrue($fresh->fresh()->is_published);
+        $this->assertFalse($fresh->fresh()->isVerified());
+        $this->assertSame(1, $run->counts['auto_published_fzom_unverified']);
+        // The backlog waits for the bulk action; a blocking item or an ambiguous licence keeps a draft hidden.
+        $this->assertFalse($backlog->fresh()->is_published);
+        $this->assertFalse($duplicate->fresh()->is_published);
+        $this->assertFalse($ambiguous->fresh()->is_published || $twin->fresh()->is_published);
+        $this->assertSame('ambiguous_name', $this->reasons($ambiguous)['reason']);
     }
 }

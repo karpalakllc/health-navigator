@@ -316,7 +316,11 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 1. Drafts the verification engine verified (two sources agree,
    [`verification.md`](verification.md)) can go public together:
    **„Објави ги сите верифицирани“** shows their number and a random sample
-   of 20, then publishes them all. Check other drafts against the source
+   of 20, then publishes them all. **„Објави ги и неверифицираните од
+   ФЗОМ“** does the same for ФЗОМ doctors with no licence on the Комора list
+   and nothing else open on them: public, still „Неверифициран“
+   ([`verification.md`](verification.md) §8;
+   `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Check other drafts against the source
    before publishing: **Publish selected drafts** (bulk) once a batch is
    checked; it also publishes the hidden imported specialties the doctor
    uses. The queue is sorted by priority (what matters most first).

@@ -66,13 +66,15 @@ Everything else is **unverified**, with the first reason that applies:
 | `low_confidence_source` | Only a staff-page entry the research marked uncertain lists the doctor | no |
 | `sources_disagree` | ФЗОМ and the staff page name different institutions, or contradicting specialties | no |
 | `dentist_single_source` | Dentist known only from a staff page, not from ФЗОМ | no |
-| `no_licence` | No licence on the Комора list for this name | no |
+| `fzom_no_licence` | Current in ФЗОМ, but the Комора list has no licence of this name | no — may be **published unverified** (§8) |
+| `no_licence` | Known from a staff page only, and the Комора list has no licence of this name | no |
 | `no_import_evidence` | Entered by hand, no source evidence: staff verify it | no |
 
 „No licence“ and one-source cases are **not** review items: there is
 nothing a person could decide from the queue — the evidence is simply
 absent. They remain drafts until a later import brings a second source, or
-staff verify them individually.
+staff verify them individually — except `fzom_no_licence` drafts, which the
+owner decided may go public unverified (§8).
 
 ## 3. Facilities and pharmacies
 
@@ -170,6 +172,25 @@ The engine never publishes on its own unless asked:
   the drafts **it newly verified** — not the backlog, which stays for the
   bulk action.
 
+Owner's decision (2026-10): doctors ФЗОМ lists today whose name has **no
+licence on the Комора list** are published but stay „Неверифициран“; they
+are verified automatically once a licence (or a staff page of the same
+institution) appears.
+
+- **„Објави ги и неверифицираните од ФЗОМ“** (next to the first action,
+  `imports.manage`): count and a random sample of 20, then publishes the
+  open „new“ drafts whose engine reason is `fzom_no_licence` — set by the
+  engine, never a staff decision — and that have **no other open review
+  item** (conflict, missing, possible duplicate, uncertain…). By
+  construction it never takes `ambiguous_name`, `sources_disagree`,
+  `specialty_mismatch`, `no_specialty`, a lapsed licence, or website-only
+  drafts (`no_licence`, `stale_source`, `low_confidence_source`).
+- `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED=true` (default `false`, separate from
+  the flag above): each run publishes the drafts that **entered** that set
+  in this run (after the run's review items are raised, so a new blocking
+  item keeps a draft hidden); the backlog stays for the bulk action.
+- `import:adjudicate --report` prints both counts.
+
 ## 9. Measured
 
 Synthetic fixtures: `tests/Feature/Verification/VerificationEngineTest.php`
@@ -189,7 +210,7 @@ counts only):
 | Doctors verified: `fzom_website` | 21 |
 | Facilities verified: `fzom_register` | 2,623 (every ФЗОМ institution) |
 | Doctors unverified: `dentist_single_source` (measured before `fzom_dentist`: almost all of these are ФЗОМ dentists, now verified by it) | 1,698 |
-| … `no_licence` | 1,044 |
+| … `no_licence` (measured before the split: ФЗОМ doctors now report `fzom_no_licence`, website-only drafts `no_licence`) | 1,044 |
 | … `stale_source` | 328 |
 | … `no_specialty` | 180 |
 | … `low_confidence_source` | 118 |

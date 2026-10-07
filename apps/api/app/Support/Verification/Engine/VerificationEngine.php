@@ -32,7 +32,8 @@ use Throwable;
  *    grouped and prioritised (ReviewSignals), and closes those that no
  *    longer apply;
  * 4. with IMPORT_AUTO_PUBLISH_VERIFIED, publishes the drafts verified in
- *    this run.
+ *    this run; with IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED, those that became
+ *    "current in ФЗОМ, no licence" (fzom_no_licence) in this run, unverified.
  *
  * A dry run decides and counts only. Every run is an import_runs row
  * (source "verification") with its counts. Drafts change status without an
@@ -86,11 +87,12 @@ final class VerificationEngine
             $doctorRules = new DoctorRules;
             $facilityRules = new FacilityRules;
             $newly = ['doctor' => [], 'facility' => []];
+            $newlyFzomUnverified = [];
             $reindex = ['doctor' => [], 'facility' => []];
 
             $byNamesakes = [];
 
-            Doctor::query()->orderBy('id')->chunkById(self::CHUNK, function ($doctors) use ($loader, $signals, $doctorRules, $dryRun, $add, &$newly, &$reindex, &$byNamesakes): void {
+            Doctor::query()->orderBy('id')->chunkById(self::CHUNK, function ($doctors) use ($loader, $signals, $doctorRules, $dryRun, $add, &$newly, &$reindex, &$byNamesakes, &$newlyFzomUnverified): void {
                 $evidence = $loader->doctors($doctors);
 
                 foreach ($doctors as $doctor) {
@@ -99,11 +101,17 @@ final class VerificationEngine
                     $verdict = $doctorRules->decide($e);
                     $previousBasis = $doctor->verification_basis?->value;
                     $wasAutoVerified = $doctor->isVerified() && ! $doctor->hasStaffVerificationDecision();
+                    $wasFzomUnverified = ! $doctor->isVerified() && ($doctor->verification_reasons['reason'] ?? null) === Reason::FZOM_NO_LICENCE;
                     $add($verdict->isVerified() ? 'doctors_verified.'.$verdict->rule?->value : 'doctors_unverified.'.$verdict->reason);
 
                     $result = $dryRun ? $this->predict($doctor, $verdict) : $this->write($doctor, $verdict, (bool) $doctor->is_published);
                     $add('doctors_result.'.$result->value);
                     $this->track('doctor', $doctor, $result, $newly, $reindex);
+
+                    if ($verdict->reason === Reason::FZOM_NO_LICENCE && ! $wasFzomUnverified && ! $doctor->is_published
+                        && $result !== VerificationResult::StaffDecisionKept) {
+                        $newlyFzomUnverified[] = (int) $doctor->getKey();
+                    }
 
                     $signals->doctor($doctor, $e, $verdict, $doctorRules, $wasAutoVerified && ! $verdict->isVerified() && (bool) $doctor->is_published, $previousBasis);
 
@@ -145,6 +153,12 @@ final class VerificationEngine
 
                 if ((bool) config('import.verification.auto_publish')) {
                     $add('auto_published', $this->publisher->publishNewlyVerified($newly['doctor'], $newly['facility']));
+                }
+
+                // After the review items are raised: a draft with an open
+                // item is not in the set.
+                if ((bool) config('import.verification.auto_publish_fzom_unverified')) {
+                    $add('auto_published_fzom_unverified', $this->publisher->publishNewlyFzomUnverified($newlyFzomUnverified));
                 }
             }
         } catch (Throwable $exception) {

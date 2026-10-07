@@ -123,7 +123,8 @@ final class DoctorRules
             $sites === [] && $linkedSites !== [] => Verdict::unverified(Reason::LOW_CONFIDENCE_SOURCE),
             $e->fzomCurrent && $sites !== [] => Verdict::unverified(Reason::SOURCES_DISAGREE),
             $e->dental && ($e->fzomCurrent || $sites !== []) => Verdict::unverified(Reason::DENTIST_SINGLE_SOURCE),
-            $e->fzomCurrent || $sites !== [] => Verdict::unverified(Reason::NO_LICENCE),
+            $e->fzomCurrent => Verdict::unverified(Reason::FZOM_NO_LICENCE, ['source_record_id' => $e->fzomRecordId]),
+            $sites !== [] => Verdict::unverified(Reason::NO_LICENCE),
             $e->fzomRecordId !== null => Verdict::unverified(Reason::SOURCE_REMOVED, ['source_record_id' => $e->fzomRecordId]),
             default => Verdict::unverified(Reason::NO_IMPORT_EVIDENCE),
         };

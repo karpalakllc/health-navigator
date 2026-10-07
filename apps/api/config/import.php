@@ -95,6 +95,12 @@ return [
         // Publish the drafts a run newly verifies, without staff. Off: staff
         // publish them with „Објави ги сите верифицирани“ in Import review.
         'auto_publish' => (bool) env('IMPORT_AUTO_PUBLISH_VERIFIED', false),
+
+        // Publish, still unverified, the drafts a run newly finds current in
+        // ФЗОМ with no licence on the Комора list (reason fzom_no_licence)
+        // and no open review item on them (owner's decision). Off: staff use
+        // „Објави ги и неверифицираните од ФЗОМ“ in Import review.
+        'auto_publish_fzom_unverified' => (bool) env('IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED', false),
     ],
 
 ];
