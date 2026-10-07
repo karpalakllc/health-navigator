@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\DB;
  * unmapped, not excluded and never edited (updated_at = created_at) change.
  * Their open „Unmapped specialty wording“ review items are resolved. Doctors
  * are re-linked the next time the website slices are imported.
+ *
+ * Forward-only, and it reads the live map (SpecialtyText, the catalogue):
+ * on a fresh database there are no website aliases yet, so it changes
+ * nothing there; imports map the wordings themselves.
  */
 return new class extends Migration
 {
@@ -70,6 +74,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Data only: a mapping is kept (staff can change it in Specialty aliases).
+        // Forward-only data: a mapping is kept (staff can change it in Specialty aliases).
     }
 };

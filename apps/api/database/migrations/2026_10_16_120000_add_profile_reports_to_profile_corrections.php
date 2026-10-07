@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -27,9 +28,17 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Lossy: profile reports cannot exist without these columns, so they are
+     * deleted before `message` is required again.
+     */
     public function down(): void
     {
+        DB::table('profile_corrections')->where('type', 'report')->delete();
+        DB::table('profile_corrections')->whereNull('message')->update(['message' => '']);
+
         Schema::table('profile_corrections', function (Blueprint $table) {
+            $table->text('message')->nullable(false)->change();
             $table->dropIndex('profile_corrections_subject_open_index');
             $table->dropColumn(['report_reason', 'reporter_hash']);
         });
