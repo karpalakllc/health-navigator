@@ -5,14 +5,14 @@ namespace App\Support\Verification;
 use Illuminate\Support\Facades\Lang;
 
 /**
- * Why a profile is „Верифициран“. The code is stored in
+ * Why a profile is „Верификуван“. The code is stored in
  * verification_basis and exposed in the API (`verification.basis`) with a
  * public Macedonian label (lang/{mk,en}/api.php verification.basis.*). The
  * evidence behind it stays internal (verification_reasons).
  */
 enum VerificationBasis: string
 {
-    /** Doctor: ФЗОМ workplace + valid Комора licence + compatible specialty. Facility / pharmacy: an official register (ФЗОМ / Ministry) with matching tax no., name and town. */
+    /** Doctor: ФЗОМ workplace + valid Комора licence + compatible specialty. Facility: the ФЗОМ register with matching tax no., name and town (pharmacies are not in it: staff verify them). */
     case OfficialRegisters = 'official_registers';
 
     /** Doctor on the institution's website staff page + unique valid Комора licence + compatible specialty. */
@@ -21,7 +21,7 @@ enum VerificationBasis: string
     /** Doctor listed by both the institution's website and ФЗОМ at the same institution. */
     case WebsiteAndRegister = 'website_and_register';
 
-    /** Checked by our staff (Filament „Verify“ or the engine's staff-confirmed rule). */
+    /** Checked by our staff (the Filament „Verify“ action). */
     case Staff = 'staff';
 
     /** The doctor claimed the profile and staff checked their identity. */
@@ -58,7 +58,7 @@ enum VerificationBasis: string
     public function label(): string
     {
         return match ($this) {
-            self::OfficialRegisters => 'Official registers (ФЗОМ, Лекарска комора, Ministry)',
+            self::OfficialRegisters => 'Official registers (ФЗОМ, Лекарска комора)',
             self::LicenceAndWebsite => 'Valid licence + institution website',
             self::WebsiteAndRegister => 'Institution website + ФЗОМ',
             self::Staff => 'Checked by staff',

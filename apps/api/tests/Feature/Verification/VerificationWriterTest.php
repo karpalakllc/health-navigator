@@ -145,7 +145,7 @@ class VerificationWriterTest extends TestCase
             'basis' => 'official_registers',
             'basis_label' => 'Регистар на ФЗОМ и Лекарска комора',
         ], $doctor->fresh()->publicVerification());
-        $this->assertSame('Официјален регистар (ФЗОМ или Министерство за здравство)', $facility->fresh()->publicVerification()['basis_label']);
+        $this->assertSame('Регистар на ФЗОМ', $facility->fresh()->publicVerification()['basis_label']);
         $this->assertSame(1, Doctor::query()->verified()->count());
     }
 

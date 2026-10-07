@@ -123,7 +123,7 @@ class VerificationActionsTest extends TestCase
 
         Livewire::test(EditPharmacy::class, ['record' => $pharmacy->getRouteKey()])
             ->assertActionVisible('verifyProfile')
-            ->callAction('verifyProfile', ['basis' => 'official_registers', 'reason' => 'In the Ministry list.'])
+            ->callAction('verifyProfile', ['basis' => 'official_registers', 'reason' => 'Called the pharmacy.'])
             ->assertHasNoActionErrors();
 
         $this->assertTrue($pharmacy->fresh()->isVerified());

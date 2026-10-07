@@ -167,8 +167,8 @@ return [
                 'official_registers' => 'ФЗОМ register',
             ],
             'facility' => [
-                'official_registers' => 'Official register (ФЗОМ or the Ministry of Health)',
-                'licence_and_website' => 'The institution\'s website and an official register',
+                'official_registers' => 'ФЗОМ register',
+                'licence_and_website' => 'The institution\'s website and the ФЗОМ register',
                 'website_and_register' => 'The institution\'s website and the ФЗОМ register',
                 'staff' => 'Confirmed by our team',
                 'owner_claim' => 'Claimed by the facility (identity confirmed)',
