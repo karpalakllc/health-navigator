@@ -7,6 +7,9 @@ import { tagTones, type TagTone } from "@/components/ui/tag-tones";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/t";
 
+/** A position utility (absolute / fixed / sticky) in the caller's className. */
+const OWN_POSITION = /(?:^|\s)(?:absolute|fixed|sticky)(?:\s|$)/;
+
 /** Where „Повеќе“ in every badge explanation leads: how results are ordered. */
 export const DISCLOSURE_MORE_HREF = "/transparency#redosled";
 
@@ -90,7 +93,15 @@ export function DisclosureBadge({
   return (
     <span
       ref={rootRef}
-      className={cn("relative inline-flex shrink-0", className)}
+      className={cn(
+        "inline-flex shrink-0",
+        // The panel's anchor. A caller that places the badge itself
+        // (`absolute left-3 top-3` on a card cover) already makes it one;
+        // both classes together would leave it in the flow, because
+        // `.relative` comes later in the stylesheet.
+        !OWN_POSITION.test(className ?? "") && "relative",
+        className,
+      )}
       onBlur={(event) => {
         // Only when focus lands on something else outside: a press on the
         // panel's own text moves focus nowhere (relatedTarget null), and

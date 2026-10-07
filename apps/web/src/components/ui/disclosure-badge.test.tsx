@@ -26,6 +26,22 @@ describe("DisclosureBadge (featured / sponsored toggletip)", () => {
     expect(screen.queryByText(featuredInfo)).not.toBeInTheDocument();
   });
 
+  it("takes a card's absolute placement instead of its own relative one", () => {
+    // Facility and pharmacy cards overlay the mark on the cover photo. Both
+    // `relative` and `absolute` on one element leave it in the flow
+    // (`.relative` comes later in the stylesheet), under the photo.
+    const { container, rerender } = render(
+      <FeaturedMark className="absolute left-3 top-3 shadow-card" />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveClass("absolute", "left-3", "top-3");
+    expect(root).not.toHaveClass("relative");
+
+    // Placed nowhere in particular, it stays the anchor of its panel.
+    rerender(<FeaturedMark />);
+    expect(container.firstElementChild).toHaveClass("relative");
+  });
+
   it("opens on click and closes on a second click", async () => {
     const user = userEvent.setup();
     render(<FeaturedMark />);
