@@ -138,7 +138,7 @@ export function HelpfulFeedback({
           </fieldset>
           {state.chosen.length > 0 ? (
             <div>
-              <Button variant="soft" size="md" onClick={sendReasons}>
+              <Button variant="primary" size="md" onClick={sendReasons}>
                 {t("feedback.send")}
               </Button>
             </div>

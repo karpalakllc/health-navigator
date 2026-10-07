@@ -89,7 +89,12 @@ export function UrgentCareFinder({ places }: { places: UrgentCarePlace[] }) {
   const selectedPlace = places.find((p) => p.slug === selected) ?? null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
+    <div
+      className={cn(
+        "grid gap-6 lg:items-start lg:gap-8",
+        anyCoordinates && "lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]",
+      )}
+    >
       <div className="flex min-w-0 flex-col gap-4">
         {anyCoordinates ? (
           <div className="flex flex-col gap-1">
@@ -135,41 +140,40 @@ export function UrgentCareFinder({ places }: { places: UrgentCarePlace[] }) {
         </ul>
       </div>
 
-      <aside
-        aria-label={t("directory.map")}
-        className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]"
-      >
-        {selectedPlace &&
-        hasMapCoordinates(selectedPlace.latitude, selectedPlace.longitude) ? (
-          <div className="flex flex-col gap-2">
-            <div className="overflow-hidden rounded-card bg-sand">
-              <iframe
-                key={selectedPlace.slug}
-                title={tFormat("urgentCare.mapTitle", {
-                  name: selectedPlace.name,
-                })}
-                src={openStreetMapEmbedUrl(
-                  selectedPlace.latitude as number,
-                  selectedPlace.longitude as number,
-                )}
-                className="aspect-[4/3] w-full border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
+      {/* No place has coordinates yet: no empty map box; each card has „Насоки“. */}
+      {anyCoordinates ? (
+        <aside
+          aria-label={t("directory.map")}
+          className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]"
+        >
+          {selectedPlace &&
+          hasMapCoordinates(selectedPlace.latitude, selectedPlace.longitude) ? (
+            <div className="flex flex-col gap-2">
+              <div className="overflow-hidden rounded-card bg-sand">
+                <iframe
+                  key={selectedPlace.slug}
+                  title={tFormat("urgentCare.mapTitle", {
+                    name: selectedPlace.name,
+                  })}
+                  src={openStreetMapEmbedUrl(
+                    selectedPlace.latitude as number,
+                    selectedPlace.longitude as number,
+                  )}
+                  className="aspect-[4/3] w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <p className="type-meta text-ink-2">{selectedPlace.name}</p>
             </div>
-            <p className="type-meta text-ink-2">{selectedPlace.name}</p>
-          </div>
-        ) : (
-          <div className="flex min-h-40 items-center gap-3 rounded-card bg-sand p-5 type-meta text-ink-2">
-            <Icon name="map-pin" size={24} className="shrink-0" />
-            <span>
-              {anyCoordinates
-                ? t("urgentCare.mapHint")
-                : t("urgentCare.mapNone")}
-            </span>
-          </div>
-        )}
-      </aside>
+          ) : (
+            <div className="flex min-h-40 items-center gap-3 rounded-card bg-sand p-5 type-meta text-ink-2">
+              <Icon name="map-pin" size={24} className="shrink-0" />
+              <span>{t("urgentCare.mapHint")}</span>
+            </div>
+          )}
+        </aside>
+      ) : null}
     </div>
   );
 }
