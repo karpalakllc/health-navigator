@@ -14,7 +14,7 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /**
- * Admin „UX анализа“: the anonymous counters as tables and funnels, and the
+ * Admin “UX analysis”: the anonymous counters as tables and funnels, and the
  * staff-only heatmap link.
  */
 class UxAnalysisPageTest extends TestCase
@@ -48,10 +48,10 @@ class UxAnalysisPageTest extends TestCase
         Livewire::actingAs($this->staff())
             ->test(UxAnalysis::class)
             ->assertOk()
-            ->assertSee('Картичка на лекар → наслов (не е интерактивно)')
+            ->assertSee('Doctor card → heading (not interactive)')
             ->assertSee('doctor-card/heading')
-            ->assertSee('Главна содржина → линк')
-            ->assertSee('1 посети на /');
+            ->assertSee('Main content → link')
+            ->assertSee('1 views of /');
     }
 
     public function test_it_states_the_configured_retention(): void
@@ -60,8 +60,8 @@ class UxAnalysisPageTest extends TestCase
 
         Livewire::actingAs($this->staff())
             ->test(UxAnalysis::class)
-            ->assertSee('Се чуваат 90 дена.')
-            ->assertDontSee('Се чуваат 180 дена.');
+            ->assertSee('Kept for 90 days.')
+            ->assertDontSee('Kept for 180 days.');
     }
 
     public function test_it_is_hidden_from_staff_without_analytics(): void
