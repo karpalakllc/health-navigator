@@ -3,6 +3,7 @@
 namespace App\Support\Verification\Engine;
 
 use App\Enums\ImportReviewKind;
+use App\Enums\ImportReviewStatus;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\FieldProvenance;
@@ -12,6 +13,9 @@ use App\Support\Import\ImportReviewActions;
 use App\Support\Verification\VerificationSource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Str;
+use Spatie\Activitylog\Support\CauserResolver;
+use Throwable;
 
 /**
  * Publishes imported drafts the engine verified: in bulk from the review
@@ -27,7 +31,9 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * Every publication goes through ImportReviewActions::publish (suppressed
  * doctors refused, hidden imported specialties published along, the "new"
- * item closed).
+ * item closed). The panel's and `import:publish`'s bulk publishes run in
+ * chunks in the background (BulkPublish): thousands of drafts do not fit in
+ * one web request.
  */
 final class VerifiedDraftPublisher
 {
@@ -206,13 +212,58 @@ final class VerifiedDraftPublisher
         $published = 0;
 
         foreach (array_chunk($itemIds, 200) as $chunk) {
-            foreach (ImportReviewItem::query()->whereKey($chunk)->open()->get() as $item) {
-                if ($this->actions->publish($item, $by)) {
-                    $published++;
-                }
-            }
+            $published += $this->publishChunk($chunk, $by)['published'];
         }
 
         return $published;
+    }
+
+    /**
+     * Publishes one chunk of items. Each item is its own transaction
+     * (ImportReviewActions::publish claims it first, so a chunk run twice —
+     * a resumed bulk publish, a second worker — publishes nothing twice).
+     * The search index is sent once per chunk, after those transactions
+     * committed, instead of one document per save. An item that throws is
+     * reported and recorded; the rest of the chunk goes on.
+     *
+     * @param  list<int|string>  $itemIds
+     * @return array{published: int, skipped: int, failures: list<array{item: int, error: string}>}
+     */
+    public function publishChunk(array $itemIds, ?User $by): array
+    {
+        $published = 0;
+        $skipped = 0;
+        $failures = [];
+        $subjects = [FieldProvenance::SUBJECT_DOCTOR => [], FieldProvenance::SUBJECT_FACILITY => []];
+
+        $publish = function () use ($itemIds, $by, &$published, &$skipped, &$failures, &$subjects): void {
+            foreach (ImportReviewItem::query()->whereKey($itemIds)->orderBy('id')->get() as $item) {
+                try {
+                    if ($item->status === ImportReviewStatus::Open && $item->kind === ImportReviewKind::New && $this->actions->publish($item, $by)) {
+                        $published++;
+                        $subjects[$item->subject_type][] = (int) $item->subject_id;
+                    } else {
+                        $skipped++;
+                    }
+                } catch (Throwable $exception) {
+                    report($exception);
+                    $failures[] = ['item' => (int) $item->getKey(), 'error' => class_basename($exception).': '.Str::limit($exception->getMessage(), 200)];
+                }
+            }
+        };
+
+        // The activity log names who published, also on a queue worker.
+        app(CauserResolver::class)->withCauser($by, fn () => Doctor::withoutSyncingToSearch(fn () => Facility::withoutSyncingToSearch($publish)));
+
+        // One search update per type (queued with SCOUT_QUEUE), not one per save.
+        if ($subjects[FieldProvenance::SUBJECT_DOCTOR] !== []) {
+            (new Doctor)->queueMakeSearchable(Doctor::query()->whereKey($subjects[FieldProvenance::SUBJECT_DOCTOR])->get()->filter(fn (Doctor $doctor): bool => $doctor->shouldBeSearchable()));
+        }
+
+        if ($subjects[FieldProvenance::SUBJECT_FACILITY] !== []) {
+            (new Facility)->queueMakeSearchable(Facility::query()->whereKey($subjects[FieldProvenance::SUBJECT_FACILITY])->get()->filter(fn (Facility $facility): bool => $facility->shouldBeSearchable()));
+        }
+
+        return ['published' => $published, 'skipped' => $skipped, 'failures' => $failures];
     }
 }

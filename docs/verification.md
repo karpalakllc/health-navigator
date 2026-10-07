@@ -209,7 +209,10 @@ opened).
   `imports.manage`): shows how many verified hidden drafts there are and a
   random sample of 20 to glance at, then publishes them all through the
   normal publish action (suppressed doctors refused, hidden imported
-  specialties published along, their „new“ items closed). Auto-published
+  specialties published along, their „new“ items closed) — in the
+  background, in chunks, with progress on the page and a notification when
+  done ([`data-import.md`](data-import.md) §8; CLI:
+  `import:publish verified|fzom-unverified`). Auto-published
   drafts are sent to the search index after the run.
 - `IMPORT_AUTO_PUBLISH_VERIFIED=true` (default `false`): each run publishes
   the drafts **it newly verified** — not the backlog, which stays for the

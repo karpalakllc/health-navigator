@@ -146,6 +146,38 @@ stdout_logfile=/path/to/logs/worker.log
 
 Restart workers after each deploy.
 
+### Bulk publish of imported drafts
+
+„Објави ги сите верификувани“ / „Објави ги и неверификуваните од ФЗОМ“
+(Import review) and a large **Publish selected drafts** selection publish
+thousands of profiles: they run as a `bulk_operations` row driven by the
+queued `RunBulkPublish` job, which publishes 500-item chunks for ~45 s and
+then queues itself again (each job stays well under `--timeout`). Production
+needs nothing beyond the worker above. Progress shows above the review
+table; the staff member who started it gets a panel notification (the bell,
+`notifications` table) when it finishes. If no worker picks the job up
+within 90 s, the open review page carries on itself, a chunk per poll, so
+the publish never silently stalls. `php artisan import:publish
+verified|fzom-unverified --by=<email>` does the same from a shell and
+continues a stopped run.
+
+**Local previews.** With `QUEUE_CONNECTION=sync` (tests, E2E) a dispatched
+job would run inside the click's request again — and hit PHP's 30 s limit
+— so the panel does not dispatch it: the first chunk is published in the
+click's request within a time budget (half of `max_execution_time`, at most
+15 s), then the progress widget publishes the next chunk on every poll
+(every 3 s, also in a background tab) until done; leave Import review open.
+With `QUEUE_CONNECTION=database` and no worker running, the page takes over
+after 90 s in the same way. To publish in the background instead (the page
+may be closed), run a worker next to the app:
+
+```bash
+cd apps/api && php artisan queue:work --tries=3 --timeout=120
+```
+
+or publish the whole set from the terminal:
+`php artisan import:publish verified --by=<your staff email>`.
+
 ### Failed jobs
 
 A job that exhausts its tries lands in `failed_jobs`. Verification and
