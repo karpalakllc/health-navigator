@@ -19,7 +19,7 @@ class UxTargetDescriberTest extends TestCase
         }
 
         foreach (UxSchema::targetElements() as $element) {
-            $this->assertNotSame($element, explode(' → ', UxTargetDescriber::describe('page/'.$element))[1], "No words for element „{$element}“.");
+            $this->assertTrue(UxTargetDescriber::knowsElement($element), "No words for element „{$element}“.");
         }
     }
 
@@ -29,6 +29,6 @@ class UxTargetDescriberTest extends TestCase
             $this->assertFalse(UxTargetDescriber::knows($unused));
         }
 
-        $this->assertStringStartsWith('Картичка на лекар → наслов', UxTargetDescriber::describe('doctor-card/heading'));
+        $this->assertStringStartsWith('Doctor card → heading', UxTargetDescriber::describe('doctor-card/heading'));
     }
 }

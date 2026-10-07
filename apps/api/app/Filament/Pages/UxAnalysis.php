@@ -14,7 +14,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 
 /**
- * „UX анализа“: where visitors click and how far they scroll, per page
+ * “UX analysis”: where visitors click and how far they scroll, per page
  * template and device class, from the anonymous daily counters
  * (docs/ux-heatmaps.md). The heatmap itself is drawn over the public page by a
  * staff-only overlay, opened with a short-lived link minted here.
@@ -23,13 +23,13 @@ class UxAnalysis extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedCursorArrowRays;
 
-    protected static ?string $navigationLabel = 'UX анализа';
+    protected static ?string $navigationLabel = 'UX analysis';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Platform';
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $title = 'UX анализа';
+    protected static ?string $title = 'UX analysis';
 
     protected static ?string $slug = 'ux-analysis';
 
@@ -97,10 +97,10 @@ class UxAnalysis extends Page
     public function periodOptions(): array
     {
         return [
-            ['value' => 7, 'label' => 'Последни 7 дена'],
-            ['value' => 30, 'label' => 'Последни 30 дена'],
-            ['value' => 90, 'label' => 'Последни 90 дена'],
-            ['value' => 180, 'label' => 'Последни 180 дена'],
+            ['value' => 7, 'label' => 'Last 7 days'],
+            ['value' => 30, 'label' => 'Last 30 days'],
+            ['value' => 90, 'label' => 'Last 90 days'],
+            ['value' => 180, 'label' => 'Last 180 days'],
         ];
     }
 
@@ -110,10 +110,10 @@ class UxAnalysis extends Page
     public function deviceOptions(): array
     {
         return [
-            '' => 'Сите уреди',
-            'mobile' => 'Мобилен (< 640 px)',
-            'tablet' => 'Таблет (640–1023 px)',
-            'desktop' => 'Десктоп (≥ 1024 px)',
+            '' => 'All devices',
+            'mobile' => 'Mobile (< 640 px)',
+            'tablet' => 'Tablet (640–1023 px)',
+            'desktop' => 'Desktop (≥ 1024 px)',
         ];
     }
 
@@ -157,12 +157,12 @@ class UxAnalysis extends Page
     public function tfiLabels(): array
     {
         return [
-            'tfi_under_1s' => 'под 1 s',
+            'tfi_under_1s' => 'under 1 s',
             'tfi_1_3s' => '1–3 s',
             'tfi_3_10s' => '3–10 s',
             'tfi_10_30s' => '10–30 s',
-            'tfi_over_30s' => 'над 30 s',
-            'tfi_none' => 'без клик',
+            'tfi_over_30s' => 'over 30 s',
+            'tfi_none' => 'no click',
         ];
     }
 

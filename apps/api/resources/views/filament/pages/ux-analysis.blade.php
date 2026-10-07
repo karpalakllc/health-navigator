@@ -15,17 +15,17 @@
     <x-filament::section>
         <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;">
             <label style="display:flex;flex-direction:column;gap:.25rem;min-width:16rem;">
-                <span style="font-size:.875rem;font-weight:500;">Страница (шаблон)</span>
+                <span style="font-size:.875rem;font-weight:500;">Page (template)</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="route" id="ux-route">
                         @foreach ($totals as $template => $row)
-                            <option value="{{ $template }}">{{ $template }} — {{ $row['views'] }} посети, {{ $row['clicks'] }} кликови</option>
+                            <option value="{{ $template }}">{{ $template }} — {{ $row['views'] }} views, {{ $row['clicks'] }} clicks</option>
                         @endforeach
                     </x-filament::input.select>
                 </x-filament::input.wrapper>
             </label>
             <label style="display:flex;flex-direction:column;gap:.25rem;">
-                <span style="font-size:.875rem;font-weight:500;">Уред</span>
+                <span style="font-size:.875rem;font-weight:500;">Device</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="device" id="ux-device">
                         @foreach ($this->deviceOptions() as $value => $label)
@@ -35,7 +35,7 @@
                 </x-filament::input.wrapper>
             </label>
             <label style="display:flex;flex-direction:column;gap:.25rem;">
-                <span style="font-size:.875rem;font-weight:500;">Период</span>
+                <span style="font-size:.875rem;font-weight:500;">Period</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="days" id="ux-days">
                         @foreach ($this->periodOptions() as $option)
@@ -46,40 +46,40 @@
             </label>
         </div>
         <p style="margin-top:.75rem;font-size:.8rem;opacity:.7;">
-            Анонимни дневни збирови: без посетители, сесии, IP адреси или текст од страницата.
-            Профилите се збирни по шаблон (на пр. сите профили на лекари заедно). Се чуваат {{ config('ux.retention_days', 180) }} дена.
+            Anonymous daily totals: no visitors, sessions, IP addresses or page text.
+            Profiles are grouped by template (e.g. all doctor profiles together). Kept for {{ config('ux.retention_days', 180) }} days.
         </p>
     </x-filament::section>
 
-    <x-filament::section heading="Топлинска мапа на самата страница" class="mt-6">
+    <x-filament::section heading="Heatmap on the page itself" class="mt-6">
         <p style="font-size:.875rem;">
-            Отвора јавна страница со слој што ги црта кликовите за вашиот тип уред (ширината на прозорецот одлучува:
-            мобилен, таблет или десктоп). Линкот е само за вас, важи {{ $this->overlayTtlMinutes() }} минути и
-            ги покажува последните {{ $days }} дена. Слојот останува вклучен додека шетате низ страниците во тоа јазиче.
+            Opens a public page with a layer that draws the clicks for your device class (the window width decides:
+            mobile, tablet or desktop). The link is for you only, is valid for {{ $this->overlayTtlMinutes() }} minutes and
+            shows the last {{ $days }} days. The layer stays on while you browse pages in that tab.
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;margin-top:.75rem;">
             <label style="display:flex;flex-direction:column;gap:.25rem;min-width:18rem;flex:1;">
-                <span style="font-size:.875rem;font-weight:500;">Адреса на страницата</span>
+                <span style="font-size:.875rem;font-weight:500;">Page address</span>
                 <x-filament::input.wrapper>
                     <x-filament::input type="text" wire:model="samplePath" id="ux-sample-path" />
                 </x-filament::input.wrapper>
             </label>
             <x-filament::button wire:click="createOverlayLink" icon="heroicon-o-link">
-                Создај линк за топлинска мапа
+                Create heatmap link
             </x-filament::button>
         </div>
         @if ($overlayUrl)
             <div style="margin-top:.75rem;">
                 <x-filament::link :href="$overlayUrl" target="_blank" rel="noopener noreferrer" icon="heroicon-o-arrow-top-right-on-square">
-                    Отвори ја страницата со топлинска мапа
+                    Open the page with the heatmap
                 </x-filament::link>
             </div>
         @endif
     </x-filament::section>
 
     <div style="display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fit,minmax(22rem,1fr));margin-top:1.5rem;">
-        <x-filament::section heading="Колку далеку се лизга">
-            <p style="font-size:.875rem;margin-bottom:.75rem;">{{ $views }} посети на {{ $route }}</p>
+        <x-filament::section heading="How far visitors scroll">
+            <p style="font-size:.875rem;margin-bottom:.75rem;">{{ $views }} views of {{ $route }}</p>
             @foreach ($summary['scroll'] as $milestone => $count)
                 <div style="display:flex;align-items:center;gap:.75rem;margin:.35rem 0;">
                     <span style="width:3.5rem;font-size:.8rem;">{{ $milestone }} %</span>
@@ -89,10 +89,10 @@
                     <span style="width:6rem;text-align:right;font-size:.8rem;font-variant-numeric:tabular-nums;">{{ $pct($count, $views) }} ({{ $count }})</span>
                 </div>
             @endforeach
-            <p style="font-size:.75rem;opacity:.7;margin-top:.5rem;">Удел од посетите што стигнале до тој дел од страницата.</p>
+            <p style="font-size:.75rem;opacity:.7;margin-top:.5rem;">Share of views that reached that part of the page.</p>
         </x-filament::section>
 
-        <x-filament::section heading="Време до првиот клик">
+        <x-filament::section heading="Time to first click">
             @foreach ($this->tfiLabels() as $column => $label)
                 @php $count = $summary['tfi'][$column] ?? 0; @endphp
                 <div style="display:flex;align-items:center;gap:.75rem;margin:.35rem 0;">
@@ -107,9 +107,9 @@
     </div>
 
     @foreach ([
-        ['heading' => 'Мртви кликови — клик на нешто што не реагира', 'rows' => $dead, 'empty' => 'Нема мртви кликови во овој период.'],
-        ['heading' => 'Бесни кликови — 3 или повеќе брзи кликови на исто место', 'rows' => $rage, 'empty' => 'Нема бесни кликови во овој период.'],
-        ['heading' => 'Најкликани елементи', 'rows' => $top, 'empty' => 'Сè уште нема кликови за оваа страница.'],
+        ['heading' => 'Dead clicks — a click on something that does not respond', 'rows' => $dead, 'empty' => 'No dead clicks in this period.'],
+        ['heading' => 'Rage clicks — 3 or more rapid clicks in the same spot', 'rows' => $rage, 'empty' => 'No rage clicks in this period.'],
+        ['heading' => 'Most-clicked elements', 'rows' => $top, 'empty' => 'No clicks for this page yet.'],
     ] as $table)
         <x-filament::section :heading="$table['heading']" class="mt-6">
             @if ($table['rows'] === [])
@@ -119,11 +119,11 @@
                     <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
                         <thead>
                             <tr>
-                                <th style="{{ $head }}">Елемент</th>
-                                <th style="{{ $head }}">Клуч</th>
-                                <th style="{{ $head }}text-align:right;">Кликови</th>
-                                <th style="{{ $head }}text-align:right;">Мртви</th>
-                                <th style="{{ $head }}text-align:right;">Бесни</th>
+                                <th style="{{ $head }}">Element</th>
+                                <th style="{{ $head }}">Key</th>
+                                <th style="{{ $head }}text-align:right;">Clicks</th>
+                                <th style="{{ $head }}text-align:right;">Dead</th>
+                                <th style="{{ $head }}text-align:right;">Rage</th>
                             </tr>
                         </thead>
                         <tbody>
