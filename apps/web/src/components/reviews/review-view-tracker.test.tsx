@@ -25,6 +25,10 @@ class FakeObserver {
 }
 
 function show(...ids: number[]) {
+  showAt(1, ...ids);
+}
+
+function showAt(ratio: number, ...ids: number[]) {
   const observer = observers[observers.length - 1];
 
   // The tracker may decline to watch at all (privacy signal, overlay tab).
@@ -36,7 +40,11 @@ function show(...ids: number[]) {
         .filter((element) =>
           ids.includes(Number((element as HTMLElement).dataset.reviewViewId)),
         )
-        .map((target) => ({ isIntersecting: true, target })),
+        .map((target) => ({
+          isIntersecting: true,
+          intersectionRatio: ratio,
+          target,
+        })),
     );
   });
 }
@@ -76,6 +84,25 @@ describe("ReviewViewTracker", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toBe("/api/reviews/views");
     expect(requestBody(fetch)).toEqual({ ids: [11, 12] });
+  });
+
+  it("counts a card only once at least half of it is on screen", () => {
+    const fetch = mockFetch({ status: 200, body: { data: { counted: 1 } } });
+    render(<ReviewViewTracker>{cards(21, 22)}</ReviewViewTracker>);
+
+    // The first callback / a sliver of the card: intersecting, ratio < 0.5.
+    showAt(0.01, 21, 22);
+    showAt(0.49, 21);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(fetch).not.toHaveBeenCalled();
+
+    showAt(0.5, 21);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(requestBody(fetch)).toEqual({ ids: [21] });
   });
 
   it("never reports the viewer's own review and sends nothing when nothing was seen", () => {

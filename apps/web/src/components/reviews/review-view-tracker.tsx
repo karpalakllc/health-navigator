@@ -77,7 +77,9 @@ export function ReviewViewTracker({
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (!entry.isIntersecting) {
+          // „At least half“: the first callback, or a card barely on screen,
+          // arrives intersecting with a smaller ratio. Keep watching it.
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
             continue;
           }
 
