@@ -36,8 +36,12 @@ final class SentryEventScrubber
 {
     public const FILTERED = '[Filtered]';
 
-    /** Matches password, current_password, reset_token, signature, new_email, triage answers, ... */
-    private const SENSITIVE_KEY = '/pass(word)?|token|secret|signature|api_?key|authori[sz]ation|e-?mail|^hash$|^answers$|^values$|^q$/i';
+    /**
+     * Matches password, current_password, reset_token, signature, new_email,
+     * triage answers, and what guidance v2 sends about a visitor (who they are,
+     * which symptoms, which red flags, which question they answered).
+     */
+    private const SENSITIVE_KEY = '/pass(word)?|token|secret|signature|api_?key|authori[sz]ation|e-?mail|^hash$|^answers$|^values$|^q$|^age_(value|unit)$|^sex$|^pregnancy$|^conditions$|^flows?$|^red_?flags$|^node$|^body_area$/i';
 
     /**
      * Two-factor material: recovery codes, the model's app_authentication_*

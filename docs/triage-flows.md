@@ -490,3 +490,21 @@ without an `unknown` branch; source domain outside the public list; banned wordi
 ```
 
 (`chronic` and `older_adult` are referenced in `q_pain`'s routing, so they need no note.)
+
+## 15. Workflow (content → visitors)
+
+1. Write or change `database/data/triage/flows/<key>.json`; run
+   `php artisan triage:lint database/data/triage/flows/<key>.json` until it has
+   no errors (warnings are for a human to judge).
+2. `php artisan triage:import` (or `db:seed --class=TriageFlowSeeder`, or admin
+   „Guidance flows → Import from files“) stores it as a **draft version**.
+3. Admin → Guidance flows → the flow → Versions: **Simulate** (any answers, the
+   path, scores and each node's routing; nothing stored), then **Record
+   clinician review** (approved / changes requested, date, note; name and
+   registration optional), then **Publish** (blocked unless approved and
+   lint-clean). Publishing retires the previous version; running sessions keep
+   the version they started with.
+4. Admin → Guidance outcomes: anonymous weekly counts per flow and outcome.
+
+Fixtures used by the tests live in `apps/api/tests/Fixtures/triage/` (the §14
+example is `example-sore-throat.json`).
