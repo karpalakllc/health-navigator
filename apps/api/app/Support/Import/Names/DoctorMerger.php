@@ -39,7 +39,7 @@ final class DoctorMerger
             return false;
         }
 
-        return DB::transaction(function () use ($fromId, $intoId, $by): bool {
+        $merged = DB::transaction(function () use ($fromId, $intoId, $by): bool {
             $from = Doctor::query()->lockForUpdate()->find($fromId);
             $into = Doctor::query()->lockForUpdate()->find($intoId);
 
@@ -124,5 +124,13 @@ final class DoctorMerger
 
             return true;
         });
+
+        // Workplaces and specialties were written to the pivots directly:
+        // the kept profile's search entry is refreshed (after the commit).
+        if ($merged) {
+            Doctor::query()->find($intoId)?->searchable();
+        }
+
+        return $merged;
     }
 }

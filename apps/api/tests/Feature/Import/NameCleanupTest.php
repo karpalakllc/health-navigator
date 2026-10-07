@@ -26,6 +26,8 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\EngineManager;
+use Laravel\Scout\Engines\NullEngine;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\PermissionRegistrar;
@@ -357,5 +359,47 @@ class NameCleanupTest extends TestCase
         $this->assertSame(ImportReviewStatus::Resolved, $group->fresh()->status);
         $this->assertTrue(Activity::query()->where('log_name', NameCleanup::LOG)->where('event', 'merged')->where('subject_id', $merged->id)->exists());
         $this->assertNotNull(Doctor::query()->find($public->id));
+    }
+
+    /**
+     * A group none of whose drafts can still be merged stays open; a merge
+     * refreshes the kept profile's search entry.
+     */
+    public function test_a_group_with_nothing_merged_stays_open_and_a_merge_reindexes(): void
+    {
+        $indexed = [];
+        $engine = new class($indexed) extends NullEngine
+        {
+            /** @param list<int> $indexed */
+            public function __construct(public array &$indexed) {}
+
+            public function update($models): void
+            {
+                foreach ($models as $model) {
+                    $this->indexed[] = (int) $model->getKey();
+                }
+            }
+        };
+        app(EngineManager::class)->extend('spy', fn () => $engine);
+        config(['scout.driver' => 'spy']);
+
+        $into = $this->doctor('Првана Примеровска', 'fzom', ['is_published' => true, 'published_at' => now()]);
+        $draft = $this->doctor('Првана Примеровска', 'website');
+        $published = $this->doctor('Втора Примеровска', 'website', ['is_published' => true, 'published_at' => now()]);
+        $other = $this->doctor('Втора Примеровска', 'fzom');
+        $staff = $this->staff();
+        $actions = app(NameReviewActions::class);
+        $raise = fn (string $key, array $pairs) => ImportReviewItem::raise('cleanup', ImportReviewKind::Uncertain, $key, 'Group', ['reason' => 'possible_duplicate', 'pairs' => $pairs]);
+
+        // The only draft was published since: nothing merged, the group stays open.
+        $stale = $raise('dup:stale', [[(int) $published->id, (int) $other->id]]);
+        $this->assertSame(['merged' => 0, 'skipped' => 1], $actions->merge($stale, $staff));
+        $this->assertSame(ImportReviewStatus::Open, $stale->fresh()->status);
+
+        $indexed = [];
+        $group = $raise('dup:ok', [[(int) $draft->id, (int) $into->id]]);
+        $this->assertSame(['merged' => 1, 'skipped' => 0], $actions->merge($group, $staff));
+        $this->assertSame(ImportReviewStatus::Resolved, $group->fresh()->status);
+        $this->assertContains((int) $into->id, $engine->indexed);
     }
 }

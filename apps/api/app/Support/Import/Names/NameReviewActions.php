@@ -156,7 +156,11 @@ final class NameReviewActions
             }
         }
 
-        $item->resolve(ImportReviewStatus::Resolved, 'merged', $by);
+        // Nothing could be merged (every draft changed since): the group
+        // stays open for staff to look at, not closed as „merged“.
+        if ($merged > 0) {
+            $item->resolve(ImportReviewStatus::Resolved, 'merged', $by);
+        }
 
         return ['merged' => $merged, 'skipped' => $skipped];
     }
