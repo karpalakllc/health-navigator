@@ -206,6 +206,7 @@ limiters are layered on top:
 | `api-corrections-burst` / `api-corrections-hourly` | `POST /doctors/{slug}/corrections`, `POST /facilities/{slug}/corrections` (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-profile-reports-burst` / `api-profile-reports-hourly` | `POST /doctors/{slug}/profile-reports` and the facility and pharmacy ones (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-altcha` | `GET /altcha/challenge` | 20/min and 120/hour per IP |
+| `api-forum-unanswered-search` | `GET /forum/topics/unanswered` with `?q=` (uncached text search; the plain list is not limited) | 30/min per IP |
 | `api-ux-events` | `POST /ux/events` (anonymous UX counters) | 60/min and 600/hour per network (keyed hash of the IPv4 address or IPv6 /64) |
 | `api-ux-heatmap` | `GET /ux/heatmap` (staff overlay, signed token; inline `throttle:`) | 120/min per IP |
 | `api-review-views` | `POST /reviews/views` (inline, signed in or not) | 60/min per user, or per IP when anonymous |
@@ -253,7 +254,7 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/forum/topics` | `module:forum` |
 | `GET` | `/forum/topics/recent` | `module:forum` |
 | `GET` | `/forum/topics/related` | `module:forum`, `cache.public:60` |
-| `GET` | `/forum/topics/unanswered` | `module:forum`, `cache.public:60` |
+| `GET` | `/forum/topics/unanswered` | `module:forum`, `cache.public:60`, `throttle:api-forum-unanswered-search` |
 | `GET` | `/health` | — |
 | `GET` | `/home/highlights` | `cache.public` |
 | `GET` | `/languages` | `cache.public` |

@@ -112,6 +112,16 @@ class ForumUnansweredTest extends TestCase
         $this->assertSame(['pritisok'], $this->slugs('?q='.rawurlencode('притисок')));
     }
 
+    public function test_text_searches_are_rate_limited_and_the_plain_list_is_not(): void
+    {
+        foreach (range(1, 30) as $i) {
+            $this->getJson('/api/v1/forum/topics/unanswered?q=glava'.$i)->assertOk();
+        }
+
+        $this->getJson('/api/v1/forum/topics/unanswered?q=glava')->assertTooManyRequests();
+        $this->getJson('/api/v1/forum/topics/unanswered')->assertOk();
+    }
+
     public function test_cached_list_drops_a_topic_as_soon_as_it_is_answered(): void
     {
         $topic = $this->topic('soon-answered');

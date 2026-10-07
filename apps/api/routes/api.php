@@ -280,7 +280,8 @@ Route::prefix('v1')->group(function (): void {
     // answered yet (home „Помогни некому“, the forum's „Без одговор“ view).
     // Anonymous and identical for everyone; cached server side as well.
     Route::middleware(['module:forum', 'cache.public:60'])->group(function (): void {
-        Route::get('/forum/topics/unanswered', ForumUnansweredController::class);
+        Route::get('/forum/topics/unanswered', ForumUnansweredController::class)
+            ->middleware('throttle:api-forum-unanswered-search');
     });
 
     // W8-B review flow and impact. „Прикажана N пати“: the web reports the

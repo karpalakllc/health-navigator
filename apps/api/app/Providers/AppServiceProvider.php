@@ -202,6 +202,14 @@ class AppServiceProvider extends ServiceProvider
         // hash of an IPv4 address can be, by trying them all), and one IPv6
         // holder cannot rotate through its /64 for fresh buckets. Expired keys
         // in the database cache store are deleted hourly (cache:purge-expired).
+        // „Без одговор“ with a text search (`?q=`) is not cached: 30 a minute
+        // per IP. The plain list is cached and not limited here.
+        RateLimiter::for('api-forum-unanswered-search', function (Request $request) {
+            return trim((string) $request->query('q', '')) === ''
+                ? Limit::none()
+                : Limit::perMinute(30)->by('unanswered-q:'.$request->ip());
+        });
+
         RateLimiter::for('api-ux-events', function (Request $request) {
             $network = hash_hmac(
                 'sha256',
