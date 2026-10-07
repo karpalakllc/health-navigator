@@ -2,10 +2,15 @@
 
 namespace App\Filament\Resources\ImportReviewItems\Pages;
 
+use App\Enums\BulkOperationStatus;
 use App\Enums\ImportReviewKind;
 use App\Filament\Resources\ImportReviewItems\ImportReviewItemResource;
+use App\Filament\Resources\ImportReviewItems\Widgets\BulkPublishProgress;
+use App\Models\BulkOperation;
 use App\Models\ImportReviewItem;
 use App\Models\User;
+use App\Support\Import\BulkPublish;
+use App\Support\Import\BulkPublishAlreadyRunning;
 use App\Support\Verification\Engine\VerifiedDraftPublisher;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -14,6 +19,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\On;
 
 class ListImportReviewItems extends ListRecords
 {
@@ -62,16 +68,7 @@ class ListImportReviewItems extends ListRecords
                 ->modalHeading(fn (): string => sprintf('Publish %d verified drafts?', app(VerifiedDraftPublisher::class)->count()))
                 ->modalDescription(fn (): Htmlable => $this->sampleDescription())
                 ->modalSubmitActionLabel('Publish all')
-                ->action(function (): void {
-                    $user = auth()->user();
-
-                    if (! $user instanceof User || ! $user->can('imports.manage')) {
-                        abort(403);
-                    }
-
-                    $published = app(VerifiedDraftPublisher::class)->publishAll($user, $this->bulkCeiling);
-                    Notification::make()->title("Published {$published} verified profiles")->success()->send();
-                }),
+                ->action(fn () => $this->startBulkPublish(BulkPublish::TYPE_VERIFIED, $this->bulkCeiling)),
             // Owner's decision: ФЗОМ lists them today, the Комора list has no
             // licence of their name, nothing else is open on them → public,
             // but „Неверификуван“ (verified later automatically if a licence
@@ -88,17 +85,70 @@ class ListImportReviewItems extends ListRecords
                 ->modalHeading(fn (): string => sprintf('Publish %d unverified ФЗОМ drafts?', app(VerifiedDraftPublisher::class)->countFzomUnverified()))
                 ->modalDescription(fn (): Htmlable => $this->fzomUnverifiedSampleDescription())
                 ->modalSubmitActionLabel('Publish all, unverified')
-                ->action(function (): void {
-                    $user = auth()->user();
-
-                    if (! $user instanceof User || ! $user->can('imports.manage')) {
-                        abort(403);
-                    }
-
-                    $published = app(VerifiedDraftPublisher::class)->publishAllFzomUnverified($user, $this->bulkCeiling);
-                    Notification::make()->title("Published {$published} unverified ФЗОМ profiles")->success()->send();
-                }),
+                ->action(fn () => $this->startBulkPublish(BulkPublish::TYPE_FZOM_UNVERIFIED, $this->bulkCeiling)),
         ];
+    }
+
+    /**
+     * @return list<class-string>
+     */
+    protected function getHeaderWidgets(): array
+    {
+        return [BulkPublishProgress::class];
+    }
+
+    /**
+     * Starts a bulk publish in the background (BulkPublish): thousands of
+     * drafts do not fit in one request. With a `sync` queue the first chunk
+     * is published right here and the progress widget's poll publishes the
+     * rest; a small set is then done before the notification.
+     *
+     * @param  list<int>|null  $itemIds
+     */
+    public function startBulkPublish(string $type, ?int $upToId, ?array $itemIds = null): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->can('imports.manage')) {
+            abort(403);
+        }
+
+        $bulk = app(BulkPublish::class);
+
+        try {
+            $operation = $bulk->start($type, $user, $upToId, $itemIds);
+        } catch (BulkPublishAlreadyRunning) {
+            Notification::make()
+                ->title('Веќе тече едно објавување')
+                ->body('Почекајте да заврши (напредокот е прикажан над табелата) или прекинете го таму.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        if ($operation->driver === BulkOperation::DRIVER_INLINE) {
+            $operation = $bulk->drive($operation, BulkPublish::requestBudget());
+        }
+
+        if ($operation->status === BulkOperationStatus::Completed) {
+            Notification::make()->title('Објавувањето заврши')->body(BulkPublish::summary($operation))->success()->send();
+        } else {
+            Notification::make()
+                ->title('Објавувањето започна…')
+                ->body(sprintf('%s: %d профили се објавуваат во делови. Напредокот е прикажан над табелата; кога ќе заврши, ќе добиете известување.', BulkPublish::label($type), $operation->total))
+                ->info()
+                ->send();
+        }
+
+        $this->dispatch('bulk-publish-started');
+    }
+
+    #[On('bulk-publish-finished')]
+    public function refreshAfterBulkPublish(): void
+    {
+        // Re-render: the table, the tab badges and the header actions'
+        // counts change once the drafts are published.
     }
 
     /**
