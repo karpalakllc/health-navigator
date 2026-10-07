@@ -63,6 +63,12 @@ const links = firstAidLinksForTopic("not-breathing"); // [] until reviewed — r
 
 Render nothing when the result is `null`/empty — a draft link would 404.
 
+Wired at integration (2026-10-07): a guidance `emergency_now` result lists
+„Прва помош додека чекате“ from its flow's topics
+(`FLOW_FIRST_AID_TOPICS` in `apps/web/src/lib/guidance/next-steps.ts`, e.g.
+`chest-pain` → `chest-pain`, `burns` → `burn`); a crisis outcome or the
+shared global emergency lists none. Nothing shows until a guide is published.
+
 ### Slugs (stable — never renamed or reused)
 
 | Slug | Guide | Group |

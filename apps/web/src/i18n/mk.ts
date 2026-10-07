@@ -1246,6 +1246,9 @@ export const mk = {
     linkClinics: "Клиники и поликлиники",
     linkLaboratories: "Лаборатории",
     linkPharmacies: "Аптеки",
+    linkUrgentCare: "Каде веднаш: итни и дежурни служби",
+    linkUrgentCareEmergency: "Каде веднаш: ургентни центри",
+    firstAidTitle: "Прва помош додека чекате",
     perSymptomTitle: "Насоки по симптом",
     summaryTitle: "Резиме за лекарот",
     summaryLead:

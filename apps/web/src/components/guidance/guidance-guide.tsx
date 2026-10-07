@@ -45,6 +45,8 @@ import {
   type GuidanceState,
 } from "@/lib/api/guidance-v2";
 import { cn } from "@/lib/cn";
+import { recordFunnelStep } from "@/lib/feedback";
+import { funnelStepsFor } from "@/lib/guidance/next-steps";
 import {
   answerLabel,
   buildSummary,
@@ -132,6 +134,29 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
     step?.scrollIntoView?.({ block: "start" });
     heading?.focus({ preventScroll: true });
   }, [stepKey]);
+
+  // Anonymous drop-off counters (docs/urgent-care.md § 4): each step once per
+  // run, none with GPC/DNT (recordFunnelStep checks). Never the answers.
+  const countedSteps = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!state) return;
+
+    const steps = funnelStepsFor(
+      state,
+      (flowKey) =>
+        answered.filter((a) => a.id.startsWith(`${flowKey}.`)).length,
+    );
+
+    for (const { funnel, step, depth } of steps) {
+      const key = `${funnel}|${step}`;
+      if (countedSteps.current.has(key)) continue;
+      countedSteps.current.add(key);
+      recordFunnelStep(funnel, step, depth);
+    }
+    // Counted when the step is shown; `answered` is read as of that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   // ------------------------------------------------------------ session
 
@@ -531,6 +556,7 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
 
   function handleRestart() {
     generation.current++;
+    countedSteps.current = new Set();
     clearStoredSession();
     setAccepted(false);
     setState(null);

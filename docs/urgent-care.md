@@ -305,8 +305,14 @@ per item helpful %, counts and reasons, filterable by namespace and period;
 per funnel the step table. Retention 730 days (`FEEDBACK_RETENTION_DAYS`),
 `feedback:purge-old` daily 03:50.
 
-Used today: every guide (`guide:<slug>`) and „Каде веднаш“
-(`urgent-care:<city-slug>` or `urgent-care:all`).
+Used today: every guide (`guide:<slug>`), „Каде веднаш“
+(`urgent-care:<city-slug>` or `urgent-care:all`) and every guidance result
+(`guidance:<flow>:outcome:<level>`, `guidance:global:…` for the shared
+emergency/crisis outcome), with drop-off counted per flow (`start`, each
+question id at its position, `outcome:<level>`) — `lib/guidance/next-steps.ts`.
+Guidance outcomes link here too: `emergency_now` → `type=ed` under the call
+buttons, `urgent_same_day` → all services (`dental` for a dental outcome),
+first in „Најдете во именикот“, with the city typed on the result.
 
 ## 5. Guides
 

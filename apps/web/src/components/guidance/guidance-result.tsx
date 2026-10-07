@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, type Ref } from "react";
 import {
   CareLadder,
   careLevelForOutcome,
 } from "@/components/guidance/care-ladder";
 import { EmergencyCard } from "@/components/guidance/emergency-card";
+import { HelpfulFeedback } from "@/components/feedback/helpful-feedback";
 import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,10 +17,16 @@ import { Tag } from "@/components/ui/tag";
 import type { GuidanceOutcomeV2, GuidanceState } from "@/lib/api/guidance-v2";
 import { directoryLinks, type DirectoryLink } from "@/lib/guidance/care";
 import {
+  firstAidLinksForResult,
+  guidanceFeedbackItem,
+  urgentCareLinkFor,
+} from "@/lib/guidance/next-steps";
+import {
   LEVEL_KEYS,
   summaryText,
   type GuidanceSummary,
 } from "@/lib/guidance/summary";
+import type { FirstAidLink } from "@/content/first-aid";
 import { t, tFormat } from "@/i18n/t";
 
 type ResultState = Extract<GuidanceState, { stage: "result" }>;
@@ -69,11 +77,27 @@ export function GuidanceResult({
   headingRef: Ref<HTMLHeadingElement>;
   onRestart: () => void;
 }) {
+  // Results only ever render in the browser, after the visitor answered.
+  const [city, setCity] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(CITY_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const primary = result.outcomes[0]?.outcome;
 
   if (!primary) {
     return null;
   }
+
+  const feedbackItem = guidanceFeedbackItem(
+    result.outcomes[0]?.flow?.key,
+    primary.level,
+  );
+  const feedback = feedbackItem ? (
+    <HelpfulFeedback item={feedbackItem} className="print:hidden" />
+  ) : null;
 
   const restart = (
     <Button
@@ -93,7 +117,10 @@ export function GuidanceResult({
           outcome={primary}
           reason={result.reason}
           headingRef={headingRef}
+          firstAid={firstAidLinksForResult(result.outcomes)}
+          urgentCareHref={urgentCareLinkFor(primary, city)}
         />
+        {feedback}
         {restart}
       </div>
     );
@@ -124,7 +151,12 @@ export function GuidanceResult({
 
         <OutcomeDetails outcome={primary} />
 
-        <WhereToGo outcome={primary} pharmaciesOn={pharmaciesOn} />
+        <WhereToGo
+          outcome={primary}
+          pharmaciesOn={pharmaciesOn}
+          city={city}
+          onCityChange={setCity}
+        />
 
         <CareLadder
           current={careLevelForOutcome(primary.level)}
@@ -167,6 +199,8 @@ export function GuidanceResult({
       </div>
 
       <SummarySection summary={summary} />
+
+      {feedback}
 
       {restart}
     </div>
@@ -211,23 +245,20 @@ function OutcomeDetails({
 function WhereToGo({
   outcome,
   pharmaciesOn,
+  city,
+  onCityChange,
 }: {
   outcome: GuidanceOutcomeV2;
   pharmaciesOn: boolean;
+  city: string;
+  onCityChange: (city: string) => void;
 }) {
   const id = useId();
-  // Results only ever render in the browser, after the visitor answered.
-  const [city, setCity] = useState(() => {
-    try {
-      return window.sessionStorage.getItem(CITY_KEY) ?? "";
-    } catch {
-      return "";
-    }
-  });
-
   const links = directoryLinks(outcome, city, { pharmaciesOn });
+  // „Каде веднаш“ first for a same-day outcome (docs/urgent-care.md § 1).
+  const urgent = urgentCareLinkFor(outcome, city);
 
-  if (links.length === 0) {
+  if (links.length === 0 && urgent === null) {
     return null;
   }
 
@@ -243,7 +274,7 @@ function WhereToGo({
           autoComplete="address-level2"
           value={city}
           onChange={(e) => {
-            setCity(e.target.value);
+            onCityChange(e.target.value);
             try {
               window.sessionStorage.setItem(CITY_KEY, e.target.value);
             } catch {
@@ -253,11 +284,23 @@ function WhereToGo({
         />
       </div>
       <ul className="flex flex-wrap gap-3">
+        {urgent ? (
+          <li>
+            <Button
+              href={urgent}
+              variant="primary"
+              trailingIcon="arrow-right"
+              data-guidance-link="urgent-care"
+            >
+              {t("guidance.linkUrgentCare")}
+            </Button>
+          </li>
+        ) : null}
         {links.map((link, index) => (
           <li key={link.id}>
             <Button
               href={link.href}
-              variant={index === 0 ? "primary" : "soft"}
+              variant={index === 0 && !urgent ? "primary" : "soft"}
               trailingIcon="arrow-right"
               data-guidance-link={link.id}
             >
@@ -274,10 +317,14 @@ function EmergencyOutcome({
   outcome,
   reason,
   headingRef,
+  firstAid,
+  urgentCareHref,
 }: {
   outcome: GuidanceOutcomeV2;
   reason: ResultState["reason"];
   headingRef: Ref<HTMLHeadingElement>;
+  firstAid: FirstAidLink[];
+  urgentCareHref: string | null;
 }) {
   const body =
     reason === "shortcut"
@@ -304,6 +351,35 @@ function EmergencyOutcome({
           <h3 className="type-h3 text-ink">{t("guidance.waitingTitle")}</h3>
           <List items={outcome.do_now} />
         </section>
+      ) : null}
+      {firstAid.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h3 className="type-h3 text-ink">{t("guidance.firstAidTitle")}</h3>
+          <ul className="flex flex-col gap-2">
+            {firstAid.map((link) => (
+              <li key={link.slug}>
+                <Link
+                  href={link.href}
+                  className="type-reading font-semibold text-ink underline underline-offset-4"
+                  data-guidance-link={`first-aid-${link.slug}`}
+                >
+                  {link.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {urgentCareHref ? (
+        <Button
+          href={urgentCareHref}
+          variant="soft"
+          trailingIcon="arrow-right"
+          className="self-start print:hidden"
+          data-guidance-link="urgent-care"
+        >
+          {t("guidance.linkUrgentCareEmergency")}
+        </Button>
       ) : null}
     </EmergencyCard>
   );

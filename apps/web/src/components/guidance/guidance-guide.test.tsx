@@ -27,6 +27,17 @@ vi.mock("@/lib/api/guidance-v2", async (importOriginal) => ({
   ...api,
 }));
 
+// Feedback and drop-off counters are recorded, not sent.
+const feedback = vi.hoisted(() => ({
+  recordFunnelStep: vi.fn(),
+  sendFeedback: vi.fn(),
+}));
+
+vi.mock("@/lib/feedback", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/feedback")>()),
+  ...feedback,
+}));
+
 const catalog: GuidanceCatalog = {
   max_symptoms: 3,
   flows: [
@@ -186,6 +197,7 @@ const result = (
 
 beforeEach(() => {
   vi.resetAllMocks();
+  feedback.sendFeedback.mockResolvedValue(undefined);
   window.sessionStorage.clear();
   api.startSession.mockResolvedValue({
     handle: { id: S, token: "tok" },
@@ -531,5 +543,107 @@ describe("GuidanceGuide steps", () => {
       screen.getByText(/Внесете број од 0 до 365 дена/),
     ).toBeInTheDocument();
     expect(api.answerQuestion).not.toHaveBeenCalled();
+  });
+});
+
+describe("GuidanceGuide next steps", () => {
+  const sameDayOutcome: GuidanceOutcomeV2 = {
+    ...gpOutcome,
+    id: "o_urgent",
+    level: "urgent_same_day",
+    title: "Побарајте преглед денес",
+    care: { setting: "on_call", specialties: [], facility_types: [] },
+  };
+
+  it("sends an emergency to „Каде веднаш“ emergency departments and asks if it helped", async () => {
+    window.sessionStorage.setItem("guidance_city", "Битола");
+    const user = await start();
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
+    );
+
+    expect(
+      await screen.findByRole("link", {
+        name: t("guidance.linkUrgentCareEmergency"),
+      }),
+    ).toHaveAttribute("href", "/urgent-care/bitola?type=ed");
+    // Every first-aid guide is still a draft: none is linked.
+    expect(screen.queryByText(t("guidance.firstAidTitle"))).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: t("feedback.yes") }));
+    expect(feedback.sendFeedback).toHaveBeenCalledWith({
+      kind: "vote",
+      item: "guidance:global:outcome:emergency_now",
+      helpful: true,
+    });
+  });
+
+  it("puts „Каде веднаш“ first on a same-day result, for the typed city", async () => {
+    api.answerQuestion.mockResolvedValueOnce(result(sameDayOutcome));
+    const user = await start();
+    await toQuestion(user);
+    await user.type(
+      screen.getByRole("textbox", { name: t("guidance.numberLabel") }),
+      "2",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: sameDayOutcome.title });
+
+    await user.type(
+      screen.getByRole("textbox", { name: t("guidance.cityLabel") }),
+      "Струмица",
+    );
+    expect(
+      screen.getByRole("link", { name: t("guidance.linkUrgentCare") }),
+    ).toHaveAttribute("href", "/urgent-care/strumica");
+    expect(
+      screen.getByRole("region", { name: t("feedback.question") }),
+    ).toBeInTheDocument();
+  });
+
+  it("counts each step reached once, and the outcome, as anonymous drop-off", async () => {
+    api.answerQuestion
+      .mockResolvedValueOnce(q2)
+      .mockResolvedValueOnce(result(gpOutcome));
+    const user = await start();
+    await toQuestion(user);
+
+    expect(feedback.recordFunnelStep).toHaveBeenCalledWith(
+      "guidance:headache",
+      "start",
+      0,
+    );
+    expect(feedback.recordFunnelStep).toHaveBeenCalledWith(
+      "guidance:headache",
+      "q_days",
+      1,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: t("guidance.numberLabel") }),
+      "2",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: "Дали имате температура?" });
+    await user.click(screen.getByRole("radio", { name: t("guidance.no") }));
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: gpOutcome.title });
+
+    expect(feedback.recordFunnelStep).toHaveBeenCalledWith(
+      "guidance:headache",
+      "outcome:see_gp_this_week",
+      3,
+    );
+    expect(
+      feedback.recordFunnelStep.mock.calls.filter(
+        ([, step]) => step === "start",
+      ),
+    ).toHaveLength(1);
   });
 });
