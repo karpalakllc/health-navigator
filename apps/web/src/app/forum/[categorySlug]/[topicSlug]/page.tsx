@@ -7,6 +7,7 @@ import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-mode
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
 import { FORUM_REPLY_ANCHOR } from "@/lib/forum/answer-link";
+import { ScrollToHash } from "@/components/forum/scroll-to-hash";
 import { ReportButton } from "@/components/reports/report-button";
 import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { BackLink } from "@/components/ui/back-link";
@@ -287,6 +288,7 @@ export default async function TopicDetailPage({
               />
             </section>
 
+            <ScrollToHash id={FORUM_REPLY_ANCHOR} />
             {topic.is_locked ? (
               <Notice tone="info" icon="info">
                 {t("forum.topicLocked")}
