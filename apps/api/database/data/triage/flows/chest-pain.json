@@ -149,10 +149,6 @@
           "label": "Долго патување (над 4 часа седење) во последните 4 недели"
         },
         {
-          "value": "pregnant_post",
-          "label": "Бременост или породување во последните 6 недели"
-        },
-        {
           "value": "prior_clot",
           "label": "Порано сте имале тромб (згрутчување крв) во нога или бели дробови"
         },
@@ -163,6 +159,17 @@
         }
       ],
       "next": [
+        {
+          "when": {
+            "demo": "pregnancy",
+            "in": [
+              "pregnant",
+              "postpartum",
+              "unsure"
+            ]
+          },
+          "goto": "q_dvt_preg"
+        },
         {
           "when": {
             "all": [
@@ -176,8 +183,45 @@
                   "leg_swelling",
                   "recent_surgery",
                   "long_travel",
-                  "pregnant_post",
                   "prior_clot"
+                ]
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_cardiac_risk"
+        }
+      ]
+    },
+    "q_dvt_preg": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали сте бремени или сте родиле во последните 6 недели?",
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_pattern",
+                "eq": "sharp_breath"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_dvt_risk",
+                    "includes_any": [
+                      "leg_swelling",
+                      "recent_surgery",
+                      "long_travel",
+                      "prior_clot"
+                    ]
+                  },
+                  {
+                    "answer": "q_dvt_preg",
+                    "eq": "yes"
+                  }
                 ]
               }
             ]
@@ -268,13 +312,20 @@
                 "eq": "sharp_breath"
               },
               {
-                "answer": "q_dvt_risk",
-                "includes_any": [
-                  "leg_swelling",
-                  "recent_surgery",
-                  "long_travel",
-                  "pregnant_post",
-                  "prior_clot"
+                "any": [
+                  {
+                    "answer": "q_dvt_risk",
+                    "includes_any": [
+                      "leg_swelling",
+                      "recent_surgery",
+                      "long_travel",
+                      "prior_clot"
+                    ]
+                  },
+                  {
+                    "answer": "q_dvt_preg",
+                    "eq": "yes"
+                  }
                 ]
               }
             ]
