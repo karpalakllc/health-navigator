@@ -778,6 +778,29 @@ export const mk = {
       "Во моментов работиме на подобрувања. Ве молиме обидете се повторно наскоро.",
     backSoon: "Ви благодариме за трпението.",
   },
+  // Staff-only heatmap overlay (docs/ux-heatmaps.md); never shown to visitors.
+  uxOverlay: {
+    title: "Топлинска мапа (само за тимот)",
+    loading: "Се вчитува…",
+    expired:
+      "Линкот за топлинската мапа истекол или не важи. Создајте нов во „UX анализа“.",
+    failed: "Податоците не можеа да се вчитаат.",
+    notTracked: "Оваа страница не се следи.",
+    summary: "{views} посети · {clicks} кликови · {device}",
+    modeLabel: "Прикажи",
+    modeAll: "Сите",
+    modeDead: "Мртви",
+    modeRage: "Бесни",
+    sameWidth: "Само слична ширина",
+    close: "Затвори",
+    scrollLine: "{pct} од посетите стигнале до тука",
+    fixedNote: "Кликовите на заглавјето и долната лента не се на мапата.",
+    devices: {
+      mobile: "мобилен",
+      tablet: "таблет",
+      desktop: "десктоп",
+    },
+  },
   about: {
     title: "За нас",
     description: "Мисија, цели и вредности на Zdravje360.",

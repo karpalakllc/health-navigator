@@ -29,7 +29,10 @@ export function FacilityCard({ facility }: { facility: FacilityListItem }) {
     facility.has_emergency_services || facility.departments_count > 0;
 
   return (
-    <article className="card hover-lift flex h-full flex-col">
+    <article
+      data-track="facility-card"
+      className="card hover-lift flex h-full flex-col"
+    >
       <div className="relative">
         <CoverImage
           kind="facility"

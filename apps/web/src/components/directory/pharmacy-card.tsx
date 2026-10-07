@@ -24,7 +24,10 @@ export function PharmacyCard({ pharmacy }: { pharmacy: PharmacyListItem }) {
   const tel = telHref(pharmacy.phone);
 
   return (
-    <article className="card hover-lift flex h-full flex-col">
+    <article
+      data-track="pharmacy-card"
+      className="card hover-lift flex h-full flex-col"
+    >
       <div className="relative">
         <CoverImage
           kind="pharmacy"

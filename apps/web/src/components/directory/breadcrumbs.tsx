@@ -17,6 +17,7 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label="Breadcrumb"
+      data-track="breadcrumbs"
       className={cn("mb-6 type-meta text-ink-2", className)}
     >
       <ol className="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0">

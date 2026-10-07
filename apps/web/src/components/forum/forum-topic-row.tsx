@@ -68,7 +68,10 @@ export function ForumTopicRow({
   ].filter(Boolean);
 
   return (
-    <li className="relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 transition-colors hover:bg-cream sm:px-5">
+    <li
+      data-track="forum-topic"
+      className="relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 transition-colors hover:bg-cream sm:px-5"
+    >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {topic.isPinned || topic.isLocked ? (
           <div className="flex flex-wrap gap-2">

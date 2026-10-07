@@ -101,6 +101,7 @@ export function BottomTabBar({
   return (
     <nav
       aria-label={t("nav.primary")}
+      data-track="tab-bar"
       className="fixed inset-x-0 bottom-0 z-40 lg:hidden"
     >
       <div

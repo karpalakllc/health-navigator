@@ -15,7 +15,11 @@ const steps = [
  */
 export function HomeHowItWorksSection({ className }: { className?: string }) {
   return (
-    <section aria-labelledby="home-how-title" className={className}>
+    <section
+      aria-labelledby="home-how-title"
+      data-track="home-how-it-works"
+      className={className}
+    >
       <p className="type-meta font-semibold text-ink-2">
         {t("home.howItWorksEyebrow")}
       </p>
