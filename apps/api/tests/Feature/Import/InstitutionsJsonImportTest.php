@@ -13,6 +13,7 @@ use App\Models\ImportRun;
 use App\Models\SourceRecord;
 use App\Models\User;
 use App\Support\Import\Website\SourceNotes;
+use App\Support\Verification\Engine\VerificationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -65,7 +66,7 @@ class InstitutionsJsonImportTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
-    private function dataset(array $overrides = []): string
+    private function dataset(array $overrides = [], string $slice = 'test-slice'): string
     {
         $institution = array_merge([
             'slug' => 'test-bolnica',
@@ -94,7 +95,7 @@ class InstitutionsJsonImportTest extends TestCase
         ], $overrides);
 
         $path = $this->dir.'/institutions.json';
-        file_put_contents($path, json_encode(['slice' => 'test-slice', 'generated_at' => '2026-10-07T12:00:00Z', 'institutions' => [$institution]], JSON_UNESCAPED_UNICODE));
+        file_put_contents($path, json_encode(['slice' => $slice, 'generated_at' => '2026-10-07T12:00:00Z', 'institutions' => [$institution]], JSON_UNESCAPED_UNICODE));
 
         return $path;
     }
@@ -199,6 +200,29 @@ class InstitutionsJsonImportTest extends TestCase
         $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('institution:%'));
         $this->assertSame($first->addDays(2)->toDateTimeString(), $seen('worker:%:ЗАБКО ИЗМИСЛЕН'));
         $this->assertSame($first->toDateTimeString(), $seen('worker:%:ИЗМИСЛЕНА КАРДИОЛОВСКА'));
+    }
+
+    public function test_a_later_slice_of_the_same_site_does_not_mark_the_first_slices_staff_as_removed(): void
+    {
+        $this->travelTo(now()->startOfMinute());
+        $first = now()->toImmutable();
+        $this->runImport($this->dataset());
+
+        // Another research slice describes the same institution (same website) two days later, with a different team page.
+        $this->travelTo($first->addDays(2));
+        $other = [['full_name' => 'Друга Педијатриска', 'title' => 'д-р', 'role' => 'physician', 'specialty' => 'Педијатрија', 'source_url' => 'https://www.bolnica.invalid/pedijatrija', 'confidence' => 'high']];
+        $this->runImport($this->dataset(['slug' => 'bolnica-testovo', 'workers' => $other], slice: 'other-slice'));
+        $this->assertSame(1, Facility::query()->count(), 'Both slices describe one facility.');
+
+        app(VerificationEngine::class)->run();
+        $cardiologist = Doctor::query()->where('full_name', 'like', 'Измислена%')->sole();
+        $this->assertNotSame('website_removed', $cardiologist->verification_reasons['reason'] ?? null, 'The other slice never listed her; the first slice still does.');
+
+        // The first slice is imported again without her: now she is gone from that page.
+        $this->travelTo($first->addDays(3));
+        $this->runImport($this->dataset(['workers' => [['full_name' => 'Забко Измислен', 'title' => 'д-р', 'role' => 'dentist', 'source_url' => 'https://www.bolnica.invalid/tim']]]));
+        app(VerificationEngine::class)->run();
+        $this->assertSame('website_removed', $cardiologist->fresh()->verification_reasons['reason'] ?? null);
     }
 
     public function test_it_matches_an_existing_register_facility_and_only_fills_gaps(): void

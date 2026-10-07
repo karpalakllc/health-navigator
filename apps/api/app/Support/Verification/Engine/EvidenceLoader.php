@@ -63,6 +63,15 @@ final class EvidenceLoader
     /** @var array<int, CarbonImmutable> facility id => when its site was last imported (the institution record) */
     private array $siteSeen = [];
 
+    /**
+     * facility id => institution record key => when that research slice last
+     * imported the site. Several slices can describe one facility; each one
+     * only speaks for the staff-page entries it listed.
+     *
+     * @var array<int, array<string, CarbonImmutable>>
+     */
+    private array $siteSeenByRecord = [];
+
     /** No website evidence older than this counts (the site was not imported again). */
     private readonly CarbonImmutable $websiteSince;
 
@@ -272,9 +281,30 @@ final class EvidenceLoader
             flags: $this->siteFlags[$facilityId] ?? [],
             trusted: isset($this->trustedSites[$facilityId]),
             specialtyIds: $stated ? array_map('intval', (array) ($payload['specialty_ids'] ?? [])) : null,
-            onPage: ! isset($this->siteSeen[$facilityId]) || $seen->gte($this->siteSeen[$facilityId]),
+            onPage: ($siteSeen = $this->siteSeenFor($facilityId, $payload['slice'] ?? null)) === null || $seen->gte($siteSeen),
             recent: $seen->gte($this->websiteSince),
         );
+    }
+
+    /**
+     * When the site was last imported by the slice that last listed the
+     * entry: another slice describing the same facility (a different
+     * research pass, imported later) says nothing about this entry. Entries
+     * stored before the slice was recorded compare with the newest import
+     * of any slice.
+     */
+    private function siteSeenFor(int $facilityId, mixed $slice): ?CarbonImmutable
+    {
+        if (is_string($slice) && $slice !== '') {
+            $prefix = 'institution:'.$slice.':';
+            $times = array_filter($this->siteSeenByRecord[$facilityId] ?? [], fn (string $key): bool => str_starts_with($key, $prefix), ARRAY_FILTER_USE_KEY);
+
+            if ($times !== []) {
+                return array_reduce($times, fn (?CarbonImmutable $max, CarbonImmutable $seen): CarbonImmutable => $max !== null && $max->gt($seen) ? $max : $seen);
+            }
+        }
+
+        return $this->siteSeen[$facilityId] ?? null;
     }
 
     private function licenceFacts(object $row, string $sortedName, LicenceCandidate $candidate): LicenceFacts
@@ -438,6 +468,7 @@ final class EvidenceLoader
                     $id = (int) $record->subject_id;
                     $seen = CarbonImmutable::parse($record->last_seen_at);
                     $this->siteSeen[$id] = isset($this->siteSeen[$id]) && $this->siteSeen[$id]->gt($seen) ? $this->siteSeen[$id] : $seen;
+                    $this->siteSeenByRecord[$id][(string) $record->external_key] = $seen;
                 }
 
                 $flags = array_values(array_filter((array) ($payload['source_flags'] ?? []), 'is_string'));

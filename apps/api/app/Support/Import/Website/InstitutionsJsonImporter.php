@@ -43,8 +43,8 @@ use Throwable;
  * - Provenance: source "website", source URL per field.
  * - source_records.last_seen_at = the start of the last run that listed the
  *   institution or staff-page entry, changed or not: the verification
- *   engine reads an entry older than its institution's as "no longer on
- *   the page" (docs/verification.md).
+ *   engine reads an entry older than the latest import of the slice that
+ *   listed it as "no longer on the page" (docs/verification.md).
  *
  * A dry run stores no image files (the database is rolled back, files
  * would be orphaned); it counts what would be stored.
@@ -111,7 +111,7 @@ final class InstitutionsJsonImporter
 
                     foreach ((array) ($institution['workers'] ?? []) as $worker) {
                         if (is_array($worker)) {
-                            $this->importWorker($context, $writer, $specialties, $facility, $worker);
+                            $this->importWorker($context, $writer, $specialties, $facility, $worker, $slice);
                         }
                     }
                 }
@@ -342,7 +342,7 @@ final class InstitutionsJsonImporter
     /**
      * @param  array<string, mixed>  $worker
      */
-    private function importWorker(ImportContext $context, DirectoryWriter $writer, SpecialtyResolver $specialties, Facility $facility, array $worker): void
+    private function importWorker(ImportContext $context, DirectoryWriter $writer, SpecialtyResolver $specialties, Facility $facility, array $worker, string $slice): void
     {
         $context->increment('workers_in_source');
         $role = (string) ($worker['role'] ?? '');
@@ -384,7 +384,9 @@ final class InstitutionsJsonImporter
             return;
         }
 
-        $stored = $writer->sourceRecord($key, FieldProvenance::SUBJECT_DOCTOR, $payload + ['specialty_ids' => $specialtyIds], $sourceRecord);
+        // The slice that listed the entry: the verification engine compares
+        // it with that slice's latest import of the site, not another one's.
+        $stored = $writer->sourceRecord($key, FieldProvenance::SUBJECT_DOCTOR, $payload + ['specialty_ids' => $specialtyIds, 'slice' => $slice], $sourceRecord);
         $this->seenKeys[] = $key;
         $doctor = $sourceRecord?->subject_id !== null ? Doctor::withTrashed()->find($sourceRecord->subject_id) : null;
 
