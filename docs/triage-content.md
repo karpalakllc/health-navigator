@@ -22,8 +22,24 @@ Files: `apps/api/database/data/triage/flows/<key>.json` (schema `zdravje.triage/
 ## Notes for the engine/integration
 
 - `global/core.json` cites `https://www.nhs.uk/pregnancy/related-conditions/common-symptoms/vaginal-bleeding/`, which now redirects to `https://www.nhs.uk/pregnancy/common-symptoms/vaginal-bleeding/`.
-- Specialty keys follow the licence groups (`opsta-medicina`, `gastroenterohepatologija`, `opsta-hirurgija`, `plasticna-hirurgija`), while the specialty catalogue created by the ФЗОМ import uses `opshta-medicina`, `gastroenterologija`, `opshta-hirurgija`, `plastichna-hirurgija`. Directory links need the engine's mapping (`SpecialtyGroups`) to bridge these.
+- Specialty keys follow the licence groups (`opsta-medicina`, `gastroenterohepatologija`, `opsta-hirurgija`, `plasticna-hirurgija`), while the specialty catalogue created by the ФЗОМ import uses `opshta-medicina`, `gastroenterologija`, `opshta-hirurgija`, `plastichna-hirurgija`. **Bridged at integration (2026-10-07):** `OutcomePresenter` links a key to a staff link in `licence_specialty_mappings`, else the key itself, else the slug the ФЗОМ import gives the group's wordings (`SpecialtyGroups::catalogueSlugs`); `SpecialtyResolutionTest` checks every key used in a flow against the import's catalogue.
 - No content seeder was added: the engine's `TriageFlowSeeder` already imports every file in `flows/`.
+
+## Integration decisions (2026-10-07) — pending clinician review
+
+The owner-approved principle „when unsure, escalate“ was applied to four
+places where the draft was less urgent than the safest reading of the public
+sources. Each is an integration decision, **not** a clinical sign-off: the
+reviewing clinician confirms or reverses it (the checklist rows carry the same
+note). `ConservativeClinicalDefaultsTest` pins them.
+
+| Flow(s) | Before | Now | Why |
+|---|---|---|---|
+| `fever-infant-child` | <3 months, ≥38 °C → `urgent_same_day` („go now“) | `emergency_now` (194/112), outcome `o_emergency_infant_fever` — also when the temperature was **not measured** | NICE NG143 puts any infant under 3 months with ≥38 °C in the highest-risk group; a parent who reports fever without a reading is treated as fever. A measured temperature under 38 °C keeps the same-day outcome. |
+| `crying-baby`, `ear-pain-child`, `rash-with-fever-child`, `vomiting-diarrhoea-child`, `child-breathing` | <3 months with fever (measured ≥38 °C in `crying-baby`, the „fever“ answer elsewhere) → `urgent_same_day` | the same `emergency_now` outcome | So the same baby gets the same answer whichever flow the parent opens. |
+| `pregnancy-concerns` | reduced/changed fetal movements → `urgent_same_day` (go to the maternity unit) | `emergency_now`, outcome `o_emergency_movements` (194/112; go to the породилиште if the dispatcher says so; no home Doppler) | The flow author's own open question; NHS says to call immediately and not wait until the next day. MK has no maternity triage line, so 194 is the only immediate contact. |
+| `vaginal-bleeding` | post-menopausal bleeding (or 65+) → `see_gp_this_week` | `see_doctor_24_48h` (gynaecologist in 1–2 days), outcome `o_doc48_gyn_1` | NHS treats it as an urgent referral; „this week“ could drift. |
+| `breast-lump` | new lump, skin dimpling or nipple change → `see_gp_this_week` | `see_doctor_24_48h`, outcome `o_doc48_2` | Same reasoning (NHS urgent referral pathway). |
 
 ## Flows
 
@@ -54,7 +70,7 @@ Files: `apps/api/database/data/triage/flows/<key>.json` (schema `zdravje.triage/
 | 23 | `toothache` | Забоболка и проблеми со забите | Adults / all ages | infant_0_3m, infant_3_12m, child_1_4, child_5_12, teen_13_17, adult_18_64, older_65_plus | 2 | emergency_now, urgent_same_day, see_doctor_24_48h, see_gp_this_week, pharmacy_advice | 35 |
 | 24 | `sleep-problems` | Проблеми со спиењето | Adults / all ages | teen_13_17, adult_18_64, older_65_plus | 1 | see_doctor_24_48h, see_gp_this_week, self_care_with_safety_net | 20 |
 | 25 | `pregnancy-concerns` | Загриженост во бременост или по породување | Women's health | teen_13_17, adult_18_64 | 7 | emergency_now, urgent_same_day, see_doctor_24_48h, see_gp_this_week | 87 |
-| 26 | `vaginal-bleeding` | Вагинално крварење | Women's health | teen_13_17, adult_18_64, older_65_plus | 3 | emergency_now, urgent_same_day, see_gp_this_week | 80 |
+| 26 | `vaginal-bleeding` | Вагинално крварење | Women's health | teen_13_17, adult_18_64, older_65_plus | 3 | emergency_now, urgent_same_day, see_doctor_24_48h, see_gp_this_week | 80 |
 | 27 | `emergency-contraception` | Итна контрацепција (по незаштитен однос) | Women's health | teen_13_17, adult_18_64 | 1 | emergency_now, urgent_same_day, see_gp_this_week, pharmacy_advice | 50 |
 | 28 | `breast-lump` | Грутка или промени во дојката | Women's health | teen_13_17, adult_18_64, older_65_plus | 1 | emergency_now, urgent_same_day, see_doctor_24_48h, see_gp_this_week, self_care_with_safety_net | 40 |
 | 29 | `child-breathing` | Отежнато дишење кај дете | Children | infant_0_3m, infant_3_12m, child_1_4, child_5_12 | 6 | emergency_now, urgent_same_day, see_doctor_24_48h, self_care_with_safety_net | 94 |
@@ -866,7 +882,7 @@ Adult sleep problems. Crisis features handled by mental-health red flags (repeat
 
 ### Загриженост во бременост или по породување (`pregnancy-concerns`)
 
-Pregnancy and postpartum concerns. Seizure, heavy bleeding, severe abdominal pain, pre-eclampsia features, chest pain/breathlessness → 194. Reduced/absent fetal movements, waters breaking, regular contractions <37 weeks, fever, severe vomiting, calf swelling → same day (go now) to maternity. Itching of hands/feet → 24–48h. Postpartum: heavy bleeding, fever, wound infection, mood (crisis → global crisis).
+Pregnancy and postpartum concerns. Seizure, heavy bleeding, severe abdominal pain, pre-eclampsia features, chest pain/breathlessness → 194. Reduced/absent fetal movements → 194 (integration decision 2026-10-07). Waters breaking, regular contractions <37 weeks, fever, severe vomiting, calf swelling → same day (go now) to maternity. Itching of hands/feet → 24–48h. Postpartum: heavy bleeding, fever, wound infection, mood (crisis → global crisis).
 
 **Red flags (asked first):**
 
@@ -904,11 +920,11 @@ Pregnancy and postpartum concerns. Seizure, heavy bleeding, severe abdominal pai
 
 - MK has no maternity triage phone line equivalent; we tell users to go to the nearest породилиште. Confirm.
 - Is the knee-chest instruction for visible cord appropriate for lay users?
-- Should reduced fetal movements be emergency_now (194) instead of urgent_same_day 'go now'?
+- Should reduced fetal movements be emergency_now (194) instead of urgent_same_day 'go now'? **Integration decision 2026-10-07: changed to emergency_now** (see § Integration decisions) — please confirm.
 
 ### Вагинално крварење (`vaginal-bleeding`)
 
-Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible pregnancy with one-sided pain/shoulder-tip pain → 194. Any bleeding in pregnancy, heavy postpartum bleeding, very heavy bleeding → same day gynaecology. Postmenopausal bleeding → GP/gynaecologist this week (urgent referral pathway). Bleeding between periods/after sex → GP.
+Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible pregnancy with one-sided pain/shoulder-tip pain → 194. Any bleeding in pregnancy, heavy postpartum bleeding, very heavy bleeding → same day gynaecology. Postmenopausal bleeding → gynaecologist within 24–48 h (integration decision 2026-10-07; urgent referral pathway). Bleeding between periods/after sex → GP.
 
 **Red flags (asked first):**
 
@@ -937,7 +953,7 @@ Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible p
 
 **Open questions for the clinician:**
 
-- NHS treats postmenopausal bleeding as a 2-week-wait referral. Is see_gp_this_week (to gynaecologist) the right level in MK?
+- NHS treats postmenopausal bleeding as a 2-week-wait referral. Is see_gp_this_week (to gynaecologist) the right level in MK? **Integration decision 2026-10-07: raised to see_doctor_24_48h** — please confirm.
 
 ### Итна контрацепција (по незаштитен однос) (`emergency-contraception`)
 
@@ -972,7 +988,7 @@ Emergency contraception guidance: where to go and how soon. Red flag: possible e
 
 ### Грутка или промени во дојката (`breast-lump`)
 
-Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast with fever while breastfeeding → 24–48h (same day if unwell). Any new lump, nipple inversion/discharge with blood, skin dimpling → GP/gynaecologist this week with instruction to request breast ultrasound/mammography referral without delay.
+Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast with fever while breastfeeding → 24–48h (same day if unwell). Any new lump, nipple inversion/discharge with blood, skin dimpling → GP/gynaecologist within 24–48 h (integration decision 2026-10-07) with instruction to request breast ultrasound/mammography referral without delay.
 
 **Red flags (asked first):**
 
@@ -997,7 +1013,7 @@ Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast
 
 **Open questions for the clinician:**
 
-- NHS uses a 2-week urgent referral for breast lumps over 30; we route all new lumps to 'this week'. Confirm for MK (mammography access via упат).
+- NHS uses a 2-week urgent referral for breast lumps over 30; we route all new lumps to 'this week'. Confirm for MK (mammography access via упат). **Integration decision 2026-10-07: raised to see_doctor_24_48h** — please confirm.
 
 ### Отежнато дишење кај дете (`child-breathing`)
 
@@ -1065,7 +1081,7 @@ Rash in children with focus on meningitis/sepsis signs. Non-blanching rash, stif
 
 ### Температура кај бебиња и деца (`fever-infant-child`)
 
-Fever in children under 13. NHS under-5 999 signs as red flags. <3 months ≥38 °C or <36 °C → go now; 3–6 months ≥39 °C → go now; dehydration, not feeding, fever ≥5 days → same day/48h; otherwise home care with safety net. Based on NHS fever in children and NICE NG143 risk features (not reproduced as a table).
+Fever in children under 13. NHS under-5 999 signs as red flags. <3 months ≥38 °C (or not measured) → 194 (integration decision 2026-10-07); <36 °C → go now; 3–6 months ≥39 °C → go now; dehydration, not feeding, fever ≥5 days → same day/48h; otherwise home care with safety net. Based on NHS fever in children and NICE NG143 risk features (not reproduced as a table).
 
 **Red flags (asked first):**
 
@@ -1098,7 +1114,7 @@ Fever in children under 13. NHS under-5 999 signs as red flags. <3 months ≥38 
 
 **Open questions for the clinician:**
 
-- Infants <3 months with any fever concern are routed to same day even without a measured 38 °C (conservative). Confirm.
+- Infants <3 months with any fever concern are routed to same day even without a measured 38 °C (conservative). Confirm. **Integration decision 2026-10-07: ≥38 °C or not measured → emergency_now (194/112)**; a measured temperature under 38 °C stays same day — please confirm.
 - Under-1 fever >24 h → 24–48h: confirm (not in NHS; our addition).
 
 ### Удар во главата кај дете (`head-injury-child`)

@@ -405,7 +405,12 @@ class TriageContentFilesTest extends TestCase
             return;
         }
         $numeric = in_array($op, ['gte', 'gt', 'lte', 'lt', 'between'], true);
-        if (in_array($node['kind'], ['single', 'multi'], true)) {
+        if ($op === 'answered') {
+            // Schema §7: whether the question was answered (an optional one may be skipped).
+            if (! is_bool($value)) {
+                $this->errors[] = "$key: answered on {$condition['answer']} must be true or false";
+            }
+        } elseif (in_array($node['kind'], ['single', 'multi'], true)) {
             if ($numeric) {
                 $this->errors[] = "$key: numeric comparison on {$condition['answer']}";
             }
