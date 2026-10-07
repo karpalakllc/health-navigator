@@ -205,6 +205,7 @@ limiters are layered on top:
 | `api-profile-reports-burst` / `api-profile-reports-hourly` | `POST /doctors/{slug}/profile-reports` and the facility and pharmacy ones (inline, signed in or not) | 5 per 10 min and 15/hour per user, or per IP when anonymous |
 | `api-altcha` | `GET /altcha/challenge` | 20/min and 120/hour per IP |
 | `api-ux-events` | `POST /ux/events` (anonymous UX counters) | 60/min and 600/hour per network (keyed hash of the IPv4 address or IPv6 /64) |
+| `api-ux-heatmap` | `GET /ux/heatmap` (staff overlay, signed token; inline `throttle:`) | 120/min per IP |
 | `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
 | `api-triage-complete` | guidance completion | 5/hour |
 
