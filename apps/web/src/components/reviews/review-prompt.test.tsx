@@ -47,6 +47,7 @@ describe("ReviewPrompt", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("appears after a short dwell, below the fold, and only once per profile", () => {
@@ -57,6 +58,40 @@ describe("ReviewPrompt", () => {
     dwell();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
     expect(window.localStorage.getItem(REVIEW_PROMPT_KEY)).not.toContain("ana");
+
+    unmount();
+    renderPrompt();
+    dwell();
+    expect(screen.queryByText(QUESTION)).not.toBeInTheDocument();
+  });
+
+  it("counts as shown only once the card comes on screen", () => {
+    const observed: { callback: IntersectionObserverCallback }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(public callback: IntersectionObserverCallback) {
+          observed.push(this);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    slotAt(5000);
+    const { unmount } = renderPrompt();
+    dwell();
+
+    // Revealed below the fold, but the visitor has not scrolled to it.
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+    expect(window.localStorage.getItem(REVIEW_PROMPT_KEY)).toBeNull();
+
+    act(() => {
+      observed[observed.length - 1].callback(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+    expect(window.localStorage.getItem(REVIEW_PROMPT_KEY)).not.toBeNull();
 
     unmount();
     renderPrompt();

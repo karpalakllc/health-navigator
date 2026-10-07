@@ -34,7 +34,8 @@ type ReviewPromptProps = {
  * never a dialog. It may appear after a short dwell or some scrolling, and
  * only while its place is still below the visible part of the page, so it
  * never pushes what the visitor is reading. Once per profile per device
- * (lib/review-prompt-storage); dismissible. The server leaves it out on the
+ * (lib/review-prompt-storage), counted when the card comes on screen;
+ * dismissible. The server leaves it out on the
  * viewer's own profile and when they already reviewed this one.
  *
  * A signed-in member can tick „Потсети ме за 2 недели“: one e-mail later,
@@ -69,7 +70,6 @@ export function ReviewPrompt({
       }
 
       done = true;
-      markReviewPromptShown(kind, slug);
       setVisible(true);
       cleanup();
     }
@@ -102,6 +102,32 @@ export function ReviewPrompt({
 
     return cleanup;
   }, [kind, slug]);
+
+  // „Shown“ (once per profile per device) only when the card actually
+  // comes on screen: a visitor who never scrolls down to it may see it on a
+  // later visit.
+  useEffect(() => {
+    const card = slot.current;
+
+    if (!visible || !card) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
+      markReviewPromptShown(kind, slug);
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        markReviewPromptShown(kind, slug);
+        observer.disconnect();
+      }
+    });
+    observer.observe(card);
+
+    return () => observer.disconnect();
+  }, [visible, kind, slug]);
 
   const question = tFormat(
     kind === "doctor" ? "reviewFlow.promptDoctor" : "reviewFlow.promptPlace",
