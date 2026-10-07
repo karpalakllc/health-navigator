@@ -3,10 +3,8 @@
 namespace App\Filament\Support;
 
 use App\Models\Facility;
-use App\Support\OfficeHours;
 use App\Support\UrgentCare\UrgentCareClassifier;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -59,33 +57,7 @@ final class UrgentCareForm
                     ->label('Urgent service open 24/7')
                     ->helperText('Only when the institution itself says so. Otherwise enter the hours below, or leave them empty: the site then says the hours are not confirmed.')
                     ->columnSpanFull(),
-                Repeater::make('emergency_hours')
-                    ->label('Urgent service hours')
-                    ->schema([
-                        Select::make('day')
-                            ->label('Day')
-                            ->options(OfficeHours::DAY_OPTIONS)
-                            ->required()
-                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
-                        TextInput::make('hours')
-                            ->label('Hours')
-                            ->placeholder('07:00–20:00')
-                            ->required()
-                            ->maxLength(100),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
-                    ->addActionLabel('Add day')
-                    ->reorderable(false)
-                    ->formatStateUsing(
-                        fn ($state) => is_array($state) && array_is_list($state)
-                            ? $state
-                            : OfficeHours::toRows(is_array($state) ? $state : null),
-                    )
-                    // Rows → {day: hours} happens in Facility::emergencyHours():
-                    // the repeater re-keys a dehydrated map into a list,
-                    // which would drop the day labels.
-                    ->columnSpanFull(),
+                WeeklyHoursRepeater::make('emergency_hours', 'Urgent service hours', '07:00–20:00'),
                 TextInput::make('emergency_phone')
                     ->label('Direct urgent line')
                     ->tel()

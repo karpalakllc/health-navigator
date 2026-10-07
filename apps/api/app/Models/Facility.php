@@ -9,7 +9,6 @@ use App\Models\Concerns\HasVerification;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\Import\ImportBookkeeping;
 use App\Support\MacedonianSearchVariants;
-use App\Support\OfficeHours;
 use App\Support\ScriptInsensitiveSearch;
 use App\Support\TaxonomyCache;
 use Database\Factories\FacilityFactory;
@@ -115,6 +114,7 @@ class Facility extends Model
         return [
             'type' => FacilityType::class,
             'office_hours' => 'array',
+            'emergency_hours' => 'array',
             'latitude' => 'float',
             'longitude' => 'float',
             'has_emergency_services' => 'boolean',
@@ -168,33 +168,6 @@ class Facility extends Model
     public function departments(): BelongsToMany
     {
         return $this->belongsToMany(Department::class, 'department_facility')->withTimestamps();
-    }
-
-    /**
-     * The urgent service's hours as {day: hours}. The admin repeater hands
-     * over a list of {day, hours} rows; those are folded into the map here.
-     *
-     * @return Attribute<array<string, string>|null, mixed>
-     */
-    protected function emergencyHours(): Attribute
-    {
-        return Attribute::make(
-            get: function (mixed $value): ?array {
-                $decoded = is_string($value) ? json_decode($value, true) : $value;
-
-                return is_array($decoded) && $decoded !== [] ? $decoded : null;
-            },
-            set: function (mixed $value): ?string {
-                if (! is_array($value) || $value === []) {
-                    return null;
-                }
-
-                $rows = array_values($value);
-                $hours = is_array($rows[0] ?? null) ? OfficeHours::fromRows($rows) : $value;
-
-                return $hours === null || $hours === [] ? null : (string) json_encode($hours, JSON_UNESCAPED_UNICODE);
-            },
-        );
     }
 
     public function hasMapCoordinates(): bool

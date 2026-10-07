@@ -2,10 +2,7 @@
 
 namespace App\Filament\Support;
 
-use App\Support\OfficeHours;
 use App\Support\PublicWebUrl;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Fieldset;
@@ -62,33 +59,7 @@ final class FacilityCommonForm
                 ]),
             Fieldset::make('Opening hours')
                 ->schema([
-                    Repeater::make('office_hours')
-                        ->label('Weekly schedule')
-                        ->schema([
-                            Select::make('day')
-                                ->label('Day')
-                                ->options(OfficeHours::DAY_OPTIONS)
-                                ->required()
-                                ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
-                            TextInput::make('hours')
-                                ->label('Hours')
-                                ->placeholder('08:00–18:00')
-                                ->required()
-                                ->maxLength(100),
-                        ])
-                        ->columns(2)
-                        ->defaultItems(0)
-                        ->addActionLabel('Add day')
-                        ->reorderable(false)
-                        ->formatStateUsing(
-                            fn ($state) => is_array($state) && array_is_list($state)
-                                ? $state
-                                : OfficeHours::toRows(is_array($state) ? $state : null),
-                        )
-                        ->dehydrateStateUsing(
-                            fn ($state) => OfficeHours::fromRows(is_array($state) ? $state : null),
-                        )
-                        ->columnSpanFull(),
+                    WeeklyHoursRepeater::make('office_hours', 'Weekly schedule', '08:00–18:00'),
                 ]),
         ];
     }
