@@ -91,6 +91,14 @@ class PlatformPreflightCommand extends Command
         $this->checkAltcha();
         $this->checkImportPublishing();
         $this->checkImportContact();
+        $this->checkTriagePreview();
+    }
+
+    private function checkTriagePreview(): void
+    {
+        if (config('triage.preview_drafts') === true) {
+            $this->addError('triage.preview_drafts', 'TRIAGE_PREVIEW_DRAFTS is true. It serves unreviewed draft symptom guidance and is for a developer\'s machine only; unset it.');
+        }
     }
 
     private function checkApp(): void

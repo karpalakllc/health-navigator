@@ -152,6 +152,7 @@ class PlatformPreflightCommandTest extends TestCase
             'local mfa exemption set' => [['zdravje.mfa.local_exempt_emails' => ['owner@zdravje360.mk']], 'zdravje.mfa.local_exempt_emails'],
             'altcha off' => [['zdravje.altcha.enabled' => false], 'zdravje.altcha.enabled'],
             'altcha hmac key too short' => [['zdravje.altcha.hmac_key' => str_repeat('a', 31)], 'zdravje.altcha.hmac_key'],
+            'draft guidance preview on' => [['triage.preview_drafts' => true], 'triage.preview_drafts'],
         ];
     }
 
