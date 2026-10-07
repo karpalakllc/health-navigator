@@ -357,10 +357,40 @@ without source, or `when` using anything but `demo`; red-flag outcome not `emerg
 `watch_for`; `crisis` on a non-emergency outcome; a relevant population neither referenced
 nor explained; unknown specialty key; missing sources; non-Macedonian Cyrillic letters;
 a numeric comparator on a non-numeric question or an option value the question does not
-offer.
+offer; **demographic appropriateness** (below).
 Warnings: duplicate global red-flag label; `pregnant` without `unsure`; `allow_unknown`
 without an `unknown` branch; source domain outside the public list; banned wording
 („дијагноза“ as a claim, „сигурно“, „дефинитивно“, „рецепт“, „доза“) in outcomes.
+
+### 13.1 Demographic appropriateness (error)
+
+Copy that names something only some visitors can have must not be reachable for a
+visitor it does not fit. The linter keeps a configurable list of Macedonian word
+stems (config `triage.demographic_keywords`; lower-case stems, matched as substrings
+so both cases and endings are covered): male anatomy („тестис“, „скротум“, „простат“,
+„пенис“, „ерекци“ …), female anatomy („вагин“, „матка“, „јајник“ …), menstruation
+(„менструа“, „циклус“), menopause, pregnancy and lactation („бремен“, „трудн“,
+„породув“, „доење“ …), infant care („фонтанел“, „пелен“, „доенч“ …) and adult
+activities („алкохол“, „возење“ …). Each category lists the visitors it must never be
+shown to (sex, an age range, pregnancy answer `not_asked`); **unspecified sex is never
+excluded** (sex-specific red flags stay for it, worded neutrally).
+
+For every demographic profile the flow is offered to (sex x sampled ages x pregnancy
+answers, restricted to the flow's `audience.age_bands`) the linter walks the flow
+symbolically: `demo` conditions are evaluated, conditions on answers are „maybe“
+(false when the question cannot have been asked for that profile), red flags are
+filtered by `when`. Every question, option, help, red flag and outcome that can be
+shown is checked. An error names the node, the stem, the category and a profile it
+can be shown to. Fix it by routing to the node through a `demo` condition (a guard
+inside an `any` that can be bypassed does not count), by splitting the item (own
+question / outcome variant), by making the wording neutral, or - for a justified case -
+by adding `"demographics_ok_reason": "<English sentence>"` to the node, outcome or red
+flag. At the top level of a flow the same key waives the sex and pregnancy categories
+for the whole flow (inherently sex-specific flows); the age categories still apply.
+The reason must be a sentence of at least 10 characters.
+
+Use `{"demo": "pregnancy", "ne": "not_asked"}` for „pregnancy can apply“ (female or
+unspecified sex, 10–55 years), and `age_months` / `age_years` / `age_band` for age.
 
 ## 14. Complete example (illustrative only — not clinical content)
 

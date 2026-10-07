@@ -41,6 +41,49 @@ note). `ConservativeClinicalDefaultsTest` pins them.
 | `vaginal-bleeding` | post-menopausal bleeding (or 65+) → `see_gp_this_week` | `see_doctor_24_48h` (gynaecologist in 1–2 days), outcome `o_doc48_gyn_1` | NHS treats it as an urgent referral; „this week“ could drift. |
 | `breast-lump` | new lump, skin dimpling or nipple change → `see_gp_this_week` | `see_doctor_24_48h`, outcome `o_doc48_2` | Same reasoning (NHS urgent referral pathway). |
 
+## Demographic audit (2026-10-07) — pending clinician review
+
+Trigger: the owner chose „female“ in the guidance and was later asked about
+testicular pain. The shipped flows were audited for every question, option, red
+flag, info node and outcome that names something only some visitors can have
+(sex-specific anatomy, menstruation, pregnancy and lactation, menopause, infant
+care, alcohol/driving). The engine itself was sound: red-flag `when` and
+routing conditions are evaluated for every demographic (the red-flag screen
+filters by `when`, the walker routes by `demo` conditions), covered by
+`GuidanceDemographicsTest`. The faults were in the content: shared options and
+outcome sentences that mention a population the visitor may not belong to, and
+red flags whose `when` was too narrow or absent.
+
+Rules now enforced by `php artisan triage:lint` (docs/triage-flows.md §13,
+config `triage.demographic_keywords`): such copy must be reachable only through
+a demographic condition, or carry `demographics_ok_reason`. Unspecified sex is
+never excluded from a sex-specific red flag (under-triage is worse): the flag is
+kept and worded neutrally. Inherently sex-specific flows (`vaginal-bleeding`,
+`emergency-contraception`, `pregnancy-concerns`) carry a flow-level reason: the
+age-band catalogue cannot filter by sex, so sex and pregnancy wording is waived
+there (age rules still apply). Follow-up for the owner: an optional
+`audience.sex` in the schema would let the catalogue hide such flows from
+visitors of the other sex.
+
+| Flow | What changed | Clinician: please confirm |
+|---|---|---|
+| `abdominal-pain` | Testis red flag now also for unspecified sex, wording without „кај мажи“; ectopic-pregnancy flag limited to visitors for whom pregnancy is asked (female/unspecified, 10–55 y) instead of every woman. | Wording of the neutral testis flag. |
+| `urinary-symptoms` | Same testis red flag (male + unspecified, neutral wording); option „Секрет од вагината или пенисот“ → „Секрет од половите органи, или чешање во таа област“ (shown to everyone). | — |
+| `crying-baby` | „Оток во препоните или во мошницата“ → „… во областа на половите органи“ (girls too). | — |
+| `asthma-attack`, `burns`, `diabetes-blood-sugar`, `diarrhoea-vomiting-adult`, `dizziness-fainting`, `palpitations` | The „why“ sentence of one shared outcome named pregnancy together with children / older people. Each outcome is split: a pregnancy variant (`*_preg`) routed to pregnant/unsure visitors with the same level and advice, the original keeps the other reasons. `palpitations`: pregnant visitors are also pointed to the gynaecologist. `diabetes-blood-sugar`, `o_self`: „алкохол“ removed from the list of possible causes (it was shown to the carer of a baby). | That each pregnancy variant has the right level (unchanged from before). |
+| `chest-pain`, `shortness-of-breath` | The option „Бременост или породување во последните 6 недели“ left the shared clot-risk list; the new yes/no `q_dvt_preg` is asked only when pregnancy is asked and feeds the same emergency routing (sharp pain on breathing + clot risk → 194/112). | That the routing is equivalent. |
+| `eye-problems` | The option „Се работи за бебе помладо од 4 недели“ (shown to everyone) is gone; a baby under 1 month with any eye problem now goes to the same-day outcome by age (`o_urgent_3_newborn`, slightly broader than „under 4 weeks“, which errs towards earlier care). The retinal-detachment reason no longer mentions newborns. | Age rule „under 1 month“. |
+| `fever-infant-child`, `vomiting-diarrhoea-child` | Nappies / fontanelle moved from the shared signs list into `q_infant`, asked only under 24 months; the shared options are neutral („Мокри помалку од вообичаено“, „Сува уста или нема солзи“); the no-urine red flag exists in two wordings (under 5: „суви пелени“; 5–12: neutral) with the same outcome; projectile vomiting moved to `q_infant`. | That nothing was lost for babies (same outcomes, same escalation). |
+| `rash-with-fever-child` | No change in advice; the line about pregnant contacts is marked as carer advice (`demographics_ok_reason`). | — |
+| `breast-lump` | „Болка што се менува со менструалниот циклус“ became its own yes/no `q_cycle_pain`, and the lactation question and the lactation advice (`o_doc48_1_bf`) are asked only when pregnancy is asked (so not of men or women over 55). | — |
+| `vaginal-bleeding` | The ectopic flag only where pregnancy is asked; „bleeding more than 12 months after the last period (menopause)“ became `q_postmeno`, asked only from age 40 (the 65+ routing is unchanged). | — |
+| `emergency-contraception`, `pregnancy-concerns` | Flow-level `demographics_ok_reason` only (no text change). | — |
+
+Linter: 0 errors and 0 warnings with `--strict`. Test pins:
+`FlowLinterTest` (synthetic flows), `GuidanceDemographicsTest` (random walks of
+every shipped flow for 14 visitor profiles + the red-flag screen through the
+API).
+
 ## Flows
 
 | # | Key | Title | Group | Ages | Red flags | Outcome levels | Rank |
@@ -390,8 +433,8 @@ Adult abdominal pain. Severe/sudden pain, rigid abdomen, vomiting blood, black s
 - Црна, катранеста столица или многу крв во столицата → 194/112 — source: `nhs-stomach-ache`
 - Несвестица, колапс, бледа и ладна, влажна кожа → 194/112 — source: `nhs-stomach-ache`
 - Болката е во горниот дел и се шири кон градите, раката или вилицата → 194/112 — source: `nhs-heart-attack`
-- Можна бременост (задоцнет циклус) со болка на едната страна долу, крварење или болка во врвот на рамото → 194/112 — only when `{"demo": "sex", "in": ["female", "unspecified"]}` — source: `nhs-ectopic`
-- Ненадејна болка во тестисот (кај мажи) → 194/112 — only when `{"demo": "sex", "eq": "male"}` — source: `nhs-testicle-pain`
+- Можна бременост (задоцнет циклус) со болка на едната страна долу, крварење или болка во врвот на рамото → 194/112 — only when `{"demo": "pregnancy", "ne": "not_asked"}` (female or unspecified sex, 10–55 years) — source: `nhs-ectopic`
+- Ненадејна, силна болка во тестисот или скротумот → 194/112 — only when `{"demo": "sex", "in": ["male", "unspecified"]}` — source: `nhs-testicle-pain`
 
 **Sources** (accessed 2026-10-07):
 
@@ -686,7 +729,7 @@ Adult urinary symptoms. Unable to pass urine with pain, sepsis signs → emergen
 
 - Не можете да мокрите, а мочниот меур е полн и боли → 194/112 — source: `nhs-uti`
 - Треска со тресење, збунетост, многу забрзано дишење или многу бледа кожа со дамки → 194/112 — source: `nhs-sepsis`
-- Ненадејна, силна болка во тестисот → 194/112 — only when `{"demo": "sex", "eq": "male"}` — source: `nhs-testicle-pain`
+- Ненадејна, силна болка во тестисот или скротумот → 194/112 — only when `{"demo": "sex", "in": ["male", "unspecified"]}` — source: `nhs-testicle-pain`
 
 **Sources** (accessed 2026-10-07):
 
