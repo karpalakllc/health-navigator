@@ -207,6 +207,7 @@ describe("TransparencyContent", () => {
     // VERIFICATION_MORE_HREF points here.
     expect(section).toHaveAttribute("id", "verifikacija");
     expect(section).toHaveTextContent(t("verification.howDoctor"));
+    expect(section).toHaveTextContent(t("verification.howDentist"));
     expect(section).toHaveTextContent(t("verification.howFacility"));
     expect(section).toHaveTextContent(t("verification.unverifiedBody"));
     // Not a quality rating, and it does not move anyone up the lists.

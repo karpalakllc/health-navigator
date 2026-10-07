@@ -2,6 +2,8 @@
 
 namespace App\Support\Verification;
 
+use Illuminate\Support\Facades\Lang;
+
 /**
  * Why a profile is „Верифициран“. The code is stored in
  * verification_basis and exposed in the API (`verification.basis`) with a
@@ -35,13 +37,21 @@ enum VerificationBasis: string
 
     /**
      * Public label (the API locale decides). Doctors and facilities differ
-     * only where the sources differ (ФЗОМ + Комора vs. a facility register).
+     * only where the sources differ (ФЗОМ + Комора vs. a facility register);
+     * a dentist verified by the ФЗОМ contract alone reads „Регистар на ФЗОМ“
+     * (the other bases read as for doctors).
      *
-     * @param  'doctor'|'facility'  $subject
+     * @param  'doctor'|'dentist'|'facility'  $subject
      */
     public function publicLabel(string $subject = 'doctor'): string
     {
-        return (string) __('api.verification.basis.'.$subject.'.'.$this->value);
+        $key = 'api.verification.basis.'.$subject.'.'.$this->value;
+
+        if ($subject === 'dentist' && ! Lang::has($key)) {
+            $key = 'api.verification.basis.doctor.'.$this->value;
+        }
+
+        return (string) __($key);
     }
 
     /** For the admin panel (English, with the public Macedonian wording). */

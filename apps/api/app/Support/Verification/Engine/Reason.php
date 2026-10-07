@@ -57,7 +57,7 @@ final class Reason
         self::STALE_SOURCE => 'Only a website flagged as compromised or stale lists the doctor',
         self::LOW_CONFIDENCE_SOURCE => 'Only a website entry the research marked as uncertain lists the doctor',
         self::SOURCES_DISAGREE => 'ФЗОМ and the website list the doctor at different institutions or specialties',
-        self::DENTIST_SINGLE_SOURCE => 'Dentist in ФЗОМ only (there is no public dental licence list)',
+        self::DENTIST_SINGLE_SOURCE => 'Dentist known only from a website, not from ФЗОМ (there is no public dental licence list)',
         self::NO_LICENCE => 'No licence on the Комора list for this name',
         self::NO_IMPORT_EVIDENCE => 'Entered by hand, no source evidence (staff verify it)',
         self::REGISTER_MISMATCH => 'Facility name, town or tax number differs from the ФЗОМ register',

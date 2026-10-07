@@ -4,7 +4,8 @@ namespace App\Support\Verification\Engine;
 
 /**
  * Precision over recall: a doctor profile is verified only when two
- * independent sources agree on the person, or staff checked the identity.
+ * independent sources agree on the person, or staff checked the identity —
+ * except dentists, whom a current ФЗОМ contract verifies alone.
  * Everything else stays unverified, with the first reason that applies.
  * docs/verification.md lists the rules with their evidence.
  */
@@ -39,6 +40,16 @@ final class DoctorRules
             return Verdict::verified(VerificationRule::FzomLicence, [
                 'source_record_id' => $e->fzomRecordId,
                 'namesake_licences' => $e->namesakeLicences,
+                'facility_id' => $e->fzomFacilityIds[0] ?? null,
+            ]);
+        }
+
+        //    Dentists: the ФЗОМ contract alone (there is no public dental
+        //    licence list; owner's decision). A licence attached and lapsed
+        //    still counts against it. Leaving ФЗОМ removes the verification.
+        if ($e->dental && $e->fzomCurrent && ($licence === null || ($licence->onList && $licence->valid))) {
+            return Verdict::verified(VerificationRule::FzomDentist, [
+                'source_record_id' => $e->fzomRecordId,
                 'facility_id' => $e->fzomFacilityIds[0] ?? null,
             ]);
         }

@@ -175,6 +175,10 @@ return [
                 'staff' => 'Потврдено од нашиот тим',
                 'owner_claim' => 'Профилот го презеде самиот лекар (со потврден идентитет)',
             ],
+            // A dentist verified by the ФЗОМ contract alone (no Комора licence).
+            'dentist' => [
+                'official_registers' => 'Регистар на ФЗОМ',
+            ],
             'facility' => [
                 'official_registers' => 'Официјален регистар (ФЗОМ или Министерство за здравство)',
                 'licence_and_website' => 'Веб-страница на установата и официјален регистар',

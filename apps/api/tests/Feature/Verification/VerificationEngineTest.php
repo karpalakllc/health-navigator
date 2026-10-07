@@ -206,7 +206,8 @@ class VerificationEngineTest extends TestCase
     {
         $facility = $this->facility();
         $noLicence = $this->fzomDoctor('Борис Безлиценцов', $facility, 'ОФТАЛМОЛОГИЈА');
-        $dentist = $this->fzomDoctor('Вера Забарска', $facility, 'Стоматологија');
+        // A dentist only an institution's staff page lists (no ФЗОМ contract).
+        $dentist = $this->websiteDoctor('Вера Забарска', $facility, 'Стоматологија');
         DB::table('specialties')->where('name', 'Стоматологија')->update(['slug' => 'stomatologija']);
         $websiteOnly = $this->websiteDoctor('Гоце Сајтовски', $facility);
         $handMade = Doctor::factory()->create(['full_name' => 'Дафина Рачна']);
@@ -219,6 +220,35 @@ class VerificationEngineTest extends TestCase
         $this->assertSame('no_import_evidence', $this->reasons($handMade)['reason']);
         $this->assertFalse($noLicence->fresh()->isVerified() || $dentist->fresh()->isVerified() || $websiteOnly->fresh()->isVerified() || $handMade->fresh()->isVerified());
         $this->assertSame([], $this->uncertain(), 'Missing evidence is not a question for staff.');
+    }
+
+    public function test_a_current_fzom_contract_alone_verifies_a_dentist_until_they_leave_fzom(): void
+    {
+        $facility = $this->facility();
+        $dentist = $this->fzomDoctor('Вероника Стоматолошка', $facility, 'Стоматологија', published: true);
+        DB::table('specialties')->where('name', 'Стоматологија')->update(['slug' => 'stomatologija']);
+        $specialistDentist = $this->fzomDoctor('Горан Ортодонтски', $facility, 'Ортодонција');
+        DB::table('specialties')->where('name', 'Ортодонција')->update(['slug' => 'stomatologija-ortodoncija']);
+
+        $run = $this->adjudicate();
+
+        $this->assertSame(VerificationBasis::OfficialRegisters, $dentist->fresh()->verification_basis);
+        $this->assertSame('fzom_dentist', $dentist->fresh()->verification_reasons['evidence'][0]['rule']);
+        $this->assertTrue($specialistDentist->fresh()->isVerified());
+        $this->assertSame(2, $run->counts['doctors_verified.fzom_dentist']);
+        app()->setLocale('mk');
+        $this->assertSame('Регистар на ФЗОМ', $dentist->fresh()->publicVerification()['basis_label']);
+        $this->assertSame([], $this->uncertain());
+
+        // Gone from the latest ФЗОМ snapshot: the badge goes by itself.
+        DB::table('doctors')->where('id', $dentist->id)->update(['import_missing_runs' => 1]);
+        $this->adjudicate();
+
+        $this->assertFalse($dentist->fresh()->isVerified());
+        $this->assertSame('source_removed', $this->reasons($dentist)['reason']);
+        $this->assertSame('official_registers', $this->reasons($dentist)['previous_basis']);
+        $this->assertCount(1, $this->uncertain('verification_lost'), 'A public dentist that lost the badge is for staff.');
+        $this->assertTrue($specialistDentist->fresh()->isVerified());
     }
 
     public function test_an_expired_licence_or_a_doctor_gone_from_fzom_loses_the_verification_and_a_public_profile_is_flagged(): void

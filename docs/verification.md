@@ -16,7 +16,10 @@ Runbook of the imports themselves: [`data-import.md`](data-import.md).
 
 A profile is verified only when **two independent sources agree** on the
 person or the institution, or when a person checked the identity. One
-source alone, however official, is not enough, and nothing is guessed:
+source alone is not enough — with one exception the owner decided
+(2026-10): a **dentist** with a current ФЗОМ contract (§2, `fzom_dentist`),
+because there is no public dental licence list to agree with it. Nothing
+is guessed:
 whenever the evidence could fit two people, the profile stays unverified.
 An unverified profile is not wrong; it is not confirmed yet. The owner
 works alone, so the engine decides everything it can and raises only the
@@ -43,8 +46,9 @@ and rule names only — never a licence number or a ФЗО facsimile.
 | `owner_claim` | `owner_claim` | Staff linked a member account to the profile (`owner_user_id` and `owner_linked_at` set by `AssignDoctorOwner`, after checking the person outside the platform). |
 | `fzom_licence` | `official_registers` | 1. ФЗОМ lists the doctor in the latest complete snapshot that was applied (source record seen by that run, `import_missing_runs = 0`); 2. the attached Комора licence is on the latest list (`missing_since` empty) and valid today; 3. the licence holder's name is the profile name (normalised, either word order); 4. the licence specialty fits the profile's specialties (licence specialty mapping, §6); 5. no other row on the list with the same name also fits the profile. |
 | `fzom_licence` (namesakes) | `official_registers` | ФЗОМ as above, no licence attached, and the list holds **several** valid licences of this name that fit the profile — at least as many as there are profiles of that name without a licence. Whichever is theirs, the ФЗОМ doctor holds one. No number is attached (`namesake_licences` = how many). |
+| `fzom_dentist` | `official_registers` (public label „Регистар на ФЗОМ“) | **Dentists only** (every specialty of the profile is a dental one, `stomatologija*`): ФЗОМ lists them in the latest complete snapshot as above. Nothing else is needed (owner's decision, 2026-10: there is no public dental licence list). A Комора licence attached to the profile and lapsed (expired or off the list) still blocks it. A dentist who drops out of ФЗОМ loses the badge on the next run (`source_removed`; a published one raises `verification_lost`). |
 | `website_licence` | `licence_and_website` | 1. The institution's own staff page lists the doctor (website import, research confidence „high“, the profile still linked to that institution, the site not flagged — §5); 2. the attached licence is on the list, valid, the profile's name and specialty as above; 3. **no other row on the whole list has this name** (stricter than ФЗОМ: a staff page is a weaker anchor than a contract). |
-| `fzom_website` | `website_and_register` | ФЗОМ current as above **and** the staff page of one of the **same** institutions the ФЗОМ contract names lists the doctor (high confidence, unflagged, still linked), and the page states no specialty that contradicts ФЗОМ's (a page wording nobody has mapped yet is not a contradiction). This is how dentists are verified: there is no public dental licence list. |
+| `fzom_website` | `website_and_register` | ФЗОМ current as above **and** the staff page of one of the **same** institutions the ФЗОМ contract names lists the doctor (high confidence, unflagged, still linked), and the page states no specialty that contradicts ФЗОМ's (a page wording nobody has mapped yet is not a contradiction). |
 
 Everything else is **unverified**, with the first reason that applies:
 
@@ -61,7 +65,7 @@ Everything else is **unverified**, with the first reason that applies:
 | `stale_source` | Only a website flagged as compromised or stale lists the doctor | one item **per site** when trusting it would verify someone (§3) |
 | `low_confidence_source` | Only a staff-page entry the research marked uncertain lists the doctor | no |
 | `sources_disagree` | ФЗОМ and the staff page name different institutions, or contradicting specialties | no |
-| `dentist_single_source` | Dentist known from one source only | no |
+| `dentist_single_source` | Dentist known only from a staff page, not from ФЗОМ | no |
 | `no_licence` | No licence on the Комора list for this name | no |
 | `no_import_evidence` | Entered by hand, no source evidence: staff verify it | no |
 
@@ -184,7 +188,7 @@ counts only):
 | Doctors verified: `website_licence` | 387 |
 | Doctors verified: `fzom_website` | 21 |
 | Facilities verified: `fzom_register` | 2,623 (every ФЗОМ institution) |
-| Doctors unverified: `dentist_single_source` | 1,698 |
+| Doctors unverified: `dentist_single_source` (measured before `fzom_dentist`: almost all of these are ФЗОМ dentists, now verified by it) | 1,698 |
 | … `no_licence` | 1,044 |
 | … `stale_source` | 328 |
 | … `no_specialty` | 180 |

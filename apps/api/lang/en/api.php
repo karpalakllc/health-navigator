@@ -162,6 +162,10 @@ return [
                 'staff' => 'Confirmed by our team',
                 'owner_claim' => 'Claimed by the doctor (identity confirmed)',
             ],
+            // A dentist verified by the ФЗОМ contract alone (no Комора licence).
+            'dentist' => [
+                'official_registers' => 'ФЗОМ register',
+            ],
             'facility' => [
                 'official_registers' => 'Official register (ФЗОМ or the Ministry of Health)',
                 'licence_and_website' => 'The institution\'s website and an official register',

@@ -83,7 +83,26 @@ trait HasVerification
         return [
             'status' => $this->verificationStatus()->value,
             'basis' => $basis?->value,
-            'basis_label' => $basis?->publicLabel($this instanceof Doctor ? 'doctor' : 'facility'),
+            'basis_label' => $basis?->publicLabel($this->verificationLabelSubject()),
         ];
+    }
+
+    /**
+     * Whose wording the public basis label takes. A dentist verified by the
+     * ФЗОМ contract alone (engine rule `fzom_dentist`) is „Регистар на ФЗОМ“
+     * — no Комора licence is involved. Only the rule name is read from the
+     * internal evidence; nothing of it is exposed.
+     *
+     * @return 'doctor'|'dentist'|'facility'
+     */
+    private function verificationLabelSubject(): string
+    {
+        if (! $this instanceof Doctor) {
+            return 'facility';
+        }
+
+        $rule = $this->verification_reasons['evidence'][0]['rule'] ?? null;
+
+        return $rule === 'fzom_dentist' ? 'dentist' : 'doctor';
     }
 }

@@ -327,7 +327,8 @@ nobody can hold an account locked by merely sending traffic.
   `unverified` („Верифициран“ / „Неверифициран“); while verified, `basis` is
   one of `official_registers`, `licence_and_website`,
   `website_and_register`, `staff`, `owner_claim` and `basis_label` its
-  localised public wording (both `null` while unverified). The evidence
+  localised public wording (both `null` while unverified; a dentist
+  verified by the ФЗОМ contract alone reads „Регистар на ФЗОМ“). The evidence
   behind a decision is internal and never in any payload. `GET /doctors`,
   `/facilities` and `/pharmacies` accept `verified=1` („Само
   верифицирани“).

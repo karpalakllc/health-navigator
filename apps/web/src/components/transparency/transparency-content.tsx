@@ -35,6 +35,7 @@ const MODERATION: MessageKey[] = [
 
 const VERIFIED_WHEN: MessageKey[] = [
   "verification.howDoctor",
+  "verification.howDentist",
   "verification.howDoctorWebsite",
   "verification.howFacility",
   "verification.howTeam",

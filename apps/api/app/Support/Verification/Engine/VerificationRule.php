@@ -14,6 +14,12 @@ enum VerificationRule: string
     /** Doctor: current ФЗОМ contract + valid Комора licence, same name, compatible specialty, no other fitting namesake. */
     case FzomLicence = 'fzom_licence';
 
+    /**
+     * Dentist: a current ФЗОМ contract alone (owner's decision, 2026-10). There is no public
+     * dental licence list; ФЗОМ contracts only licensed dentists, and leaving ФЗОМ removes it.
+     */
+    case FzomDentist = 'fzom_dentist';
+
     /** Doctor: the institution's own staff page + valid Комора licence, name unique on the list, compatible specialty. */
     case WebsiteLicence = 'website_licence';
 
@@ -29,7 +35,7 @@ enum VerificationRule: string
     public function basis(): VerificationBasis
     {
         return match ($this) {
-            self::FzomLicence, self::FacilityRegister => VerificationBasis::OfficialRegisters,
+            self::FzomLicence, self::FzomDentist, self::FacilityRegister => VerificationBasis::OfficialRegisters,
             self::WebsiteLicence => VerificationBasis::LicenceAndWebsite,
             self::FzomWebsite => VerificationBasis::WebsiteAndRegister,
             self::OwnerClaim => VerificationBasis::OwnerClaim,
