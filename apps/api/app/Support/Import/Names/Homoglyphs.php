@@ -16,9 +16,8 @@ final class Homoglyphs
      * Cyrillic twin is the letter the typist meant. Not folded (a person
      * decides, `unresolved`): S/s (it looks like Ѕ/ѕ, but in a Macedonian
      * word it is almost always a mistyped С/с — folding it to ѕ reads right
-     * and still breaks search), J/j (Ј is a letter of its own, and a Latin j
-     * often stands for й-like spellings or a Latin name), Y (not the shape
-     * of У).
+     * and still breaks search), J/j (Ј is a Macedonian letter of its own, so a
+     * person confirms it), Y (not the shape of У).
      *
      * @var array<string, string>
      */
