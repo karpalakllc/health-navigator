@@ -16,7 +16,6 @@ describe("uxRouteTemplate", () => {
     ["/forum/srce", "/forum/[categorySlug]"],
     ["/forum/srce/bolka-vo-gradite", "/forum/[categorySlug]/[topicSlug]"],
     ["/forum/tags/pritisok", "/forum/tags/[tag]"],
-    ["/guidance", "/guidance"],
     ["/search", "/search"],
     ["/community", "/community"],
     ["/urgent-care", "/urgent-care"],
@@ -48,6 +47,11 @@ describe("uxRouteTemplate", () => {
     "/guides/kako-do-uput/x",
     "/admin",
     "/no-such-page",
+    // Symptom guidance: the red-flag screen and every answer are health
+    // data, so not even click positions are collected there.
+    "/guidance",
+    "/guidance/",
+    "/guidance/anything",
   ])("%s is never tracked", (path) => {
     expect(uxRouteTemplate(path)).toBeNull();
   });

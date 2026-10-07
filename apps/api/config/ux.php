@@ -9,7 +9,8 @@ return [
      * Page templates the web tracker may report. Must match
      * apps/web/src/lib/ux/routes.ts (UxRoutesParityTest checks it). Account,
      * sign-in, admin and form pages are deliberately absent: they are never
-     * tracked.
+     * tracked. So is symptom guidance (/guidance): what a visitor taps on the
+     * red-flag screen or an answer is health data.
      */
     'routes' => [
         '/',
@@ -20,7 +21,6 @@ return [
         '/transparency',
         '/community',
         '/search',
-        '/guidance',
         '/doctors',
         '/doctors/[slug]',
         '/facilities',

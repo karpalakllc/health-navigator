@@ -37,6 +37,14 @@ class UxRoutesParityTest extends TestCase
         $this->assertSame(config('ux.routes'), $this->webList('routes.ts', 'ux-routes'));
     }
 
+    public function test_guidance_pages_are_never_tracked(): void
+    {
+        // Clicks on the red-flag screen and the answers are health data.
+        foreach ([config('ux.routes'), $this->webList('routes.ts', 'ux-routes')] as $routes) {
+            $this->assertSame([], array_values(array_filter($routes, fn (string $route) => str_starts_with($route, '/guidance'))));
+        }
+    }
+
     /**
      * @return array<string, array{0: string, 1: list<string>}>
      */

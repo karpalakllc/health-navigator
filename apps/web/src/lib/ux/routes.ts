@@ -5,8 +5,9 @@
  * no slug, query string or fragment ever leaves the browser. Anything not
  * listed is not tracked at all: the account area, sign-in and registration,
  * password reset, e-mail verification, the doctor claim, correction and
- * objection forms, the forum composer, the e-mail unsubscribe page, the
- * design system and unknown pages.
+ * objection forms, the forum composer, the e-mail unsubscribe page, symptom
+ * guidance (/guidance — taps on the red-flag screen and the answers are health
+ * data), the design system and unknown pages.
  *
  * Keep UX_ROUTES in step with apps/api/config/ux.php (UxRoutesParityTest).
  */
@@ -20,7 +21,6 @@ export const UX_ROUTES = [
   "/transparency",
   "/community",
   "/search",
-  "/guidance",
   "/doctors",
   "/doctors/[slug]",
   "/facilities",
