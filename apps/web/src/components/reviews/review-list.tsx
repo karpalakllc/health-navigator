@@ -1,3 +1,4 @@
+import { ContributorLevel } from "@/components/levels/contributor-level";
 import { ReportButton } from "@/components/reports/report-button";
 import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { ReviewHelpfulButton } from "@/components/reviews/review-helpful-button";
@@ -60,8 +61,12 @@ export function ReviewList({
               <header className="flex items-start gap-3">
                 <Monogram name={review.author_name} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="type-body font-semibold text-ink">
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-body font-semibold text-ink">
                     {review.author_name}
+                    <ContributorLevel
+                      ladder="review"
+                      level={review.author_level}
+                    />
                   </p>
                   {date && review.published_at ? (
                     <time

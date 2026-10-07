@@ -180,6 +180,8 @@ export type PublicReview = {
   rating: number;
   body: string | null;
   author_name: string;
+  /** W8-C: the author's reviewer level (1–5), or null for none to show. */
+  author_level?: number | null;
   published_at: string | null;
   /** The reviewed profile's official reply (plain text), entered by staff. */
   response?: ReviewResponse | null;

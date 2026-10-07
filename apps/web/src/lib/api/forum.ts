@@ -19,6 +19,8 @@ export type ForumAuthor = {
   posts_count: number;
   is_team_member: boolean;
   is_forum_moderator: boolean;
+  /** W8-C: the forum level (1–4), or null for none to show. */
+  level?: number | null;
 };
 
 export type ForumCategory = {
@@ -78,8 +80,10 @@ export type ForumPost = {
   published_at: string | null;
   /** Written by the topic's opener (the API decides; no ids are exposed). */
   is_topic_author?: boolean;
-  /** Signed-in requests only: the viewer wrote this reply. */
-  viewer?: { is_own: boolean };
+  /** W8-C: „Корисно“ votes on a reply. */
+  helpful_count?: number;
+  /** Signed-in requests only: the viewer wrote this reply / marked it „Корисно“. */
+  viewer?: { is_own: boolean; has_voted_helpful?: boolean };
 };
 
 export type ForumTopicPage = {

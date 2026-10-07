@@ -133,6 +133,11 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
                 </li>
               ) : null}
               <li>
+                <Link href="/community" className={linkClass}>
+                  {t("levels.pageTitle")}
+                </Link>
+              </li>
+              <li>
                 <FooterSearchButton className={linkClass} />
               </li>
             </Column>
