@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
 use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
+use App\Http\Controllers\Api\V1\UxController;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Review;
@@ -37,6 +38,13 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class);
     Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
     Route::get('/search', SearchController::class);
+    // Anonymous UX statistics (docs/ux-heatmaps.md): tracker batches relayed by
+    // the web tier, and the staff-only heatmap read (overlay token, 403 without).
+    // Address-keyed limits last at most an hour; nothing about the address is stored.
+    Route::post('/ux/events', [UxController::class, 'store'])
+        ->middleware(['throttle:60,1,api-ux-events-burst', 'throttle:600,60,api-ux-events-hourly']);
+    Route::get('/ux/heatmap', [UxController::class, 'heatmap'])
+        ->middleware('throttle:120,1,api-ux-heatmap');
     // Anonymous, identical-for-everyone taxonomies: shared caches may keep them
     // for five minutes and revalidate with If-None-Match (TaxonomyCache server side).
     Route::middleware('cache.public')->group(function (): void {
