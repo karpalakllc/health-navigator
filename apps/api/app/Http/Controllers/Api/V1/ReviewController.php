@@ -16,6 +16,7 @@ use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
 use App\Services\AnalyticsService;
+use App\Support\Notifications\ImpactStats;
 use App\Support\ReviewHelpfulVotes;
 use App\Support\ReviewInsights;
 use App\Support\UgcMailer;
@@ -99,10 +100,17 @@ class ReviewController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return ApiResponse::paginated(
-            $paginator,
-            MyReviewResource::collection($paginator),
-        );
+        return response()->json([
+            'data' => MyReviewResource::collection($paginator),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                // W8-B: totals over the member's published reviews.
+                'impact' => ImpactStats::reviewTotals($request->user()),
+            ],
+        ]);
     }
 
     private function paginatedReviews(Doctor|Facility $reviewable, ListReviewsRequest $request): JsonResponse

@@ -2,6 +2,8 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\HasUnsubscribeLink;
+use App\Mail\Concerns\Unsubscribable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -13,9 +15,9 @@ use Illuminate\Queue\SerializesModels;
  * Tells a member how their report ended (docs/notice-and-action.md): the
  * content was kept or removed. Neutral, and never names the moderator.
  */
-class ContentReportOutcomeMail extends Mailable implements ShouldQueue
+class ContentReportOutcomeMail extends Mailable implements ShouldQueue, Unsubscribable
 {
-    use Queueable, SerializesModels;
+    use HasUnsubscribeLink, Queueable, SerializesModels;
 
     public function __construct(
         public readonly string $recipientName,

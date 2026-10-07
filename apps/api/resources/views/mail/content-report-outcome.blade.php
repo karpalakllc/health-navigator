@@ -15,4 +15,6 @@
 
 Поздрав,<br>
 {{ config('app.name') }}
+
+@include('mail.partials.unsubscribe')
 </x-mail::message>

@@ -29,7 +29,14 @@ export const staffTotpSecrets = {
  * (E2ESeeder::ATTEMPTS), so a retry starts from an untouched account.
  */
 export function attemptUser(
-  prefix: "reviewer" | "forum" | "reset" | "reported" | "account" | "doctor",
+  prefix:
+    | "reviewer"
+    | "forum"
+    | "reset"
+    | "reported"
+    | "account"
+    | "doctor"
+    | "impact",
   retry: number,
 ): string {
   return `${prefix}-${retry}@e2e.test`;

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MemberNotification;
 use App\Models\ProfileCorrection;
 use App\Models\UsernameHistory;
 use App\Support\DataOps\ImportAlerter;
@@ -120,3 +121,27 @@ Schedule::command('import:adjudicate')
     ->dailyAt('05:50')
     ->onOneServer()
     ->withoutOverlapping(120);
+
+// W8-B member notifications (docs/data-inventory.md). „Корисно“ notices go
+// out in one daily batch; reminders the member asked for are checked hourly
+// and deleted once sent; the opt-in impact digest covers the previous month.
+Schedule::command('reviews:notify-helpful')
+    ->dailyAt('18:00')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+Schedule::command('reviews:send-reminders')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();
+
+Schedule::command('notifications:send-impact-digest')
+    ->monthlyOn(1, '09:00')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// In-app notifications are kept MemberNotification::RETENTION_DAYS (180).
+Schedule::command('model:prune', ['--model' => [MemberNotification::class]])
+    ->dailyAt('04:55')
+    ->onOneServer()
+    ->withoutOverlapping();

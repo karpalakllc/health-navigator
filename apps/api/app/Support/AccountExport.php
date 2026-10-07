@@ -12,11 +12,15 @@ use App\Models\DoctorClaimRequest;
 use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\MemberNotification;
+use App\Models\NotificationPreference;
 use App\Models\ProfileCorrection;
 use App\Models\Review;
 use App\Models\ReviewAspectRating;
+use App\Models\ReviewReminder;
 use App\Models\User;
 use App\Models\UsernameHistory;
+use App\Support\Notifications\ProfileRef;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -100,6 +104,17 @@ final class AccountExport
         ]);
         echo ',';
         $this->writeHelpfulVotes();
+        echo ',';
+        // W8-B: e-mail switches, the in-app notifications and the reminders
+        // the member asked for (who, which profile, when — nothing else).
+        echo $this->member('notification_preferences', NotificationPreference::for($this->user)->toPayload()).',';
+        $this->writeList('notifications', MemberNotification::query()->where('user_id', $this->user->getKey()), fn (MemberNotification $row): array => $row->toPayload());
+        echo ',';
+        $this->writeList('review_reminders', ReviewReminder::query()->where('user_id', $this->user->getKey())->with('reviewable'), fn (ReviewReminder $reminder): array => [
+            'about' => ProfileRef::for($reminder->reviewable),
+            'remind_at' => $reminder->remind_at->toIso8601String(),
+            'created_at' => $reminder->created_at?->toIso8601String(),
+        ]);
         echo ',';
         $this->writeList('devices', $this->devices(), fn (PersonalAccessToken $token): array => [
             'name' => $token->name,
@@ -203,6 +218,9 @@ final class AccountExport
             'created_at' => $review->created_at?->toIso8601String(),
             'updated_at' => $review->updated_at?->toIso8601String(),
             'published_at' => $review->published_at?->toIso8601String(),
+            // W8-B impact counts (no personal data about anyone else).
+            'view_count' => (int) $review->view_count,
+            'helpful_count' => (int) $review->helpful_count,
         ];
     }
 

@@ -8,8 +8,11 @@ use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\MemberNotification;
+use App\Models\NotificationPreference;
 use App\Models\ProfileCorrection;
 use App\Models\Review;
+use App\Models\ReviewReminder;
 use App\Models\User;
 use App\Models\UsernameHistory;
 use App\Support\Media\ImageOptimizer;
@@ -136,6 +139,12 @@ final class AnonymiseUser
             // Profile corrections are about a profile, not the member, so the
             // request stays for staff; the link and the reply address go.
             ProfileCorrection::query()->where('user_id', $locked->getKey())->update(['user_id' => null, 'contact' => null]);
+
+            // W8-B: notifications, e-mail switches and pending reminders are
+            // about the member only, so they go.
+            MemberNotification::query()->where('user_id', $locked->getKey())->delete();
+            NotificationPreference::query()->where('user_id', $locked->getKey())->delete();
+            ReviewReminder::query()->where('user_id', $locked->getKey())->delete();
 
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);
