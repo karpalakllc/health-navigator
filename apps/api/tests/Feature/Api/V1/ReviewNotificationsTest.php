@@ -161,15 +161,23 @@ class ReviewNotificationsTest extends TestCase
         $this->assertSame(['event' => 'published', 'content' => 'review', 'title' => 'д-р Ана Петровска', 'path' => '/doctors/ana-petrovska'], $line->data);
     }
 
-    public function test_moderation_e_mails_can_be_switched_off(): void
+    /**
+     * The switch silences „published“; a refusal is the statement of
+     * reasons and is e-mailed regardless (docs/notice-and-action.md).
+     */
+    public function test_moderation_e_mails_can_be_switched_off_except_the_statement_of_reasons(): void
     {
         NotificationPreference::query()->create(['user_id' => $this->author->id, 'moderation' => false]);
-        $review = Review::factory()->create(['user_id' => $this->author->id, 'reviewable_type' => Doctor::class, 'reviewable_id' => $this->doctor->id]);
+        $moderator = User::factory()->moderator()->create();
+        $published = Review::factory()->create(['user_id' => $this->author->id, 'reviewable_type' => Doctor::class, 'reviewable_id' => $this->doctor->id]);
+        $refused = Review::factory()->create(['user_id' => $this->author->id, 'reviewable_type' => Doctor::class, 'reviewable_id' => Doctor::factory()->create()->id]);
 
-        $review->reject(User::factory()->moderator()->create(), 'Лични податоци.');
+        $published->approve($moderator);
+        $refused->reject($moderator, 'Лични податоци.');
 
-        Mail::assertNotQueued(UgcRejectedMail::class);
-        $this->assertDatabaseHas('member_notifications', ['user_id' => $this->author->id, 'type' => 'moderation']);
+        Mail::assertNotQueued(UgcApprovedMail::class);
+        Mail::assertQueued(UgcRejectedMail::class, fn (UgcRejectedMail $mail): bool => ! isset($mail->headers()->text['List-Unsubscribe']));
+        $this->assertSame(2, MemberNotification::query()->where('user_id', $this->author->id)->where('type', 'moderation')->count());
     }
 
     public function test_the_first_published_review_invites_to_the_digest_once_and_only_in_the_account(): void
