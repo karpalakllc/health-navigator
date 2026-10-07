@@ -90,6 +90,7 @@ class PlatformPreflightCommand extends Command
         $this->checkMonitoring();
         $this->checkAltcha();
         $this->checkImportPublishing();
+        $this->checkImportContact();
     }
 
     private function checkApp(): void
@@ -414,6 +415,30 @@ class PlatformPreflightCommand extends Command
     {
         if (config('import.verification.auto_publish') === true || config('import.verification.auto_publish_fzom_unverified') === true) {
             $this->addWarning('import.verification.auto_publish', 'IMPORT_AUTO_PUBLISH_VERIFIED or IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED is on: imported drafts become public after a run without anyone looking. The owner\'s default is off (bulk publish from Import review).');
+        }
+    }
+
+    /**
+     * Every source request carries IMPORT_CONTACT in its User-Agent (ФЗОМ,
+     * Лекарска комора, the on-duty schedule). The shipped value is a
+     * placeholder on purpose — no personal address is a default anywhere —
+     * so a deployment must set a monitored address. Only reported for a
+     * deployment: on a developer's machine the placeholder is expected.
+     */
+    private function checkImportContact(): void
+    {
+        if (! DeploymentEnvironment::isDeployed()) {
+            return;
+        }
+
+        $contact = preg_replace('/^mailto:/i', '', trim((string) config('import.contact')));
+        $domain = strtolower((string) substr((string) strrchr((string) $contact, '@'), 1));
+        $placeholder = $domain === ''
+            || filter_var($contact, FILTER_VALIDATE_EMAIL) === false
+            || preg_match('/(^|\.)(example\.(com|net|org)|example|invalid|test|localhost|local)$/', $domain) === 1;
+
+        if ($placeholder) {
+            $this->addWarning('import.contact', 'IMPORT_CONTACT is not set or is a placeholder („'.$contact.'“). Every import request (ФЗОМ, Лекарска комора, on-duty pharmacies) names it in the User-Agent so a source can reach us; set it to an inbox someone reads before the first real run.');
         }
     }
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
+use App\Http\Controllers\Api\V1\FeedbackController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\ForumPostHelpfulController;
 use App\Http\Controllers\Api\V1\ForumTagController;
@@ -35,6 +36,8 @@ use App\Http\Controllers\Api\V1\SpecialtyController;
 use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\TransparencyController;
 use App\Http\Controllers\Api\V1\TriageController;
+use App\Http\Controllers\Api\V1\TriageV2Controller;
+use App\Http\Controllers\Api\V1\UrgentCareController;
 use App\Http\Controllers\Api\V1\UsernameAvailabilityController;
 use App\Http\Controllers\Api\V1\UxController;
 use App\Models\ForumPost;
@@ -79,6 +82,17 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/facilities/{slug}/reviews', [ReviewController::class, 'indexForFacility'])
         ->middleware('auth.sanctum.optional');
     Route::get('/facilities/{slug}', [FacilityController::class, 'show'])->middleware('cache.public:60');
+    // „Каде веднаш“ (docs/urgent-care.md): places with urgent care, by city
+    // and service, and the cities that have any. Anonymous and identical for
+    // everyone, so shared caches may keep them for a minute.
+    Route::get('/urgent-care', [UrgentCareController::class, 'index'])->middleware('cache.public:60');
+    Route::get('/urgent-care/cities', [UrgentCareController::class, 'cities'])->middleware('cache.public:60');
+    // „Дали ви помогна?“ and step drop-off (docs/urgent-care.md § Feedback):
+    // anonymous daily counters, relayed by the web tier. The address is not
+    // stored; the limiters key on an HMAC of the visitor's network.
+    Route::post('/feedback', [FeedbackController::class, 'vote'])->middleware('throttle:api-feedback');
+    Route::post('/feedback/reasons', [FeedbackController::class, 'reasons'])->middleware('throttle:api-feedback');
+    Route::post('/feedback/steps', [FeedbackController::class, 'step'])->middleware('throttle:api-funnel');
     Route::middleware('module:pharmacies')->group(function (): void {
         Route::get('/pharmacies', [PharmacyController::class, 'index'])->middleware('cache.public:60');
         Route::get('/pharmacies/{slug}/reviews', [ReviewController::class, 'indexForPharmacy'])
@@ -112,6 +126,22 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:api-triage-sessions');
         Route::post('/sessions/{id}/complete', [TriageController::class, 'complete'])
             ->middleware('throttle:api-triage-complete');
+
+        // v2 (docs/triage-flows.md): several flows, one question per call.
+        Route::prefix('v2')->group(function (): void {
+            Route::get('/catalog', [TriageV2Controller::class, 'catalog']);
+            Route::post('/sessions', [TriageV2Controller::class, 'start'])
+                ->middleware('throttle:api-triage-sessions');
+            Route::middleware('throttle:api-triage-steps')->group(function (): void {
+                Route::get('/sessions/{id}', [TriageV2Controller::class, 'show']);
+                Route::put('/sessions/{id}/demographics', [TriageV2Controller::class, 'demographics']);
+                Route::put('/sessions/{id}/symptoms', [TriageV2Controller::class, 'symptoms']);
+                Route::put('/sessions/{id}/screen', [TriageV2Controller::class, 'screen']);
+                Route::put('/sessions/{id}/answer', [TriageV2Controller::class, 'answer']);
+                Route::post('/sessions/{id}/emergency', [TriageV2Controller::class, 'emergency']);
+                Route::post('/sessions/{id}/no-match', [TriageV2Controller::class, 'noMatch']);
+            });
+        });
     });
 
     Route::prefix('auth')->group(function (): void {

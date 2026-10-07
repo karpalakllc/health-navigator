@@ -82,6 +82,7 @@ class ImportAlerter
         return match ($source) {
             'fzom' => 'ФЗОМ — Шифрарник на лекари',
             'komora' => 'Лекарска комора — листа на важечки лиценци',
+            'on-duty-pharmacies' => 'ФЗОМ — распоред на дежурни аптеки',
             default => $source,
         };
     }

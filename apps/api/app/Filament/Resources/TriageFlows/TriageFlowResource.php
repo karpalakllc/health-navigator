@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TriageFlowResource extends Resource
 {
@@ -24,11 +25,19 @@ class TriageFlowResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHeart;
 
-    protected static ?string $navigationLabel = 'Symptom guidance';
+    protected static ?string $navigationLabel = 'Symptom guidance (v1)';
+
+    protected static ?string $modelLabel = 'v1 guidance flow';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Guidance';
 
     protected static ?int $navigationSort = 10;
+
+    /** v2 flows (with a key) are managed under „Guidance flows“. */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->whereNull('key');
+    }
 
     public static function form(Schema $schema): Schema
     {

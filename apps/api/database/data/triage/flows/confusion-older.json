@@ -1,0 +1,376 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "confusion-older",
+  "title": "Ненадејна збунетост кај постаро лице",
+  "summary_en": "New or worsening confusion (delirium). Stroke signs, unresponsive, seizure, sepsis signs, head injury, low sugar in diabetes not improving → emergency. Sudden confusion over hours/days → same day (delirium is a medical emergency in public guidance). Gradual memory problems over months → GP.",
+  "notes_en": "NHS confusion; NICE CG103 delirium (acute onset/fluctuating course as key features). Sudden confusion is never routed below same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 88,
+  "body_areas": [
+    "mind",
+    "general"
+  ],
+  "search_terms": [
+    "збунетост",
+    "збунет",
+    "конфузија",
+    "делириум",
+    "не ги препознава",
+    "заборава"
+  ],
+  "red_flags": [
+    {
+      "code": "stroke",
+      "label": "Опуштено лице, слабост на рака или нога, нејасен говор",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "unresponsive",
+      "label": "Не реагира или многу тешко се буди",
+      "outcome": "o_emergency",
+      "source": "nhs-confusion"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-confusion"
+    },
+    {
+      "code": "sepsis",
+      "label": "Висока или многу ниска температура со забрзано дишење, дамки на кожата или не мокри",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "head",
+      "label": "Неодамна удри со главата",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "hypo",
+      "label": "Има дијабетес, шеќерот е низок и не се подобрува по внесување шеќер",
+      "outcome": "o_emergency",
+      "source": "nhs-hypo"
+    }
+  ],
+  "entry": "q_onset",
+  "nodes": {
+    "q_onset": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како се појави збунетоста?",
+      "options": [
+        {
+          "value": "hours_days",
+          "label": "Ненадејно, во последните часови или денови"
+        },
+        {
+          "value": "fluctuating",
+          "label": "Се менува во текот на денот — час подобро, час полошо"
+        },
+        {
+          "value": "months",
+          "label": "Постепено, во текот на месеци (заборавност)"
+        }
+      ],
+      "next": "q_clues"
+    },
+    "q_clues": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова?",
+      "options": [
+        {
+          "value": "infection",
+          "label": "Кашлица, печење при мокрење, темна или смрдлива урина"
+        },
+        {
+          "value": "not_drinking",
+          "label": "Пие или јаде многу малку"
+        },
+        {
+          "value": "new_meds",
+          "label": "Нов лек или промена на лековите"
+        },
+        {
+          "value": "alcohol",
+          "label": "Нагло престанал/а да пие алкохол или зема седативи"
+        },
+        {
+          "value": "constipation",
+          "label": "Не мокри или нема столица неколку дена"
+        },
+        {
+          "value": "dementia",
+          "label": "Веќе има деменција и ова е полошо од вообичаено"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_onset",
+                "eq": "hours_days"
+              },
+              {
+                "answer": "q_onset",
+                "eq": "fluctuating"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "answer": "q_clues",
+            "includes": "dementia"
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_onset",
+            "eq": "months"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_urgent"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува.",
+      "reasons": [
+        "Ненадејната или променлива збунетост (делириум) е знак дека нешто не е во ред со телото и бара преглед истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Понесете список на лековите; некој близок нека биде со него/неа."
+      ],
+      "watch_for": [
+        "Ако стане поспан/а, не реагира, има напад или слабост на едната страна, веднаш повикајте 194 или 112.",
+        "Ако има висока температура и забрзано дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-confusion",
+        "nice-cg103"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува.",
+      "reasons": [
+        "Нагло влошување кај деменција често е предизвикано од инфекција или лекови."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Понесете список на лековите; некој близок нека биде со него/неа."
+      ],
+      "watch_for": [
+        "Ако стане поспан/а, не реагира, има напад или слабост на едната страна, веднаш повикајте 194 или 112.",
+        "Ако има висока температура и забрзано дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-confusion",
+        "nice-cg103"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Постепените промени во меморијата треба да се испитаат; некои причини се лекуваат.",
+      "reasons": [
+        "Постепената заборавност треба да се испита кај избраниот лекар."
+      ],
+      "do_now": [
+        "Закажете преглед; лекарот може да побара анализи и да ве упати кај невролог или психијатар."
+      ],
+      "watch_for": [
+        "Ако збунетоста стане ненадејна или се појави поспаност, слабост или температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dementia-symptoms"
+      ]
+    },
+    "o_urgent": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува.",
+      "reasons": [
+        "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Понесете список на лековите; некој близок нека биде со него/неа."
+      ],
+      "watch_for": [
+        "Ако стане поспан/а, не реагира, има напад или слабост на едната страна, веднаш повикајте 194 или 112.",
+        "Ако има висока температура и забрзано дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-confusion",
+        "nice-cg103"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако има дијабетес и може да голта, дајте му брз шеќер (на пр. сок).",
+        "Не давајте ништо преку уста ако е многу поспан/а.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers with sudden confusion are covered by red flags/same-day routing; no lower age-specific threshold.",
+    "older_adult": "Written for 65+; also applies to younger adults (any sudden confusion → same day).",
+    "pregnancy": "Confusion in pregnancy/postpartum routes to same day like everyone; postpartum psychosis is also in mental-health.",
+    "chronic": "Diabetes hypoglycaemia is a red flag item; dementia worsening is asked directly."
+  },
+  "sources": [
+    {
+      "id": "nhs-confusion",
+      "title": "NHS (Велика Британија) — Confusion",
+      "url": "https://www.nhs.uk/symptoms/confusion/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-cg103",
+      "title": "NICE (Велика Британија) — CG103 Delirium: prevention, diagnosis and management",
+      "url": "https://www.nice.org.uk/guidance/cg103",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hypo",
+      "title": "NHS (Велика Британија) — Low blood sugar (hypoglycaemia)",
+      "url": "https://www.nhs.uk/conditions/low-blood-sugar-hypoglycaemia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dementia-symptoms",
+      "title": "NHS (Велика Британија) — Dementia — symptoms and diagnosis",
+      "url": "https://www.nhs.uk/conditions/dementia/symptoms-and-diagnosis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-uti",
+      "title": "NHS (Велика Британија) — Urinary tract infections (UTIs)",
+      "url": "https://www.nhs.uk/conditions/urinary-tract-infections-utis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

@@ -4,14 +4,13 @@ namespace App\Filament\Resources\Doctors\Schemas;
 
 use App\Filament\Support\AdminSelect;
 use App\Filament\Support\OptimizedImageUpload;
+use App\Filament\Support\WeeklyHoursRepeater;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Specialty;
-use App\Support\OfficeHours;
 use App\Support\PublicWebUrl;
 use App\Support\Slug;
 use Closure;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -109,33 +108,7 @@ class DoctorForm
 
                 Fieldset::make('Schedule & availability')
                     ->schema([
-                        Repeater::make('office_hours')
-                            ->label('Office hours')
-                            ->schema([
-                                Select::make('day')
-                                    ->label('Day')
-                                    ->options(OfficeHours::DAY_OPTIONS)
-                                    ->required()
-                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
-                                TextInput::make('hours')
-                                    ->label('Hours')
-                                    ->placeholder('08:00–14:00')
-                                    ->required()
-                                    ->maxLength(100),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->addActionLabel('Add day')
-                            ->reorderable(false)
-                            ->formatStateUsing(
-                                fn ($state) => is_array($state) && array_is_list($state)
-                                    ? $state
-                                    : OfficeHours::toRows(is_array($state) ? $state : null),
-                            )
-                            ->dehydrateStateUsing(
-                                fn ($state) => OfficeHours::fromRows(is_array($state) ? $state : null),
-                            )
-                            ->columnSpanFull(),
+                        WeeklyHoursRepeater::make('office_hours', 'Office hours', '08:00–14:00'),
                         Toggle::make('accepts_new_patients')
                             ->label('Accepting new patients')
                             ->default(true),

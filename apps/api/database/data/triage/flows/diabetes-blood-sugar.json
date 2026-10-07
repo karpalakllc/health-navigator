@@ -1,0 +1,1157 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "diabetes-blood-sugar",
+  "title": "Дијабетес: низок или висок шеќер",
+  "summary_en": "Diabetes high/low blood glucose (children and adults). Unconscious/unable to swallow, seizure, hypo not improving after two treatments with drowsiness, DKA signs (vomiting, abdominal pain, deep breathing, ketones ≥3) → 194. Hypo treated and recovered → self-care; ketones 1.5–2.9, vomiting with type 1, persistent high glucose → same day; repeated hypos or persistently high → GP/endocrinology.",
+  "notes_en": "NHS hypoglycaemia (fetched 2026-10-07: recheck after 10–15 min, <4 mmol/L repeat), hyperglycaemia and DKA (ketone bands 0.6/1.5/3.0 from public NHS diabetes pages). No insulin dose advice. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 86,
+  "body_areas": [
+    "general"
+  ],
+  "search_terms": [
+    "низок шеќер",
+    "висок шеќер",
+    "хипогликемија",
+    "хипергликемија",
+    "дијабетес",
+    "кетони",
+    "инсулин"
+  ],
+  "red_flags": [
+    {
+      "code": "unconscious",
+      "label": "Не реагира, не може безбедно да голта или е многу збунет/а",
+      "outcome": "o_emergency",
+      "source": "nhs-hypo"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-hypo"
+    },
+    {
+      "code": "dka",
+      "label": "Повраќање, болка во стомакот, длабоко и брзо дишење, мирис на овошје (ацетон) од устата и поспаност",
+      "outcome": "o_emergency",
+      "source": "nhs-dka"
+    }
+  ],
+  "entry": "q_problem",
+  "nodes": {
+    "q_problem": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што се случува?",
+      "options": [
+        {
+          "value": "low",
+          "label": "Шеќерот е низок (или имам знаци: тресење, потење, глад, вртоглавица)"
+        },
+        {
+          "value": "high",
+          "label": "Шеќерот е висок"
+        }
+      ],
+      "next": "q_glucose"
+    },
+    "q_glucose": {
+      "type": "question",
+      "kind": "number",
+      "text": "Колку е измерениот шеќер во крвта?",
+      "help": "Во mmol/L, како што покажува апаратот. Ако не сте мериле, прескокнете.",
+      "unit": "mmol_l",
+      "min": 0.5,
+      "max": 40,
+      "step": 0.1,
+      "optional": true,
+      "next": [
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "low"
+          },
+          "goto": "q_treated"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "high"
+          },
+          "goto": "q_ketones"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "high"
+          },
+          "goto": "q_high_signs"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "low"
+          },
+          "goto": "q_repeated_hypos"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 20
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4",
+                      "child_5_12"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 15
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    },
+    "q_treated": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали веќе внесовте брз шеќер (на пр. чаша сок или шеќерен пијалак) и повторно измеривте по 10–15 минути?",
+      "options": [
+        {
+          "value": "not_yet",
+          "label": "Уште не"
+        },
+        {
+          "value": "better",
+          "label": "Да, шеќерот е над 4 и се чувствувам подобро"
+        },
+        {
+          "value": "still_low",
+          "label": "Да, двапати, но шеќерот е сè уште низок"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "high"
+          },
+          "goto": "q_ketones"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "high"
+          },
+          "goto": "q_high_signs"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "low"
+          },
+          "goto": "q_repeated_hypos"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "still_low"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 20
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4",
+                      "child_5_12"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 15
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "not_yet"
+          },
+          "goto": "o_treat_now_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    },
+    "q_ketones": {
+      "type": "question",
+      "kind": "single",
+      "text": "Ако имате апарат за кетони, колку се кетоните во крвта?",
+      "options": [
+        {
+          "value": "lt_0_6",
+          "label": "Под 0,6"
+        },
+        {
+          "value": "0_6_1_4",
+          "label": "0,6–1,4"
+        },
+        {
+          "value": "1_5_2_9",
+          "label": "1,5–2,9"
+        },
+        {
+          "value": "ge_3",
+          "label": "3 или повеќе"
+        },
+        {
+          "value": "not_measured",
+          "label": "Не мерев / немам апарат"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_ketones",
+                "eq": "ge_3"
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "high"
+          },
+          "goto": "q_high_signs"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "low"
+          },
+          "goto": "q_repeated_hypos"
+        },
+        {
+          "when": {
+            "answer": "q_ketones",
+            "eq": "ge_3"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "still_low"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_ketones",
+                "eq": "1_5_2_9"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 20
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4",
+                      "child_5_12"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "answer": "q_ketones",
+            "eq": "0_6_1_4"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "answer": "q_glucose",
+                "gte": 15
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "not_yet"
+          },
+          "goto": "o_treat_now_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    },
+    "q_high_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "type1",
+          "label": "Имам дијабетес тип 1 или примам инсулин"
+        },
+        {
+          "value": "vomiting",
+          "label": "Повраќам или не можам да задржам течности"
+        },
+        {
+          "value": "thirst",
+          "label": "Многу сум жеден/жедна и мокрам многу"
+        },
+        {
+          "value": "ill",
+          "label": "Имам друга болест (инфекција, температура)"
+        },
+        {
+          "value": "days",
+          "label": "Шеќерот е висок повеќе од 2 дена и покрај лековите"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_problem",
+            "eq": "low"
+          },
+          "goto": "q_repeated_hypos"
+        },
+        {
+          "when": {
+            "answer": "q_ketones",
+            "eq": "ge_3"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "still_low"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_ketones",
+                    "eq": "1_5_2_9"
+                  },
+                  {
+                    "all": [
+                      {
+                        "answer": "q_high_signs",
+                        "includes": "type1"
+                      },
+                      {
+                        "answer": "q_high_signs",
+                        "includes": "vomiting"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_glucose",
+                    "gte": 20
+                  },
+                  {
+                    "answer": "q_high_signs",
+                    "includes": "vomiting"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4",
+                      "child_5_12"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_high_signs",
+                "includes": "days"
+              },
+              {
+                "answer": "q_high_signs",
+                "includes": "ill"
+              },
+              {
+                "answer": "q_ketones",
+                "eq": "0_6_1_4"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_high_signs",
+                    "includes": "thirst"
+                  },
+                  {
+                    "answer": "q_glucose",
+                    "gte": 15
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "not_yet"
+          },
+          "goto": "o_treat_now_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    },
+    "q_repeated_hypos": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали имате низок шеќер почесто од неколку пати неделно, или без предупредувачки знаци?",
+      "next": [
+        {
+          "when": {
+            "answer": "q_ketones",
+            "eq": "ge_3"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "still_low"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_ketones",
+                    "eq": "1_5_2_9"
+                  },
+                  {
+                    "all": [
+                      {
+                        "answer": "q_high_signs",
+                        "includes": "type1"
+                      },
+                      {
+                        "answer": "q_high_signs",
+                        "includes": "vomiting"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_glucose",
+                    "gte": 20
+                  },
+                  {
+                    "answer": "q_high_signs",
+                    "includes": "vomiting"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m",
+                      "child_1_4",
+                      "child_5_12"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_repeated_hypos",
+                "eq": "yes"
+              },
+              {
+                "answer": "q_high_signs",
+                "includes": "days"
+              },
+              {
+                "answer": "q_high_signs",
+                "includes": "ill"
+              },
+              {
+                "answer": "q_ketones",
+                "eq": "0_6_1_4"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_problem",
+                "eq": "high"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_high_signs",
+                    "includes": "thirst"
+                  },
+                  {
+                    "answer": "q_glucose",
+                    "gte": 15
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_treated",
+            "eq": "not_yet"
+          },
+          "goto": "o_treat_now_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Кетоните од 3 или повеќе се знак за опасно закиселување на крвта кај дијабетес — итна состојба."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако е без свест, ставете го/ја на страна; не давајте ништо преку уста.",
+        "Ако имате глукагон и знаете како, употребете го според упатството.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес",
+      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
+      "reasons": [
+        "Шеќерот останува низок и по два обида — треба помош денес; ако стане поспан/а, повикајте 194."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
+        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес",
+      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
+      "reasons": [
+        "Покачени кетони или повраќање кај тип 1 може да водат кон опасно закиселување на крвта; потребна е помош денес."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
+        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес",
+      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
+      "reasons": [
+        "Многу висок шеќер или повраќање бараат проценка денес."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
+        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте помош денес",
+      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
+      "reasons": [
+        "Кај деца и во бременост високиот шеќер треба да се процени истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
+        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_treat_now_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Внесете брз шеќер сега",
+      "summary": "Нискиот шеќер се лекува со брз шеќер веднаш.",
+      "reasons": [
+        "Најважно е веднаш да внесете брз шеќер."
+      ],
+      "do_now": [
+        "Внесете брз шеќер сега (на пр. мала чаша сок или шеќерен пијалак, или таблети гликоза).",
+        "Измерете повторно по 10–15 минути; ако е сè уште под 4, повторете.",
+        "Кога ќе се подобри, изедете нешто (на пр. сендвич или следниот оброк)."
+      ],
+      "watch_for": [
+        "Ако стане поспан/а, збунет/а или не може да голта, веднаш повикајте 194 или 112.",
+        "Ако шеќерот не се крева по два обида и се чувствува полошо, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "endokrinologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-hypo"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Повторените хипогликемии или високиот шеќер при болест често значат дека терапијата треба да се прилагоди.",
+      "reasons": [
+        "Терапијата можеби треба да се прилагоди; разговарајте со вашиот лекар или ендокринолог."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или ендокринолог.",
+        "Мерете почесто и запишувајте ги вредностите."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, длабоко дишење, поспаност или кетони 3 или повеќе, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "endokrinologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Покачениот шеќер треба да се разгледа, но нема знаци за итност.",
+      "reasons": [
+        "Високиот шеќер со жед и често мокрење треба да се разгледа со лекар."
+      ],
+      "do_now": [
+        "Пијте вода, мерете редовно и запишувајте."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, длабоко дишење, поспаност или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "endokrinologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-hyper"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Добро е — продолжете да следите",
+      "summary": "Нискиот шеќер е третиран и се подобрува, или шеќерот не е многу висок.",
+      "reasons": [
+        "Нискиот шеќер е третиран и се подобрува, или шеќерот не е многу висок."
+      ],
+      "do_now": [
+        "Изедете нешто со бавен шеќер (сендвич, оброк).",
+        "Размислете што го предизвикало (оброк, физичка активност, алкохол, лекови)."
+      ],
+      "watch_for": [
+        "Ако шеќерот повторно падне и не се крева, веднаш повикајте 194 или 112.",
+        "Ако се појави поспаност или збунетост, веднаш повикајте 194 или 112.",
+        "Ако имате низок шеќер почесто, јавете се кај вашиот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "endokrinologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-hypo"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако е без свест, ставете го/ја на страна; не давајте ништо преку уста.",
+        "Ако имате глукагон и знаете како, употребете го според упатството.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "infant_3_12m": "Referenced via child high-sugar rule.",
+    "child": "Referenced: children with high sugar → same day.",
+    "pregnancy": "Referenced: high sugar in pregnancy → same day.",
+    "older_adult": "Same thresholds; hypoglycaemia in older adults may present as confusion (also in confusion-older).",
+    "chronic": "The flow is for people with diabetes."
+  },
+  "sources": [
+    {
+      "id": "nhs-hypo",
+      "title": "NHS (Велика Британија) — Low blood sugar (hypoglycaemia)",
+      "url": "https://www.nhs.uk/conditions/low-blood-sugar-hypoglycaemia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hyper",
+      "title": "NHS (Велика Британија) — High blood sugar (hyperglycaemia)",
+      "url": "https://www.nhs.uk/conditions/high-blood-sugar-hyperglycaemia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dka",
+      "title": "NHS (Велика Британија) — Diabetic ketoacidosis",
+      "url": "https://www.nhs.uk/conditions/diabetic-ketoacidosis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

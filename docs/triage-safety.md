@@ -25,6 +25,48 @@ Zdravje360 offers **general, informational symptom guidance** to help users thin
 
 ---
 
+## In scope (v2, 2026-10 — docs/triage-flows.md)
+
+v2 extends 3f-a; everything above still holds unless stated here.
+
+- **Several published flows**, one per symptom, loaded from reviewed files as
+  versioned content. A visitor picks **up to three** symptoms (search or body
+  map); one combined red-flag screen is asked **before any question**, then the
+  flows run most urgent first. The result is the **most urgent** outcome of all;
+  an emergency outcome in any flow stops the rest.
+- **Clinician sign-off before publication.** A new or changed flow is a draft
+  („нацрт — чека лекарски преглед“) and is hidden from visitors until a staff
+  member records a clinician's approving review of that exact version and
+  publishes it (a different staff member from the one who recorded the approval;
+  the approval names the clinician and their registration number; „changes
+  requested“ on a live version unpublishes it). Only on non-deployed
+  environments is the v1 general flow, live before sign-off existed, carried
+  over without one (config `triage.grandfathered_flows`). Staff preview
+  any version in the admin simulator; nothing is stored by it.
+- **Linter** (`php artisan triage:lint`, also on import and publish): every
+  path ends in an outcome, nothing unreachable, red flags first and cited, every
+  emergency outcome offers 194 and 112, every other outcome has safety-netting,
+  special populations (infants, children, pregnancy, older adults, chronic
+  conditions) handled or explained, public sources cited, Macedonian alphabet.
+- **Structured answers only**, now also bounded numbers (temperature, days,
+  pain 0–10) and anonymous demographics (age in months, sex at birth,
+  pregnancy, chronic conditions). Still no free text; symptom search runs in
+  the browser and its text never reaches the server.
+- **Outcome levels**: emergency (194/112), same day, 1–2 days, GP this week,
+  pharmacist, self-care — each with reasons, what to do now, „if … then at
+  once …“ safety-netting and where to go (directory links built in the
+  browser; the city stays in the browser).
+- **Mental-health crisis**: self-harm is a global red flag leading to a crisis
+  outcome with 194/112 and the nearest emergency department; never self-care.
+- **Summary for the doctor**: built and printed / shared in the browser only;
+  no e-mail sending (it would identify the visitor).
+- **Anonymous aggregate counts** of outcomes per flow per week
+  (`triage_outcome_stats`), outliving the session purge because they hold no
+  link to any session or answer.
+- **AI seam only**: `TriageEscalation` interface with a `NullEscalation`, flag
+  `triage.escalation.enabled` off; called when the visitor finds no matching
+  symptom, and may only suggest published flows. No external call exists.
+
 ## Explicitly out of scope (3f-a)
 
 - AI / LLM assistance (**3f-b**).
@@ -33,7 +75,8 @@ Zdravje360 offers **general, informational symptom guidance** to help users thin
 - Medical device integrations, clinician escalation, telehealth.
 - Symptom ontologies (SNOMED, ICD, large taxonomies).
 - Free-text input, IP address logging, behavioral analytics.
-- Multiple concurrent published flows or audience-specific pathways.
+- Multiple concurrent published flows or audience-specific pathways
+  *(superseded by v2 above)*.
 - Member “my guidance history” UI.
 - Appointment booking or provider recommendation logic.
 
@@ -55,7 +98,7 @@ Do **not** use in user-facing or outcome copy:
 ## Mandatory disclaimers and gates
 
 1. **Pre-start:** User must confirm understanding that content is informational, not medical advice, and not for delaying emergency care.
-2. **Every step:** Compact emergency line (194 / 112) visible.
+2. **Every step:** Compact emergency line (194 / 112, both `tel:` links) visible.
 3. **Emergency shortcut:** “I need emergency help now” available during the flow → terminal emergency screen.
 4. **Red flags:** Any selected red flag **short-circuits**; user must not return to the normal questionnaire without starting a new session.
 5. **Results:** Repeat non-diagnostic framing; no disease-specific titles in v1.
@@ -68,6 +111,7 @@ Do **not** use in user-facing or outcome copy:
 |-----------|----------|
 | No published flow | `GET /triage/flow` → 404; web shows safe fallback |
 | Invalid / unknown session | 404; no guessed outcome |
+| `GET /triage/v2/sessions/{id}` on an unfinished session whose walk is complete | Completes it (a previous request was interrupted); otherwise read-only |
 | Session already completed | Reject further answer updates; `complete` is idempotent or 409 |
 | Emergency stopped | `complete` returns **only** emergency outcome |
 | Rule evaluation error | Log server-side; return generic safe outcome + support message |

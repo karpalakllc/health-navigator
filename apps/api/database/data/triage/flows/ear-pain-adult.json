@@ -1,0 +1,330 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "ear-pain-adult",
+  "title": "Болка во увото",
+  "summary_en": "Adult earache. Swelling/redness behind the ear with protruding ear, facial weakness, severe headache + confusion → emergency/same day. Discharge, hearing loss, >3 days → 48h. Sudden hearing loss in one ear → same day. Otherwise self-care/pharmacy.",
+  "notes_en": "NHS earache / ear infections. Sudden sensorineural hearing loss escalated same day (time-sensitive treatment). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 35,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "болка во увото",
+    "уво ме боли",
+    "отитис",
+    "течење од увото"
+  ],
+  "red_flags": [
+    {
+      "code": "mastoid",
+      "label": "Оток, црвенило и болка зад увото, а увото е одбиено нанапред",
+      "outcome": "o_emergency",
+      "source": "nhs-ear-infections"
+    },
+    {
+      "code": "face_weak",
+      "label": "Опуштено лице или слабост на едната страна на лицето",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "meningism",
+      "label": "Силна главоболка со вкочанет врат, збунетост или поспаност",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    }
+  ],
+  "entry": "q_features",
+  "nodes": {
+    "q_features": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали има и нешто од ова?",
+      "options": [
+        {
+          "value": "sudden_hearing",
+          "label": "Ненадејно губење на слухот на едното уво"
+        },
+        {
+          "value": "discharge",
+          "label": "Течење (гној или течност) од увото"
+        },
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "object",
+          "label": "Предмет или инсект во увото"
+        },
+        {
+          "value": "vertigo",
+          "label": "Силна вртоглавица (чувство дека сè се врти)"
+        },
+        {
+          "value": "diabetes_pain",
+          "label": "Имам дијабетес и болката е многу силна"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_3d",
+          "label": "Помалку од 3 дена"
+        },
+        {
+          "value": "gt_3d",
+          "label": "3 дена или повеќе"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "sudden_hearing"
+              },
+              {
+                "answer": "q_features",
+                "includes": "diabetes_pain"
+              },
+              {
+                "answer": "q_features",
+                "includes": "object"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "discharge"
+              },
+              {
+                "answer": "q_features",
+                "includes": "vertigo"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_3d"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_features",
+            "includes": "fever"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои проблеми со увото најдобро се лекуваат што порано.",
+      "reasons": [
+        "Ненадејното губење на слухот и предметите во увото се подобро решаваат брзо; кај дијабетес силната болка во увото бара преглед."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или на УНГ (уво-нос-грло) амбуланта денес.",
+        "Не чепкајте во увото и не ставајте течности ако тече."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, слабост на лицето или силна главоболка со вкочанет врат, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "otorinolaringologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-earache"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот треба да го погледне увото.",
+      "reasons": [
+        "Течење, вртоглавица или болка подолга од 3 дена треба да ги провери лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар или УНГ специјалист."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото или слабост на лицето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-earache"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Повеќето инфекции на увото поминуваат за 3 дена.",
+      "reasons": [
+        "Болка во увото со температура често се подобрува сама за неколку дена."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средство против болка.",
+        "Топол облог на увото може да помогне."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото или слабост на лицето, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 3 дена, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-earache"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Болката во увото често поминува сама за неколку дена.",
+      "reasons": [
+        "Болката во увото често поминува сама за неколку дена."
+      ],
+      "do_now": [
+        "Не ставајте стапчиња или предмети во увото.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако се појави оток зад увото, слабост на лицето или силна главоболка, веднаш повикајте 194 или 112.",
+        "Ако трае повеќе од 3 дена или се појави течење или губење на слухот, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-earache"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "No pregnancy-specific threshold in public earache guidance.",
+    "older_adult": "No age-specific threshold; sudden hearing loss is same day at any age.",
+    "chronic": "Diabetes with severe ear pain is asked directly in q_features (necrotising otitis externa risk)."
+  },
+  "sources": [
+    {
+      "id": "nhs-earache",
+      "title": "NHS (Велика Британија) — Earache",
+      "url": "https://www.nhs.uk/symptoms/earache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ear-infections",
+      "title": "NHS (Велика Британија) — Ear infections",
+      "url": "https://www.nhs.uk/conditions/ear-infections/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

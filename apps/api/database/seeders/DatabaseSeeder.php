@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ReviewSeeder::class,
             ForumSeeder::class,
             TriageSeeder::class,
+            TriageFlowSeeder::class,
         ]);
     }
 }

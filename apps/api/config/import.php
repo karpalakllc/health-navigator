@@ -81,6 +81,23 @@ return [
         'primary_care_contract_types' => [1, 2, 3],
     ],
 
+    /*
+    | ФЗОМ's monthly „Распоред на дежурни аптеки“ (.xlsx), linked from
+    | page_url (import:on-duty-pharmacies, docs/urgent-care.md). Owner
+    | approved the import on 2026-10-07, so it is ON unless switched off.
+    | Only https files on the page's host are fetched; the newest
+    | keep_files raw files stay on the private disk.
+    */
+    'on_duty_pharmacies' => [
+        'enabled' => filter_var(env('IMPORT_ON_DUTY_PHARMACIES', true), FILTER_VALIDATE_BOOLEAN),
+        'page_url' => env('IMPORT_ON_DUTY_PHARMACIES_URL', 'https://fzo.org.mk/dezurni-apteki'),
+        'extra_hosts' => array_values(array_filter(explode(',', (string) env('IMPORT_ON_DUTY_PHARMACIES_EXTRA_HOSTS', '')))),
+        'directory' => 'imports/on-duty-pharmacies',
+        'keep_files' => (int) env('IMPORT_ON_DUTY_PHARMACIES_KEEP_FILES', 3),
+        'max_bytes' => (int) env('IMPORT_ON_DUTY_PHARMACIES_MAX_BYTES', 5 * 1024 * 1024),
+        'request_delay_ms' => (int) env('IMPORT_ON_DUTY_PHARMACIES_DELAY_MS', 2000),
+    ],
+
     'website' => [
         // Images larger than this are skipped (the research brief caps at 2 MB).
         'max_image_bytes' => (int) env('IMPORT_WEBSITE_MAX_IMAGE_BYTES', 2 * 1024 * 1024),

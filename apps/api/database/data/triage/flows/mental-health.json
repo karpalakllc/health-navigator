@@ -1,0 +1,598 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "mental-health",
+  "title": "Психичко здравје: вознемиреност, лошо расположение, криза",
+  "summary_en": "Mental health (teens and adults). Crisis red flags (suicidal plan/intent, self-harm now, risk to others, severe confusion/psychosis with danger) → global crisis outcome (194/112 + nearest ED). Frequent thoughts of death, psychotic or manic features, inability to function, teens or postpartum with any thoughts → same day; occasional thoughts without plan → 24–48h; low mood/anxiety >2 weeks → GP; mild → self-care with safety net (194/112 always repeated).",
+  "notes_en": "NHS suicidal thoughts / urgent mental-health help / depression / anxiety / psychosis; WHO suicide fact sheet. Any self-harm or suicidal intent routes to global:crisis and never to self-care. Passive ideation without plan → 24–48h; frequent → same day; teens and postpartum have lower thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 96,
+  "body_areas": [
+    "mind"
+  ],
+  "search_terms": [
+    "самоубиство",
+    "самоповредување",
+    "депресија",
+    "анксиозност",
+    "паника",
+    "напад на паника",
+    "лошо расположение",
+    "стрес",
+    "тага",
+    "психичко здравје",
+    "не сакам да живеам"
+  ],
+  "red_flags": [
+    {
+      "code": "plan_intent",
+      "label": "Имате план или намера да си одземете живот, или сте подготвиле средства за тоа",
+      "outcome": "global:crisis",
+      "source": "nhs-suicidal"
+    },
+    {
+      "code": "self_harm_now",
+      "label": "Сте се повредиле или сте зеле прекумерно лекови/супстанции",
+      "outcome": "global:crisis",
+      "source": "nhs-suicidal"
+    },
+    {
+      "code": "harm_others",
+      "label": "Чувствувате дека можете да повредите некого друг",
+      "outcome": "global:crisis",
+      "source": "nhs-mh-urgent"
+    },
+    {
+      "code": "not_safe",
+      "label": "Не можете да се чувствувате безбедни сега",
+      "outcome": "global:crisis",
+      "source": "nhs-suicidal"
+    },
+    {
+      "code": "psychosis_danger",
+      "label": "Слушате гласови што ви наредуваат да направите нешто опасно, или сте многу збунети и не знаете каде сте",
+      "outcome": "global:crisis",
+      "source": "nhs-psychosis"
+    }
+  ],
+  "entry": "i_you_matter",
+  "nodes": {
+    "i_you_matter": {
+      "type": "info",
+      "title": "Добро е што барате помош",
+      "text": "Ако во кое било време почувствувате дека не сте безбедни, повикајте 194 или 112 или одете во најблиската итна служба. Не мора да бидете сами со ова.",
+      "next": "q_thoughts"
+    },
+    "q_thoughts": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали во последните 2 недели сте имале мисли дека би било подобро да не сте живи, или мисли да се повредите?",
+      "options": [
+        {
+          "value": "no",
+          "label": "Не"
+        },
+        {
+          "value": "sometimes",
+          "label": "Да, понекогаш, но немам план"
+        },
+        {
+          "value": "often",
+          "label": "Да, често"
+        }
+      ],
+      "next": "q_main"
+    },
+    "q_main": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што најмногу ве мачи?",
+      "options": [
+        {
+          "value": "low_mood",
+          "label": "Тага, празнина или безнадежност"
+        },
+        {
+          "value": "no_interest",
+          "label": "Ништо не ме радува"
+        },
+        {
+          "value": "worry",
+          "label": "Постојана загриженост и напнатост"
+        },
+        {
+          "value": "panic",
+          "label": "Напади на паника (силно чукање на срцето, тресење, страв)"
+        },
+        {
+          "value": "sleep",
+          "label": "Многу малку или премногу сон"
+        },
+        {
+          "value": "unusual",
+          "label": "Необични мисли или доживувања (на пр. гласови, чувство дека ве следат)"
+        },
+        {
+          "value": "elated",
+          "label": "Многу покачено расположение, малку сон, брзи мисли"
+        },
+        {
+          "value": "substances",
+          "label": "Алкохол или дроги ми прават проблем"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае?",
+      "options": [
+        {
+          "value": "lt_2w",
+          "label": "Помалку од 2 недели"
+        },
+        {
+          "value": "gt_2w",
+          "label": "Повеќе од 2 недели"
+        }
+      ],
+      "next": "q_function"
+    },
+    "q_function": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку ова ве попречува во секојдневието (работа, училиште, грижа за себе)?",
+      "options": [
+        {
+          "value": "little",
+          "label": "Малку"
+        },
+        {
+          "value": "quite",
+          "label": "Доста"
+        },
+        {
+          "value": "cannot",
+          "label": "Не можам да функционирам"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_thoughts",
+            "eq": "often"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "eq": "postpartum"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_thoughts",
+                    "eq": "sometimes"
+                  },
+                  {
+                    "answer": "q_main",
+                    "includes": "unusual"
+                  },
+                  {
+                    "answer": "q_main",
+                    "includes": "elated"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_main",
+                "includes": "unusual"
+              },
+              {
+                "answer": "q_main",
+                "includes": "elated"
+              },
+              {
+                "answer": "q_function",
+                "eq": "cannot"
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "teen_13_17"
+                ]
+              },
+              {
+                "not": {
+                  "answer": "q_thoughts",
+                  "eq": "no"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "answer": "q_thoughts",
+            "eq": "sometimes"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "gt_2w"
+              },
+              {
+                "answer": "q_function",
+                "eq": "quite"
+              },
+              {
+                "answer": "q_main",
+                "includes": "substances"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_main",
+                "includes_any": [
+                  "low_mood",
+                  "no_interest",
+                  "worry"
+                ]
+              }
+            ]
+          },
+          "goto": "o_gp_2"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Разговарајте со стручно лице денес",
+      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
+      "reasons": [
+        "Честите мисли за смрт или самоповредување треба да ги процени стручно лице уште денес."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
+        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
+        "Кажете му на некој близок како се чувствувате и не останувајте сами."
+      ],
+      "watch_for": [
+        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
+      ],
+      "care": {
+        "setting": "mental_health",
+        "specialties": [
+          "psihijatrija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "hospital",
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mh-urgent"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Разговарајте со стручно лице денес",
+      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
+      "reasons": [
+        "Промени во расположението или необични доживувања по породување треба да се проценат истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
+        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
+        "Кажете му на некој близок како се чувствувате и не останувајте сами."
+      ],
+      "watch_for": [
+        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
+      ],
+      "care": {
+        "setting": "mental_health",
+        "specialties": [
+          "psihijatrija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "hospital",
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mh-urgent"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Разговарајте со стручно лице денес",
+      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
+      "reasons": [
+        "Необичните доживувања, многу покаченото расположение или неможноста за функционирање бараат брза стручна проценка."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
+        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
+        "Кажете му на некој близок како се чувствувате и не останувајте сами."
+      ],
+      "watch_for": [
+        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
+      ],
+      "care": {
+        "setting": "mental_health",
+        "specialties": [
+          "psihijatrija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "hospital",
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mh-urgent"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете разговор со лекар во наредните 1–2 дена",
+      "summary": "Мислите за смрт се чести кога човек е под голем притисок и треба да се разговара за нив.",
+      "reasons": [
+        "Мислите за смрт треба да се споделат со лекар наскоро, дури и без план."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; може да ве упати кај психијатар или психолог.",
+        "Разговарајте со некој близок."
+      ],
+      "watch_for": [
+        "Ако мислите станат почести, направите план или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-suicidal"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Разговарајте со стручно лице денес",
+      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
+      "reasons": [
+        "Кај млади лица мислите за смрт или самоповредување треба брзо да ги процени стручно лице; разговарајте и со возрасен на кого му верувате."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
+        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
+        "Кажете му на некој близок како се чувствувате и не останувајте сами."
+      ],
+      "watch_for": [
+        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
+      ],
+      "care": {
+        "setting": "mental_health",
+        "specialties": [
+          "psihijatrija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "hospital",
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mh-urgent"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Вознемиреноста и лошото расположение што траат се чести и добро се лекуваат.",
+      "reasons": [
+        "Тегобите траат повеќе од 2 недели или ве попречуваат — постојат ефикасни начини за помош."
+      ],
+      "do_now": [
+        "Закажете оваа недела; лекарот може да ве упати кај психијатар или психолог.",
+        "Редовен сон, движење и намалување на алкохолот помагаат."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-depression",
+        "nhs-gad"
+      ]
+    },
+    "o_gp_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Вознемиреноста и лошото расположение што траат се чести и добро се лекуваат.",
+      "reasons": [
+        "Лошото расположение и вознемиреноста во бременост и по породување се чести и добро се лекуваат."
+      ],
+      "do_now": [
+        "Закажете оваа недела; лекарот може да ве упати кај психијатар или психолог.",
+        "Редовен сон, движење и намалување на алкохолот помагаат."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-depression",
+        "nhs-gad"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Грижа за себе, со јасен план ако се влоши",
+      "summary": "Краткотрајниот стрес и тага се дел од животот и често се подобруваат со поддршка.",
+      "reasons": [
+        "Краткотрајниот стрес и тага се дел од животот и често се подобруваат со поддршка."
+      ],
+      "do_now": [
+        "Разговарајте со некој на кого му верувате.",
+        "Одржувајте редовен сон, оброци и движење.",
+        "Техники за смирено дишење помагаат при напади на паника."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112.",
+        "Ако тегобите траат повеќе од 2 недели, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-gad",
+        "nhs-panic"
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Referenced: pregnancy/postpartum low mood/anxiety → GP minimum; postpartum unusual experiences/elation/thoughts → same day (postpartum psychosis risk).",
+    "older_adult": "Same thresholds; new confusion in older adults is in confusion-older.",
+    "chronic": "No condition-specific threshold."
+  },
+  "sources": [
+    {
+      "id": "nhs-suicidal",
+      "title": "NHS (Велика Британија) — Help for suicidal thoughts",
+      "url": "https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/behaviours/help-for-suicidal-thoughts/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-mh-urgent",
+      "title": "NHS (Велика Британија) — Where to get urgent help for mental health",
+      "url": "https://www.nhs.uk/nhs-services/mental-health-services/where-to-get-urgent-help-for-mental-health/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "who-suicide",
+      "title": "Светска здравствена организација (WHO) — Suicide — fact sheet",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/suicide",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-gad",
+      "title": "NHS (Велика Британија) — Generalised anxiety disorder in adults",
+      "url": "https://www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder-gad/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-panic",
+      "title": "NHS (Велика Британија) — Panic disorder",
+      "url": "https://www.nhs.uk/mental-health/conditions/panic-disorder/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-depression",
+      "title": "NHS (Велика Британија) — Depression in adults",
+      "url": "https://www.nhs.uk/mental-health/conditions/depression-in-adults/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-psychosis",
+      "title": "NHS (Велика Британија) — Psychosis",
+      "url": "https://www.nhs.uk/mental-health/conditions/psychosis/overview/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-postnatal-depression",
+      "title": "NHS (Велика Британија) — Postnatal depression",
+      "url": "https://www.nhs.uk/mental-health/conditions/postnatal-depression/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

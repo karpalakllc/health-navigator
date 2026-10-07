@@ -1,0 +1,426 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "sleep-problems",
+  "title": "Проблеми со спиењето",
+  "summary_en": "Adult sleep problems. Crisis features handled by mental-health red flags (repeated here only as 'not safe'); falling asleep while driving or witnessed apnoeas → GP (doc48 if driving). Insomnia <4 weeks → self-care; >3 months or affecting life → GP.",
+  "notes_en": "NHS insomnia (>3 months → GP) and sleep apnoea (snoring + witnessed apnoeas, daytime sleepiness, driving risk). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 20,
+  "body_areas": [
+    "mind"
+  ],
+  "search_terms": [
+    "несоница",
+    "не можам да спијам",
+    "хркање",
+    "спиење",
+    "поспаност преку ден"
+  ],
+  "red_flags": [
+    {
+      "code": "not_safe",
+      "label": "Поради расположението имате мисли да се повредите или не се чувствувате безбедни",
+      "outcome": "global:crisis",
+      "source": "nhs-suicidal"
+    }
+  ],
+  "entry": "q_problem",
+  "nodes": {
+    "q_problem": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што најдобро го опишува проблемот?",
+      "options": [
+        {
+          "value": "falling",
+          "label": "Тешко заспивам или се будам рано и не можам повторно да заспијам"
+        },
+        {
+          "value": "snoring_pauses",
+          "label": "Гласно хркање, а други забележале паузи во дишењето"
+        },
+        {
+          "value": "sleepy_day",
+          "label": "Многу сум поспан/а преку ден"
+        },
+        {
+          "value": "drowsy_driving",
+          "label": "Ми се случило да задремам при возење"
+        },
+        {
+          "value": "low_mood",
+          "label": "Лошо расположение или вознемиреност"
+        },
+        {
+          "value": "legs",
+          "label": "Непријатно чувство во нозете навечер што ме тера да ги мрдам"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае?",
+      "options": [
+        {
+          "value": "lt_4w",
+          "label": "Помалку од 4 недели"
+        },
+        {
+          "value": "1_3m",
+          "label": "1–3 месеци"
+        },
+        {
+          "value": "gt_3m",
+          "label": "Повеќе од 3 месеци"
+        }
+      ],
+      "next": "q_impact"
+    },
+    "q_impact": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали ова сериозно влијае на работата, возењето или секојдневието?",
+      "next": [
+        {
+          "when": {
+            "answer": "q_problem",
+            "includes": "drowsy_driving"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_problem",
+                "includes": "snoring_pauses"
+              },
+              {
+                "answer": "q_problem",
+                "includes": "sleepy_day"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
+            "includes": "low_mood"
+          },
+          "goto": "o_gp_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "gt_3m"
+              },
+              {
+                "answer": "q_impact",
+                "eq": "yes"
+              },
+              {
+                "answer": "q_problem",
+                "includes": "legs"
+              }
+            ]
+          },
+          "goto": "o_gp_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_problem",
+                "includes": "low_mood"
+              }
+            ]
+          },
+          "goto": "o_gp_4"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_problem",
+                "includes": "sleepy_day"
+              }
+            ]
+          },
+          "goto": "o_gp_5"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Задремувањето при возење е ризик за вас и за другите.",
+      "reasons": [
+        "Задремувањето при возење е опасно; не возете додека не разговарате со лекар."
+      ],
+      "do_now": [
+        "Не возете додека не ве процени лекар.",
+        "Закажете кај избраниот лекар."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Проблемите со спиењето што траат или имаат посебни знаци вреди да се испитаат.",
+      "reasons": [
+        "Хркање со паузи во дишењето и дневна поспаност може да значат апнеја при спиење, која се лекува."
+      ],
+      "do_now": [
+        "Водете дневник на спиењето 1–2 недели и понесете го на преглед."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-insomnia",
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_gp_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Проблемите со спиењето што траат или имаат посебни знаци вреди да се испитаат.",
+      "reasons": [
+        "Сонот и расположението се поврзани; лекарот може да помогне за двете."
+      ],
+      "do_now": [
+        "Водете дневник на спиењето 1–2 недели и понесете го на преглед."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-insomnia",
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_gp_3": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Проблемите со спиењето што траат или имаат посебни знаци вреди да се испитаат.",
+      "reasons": [
+        "Долготрајната несоница или онаа што ви го попречува животот вреди да се разгледа со лекар."
+      ],
+      "do_now": [
+        "Водете дневник на спиењето 1–2 недели и понесете го на преглед."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-insomnia",
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_gp_4": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Проблемите со спиењето што траат или имаат посебни знаци вреди да се испитаат.",
+      "reasons": [
+        "Сонот и расположението во бременост и по породување вреди да ги процени лекар."
+      ],
+      "do_now": [
+        "Водете дневник на спиењето 1–2 недели и понесете го на преглед."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-insomnia",
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_gp_5": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Проблемите со спиењето што траат или имаат посебни знаци вреди да се испитаат.",
+      "reasons": [
+        "Кај постари лица дневната поспаност понекогаш е поврзана со лекови или други болести."
+      ],
+      "do_now": [
+        "Водете дневник на спиењето 1–2 недели и понесете го на преглед."
+      ],
+      "watch_for": [
+        "Ако се појават мисли за самоповредување или не се чувствувате безбедни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija",
+          "pulmologija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-insomnia",
+        "nhs-sleep-apnoea"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се подобри со навики",
+      "summary": "Краткотрајната несоница е честа и често се подобрува со промена на навиките.",
+      "reasons": [
+        "Краткотрајната несоница е честа и често се подобрува со промена на навиките."
+      ],
+      "do_now": [
+        "Легнувајте и станувајте во исто време, и викенд.",
+        "Без кафе по пладне и без екрани еден час пред спиење.",
+        "Ако не заспиете за 20 минути, станете и правете нешто мирно."
+      ],
+      "watch_for": [
+        "Ако несоницата трае повеќе од 3 месеци или ве попречува, закажете кај избраниот лекар.",
+        "Ако се појават мисли за самоповредување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-insomnia"
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "chronic": "No condition-specific threshold; medication side effects are a GP question."
+  },
+  "sources": [
+    {
+      "id": "nhs-insomnia",
+      "title": "NHS (Велика Британија) — Insomnia",
+      "url": "https://www.nhs.uk/conditions/insomnia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sleep-apnoea",
+      "title": "NHS (Велика Британија) — Sleep apnoea",
+      "url": "https://www.nhs.uk/conditions/sleep-apnoea/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-suicidal",
+      "title": "NHS (Велика Британија) — Help for suicidal thoughts",
+      "url": "https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/behaviours/help-for-suicidal-thoughts/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

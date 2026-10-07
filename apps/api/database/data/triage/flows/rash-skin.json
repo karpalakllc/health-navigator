@@ -1,0 +1,645 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "rash-skin",
+  "title": "Осип или промени на кожата",
+  "summary_en": "Adult rash. Non-blanching rash with fever/unwell, rapidly spreading rash with blistering/skin peeling, anaphylaxis signs → emergency. Spreading red hot skin with fever (cellulitis), rash near eye (shingles), immunosuppressed → same day/48h. Hives/itch → pharmacy.",
+  "notes_en": "NHS cellulitis/shingles/hives/impetigo/scabies; glass test and anaphylaxis signs as red flags; SJS/TEN-type features (blistering, mucosal involvement after new drug) emergency. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 50,
+  "body_areas": [
+    "skin"
+  ],
+  "search_terms": [
+    "осип",
+    "црвенило на кожата",
+    "чешање",
+    "копривка",
+    "меурчиња",
+    "херпес зостер",
+    "кожа"
+  ],
+  "red_flags": [
+    {
+      "code": "nonblanch_unwell",
+      "label": "Осип што не бледнее под притисок на чаша, а лицето е болно или има температура",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "anaphylaxis",
+      "label": "Отекување на усните, јазикот или грлото, или отежнато дишење",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "blistering_peeling",
+      "label": "Брзо ширење на осип со меури, лупење на кожата или рани во устата и очите (често по нов лек)",
+      "help": "Ретка, но сериозна реакција на кожата.",
+      "outcome": "o_emergency",
+      "source": "nhs-hives"
+    }
+  ],
+  "entry": "q_type",
+  "nodes": {
+    "q_type": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што најдобро ја опишува промената?",
+      "options": [
+        {
+          "value": "red_hot_spreading",
+          "label": "Црвена, топла, отечена и болна кожа што се шири"
+        },
+        {
+          "value": "band_blisters",
+          "label": "Болни меурчиња во појас на едната страна од телото"
+        },
+        {
+          "value": "near_eye",
+          "label": "Осип или меурчиња околу окото или на врвот на носот"
+        },
+        {
+          "value": "hives",
+          "label": "Издигнати, чешачки дамки што се појавуваат и исчезнуваат"
+        },
+        {
+          "value": "crusts",
+          "label": "Жолтеникави красти (корички) околу носот или устата"
+        },
+        {
+          "value": "itch_night",
+          "label": "Силно чешање, особено ноќе, и кај други во домот"
+        },
+        {
+          "value": "mole_change",
+          "label": "Бенка што се менува (големина, облик, боја) или крвави"
+        },
+        {
+          "value": "other",
+          "label": "Друг осип"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_fever"
+    },
+    "q_fever": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали имате температура 38 °C или повеќе, или се чувствувате болно?",
+      "next": "q_new_drug"
+    },
+    "q_new_drug": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали почнавте нов лек во последните 2 недели?",
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_type",
+                "includes": "near_eye"
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_type",
+                    "includes": "red_hot_spreading"
+                  },
+                  {
+                    "answer": "q_fever",
+                    "eq": "yes"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_type",
+                    "includes": "band_blisters"
+                  },
+                  {
+                    "answer": "q_type",
+                    "includes": "red_hot_spreading"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_type",
+                    "includes": "band_blisters"
+                  },
+                  {
+                    "answer": "q_fever",
+                    "eq": "yes"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_preg_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_type",
+                "includes": "red_hot_spreading"
+              },
+              {
+                "answer": "q_type",
+                "includes": "band_blisters"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_new_drug",
+                "eq": "yes"
+              },
+              {
+                "not": {
+                  "answer": "q_type",
+                  "includes": "hives"
+                }
+              }
+            ]
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_fever",
+            "eq": "yes"
+          },
+          "goto": "o_doc48_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_type",
+                "includes": "crusts"
+              },
+              {
+                "answer": "q_type",
+                "includes": "itch_night"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes": "mole_change"
+          },
+          "goto": "o_gp_derm_1"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes": "hives"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_pharm"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои промени на кожата треба да се лекуваат истиот ден.",
+      "reasons": [
+        "Осип околу окото или црвена кожа што се шири со температура бара лекување истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Со пенкало обележете ги рабовите на црвенилото за да следите дали се шири."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето или отежнато дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "dermatologija",
+          "infektologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis",
+        "nhs-shingles"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои промени на кожата треба да се лекуваат истиот ден.",
+      "reasons": [
+        "Кај ослабен имунитет инфекциите на кожата бараат брз преглед."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Со пенкало обележете ги рабовите на црвенилото за да следите дали се шири."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето или отежнато дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "dermatologija",
+          "infektologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis",
+        "nhs-shingles"
+      ]
+    },
+    "o_urgent_preg_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се кај гинеколог или избран лекар денес",
+      "summary": "Некои инфекции со осип во бременост бараат брза проценка.",
+      "reasons": [
+        "Осип со температура или меурчиња во бременост треба да се провери истиот ден (некои инфекции влијаат на бебето)."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог или избран лекар уште денес; кажете ако сте биле во контакт со некој со сипаници или овчи сипаници."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење, силна главоболка или осип што не бледнее, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-chickenpox",
+        "nhs-shingles"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Промената треба да ја види лекар.",
+      "reasons": [
+        "Црвенило што се шири или појас меурчиња треба брзо да се прегледа; лекувањето е најкорисно во првите денови."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; сликајте ја промената за да следите како се менува."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето, отежнато дишење или рани во устата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Промената треба да ја види лекар.",
+      "reasons": [
+        "Осип по нов лек треба да го процени лекар; не го прекинувајте лекот на своја рака без совет."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; сликајте ја промената за да следите како се менува."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето, отежнато дишење или рани во устата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
+    },
+    "o_doc48_3": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Промената треба да ја види лекар.",
+      "reasons": [
+        "Осип со температура треба да го прегледа лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; сликајте ја промената за да следите како се менува."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето, отежнато дишење или рани во устата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Овие промени се чести и лесно се лекуваат по преглед.",
+      "reasons": [
+        "Ова често бара лекување што го одредува лекар."
+      ],
+      "do_now": [
+        "Закажете оваа недела.",
+        "Не делете крпи и постелнина додека не се прегледате."
+      ],
+      "watch_for": [
+        "Ако се појави температура или црвенилото брзо се шири, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-impetigo",
+        "nhs-scabies"
+      ]
+    },
+    "o_gp_derm_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете преглед кај дерматолог",
+      "summary": "Бенките што се менуваат треба да се прегледаат без одлагање.",
+      "reasons": [
+        "Бенка што се менува треба да ја прегледа дерматолог."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар за упат или директно кај дерматолог."
+      ],
+      "watch_for": [
+        "Ако бенката почне да крвари или брзо расте, веднаш повикајте 194 или 112.",
+        "Ако чекањето е долго, побарајте термин кај друг дерматолог."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "dermatologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hives"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Благите осипи и копривката често поминуваат сами.",
+      "reasons": [
+        "Копривката најчесто поминува сама за неколку дена."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средство против чешање.",
+        "Избегнувајте нешто што мислите дека го предизвикало."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на усните или јазикот, отежнато дишење или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 1 недела, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-hives"
+      ]
+    },
+    "o_pharm": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Благите осипи и копривката често поминуваат сами.",
+      "reasons": [
+        "Благите осипи и копривката често поминуваат сами."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средство против чешање.",
+        "Избегнувајте нешто што мислите дека го предизвикало."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на усните или јазикот, отежнато дишење или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 1 недела, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "dermatologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-hives"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "older_adult": "Same thresholds; shingles is commoner with age but routing is by presentation.",
+    "pregnancy": "Referenced: fever/blistering rash in pregnancy → same day maternity/GP."
+  },
+  "sources": [
+    {
+      "id": "nhs-cellulitis",
+      "title": "NHS (Велика Британија) — Cellulitis",
+      "url": "https://www.nhs.uk/conditions/cellulitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-shingles",
+      "title": "NHS (Велика Британија) — Shingles",
+      "url": "https://www.nhs.uk/conditions/shingles/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hives",
+      "title": "NHS (Велика Британија) — Hives",
+      "url": "https://www.nhs.uk/conditions/hives/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-impetigo",
+      "title": "NHS (Велика Британија) — Impetigo",
+      "url": "https://www.nhs.uk/conditions/impetigo/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-scabies",
+      "title": "NHS (Велика Британија) — Scabies",
+      "url": "https://www.nhs.uk/conditions/scabies/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-anaphylaxis",
+      "title": "NHS (Велика Британија) — Anaphylaxis",
+      "url": "https://www.nhs.uk/conditions/anaphylaxis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-chickenpox",
+      "title": "NHS (Велика Британија) — Chickenpox",
+      "url": "https://www.nhs.uk/conditions/chickenpox/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

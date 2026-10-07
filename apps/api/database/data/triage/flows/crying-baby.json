@@ -1,0 +1,593 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "crying-baby",
+  "title": "Бебе што многу плаче",
+  "summary_en": "Crying baby (0–12 months). Weak/high-pitched/continuous cry with illness signs, fever thresholds, bulging fontanelle, floppy, green vomit, not feeding → emergency/go now. Caregiver at risk of harming the baby → safety step + global crisis. Colic pattern in a well, feeding baby → self-care with soothing; parental exhaustion → paediatrician/GP.",
+  "notes_en": "NHS soothing a crying baby / colic / under-5 urgent signs / fever thresholds / newborn jaundice. Includes shaken-baby prevention wording and a caregiver-harm red flag to the global crisis outcome. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m"
+    ]
+  },
+  "urgency_rank": 80,
+  "body_areas": [
+    "general",
+    "abdomen"
+  ],
+  "search_terms": [
+    "бебе плаче",
+    "бебе плаче постојано",
+    "колики",
+    "грчеви кај бебе",
+    "не можам да го смирам бебето"
+  ],
+  "red_flags": [
+    {
+      "code": "breathing",
+      "label": "Дише многу брзо или тешко, стенка при дишење или стомачето/меѓу ребрата му се вовлекува",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "colour",
+      "label": "Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "drowsy",
+      "label": "Тешко се буди, не реагира или е млитаво",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "cry",
+      "label": "Слаб, писклив или непрекинат плач што е невообичаен за детето",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "no_urine",
+      "label": "Не мокрело 12 часа или повеќе (суви пелени)",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "fontanelle",
+      "label": "Испакнато (издигнато) теме кај бебето",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "green_vomit",
+      "label": "Повраќа зелено",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "carer_harm",
+      "label": "Се плашите дека можете да му наштетите на бебето",
+      "help": "Ставете го бебето безбедно на грб во креветчето, излезете од собата и побарајте помош.",
+      "outcome": "global:crisis",
+      "source": "nhs-crying-baby"
+    }
+  ],
+  "entry": "q_temp",
+  "nodes": {
+    "q_temp": {
+      "type": "question",
+      "kind": "number",
+      "text": "Ако сте ја измериле температурата, колку е?",
+      "unit": "celsius",
+      "min": 33,
+      "max": 43,
+      "step": 0.1,
+      "optional": true,
+      "next": "q_signs"
+    },
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова?",
+      "options": [
+        {
+          "value": "not_feeding",
+          "label": "Јаде помалку од половина од вообичаеното"
+        },
+        {
+          "value": "fewer_nappies",
+          "label": "Помалку мокри пелени"
+        },
+        {
+          "value": "yellow",
+          "label": "Жолтеникава кожа или очи (во првите недели), особено ако е поспано"
+        },
+        {
+          "value": "different",
+          "label": "Плачот е различен од вообичаениот"
+        },
+        {
+          "value": "injury",
+          "label": "Можеби паднало или се удрило"
+        },
+        {
+          "value": "hernia",
+          "label": "Оток во препоните или во мошницата"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_pattern"
+    },
+    "q_pattern": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како изгледа плачот?",
+      "options": [
+        {
+          "value": "colic",
+          "label": "Плаче долго, обично навечер, а меѓу нападите е добро, јаде и расте"
+        },
+        {
+          "value": "new_constant",
+          "label": "Ново, постојано плачење што ништо не го смирува, повеќе од 2–3 часа"
+        },
+        {
+          "value": "other",
+          "label": "Друго"
+        }
+      ],
+      "next": "q_carer_ok"
+    },
+    "q_carer_ok": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали вие се справувате и имате поддршка?",
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_temp",
+                "gte": 38
+              }
+            ]
+          },
+          "goto": "o_emergency_infant_fever"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_months",
+                "between": [
+                  3,
+                  5
+                ]
+              },
+              {
+                "answer": "q_temp",
+                "gte": 39
+              }
+            ]
+          },
+          "goto": "o_urgent_now_2"
+        },
+        {
+          "when": {
+            "answer": "q_temp",
+            "lte": 35.9
+          },
+          "goto": "o_urgent_now_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "not_feeding"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fewer_nappies"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "hernia"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "injury"
+              },
+              {
+                "answer": "q_pattern",
+                "eq": "new_constant"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "yellow"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "different"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_carer_ok",
+            "eq": "no"
+          },
+          "goto": "o_gp_support_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "colic"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со бебето на преглед сега",
+      "summary": "Кај мали бебиња температурата може да е знак на сериозна инфекција.",
+      "reasons": [
+        "Кај бебиња од 3 до 6 месеци температура од 39 °C или повеќе треба веднаш да се провери."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fever-children"
+      ]
+    },
+    "o_urgent_now_3": {
+      "level": "urgent_same_day",
+      "title": "Одете со бебето на преглед сега",
+      "summary": "Кај мали бебиња температурата може да е знак на сериозна инфекција.",
+      "reasons": [
+        "Ниската температура кај бебе е важен знак."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fever-children"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со бебето на преглед денес",
+      "summary": "Плачот со овие знаци треба да го процени лекар истиот ден.",
+      "reasons": [
+        "Бебето треба да го види лекар денес за да се најде причината за плачот."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, поплави или има напад, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-crying-baby"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот ќе го прегледа бебето и ќе ве посоветува.",
+      "reasons": [
+        "Жолтилото или променетиот плач треба да ги процени педијатар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар или патронажната сестра."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, поплави или престане да јаде, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-crying-baby",
+        "nhs-jaundice-babies"
+      ]
+    },
+    "o_gp_support_1": {
+      "level": "see_gp_this_week",
+      "title": "Побарајте поддршка за вас",
+      "summary": "Постојаното плачење е исцрпувачко за секој родител — не сте лош родител ако ви е тешко.",
+      "reasons": [
+        "Долгото плачење е многу исцрпувачко; заслужувате поддршка."
+      ],
+      "do_now": [
+        "Ако чувствувате дека губите трпение, ставете го бебето безбедно на грб во креветчето и излезете од собата неколку минути.",
+        "Никогаш не тресете бебе.",
+        "Разговарајте со педијатарот, патронажната сестра или вашиот избран лекар за поддршка."
+      ],
+      "watch_for": [
+        "Ако се плашите дека може да му наштетите на бебето или на себе, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija",
+          "opsta-medicina",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-crying-baby"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Бебето јаде, расте и меѓу нападите е добро — тоа најчесто се колики.",
+      "reasons": [
+        "Плачот личи на колики — чест е, почнува во првите недели и поминува до 3–4 месеци."
+      ],
+      "do_now": [
+        "Држете го блиску, нишајте го нежно, пуштете тивок звук (шум).",
+        "Проверете дали е гладно, мокро, топло или ладно.",
+        "Ако ви е тешко, ставете го безбедно во креветчето и одморете неколку минути. Никогаш не тресете бебе."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, поплави, повраќа зелено или има температура (под 3 месеци: 38 °C или повеќе), веднаш повикајте 194 или 112.",
+        "Ако плачот се промени или се грижите, јавете се кај педијатар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-colic",
+        "nhs-crying-baby"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот ќе го прегледа бебето и ќе ве посоветува.",
+      "reasons": [
+        "Педијатарот ќе го прегледа бебето и ќе ве посоветува."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар или патронажната сестра."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, поплави или престане да јаде, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-crying-baby",
+        "nhs-jaundice-babies"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_infant_fever": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Кај бебиња помлади од 3 месеци температурата може да е единствениот знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или температура што не сте можеле да ја измерите — треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Не завиткувајте го бебето премногу и продолжете да го доите или да му давате млеко.",
+        "Не давајте лекови без совет од лекар.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-fever-children",
+        "nhs-under5-urgent"
+      ]
+    }
+  },
+  "populations": {
+    "chronic": "Babies with known conditions: clinician to decide whether to add a lower threshold."
+  },
+  "sources": [
+    {
+      "id": "nhs-crying-baby",
+      "title": "NHS (Велика Британија) — Soothing a crying baby",
+      "url": "https://www.nhs.uk/baby/caring-for-a-newborn/soothing-a-crying-baby/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-colic",
+      "title": "NHS (Велика Британија) — Colic",
+      "url": "https://www.nhs.uk/conditions/colic/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-fever-children",
+      "title": "NHS (Велика Британија) — Fever in children",
+      "url": "https://www.nhs.uk/symptoms/fever-in-children/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-jaundice-babies",
+      "title": "NHS (Велика Британија) — Jaundice in babies",
+      "url": "https://www.nhs.uk/conditions/jaundice-in-babies/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-febrile-seizures",
+      "title": "NHS (Велика Британија) — Febrile seizures",
+      "url": "https://www.nhs.uk/conditions/febrile-seizures/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dv",
+      "title": "NHS (Велика Британија) — Diarrhoea and vomiting",
+      "url": "https://www.nhs.uk/symptoms/diarrhoea-and-vomiting/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

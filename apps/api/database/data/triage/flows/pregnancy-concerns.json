@@ -1,0 +1,748 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "pregnancy-concerns",
+  "title": "Загриженост во бременост или по породување",
+  "summary_en": "Pregnancy and postpartum concerns. Seizure, heavy bleeding, severe abdominal pain, pre-eclampsia features, chest pain/breathlessness → 194. Reduced/absent fetal movements, waters breaking, regular contractions <37 weeks, fever, severe vomiting, calf swelling → same day (go now) to maternity. Itching of hands/feet → 24–48h. Postpartum: heavy bleeding, fever, wound infection, mood (crisis → global crisis).",
+  "notes_en": "NHS pregnancy pages: reduced movements, waters breaking, bleeding, pre-eclampsia, severe vomiting, labour signs; postnatal danger signs (bleeding, fever, DVT, mood/psychosis). Cord prolapse knee-chest position is standard public first aid. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64"
+    ]
+  },
+  "urgency_rank": 87,
+  "body_areas": [
+    "pelvis",
+    "abdomen"
+  ],
+  "search_terms": [
+    "бременост",
+    "бремена",
+    "движења на бебето",
+    "контракции",
+    "водењак",
+    "пукна водењак",
+    "по породување",
+    "бабиње"
+  ],
+  "red_flags": [
+    {
+      "code": "seizure",
+      "label": "Напад (грч) или губење свест",
+      "outcome": "o_emergency",
+      "source": "nhs-pre-eclampsia"
+    },
+    {
+      "code": "heavy_bleeding",
+      "label": "Обилно вагинално крварење",
+      "outcome": "o_emergency",
+      "source": "nhs-preg-bleeding"
+    },
+    {
+      "code": "severe_pain",
+      "label": "Силна, постојана болка во стомакот што не попушта меѓу контракциите",
+      "outcome": "o_emergency",
+      "source": "nhs-preg-stomach-pain"
+    },
+    {
+      "code": "pre_eclampsia",
+      "label": "Силна главоболка, нарушен вид (треперење, заматување), болка под ребрата или ненадеен оток на лицето и рацете",
+      "outcome": "o_emergency",
+      "source": "nhs-pre-eclampsia"
+    },
+    {
+      "code": "chest_sob",
+      "label": "Болка во градите или ненадеен недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-dvt"
+    },
+    {
+      "code": "cord",
+      "label": "Пукна водењакот и се гледа или се чувствува папочна врвца во вагината",
+      "outcome": "o_emergency",
+      "source": "nhs-labour-signs"
+    },
+    {
+      "code": "self_harm",
+      "label": "Мисли да се повредите себеси или бебето",
+      "outcome": "global:crisis",
+      "source": "nhs-postnatal-depression"
+    }
+  ],
+  "entry": "q_stage",
+  "nodes": {
+    "q_stage": {
+      "type": "question",
+      "kind": "single",
+      "text": "Каде сте сега?",
+      "options": [
+        {
+          "value": "early",
+          "label": "Бремена, до 20-та недела"
+        },
+        {
+          "value": "mid",
+          "label": "Бремена, 20–36 недели"
+        },
+        {
+          "value": "term",
+          "label": "Бремена, 37 недели или повеќе"
+        },
+        {
+          "value": "postpartum",
+          "label": "Се породив во последните 6 недели"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_stage",
+            "in": [
+              "early",
+              "mid",
+              "term"
+            ]
+          },
+          "goto": "q_preg_signs"
+        },
+        {
+          "when": {
+            "answer": "q_stage",
+            "eq": "postpartum"
+          },
+          "goto": "q_post_signs"
+        },
+        {
+          "when": {
+            "demo": "conditions",
+            "includes": "pregnancy_complication_history"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    },
+    "q_preg_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "movements",
+          "label": "Бебето се движи помалку или поинаку од вообичаено (од 24-та недела)"
+        },
+        {
+          "value": "waters",
+          "label": "Истекува вода (бистра или зеленкаста) од вагината"
+        },
+        {
+          "value": "contractions",
+          "label": "Редовни, болни стегања на стомакот"
+        },
+        {
+          "value": "spotting",
+          "label": "Мало крварење или кафеав секрет"
+        },
+        {
+          "value": "fever",
+          "label": "Температура 38 °C или повеќе"
+        },
+        {
+          "value": "vomiting",
+          "label": "Повраќам и не можам да задржам течности повеќе од 12 часа"
+        },
+        {
+          "value": "calf",
+          "label": "Отечена, болна потколеница на едната нога"
+        },
+        {
+          "value": "itch",
+          "label": "Силно чешање на дланките и стапалата, без осип"
+        },
+        {
+          "value": "urinary",
+          "label": "Печење при мокрење"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_stage",
+            "eq": "postpartum"
+          },
+          "goto": "q_post_signs"
+        },
+        {
+          "when": {
+            "answer": "q_preg_signs",
+            "includes": "movements"
+          },
+          "goto": "o_emergency_movements"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_preg_signs",
+                "includes_any": [
+                  "waters",
+                  "fever",
+                  "calf",
+                  "vomiting"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_stage",
+                    "eq": "mid"
+                  },
+                  {
+                    "answer": "q_preg_signs",
+                    "includes": "contractions"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_stage",
+                    "eq": "early"
+                  },
+                  {
+                    "answer": "q_preg_signs",
+                    "includes": "spotting"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_stage",
+                "eq": "term"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "contractions"
+              }
+            ]
+          },
+          "goto": "o_labour_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_preg_signs",
+                "includes": "spotting"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "itch"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "urinary"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "demo": "conditions",
+            "includes": "pregnancy_complication_history"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    },
+    "q_post_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "bleeding_more",
+          "label": "Крварењето се зголемува или има големи грутки"
+        },
+        {
+          "value": "fever",
+          "label": "Температура или тресење"
+        },
+        {
+          "value": "smell",
+          "label": "Непријатен мирис на секретот"
+        },
+        {
+          "value": "wound",
+          "label": "Раната (од царски рез или шиење) е црвена, отечена или тече"
+        },
+        {
+          "value": "breast",
+          "label": "Црвена, топла, болна дојка"
+        },
+        {
+          "value": "calf",
+          "label": "Отечена, болна потколеница на едната нога"
+        },
+        {
+          "value": "mood",
+          "label": "Чувствувам тага, вознемиреност или не можам да се грижам за себе или за бебето"
+        },
+        {
+          "value": "unusual",
+          "label": "Необични мисли, многу малку сон и збунетост"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_preg_signs",
+                "includes_any": [
+                  "waters",
+                  "fever",
+                  "calf",
+                  "vomiting"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_stage",
+                    "eq": "mid"
+                  },
+                  {
+                    "answer": "q_preg_signs",
+                    "includes": "contractions"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_stage",
+                    "eq": "early"
+                  },
+                  {
+                    "answer": "q_preg_signs",
+                    "includes": "spotting"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "answer": "q_post_signs",
+            "includes_any": [
+              "bleeding_more",
+              "fever",
+              "calf",
+              "unusual"
+            ]
+          },
+          "goto": "o_urgent_now_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_stage",
+                "eq": "term"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "contractions"
+              }
+            ]
+          },
+          "goto": "o_labour_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_post_signs",
+                "includes_any": [
+                  "smell",
+                  "wound",
+                  "breast",
+                  "mood"
+                ]
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "spotting"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "itch"
+              },
+              {
+                "answer": "q_preg_signs",
+                "includes": "urinary"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "demo": "conditions",
+            "includes": "pregnancy_complication_history"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_1": {
+      "level": "urgent_same_day",
+      "title": "Одете во породилиште сега",
+      "summary": "Овие знаци бараат преглед во гинеколошко-акушерска служба без чекање — не чекајте до утре.",
+      "reasons": [
+        "Овие знаци во бременост треба да се проверат во породилиште без чекање."
+      ],
+      "do_now": [
+        "Одете во најблиското породилиште (гинеколошко-акушерско одделение) сега или јавете се таму.",
+        "Понесете ја здравствената книшка или наодите од бременоста."
+      ],
+      "watch_for": [
+        "Ако се појави обилно крварење, силна болка, напад или нарушен вид, веднаш повикајте 194 или 112.",
+        "Ако почнете тешко да дишете или имате болка во градите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-baby-movements",
+        "nhs-labour-signs"
+      ]
+    },
+    "o_urgent_now_2": {
+      "level": "urgent_same_day",
+      "title": "Одете во породилиште сега",
+      "summary": "Овие знаци бараат преглед во гинеколошко-акушерска служба без чекање — не чекајте до утре.",
+      "reasons": [
+        "По породување, засиленото крварење, температурата, отечената потколеница или необичните мисли бараат преглед без чекање."
+      ],
+      "do_now": [
+        "Одете во најблиското породилиште (гинеколошко-акушерско одделение) сега или јавете се таму.",
+        "Понесете ја здравствената книшка или наодите од бременоста."
+      ],
+      "watch_for": [
+        "Ако се појави обилно крварење, силна болка, напад или нарушен вид, веднаш повикајте 194 или 112.",
+        "Ако почнете тешко да дишете или имате болка во градите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-baby-movements",
+        "nhs-labour-signs"
+      ]
+    },
+    "o_labour_1": {
+      "level": "urgent_same_day",
+      "title": "Можен почеток на породување",
+      "summary": "Редовните контракции по 37-та недела најчесто значат почеток на породување.",
+      "reasons": [
+        "Редовните контракции по 37-та недела може да се почеток на породување."
+      ],
+      "do_now": [
+        "Мерете колку често доаѓаат контракциите.",
+        "Одете во породилиште кога контракциите се на секои 5 минути, или порано ако ви е тоа кажано."
+      ],
+      "watch_for": [
+        "Ако се појави обилно крварење, силна постојана болка или бебето престане да се движи, веднаш повикајте 194 или 112.",
+        "Ако пукне водењакот, одете во породилиште веднаш."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-labour-signs"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај гинеколог во наредните 1–2 дена",
+      "summary": "Тегобите се чести во бременост или по породување, но треба да се проценат.",
+      "reasons": [
+        "Овие тегоби треба да ги процени гинеколог или избраниот лекар во наредните 1–2 дена."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог.",
+        "Ако се грижите за расположението, кажете го тоа отворено — помошта е ефикасна."
+      ],
+      "watch_for": [
+        "Ако се појави крварење, температура, силна болка или мисли да се повредите вас или бебето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina",
+          "psihijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-postnatal-depression",
+        "nhs-mastitis"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Разговарајте со вашиот гинеколог",
+      "summary": "Не одбравте знаци за итност.",
+      "reasons": [
+        "Поради претходни компликации, разговарајте со вашиот гинеколог за било каква загриженост."
+      ],
+      "do_now": [
+        "Прашајте го вашиот гинеколог на следниот преглед или закажете порано."
+      ],
+      "watch_for": [
+        "Ако се појави крварење, силна болка, силна главоболка, нарушен вид, помалку движења на бебето или пукне водењакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pre-eclampsia"
+      ]
+    },
+    "o_gp": {
+      "level": "see_gp_this_week",
+      "title": "Разговарајте со вашиот гинеколог",
+      "summary": "Не одбравте знаци за итност.",
+      "reasons": [
+        "Не одбравте знаци за итност."
+      ],
+      "do_now": [
+        "Прашајте го вашиот гинеколог на следниот преглед или закажете порано."
+      ],
+      "watch_for": [
+        "Ако се појави крварење, силна болка, силна главоболка, нарушен вид, помалку движења на бебето или пукне водењакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pre-eclampsia"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Легнете на левата страна.",
+        "Ако се гледа папочната врвца, клекнете на колена и лакти (со задникот нагоре) додека чекате.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_movements": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 сега — бебето се движи помалку",
+      "summary": "Кога бебето се движи помалку или поинаку од вообичаено, тоа може да значи дека му треба помош. Не чекајте до утре.",
+      "reasons": [
+        "Помалку или поинакви движења на бебето треба веднаш да се проверат, дури и ако подоцна повторно се раздвижи."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете колку недели сте бремена и дека бебето се движи помалку.",
+        "Ако диспечерот ви каже да одите сами, одете веднаш во најблиското породилиште (гинеколошко-акушерско одделение). Не возете сами.",
+        "Не обидувајте се сами да го раздвижите бебето и не се потпирајте на домашен апарат за слушање на срцето на бебето.",
+        "Понесете ја здравствената книшка или наодите од бременоста."
+      ],
+      "watch_for": [
+        "Ако се појави крварење, силна болка во стомакот или истекува вода, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-baby-movements"
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teen pregnancies use the same flow and thresholds.",
+    "pregnancy": "This flow is the pregnancy flow; stage is asked directly."
+  },
+  "sources": [
+    {
+      "id": "nhs-pre-eclampsia",
+      "title": "NHS (Велика Британија) — Pre-eclampsia",
+      "url": "https://www.nhs.uk/conditions/pre-eclampsia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-preg-bleeding",
+      "title": "NHS (Велика Британија) — Vaginal bleeding in pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/common-symptoms/vaginal-bleeding/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-baby-movements",
+      "title": "NHS (Велика Британија) — Your baby's movements",
+      "url": "https://www.nhs.uk/pregnancy/keeping-well/your-babys-movements/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-labour-signs",
+      "title": "NHS (Велика Британија) — Signs that labour has begun",
+      "url": "https://www.nhs.uk/pregnancy/labour-and-birth/signs-that-labour-has-begun/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hyperemesis",
+      "title": "NHS (Велика Британија) — Severe vomiting in pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/complications/severe-vomiting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-preg-stomach-pain",
+      "title": "NHS (Велика Британија) — Stomach pain in pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/common-symptoms/stomach-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dvt",
+      "title": "NHS (Велика Британија) — Deep vein thrombosis (DVT)",
+      "url": "https://www.nhs.uk/conditions/deep-vein-thrombosis-dvt/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-postnatal-depression",
+      "title": "NHS (Велика Британија) — Postnatal depression",
+      "url": "https://www.nhs.uk/mental-health/conditions/postnatal-depression/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-mastitis",
+      "title": "NHS (Велика Британија) — Mastitis",
+      "url": "https://www.nhs.uk/conditions/mastitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pe",
+      "title": "NHS (Велика Британија) — Pulmonary embolism",
+      "url": "https://www.nhs.uk/conditions/pulmonary-embolism/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

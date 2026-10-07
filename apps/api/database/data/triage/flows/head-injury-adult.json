@@ -1,0 +1,369 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "head-injury-adult",
+  "title": "Удар во главата кај возрасни",
+  "summary_en": "Adult head injury. NHS 999 criteria (unconsciousness, seizure, fall >1 m/5 stairs, CSF leak, focal deficit, high-speed) → 194. Vomiting, anticoagulants, alcohol, ≥65, amnesia → same day ED. Mild with no features → self-care with 48h observation advice.",
+  "notes_en": "NHS head injury 999/111/GP criteria (fetched 2026-10-07); NICE NG232 risk factors (anticoagulation, age ≥65) for CT within hours — expressed only as 'same-day ED'. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 85,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "удар во главата",
+    "повреда на главата",
+    "потрес на мозокот",
+    "паднав и удрив глава"
+  ],
+  "red_flags": [
+    {
+      "code": "unconscious",
+      "label": "Беше без свест и сè уште не се освестил, или не може да остане буден",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "seizure",
+      "label": "Имаше напад (грч) по ударот",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "height_speed",
+      "label": "Пад од повеќе од 1 метар или 5 скали, или удар при голема брзина (сообраќајка)",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "fluid",
+      "label": "Бистра течност или крв од ушите или носот, модринка зад ушите",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "neuro",
+      "label": "Ново трпнење или слабост, проблеми со одењето, говорот, разбирањето или видот",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "wound_dent",
+      "label": "Рана со нешто внатре или вдлабнување на главата",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    }
+  ],
+  "entry": "q_after",
+  "nodes": {
+    "q_after": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали по ударот имаше нешто од ова?",
+      "options": [
+        {
+          "value": "vomiting",
+          "label": "Повраќање"
+        },
+        {
+          "value": "lost_consc",
+          "label": "Кратко губење свест"
+        },
+        {
+          "value": "amnesia",
+          "label": "Не се сеќава што се случило пред или по ударот"
+        },
+        {
+          "value": "headache_worse",
+          "label": "Главоболка што се засилува"
+        },
+        {
+          "value": "behaviour",
+          "label": "Променето однесување, раздразливост или збунетост"
+        },
+        {
+          "value": "dizzy",
+          "label": "Вртоглавица"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_risk"
+    },
+    "q_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "anticoag",
+          "label": "Пие лекови за разредување на крвта или има нарушување на згрутчувањето"
+        },
+        {
+          "value": "alcohol",
+          "label": "Беше под дејство на алкохол или дрога при ударот"
+        },
+        {
+          "value": "brain_surgery",
+          "label": "Претходна операција на мозокот"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_when"
+    },
+    "q_when": {
+      "type": "question",
+      "kind": "single",
+      "text": "Кога се случи?",
+      "options": [
+        {
+          "value": "today",
+          "label": "Денес"
+        },
+        {
+          "value": "days",
+          "label": "Пред 1–14 дена"
+        },
+        {
+          "value": "gt_2w",
+          "label": "Пред повеќе од 2 недели, а тегобите сè уште траат"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_after",
+                "includes_any": [
+                  "vomiting",
+                  "lost_consc",
+                  "amnesia",
+                  "headache_worse",
+                  "behaviour"
+                ]
+              },
+              {
+                "answer": "q_risk",
+                "includes_any": [
+                  "anticoag",
+                  "alcohol",
+                  "brain_surgery"
+                ]
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "answer": "q_after",
+            "includes": "dizzy"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_when",
+            "eq": "gt_2w"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете во итна служба денес",
+      "summary": "По удар во главата, некои знаци или ризици (на пр. лекови за разредување на крвта) бараат брз преглед.",
+      "reasons": [
+        "По удар во главата, овие знаци или ризици бараат преглед во итна служба истиот ден (можеби и снимка)."
+      ],
+      "do_now": [
+        "Одете во итна амбуланта или ургентен центар. Не возете сами.",
+        "Некој треба да биде со повредениот."
+      ],
+      "watch_for": [
+        "Ако повредениот стане поспан, збунет или повраќа повторно, веднаш повикајте 194 или 112.",
+        "Ако се појави напад, слабост или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "nevrohirurgija",
+          "traumatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но вртоглавицата треба да се процени.",
+      "reasons": [
+        "Вртоглавицата по удар во главата треба да ја процени лекар."
+      ],
+      "do_now": [
+        "Одморете се; избегнувајте алкохол, спорт и возење додека не се подобри."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, поспаност, збунетост, напад или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Тегобите по удар во главата обично поминуваат за 2 недели; ако траат, треба проценка.",
+      "reasons": [
+        "Тегоби што траат повеќе од 2 недели по удар во главата треба да ги процени избраниот лекар."
+      ],
+      "do_now": [
+        "Закажете оваа недела; прашајте за враќање на работа, возење и спорт."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, поспаност, збунетост или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Ударот изгледа лесен и нема знаци што бараат преглед.",
+      "reasons": [
+        "Ударот изгледа лесен и нема знаци што бараат преглед."
+      ],
+      "do_now": [
+        "Ладен облог на местото.",
+        "Некој возрасен нека биде со вас првите 24 часа.",
+        "Одморете се; без алкохол и спорт додека не се чувствувате добро."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, сè посилна главоболка, поспаност, збунетост, напад или слабост, веднаш повикајте 194 или 112.",
+        "Ако тегобите траат повеќе од 2 недели, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не го поместувајте повредениот ако можеби е повреден вратот, освен ако е во опасност.",
+        "Ако е без свест, а дише, ставете го во безбедна положба на страна, внимавајќи на вратот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "No pregnancy-specific threshold in NHS head injury guidance; falls in pregnancy with abdominal pain/bleeding are in pregnancy-concerns.",
+    "chronic": "Anticoagulation/bleeding disorders are asked directly (q_risk)."
+  },
+  "sources": [
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng232",
+      "title": "NICE (Велика Британија) — NG232 Head injury: assessment and early management",
+      "url": "https://www.nice.org.uk/guidance/ng232",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

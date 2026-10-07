@@ -62,7 +62,8 @@ the name to both lists, and give it words in
 - Not tracked at all: `/account/**`, `/login`, `/register`,
   `/forgot-password`, `/reset-password/**`, `/verify-email`, the doctor
   claim/correction/objection forms, `/forum/new`, `/unsubscribe` (the e-mail
-  opt-out link), `/design-system`, unknown pages (allow-list in
+  opt-out link), symptom guidance (`/guidance`: taps on the red-flag screen
+  and the answers are health data), `/design-system`, unknown pages (allow-list in
   `apps/web/src/lib/ux/routes.ts` = `apps/api/config/ux.php`).
 - Text-selection drags are ignored; script-dispatched clicks are ignored.
 - Batches go by `navigator.sendBeacon` to the same-origin `/api/ux/events`

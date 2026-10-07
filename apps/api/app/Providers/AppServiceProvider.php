@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Observers\ContributorLevelObserver;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
+use App\Services\Triage\V2\Escalation\NullEscalation;
+use App\Services\Triage\V2\Escalation\TriageEscalation;
 use App\Support\DeploymentEnvironment;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Import\EloquentDoctorLicenceSink;
@@ -33,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Licence matchers (Лекарска комора) hand their results to the import core.
         $this->app->bind(DoctorLicenceSink::class, EloquentDoctorLicenceSink::class);
+
+        // Symptom guidance's AI seam (3f-b): off, and no driver exists yet. A
+        // real driver is bound here only when config triage.escalation is on.
+        $this->app->bind(TriageEscalation::class, NullEscalation::class);
     }
 
     public function boot(): void
@@ -184,15 +190,23 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Guidance is called from the browser directly, so these see a real client
-        // address without depending on the web tier forwarding one.
+        // address without depending on the web tier forwarding one. 30 starts an
+        // hour: a household or an office shares one address and „Почни од почеток“
+        // opens a new session (the v1 answer/emergency calls share this limiter).
         RateLimiter::for('api-triage-sessions', function (Request $request) {
             return [
-                Limit::perHour(10)->by('triage:'.$request->ip()),
+                Limit::perHour(30)->by('triage:'.$request->ip()),
             ];
         });
 
         RateLimiter::for('api-triage-complete', function (Request $request) {
             return Limit::perHour(5)->by('triage-complete:'.$request->ip());
+        });
+
+        // Guidance v2 answers one question per call (up to three flows of
+        // questions, plus going back): generous, but bounded per address.
+        RateLimiter::for('api-triage-steps', function (Request $request) {
+            return Limit::perHour(600)->by('triage-steps:'.$request->ip());
         });
 
         // Anonymous UX batches (docs/ux-heatmaps.md), relayed by the web tier.
@@ -220,6 +234,28 @@ class AppServiceProvider extends ServiceProvider
             return [
                 Limit::perMinute(60)->by('ux-min:'.$network),
                 Limit::perHour(600)->by('ux-hour:'.$network),
+            ];
+        });
+
+        // „Дали ви помогна?“ (docs/urgent-care.md § Feedback): a vote and its
+        // reasons are two requests; a reader of several guides votes a few
+        // times. The key is an HMAC of the network, as for api-ux-events.
+        RateLimiter::for('api-feedback', function (Request $request) {
+            $network = hash_hmac('sha256', 'feedback|'.ProfileReportController::guestNetwork((string) $request->ip()), (string) config('app.key'));
+
+            return [
+                Limit::perMinute(20)->by('feedback-min:'.$network),
+                Limit::perDay(200)->by('feedback-day:'.$network),
+            ];
+        });
+
+        // Step counters from the guidance flows: one per step reached.
+        RateLimiter::for('api-funnel', function (Request $request) {
+            $network = hash_hmac('sha256', 'funnel|'.ProfileReportController::guestNetwork((string) $request->ip()), (string) config('app.key'));
+
+            return [
+                Limit::perMinute(120)->by('funnel-min:'.$network),
+                Limit::perHour(1200)->by('funnel-hour:'.$network),
             ];
         });
     }

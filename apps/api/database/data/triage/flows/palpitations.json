@@ -1,0 +1,493 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "palpitations",
+  "title": "Чукање или прескокнување на срцето",
+  "summary_en": "Adult palpitations. With chest pain, fainting, breathlessness → emergency. Ongoing fast palpitations now, known heart disease → same day. Brief, occasional, triggered by caffeine/stress → self-care/GP.",
+  "notes_en": "NHS heart palpitations. Pulse thresholds (≥150 or ≤40 emergency; ≥120 same day) are conservative lay thresholds — clinician to confirm. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 82,
+  "body_areas": [
+    "chest"
+  ],
+  "search_terms": [
+    "палпитации",
+    "срцето ми чука",
+    "прескокнува срце",
+    "аритмија",
+    "тахикардија",
+    "брзо чукање"
+  ],
+  "red_flags": [
+    {
+      "code": "chest_pain",
+      "label": "Болка или притисок во градите",
+      "outcome": "o_emergency",
+      "source": "nhs-palpitations"
+    },
+    {
+      "code": "faint",
+      "label": "Несвестица или речиси несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-palpitations"
+    },
+    {
+      "code": "sob",
+      "label": "Силен недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-palpitations"
+    }
+  ],
+  "entry": "q_now",
+  "nodes": {
+    "q_now": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали ги чувствувате и сега?",
+      "options": [
+        {
+          "value": "now_fast",
+          "label": "Да, срцето сега чука многу брзо или неправилно"
+        },
+        {
+          "value": "now_mild",
+          "label": "Да, но благо"
+        },
+        {
+          "value": "past",
+          "label": "Не, беа претходно и поминаа"
+        }
+      ],
+      "next": "q_pulse"
+    },
+    "q_pulse": {
+      "type": "question",
+      "kind": "number",
+      "text": "Ако можете, измерете го пулсот (удари во минута) во мирување. Оставете празно ако не можете.",
+      "unit": "bpm",
+      "min": 20,
+      "max": 250,
+      "optional": true,
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_pulse",
+                "gte": 150
+              },
+              {
+                "answer": "q_pulse",
+                "lte": 40
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_context"
+        }
+      ]
+    },
+    "q_context": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "heart",
+          "label": "Имам позната срцева болест"
+        },
+        {
+          "value": "triggers",
+          "label": "Се јавува по кафе, енергетски пијалаци, алкохол, стрес или недоспиеност"
+        },
+        {
+          "value": "frequent",
+          "label": "Се јавува често или трае подолго време"
+        },
+        {
+          "value": "family_sudden",
+          "label": "Во семејството некој почина ненадејно млад"
+        },
+        {
+          "value": "exertion",
+          "label": "Се јавува при физички напор"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_pulse",
+                "gte": 150
+              },
+              {
+                "answer": "q_pulse",
+                "lte": 40
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_now",
+                "eq": "now_fast"
+              },
+              {
+                "answer": "q_pulse",
+                "gte": 120
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "answer": "q_context",
+                    "includes": "heart"
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes": "heart_disease"
+                  }
+                ]
+              },
+              {
+                "answer": "q_context",
+                "includes": "family_sudden"
+              },
+              {
+                "answer": "q_context",
+                "includes": "exertion"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "frequent"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "triggers"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Пулсот е многу брз или многу бавен."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете или легнете и мирувајте.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "ЕКГ додека трае нерамномерното чукање му помага на лекарот да ја најде причината.",
+      "reasons": [
+        "Срцето во моментов чука брзо или неправилно — треба да се сними ЕКГ додека трае."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта денес."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "ЕКГ додека трае нерамномерното чукање му помага на лекарот да ја најде причината.",
+      "reasons": [
+        "Палпитации при напор, кај срцева болест или ненадејна смрт во семејството треба да се проверат брзо."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта денес."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Палпитациите најчесто се безопасни, но во бременост и во постара возраст вреди побрзо да се проверат.",
+      "reasons": [
+        "Во бременост и по 65 години палпитациите вреди побрзо да ги процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар (или кај гинекологот ако сте бремени) во рок од 1–2 дена."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Палпитациите обично се безопасни, но лекарот може да побара ЕКГ или холтер.",
+      "reasons": [
+        "Чести палпитации треба да се испитаат (на пр. ЕКГ, холтер)."
+      ],
+      "do_now": [
+        "Забележете кога се јавуваат, колку траат и дали срцето чука правилно."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Кратките палпитации по кафе, алкохол или стрес се чести.",
+      "reasons": [
+        "Палпитациите поврзани со кафе, стрес или недоспиеност се чести и најчесто безопасни."
+      ],
+      "do_now": [
+        "Намалете кафе, енергетски пијалаци и алкохол; спијте доволно.",
+        "Техники за смирување и дишење можат да помогнат."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112.",
+        "Ако зачестат или траат подолго, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_gp": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Палпитациите обично се безопасни, но лекарот може да побара ЕКГ или холтер.",
+      "reasons": [
+        "Палпитациите обично се безопасни, но лекарот може да побара ЕКГ или холтер."
+      ],
+      "do_now": [
+        "Забележете кога се јавуваат, колку траат и дали срцето чука правилно."
+      ],
+      "watch_for": [
+        "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете или легнете и мирувајте.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "chronic": "Referenced via demo.conditions heart_disease."
+  },
+  "sources": [
+    {
+      "id": "nhs-palpitations",
+      "title": "NHS (Велика Британија) — Heart palpitations",
+      "url": "https://www.nhs.uk/symptoms/heart-palpitations/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-af",
+      "title": "NHS (Велика Британија) — Atrial fibrillation",
+      "url": "https://www.nhs.uk/conditions/atrial-fibrillation/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-fainting",
+      "title": "NHS (Велика Британија) — Fainting",
+      "url": "https://www.nhs.uk/symptoms/fainting/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

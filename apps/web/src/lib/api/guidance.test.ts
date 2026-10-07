@@ -2,13 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GUIDANCE_TOKEN_HEADER,
   GuidanceApiError,
-  completeGuidanceEmergency,
   isStaleGuidanceSession,
-  completeGuidanceSession,
   parseStoredGuidanceSession,
-  saveGuidanceAnswers,
-  startGuidanceSession,
 } from "@/lib/api/guidance";
+import {
+  answerQuestion,
+  answerScreen,
+  chooseSymptoms,
+  emergencyShortcut,
+  fetchState,
+  noMatch,
+  saveDemographics,
+  startSession,
+} from "@/lib/api/guidance-v2";
 
 /**
  * Guidance sessions are not linked to accounts, so the secret issued at
@@ -61,19 +67,19 @@ describe("guidance session calls", () => {
     );
   }
 
-  it("rejects with the status, so the wizard can tell a stale handle apart", async () => {
+  it("rejects with the status, so the guide can tell a stale handle apart", async () => {
     const handle = { id: "abc", token: "t0k" };
 
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: "Not found." }), { status: 404 }),
     );
-    const stale = await completeGuidanceEmergency(handle).catch((e) => e);
+    const stale = await emergencyShortcut(handle).catch((e: unknown) => e);
     expect(stale).toBeInstanceOf(GuidanceApiError);
     expect(stale).toMatchObject({ status: 404, message: "Not found." });
     expect(isStaleGuidanceSession(stale)).toBe(true);
 
     fetchMock.mockResolvedValueOnce(new Response("<html>", { status: 429 }));
-    const limited = await startGuidanceSession().catch((e) => e);
+    const limited = await startSession().catch((e: unknown) => e);
     expect(limited).toMatchObject({ status: 429 });
     expect(isStaleGuidanceSession(limited)).toBe(false);
     expect(isStaleGuidanceSession(new TypeError("Failed to fetch"))).toBe(
@@ -81,34 +87,74 @@ describe("guidance session calls", () => {
     );
   });
 
-  it("returns the id and token issued at creation", async () => {
-    respond({ session_id: "s1", session_token: "secret" }, 201);
+  it("returns the id and token issued at creation, with the first state", async () => {
+    respond(
+      {
+        session_id: "s1",
+        session_token: "secret",
+        state: { session_id: "s1", stage: "demographics" },
+      },
+      201,
+    );
 
-    await expect(startGuidanceSession()).resolves.toEqual({
-      id: "s1",
-      token: "secret",
+    await expect(startSession()).resolves.toEqual({
+      handle: { id: "s1", token: "secret" },
+      state: { session_id: "s1", stage: "demographics" },
     });
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty([
+      "headers",
+      GUIDANCE_TOKEN_HEADER,
+    ]);
   });
 
-  it("sends the token on answers, completion and the emergency exit", async () => {
+  it("sends the token on every later call", async () => {
     const session = { id: "s1", token: "secret" };
+    const state = {
+      session_id: "s1",
+      stage: "symptoms",
+      age_band: "adult_18_64",
+    };
 
-    respond({ emergency_stopped: false });
-    await saveGuidanceAnswers(session, [{ step_key: "red_flags", values: [] }]);
+    respond(state);
+    await fetchState(session);
+    respond(state);
+    await saveDemographics(session, {
+      age_value: 30,
+      age_unit: "years",
+      sex: "male",
+      pregnancy: null,
+      conditions: [],
+    });
+    respond(state);
+    await chooseSymptoms(session, ["general"]);
+    respond(state);
+    await answerScreen(session, []);
+    respond(state);
+    await answerQuestion(session, "general", "concern", ["general"]);
+    respond(state);
+    await emergencyShortcut(session);
+    respond({ suggested: ["general"] });
+    await noMatch(session, null);
 
-    respond({ outcome: { outcome_code: "x" } });
-    await completeGuidanceSession(session);
-
-    respond({ outcome: { outcome_code: "emergency" } });
-    await completeGuidanceEmergency(session);
-
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
 
     for (const [url, init] of fetchMock.mock.calls) {
-      expect(String(url)).toContain("/triage/sessions/s1/");
+      expect(String(url)).toContain("/api/v1/triage/v2/sessions/s1");
       expect(
         (init as RequestInit).headers as Record<string, string>,
       ).toMatchObject({ [GUIDANCE_TOKEN_HEADER]: "secret" });
     }
+  });
+
+  it("sends answers as codes and numbers only", async () => {
+    respond({ session_id: "s1", stage: "result" });
+    await answerQuestion({ id: "s1", token: "x" }, "fever", "q_temp", ["38.5"]);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({
+      flow: "fever",
+      node: "q_temp",
+      values: ["38.5"],
+    });
   });
 });

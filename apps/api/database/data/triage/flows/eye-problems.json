@@ -1,0 +1,534 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "eye-problems",
+  "title": "Проблеми со очите (црвено око, промена на видот)",
+  "summary_en": "Red eye / vision change (all ages, adult wording). Sudden vision loss, chemical injury, penetrating injury, curtain/flashes, painful red eye with vomiting/halos → emergency/same day. Contact lens + painful red eye → same day. Sticky red eye → pharmacy. Newborn red sticky eye → same day.",
+  "notes_en": "NHS red eye / vision loss / eye injuries / retinal detachment / acute glaucoma. Contact lens + painful eye → same day (keratitis risk). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 70,
+  "body_areas": [
+    "head"
+  ],
+  "search_terms": [
+    "црвено око",
+    "око ме боли",
+    "заматен вид",
+    "губење на видот",
+    "конјунктивитис",
+    "вид"
+  ],
+  "red_flags": [
+    {
+      "code": "sudden_loss",
+      "label": "Ненадејно губење или затемнување на видот на едното или двете очи",
+      "outcome": "o_emergency",
+      "source": "nhs-vision-loss"
+    },
+    {
+      "code": "chemical",
+      "label": "Хемикалија (на пр. средство за чистење, вар) влезе во окото",
+      "help": "Веднаш плакнете го окото со многу чиста вода најмалку 15–20 минути.",
+      "outcome": "o_emergency",
+      "source": "nhs-eye-injuries"
+    },
+    {
+      "code": "penetrating",
+      "label": "Нешто се заби во окото или удар со голема сила",
+      "outcome": "o_emergency",
+      "source": "nhs-eye-injuries"
+    },
+    {
+      "code": "stroke",
+      "label": "Нарушен вид заедно со опуштено лице, слабост во рака или тешкотии со говорот",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "glaucoma",
+      "label": "Многу силна болка во окото со гадење/повраќање или гледање ореоли (кругови) околу светлата",
+      "outcome": "o_emergency",
+      "source": "nhs-glaucoma"
+    }
+  ],
+  "entry": "q_features",
+  "nodes": {
+    "q_features": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "flashes_curtain",
+          "label": "Нови светкања, многу нови „мушички“ или сенка/завеса во видното поле"
+        },
+        {
+          "value": "pain",
+          "label": "Окото е болно (не само чешање или песок)"
+        },
+        {
+          "value": "light",
+          "label": "Многу ми пречи светлината"
+        },
+        {
+          "value": "blurred",
+          "label": "Видот е заматен и не се избиструва со трепкање"
+        },
+        {
+          "value": "lens",
+          "label": "Носам контактни леќи"
+        },
+        {
+          "value": "sticky",
+          "label": "Окото е лепливо, со секрет, чешање или песок"
+        },
+        {
+          "value": "injury_minor",
+          "label": "Мал удар или ситно зрнце (прашина) во окото"
+        },
+        {
+          "value": "newborn",
+          "label": "Се работи за бебе помладо од 4 недели"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_features",
+                "includes": "blurred"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_features",
+                    "includes": "sticky"
+                  },
+                  {
+                    "answer": "q_features",
+                    "includes": "pain"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "flashes_curtain"
+              },
+              {
+                "answer": "q_features",
+                "includes": "newborn"
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "answer": "q_features",
+                    "includes": "pain"
+                  },
+                  {
+                    "any": [
+                      {
+                        "answer": "q_features",
+                        "includes": "light"
+                      },
+                      {
+                        "answer": "q_features",
+                        "includes": "blurred"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_features",
+                    "includes": "lens"
+                  },
+                  {
+                    "answer": "q_features",
+                    "includes": "pain"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "blurred"
+              },
+              {
+                "answer": "q_features",
+                "includes": "injury_minor"
+              },
+              {
+                "answer": "q_features",
+                "includes": "pain"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_features",
+            "includes": "sticky"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај очен лекар денес",
+      "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
+      "reasons": [
+        "Заматен вид во бременост или по породување може да е поврзан со висок крвен притисок (прееклампсија) и треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
+        "Ако носите контактни леќи, извадете ги и не ги ставајте."
+      ],
+      "watch_for": [
+        "Ако видот ненадејно се изгуби, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "oftalmologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај очен лекар денес",
+      "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
+      "reasons": [
+        "Кај доенчиња проблемите со очите треба да ги прегледа лекар истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
+        "Ако носите контактни леќи, извадете ги и не ги ставајте."
+      ],
+      "watch_for": [
+        "Ако видот ненадејно се изгуби, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "oftalmologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај очен лекар денес",
+      "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
+      "reasons": [
+        "Нови светкања или сенка во видот може да значат одлепување на мрежницата; кај новороденчиња црвено лепливо око треба да се прегледа денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
+        "Ако носите контактни леќи, извадете ги и не ги ставајте."
+      ],
+      "watch_for": [
+        "Ако видот ненадејно се изгуби, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "oftalmologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај очен лекар денес",
+      "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
+      "reasons": [
+        "Болно црвено око со осетливост на светлина, заматен вид или кај носење леќи бара преглед кај офталмолог (очен лекар) истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
+        "Ако носите контактни леќи, извадете ги и не ги ставајте."
+      ],
+      "watch_for": [
+        "Ако видот ненадејно се изгуби, веднаш повикајте 194 или 112.",
+        "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "oftalmologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Окото треба да се прегледа, но нема знаци за итност.",
+      "reasons": [
+        "Окото треба да го погледне лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар или офталмолог (очен лекар)."
+      ],
+      "watch_for": [
+        "Ако видот нагло се влоши или болката стане силна, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "specialist",
+        "specialties": [
+          "oftalmologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Лепливо око без болка и без промена на видот најчесто е конјунктивитис.",
+      "reasons": [
+        "Лепливо, чешачко око најчесто е конјунктивитис и често поминува сам."
+      ],
+      "do_now": [
+        "Чистете ги очите со памук натопен во преварена, изладена вода.",
+        "Не носете контактни леќи додека не помине.",
+        "Фармацевтот може да ве посоветува за капки."
+      ],
+      "watch_for": [
+        "Ако видот нагло се влоши, веднаш повикајте 194 или 112.",
+        "Ако се појави болка, осетливост на светлина или не се подобри за 1 недела, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "oftalmologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-conjunctivitis"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Црвенило без болка и без промена на видот често поминува само.",
+      "reasons": [
+        "Црвенило без болка и без промена на видот често поминува само."
+      ],
+      "do_now": [
+        "Не триете го окото; одморете од екран."
+      ],
+      "watch_for": [
+        "Ако видот нагло се влоши, веднаш повикајте 194 или 112.",
+        "Ако се појави болка, осетливост на светлина или секрет, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "oftalmologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-red-eye"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "При хемикалија: плакнете го окото со многу чиста вода најмалку 15–20 минути додека чекате.",
+        "При забиен предмет: не го вадете и не притискајте го окото.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Same red flags for children; NHS red-eye advice is not age-specific beyond newborns (covered).",
+    "older_adult": "Acute glaucoma and retinal detachment are commoner with age but the same thresholds apply.",
+    "chronic": "No condition-specific threshold; contact lens wear is asked directly."
+  },
+  "sources": [
+    {
+      "id": "nhs-red-eye",
+      "title": "NHS (Велика Британија) — Red eye",
+      "url": "https://www.nhs.uk/symptoms/red-eye/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-vision-loss",
+      "title": "NHS (Велика Британија) — Vision loss",
+      "url": "https://www.nhs.uk/conditions/vision-loss/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-eye-injuries",
+      "title": "NHS (Велика Британија) — Eye injuries",
+      "url": "https://www.nhs.uk/conditions/eye-injuries/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-conjunctivitis",
+      "title": "NHS (Велика Британија) — Conjunctivitis",
+      "url": "https://www.nhs.uk/conditions/conjunctivitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-glaucoma",
+      "title": "NHS (Велика Британија) — Glaucoma",
+      "url": "https://www.nhs.uk/conditions/glaucoma/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-retinal-detachment",
+      "title": "NHS (Велика Британија) — Detached retina",
+      "url": "https://www.nhs.uk/conditions/detached-retina-retinal-detachment/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

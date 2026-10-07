@@ -1,0 +1,423 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "allergic-reaction",
+  "title": "Алергиска реакција",
+  "summary_en": "Allergic reaction (all ages). Airway/breathing/circulation signs or known anaphylaxis trigger with rapid symptoms → 194 (use own adrenaline auto-injector as prescribed). Lip/face swelling without breathing problem → same day. Mild hives/itch → pharmacy.",
+  "notes_en": "NHS anaphylaxis ABC signs; prior anaphylaxis + symptoms → emergency. Use of own prescribed adrenaline auto-injector follows the user's prescription (not a dose instruction). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 92,
+  "body_areas": [
+    "skin",
+    "throat",
+    "general"
+  ],
+  "search_terms": [
+    "алергија",
+    "алергиска реакција",
+    "анафилакса",
+    "отечени усни",
+    "убод од пчела",
+    "копривка"
+  ],
+  "red_flags": [
+    {
+      "code": "airway",
+      "label": "Отекување на јазикот или грлото, засипнат глас, тешко голтање",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "breathing",
+      "label": "Отежнато или свирежно дишење, упорна кашлица",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "circulation",
+      "label": "Вртоглавица, несвестица, бледа и влажна кожа или збунетост",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "prior_anaphylaxis",
+      "label": "Претходно сте имале анафилакса (тешка алергиска реакција) и сега имате симптоми по истиот предизвикувач",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што забележувате?",
+      "options": [
+        {
+          "value": "lip_face",
+          "label": "Отекување на усните, очите или лицето (без проблем со дишењето)"
+        },
+        {
+          "value": "hives_wide",
+          "label": "Копривка (чешачки дамки) на поголем дел од телото"
+        },
+        {
+          "value": "hives_local",
+          "label": "Црвенило или оток само на местото на убод или допир"
+        },
+        {
+          "value": "vomit_pain",
+          "label": "Повраќање или грчеви во стомакот по убод или храна"
+        },
+        {
+          "value": "itch_eyes_nose",
+          "label": "Чешање на очите, кивање, течење од нос"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "vomit_pain"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_has_autoinjector"
+        }
+      ]
+    },
+    "q_has_autoinjector": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали имате пропишан автоинјектор со адреналин?",
+      "next": [
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "vomit_pain"
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "lip_face"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "hives_wide"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m",
+                  "child_1_4"
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "hives_local"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "itch_eyes_nose"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "hives_local"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_pharm"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Повраќање или грчеви по убод или храна, заедно со други знаци, може да значат почеток на тешка реакција."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако имате пропишан автоинјектор со адреналин, употребете го веднаш, според упатството на лекарот.",
+        "Легнете со подигнати нозе; ако тешко дишете, седнете исправено. Не стојте и не одете.",
+        "Ако нема подобрување за 5 минути и имате втор автоинјектор, кажете му на диспечерот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Реакцијата засега не го зафаќа дишењето, но треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Отекување на лицето или раширена копривка треба да се процени денес — реакцијата понекогаш се влошува."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако имате автоинјектор, имајте го при рака."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на јазикот или грлото, засипнат глас, отежнато дишење или несвестица, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "imunologija",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-angioedema"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај педијатар во наредните 1–2 дена",
+      "summary": "Кај мали деца е корисно лекарот да ја види реакцијата и да посоветува.",
+      "reasons": [
+        "Кај мали деца и благите реакции треба да ги види педијатар."
+      ],
+      "do_now": [
+        "Сликајте ја реакцијата и закажете кај избраниот педијатар."
+      ],
+      "watch_for": [
+        "Ако детето тешко дише, отекуваат усните или јазикот, или е многу поспано, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-allergies"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Благите алергиски симптоми најчесто се олеснуваат со средства што ги препорачува фармацевтот.",
+      "reasons": [
+        "Сезонските алергии (полен, прашина) често се олеснуваат со совет од фармацевт."
+      ],
+      "do_now": [
+        "Избегнувајте го предизвикувачот ако го знаете.",
+        "Фармацевтот може да ве посоветува за средство против алергија."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на усните, јазикот или грлото, или отежнато дишење, веднаш повикајте 194 или 112.",
+        "Ако реакциите се повторуваат, закажете кај избраниот лекар (можен упат кај алерголог/имунолог)."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "imunologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-allergies"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Локалната реакција на место на убод најчесто поминува за неколку дена.",
+      "reasons": [
+        "Локалната реакција на место на убод е честа и поминува сама."
+      ],
+      "do_now": [
+        "Ако има жалец, извадете го со стругање (на пр. со картичка).",
+        "Ладен облог на местото."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на лицето, усните или јазикот, копривка по целото тело или отежнато дишење, веднаш повикајте 194 или 112.",
+        "Ако црвенилото се шири или станува топло и болно по 2 дена, јавете се кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-allergies"
+      ]
+    },
+    "o_pharm": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Благите алергиски симптоми најчесто се олеснуваат со средства што ги препорачува фармацевтот.",
+      "reasons": [
+        "Благите алергиски симптоми најчесто се олеснуваат со средства што ги препорачува фармацевтот."
+      ],
+      "do_now": [
+        "Избегнувајте го предизвикувачот ако го знаете.",
+        "Фармацевтот може да ве посоветува за средство против алергија."
+      ],
+      "watch_for": [
+        "Ако се појави отекување на усните, јазикот или грлото, или отежнато дишење, веднаш повикајте 194 или 112.",
+        "Ако реакциите се повторуваат, закажете кај избраниот лекар (можен упат кај алерголог/имунолог)."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "imunologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-allergies"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако имате пропишан автоинјектор со адреналин, употребете го веднаш, според упатството на лекарот.",
+        "Легнете со подигнати нозе; ако тешко дишете, седнете исправено. Не стојте и не одете.",
+        "Ако нема подобрување за 5 минути и имате втор автоинјектор, кажете му на диспечерот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "infant_0_3m": "Referenced via child-band rule (local reactions in young children → paediatrician). Breathing/circulation red flags apply to all ages.",
+    "infant_3_12m": "Referenced via child-band rule.",
+    "child": "Referenced via child-band rule; red flags identical for children (NHS).",
+    "pregnancy": "Anaphylaxis management is the same in pregnancy (call 194); no separate threshold.",
+    "older_adult": "Same thresholds.",
+    "chronic": "Asthma increases anaphylaxis risk; breathing symptoms are red flags at any risk level."
+  },
+  "sources": [
+    {
+      "id": "nhs-anaphylaxis",
+      "title": "NHS (Велика Британија) — Anaphylaxis",
+      "url": "https://www.nhs.uk/conditions/anaphylaxis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-allergies",
+      "title": "NHS (Велика Британија) — Allergies",
+      "url": "https://www.nhs.uk/conditions/allergies/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-angioedema",
+      "title": "NHS (Велика Британија) — Angioedema",
+      "url": "https://www.nhs.uk/conditions/angioedema/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hives",
+      "title": "NHS (Велика Британија) — Hives",
+      "url": "https://www.nhs.uk/conditions/hives/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

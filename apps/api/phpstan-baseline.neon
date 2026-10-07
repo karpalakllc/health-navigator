@@ -781,18 +781,6 @@ parameters:
 			path: app/Models/Specialty.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$step_key\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/TriageSession.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$values\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/TriageSession.php
-
-		-
 			message: '#^PHPDoc tag @return with type array\<string, string\> is incompatible with native type string\.$#'
 			identifier: return.phpDocType
 			count: 1
@@ -860,12 +848,6 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Triage/TriageSessionService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$values\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Services/Triage/TriageSessionService.php

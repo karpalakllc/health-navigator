@@ -32,6 +32,12 @@ return [
             'enabled' => filter_var(env('IMPORT_KOMORA_SCHEDULE', false), FILTER_VALIDATE_BOOLEAN),
             'command' => 'import:komora-licences',
         ],
+        // ФЗОМ on-duty pharmacies: ON by default (owner, 2026-10-07); the
+        // command also stops when import.on_duty_pharmacies.enabled is off.
+        'on-duty-pharmacies' => [
+            'enabled' => filter_var(env('IMPORT_ON_DUTY_PHARMACIES_SCHEDULE', true), FILTER_VALIDATE_BOOLEAN),
+            'command' => 'import:on-duty-pharmacies',
+        ],
     ],
 
     /*

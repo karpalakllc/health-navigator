@@ -1,0 +1,583 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "vaginal-bleeding",
+  "title": "Вагинално крварење",
+  "summary_en": "Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible pregnancy with one-sided pain/shoulder-tip pain → 194. Any bleeding in pregnancy, heavy postpartum bleeding, very heavy bleeding → same day gynaecology. Postmenopausal bleeding → GP/gynaecologist this week (urgent referral pathway). Bleeding between periods/after sex → GP.",
+  "notes_en": "NHS heavy periods / post-menopausal bleeding / miscarriage / ectopic / bleeding in pregnancy. Any bleeding in pregnancy → same day. Postmenopausal bleeding → this-week gynaecology (NHS: urgent referral). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 80,
+  "body_areas": [
+    "pelvis"
+  ],
+  "search_terms": [
+    "вагинално крварење",
+    "крварење",
+    "менструација",
+    "обилна менструација",
+    "крварење меѓу циклуси",
+    "крварење по менопауза"
+  ],
+  "red_flags": [
+    {
+      "code": "heavy_faint",
+      "label": "Многу обилно крварење (полна влошка за помалку од час, со грутки) со вртоглавица, бледило или несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-heavy-periods"
+    },
+    {
+      "code": "ectopic",
+      "label": "Можна бременост и силна болка на едната страна долу, болка во врвот на рамото или несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-ectopic"
+    },
+    {
+      "code": "preg_heavy",
+      "label": "Во бременост: обилно крварење или крварење со силна болка во стомакот",
+      "when": {
+        "demo": "pregnancy",
+        "in": [
+          "pregnant",
+          "postpartum",
+          "unsure"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-preg-bleeding"
+    }
+  ],
+  "entry": "q_situation",
+  "nodes": {
+    "q_situation": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што најдобро го опишува крварењето?",
+      "options": [
+        {
+          "value": "heavy_period",
+          "label": "Обилна или долга менструација"
+        },
+        {
+          "value": "between",
+          "label": "Крварење меѓу менструациите"
+        },
+        {
+          "value": "after_sex",
+          "label": "Крварење по полов однос"
+        },
+        {
+          "value": "postmenopause",
+          "label": "Крварење повеќе од 12 месеци по последната менструација (менопауза)"
+        },
+        {
+          "value": "pregnant",
+          "label": "Сум бремена (или можеби сум бремена)"
+        },
+        {
+          "value": "postpartum",
+          "label": "Се породив во последните 6 недели"
+        },
+        {
+          "value": "other",
+          "label": "Друго"
+        }
+      ],
+      "next": "q_signs"
+    },
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "soaking",
+          "label": "Ја менувам влошката/тампонот на секој 1–2 часа"
+        },
+        {
+          "value": "clots",
+          "label": "Грутки поголеми од 2–3 сантиметри"
+        },
+        {
+          "value": "pain",
+          "label": "Болка во долниот дел од стомакот"
+        },
+        {
+          "value": "fever",
+          "label": "Температура или непријатен мирис на секретот"
+        },
+        {
+          "value": "tired_breathless",
+          "label": "Многу сум уморна, бледа или ми снемува воздух"
+        },
+        {
+          "value": "anticoag",
+          "label": "Пијам лекови за разредување на крвта"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "eq": "pregnant"
+              },
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_preg_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "eq": "postpartum"
+              },
+              {
+                "demo": "pregnancy",
+                "eq": "postpartum"
+              }
+            ]
+          },
+          "goto": "o_urgent_post_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "soaking"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "clots"
+                  }
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "tired_breathless"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "pain"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "eq": "postmenopause"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_gyn_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "eq": "between"
+              },
+              {
+                "answer": "q_situation",
+                "eq": "after_sex"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "pain"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_gp_gyn_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "eq": "heavy_period"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "anticoag"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_preg_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се во породилиште или кај гинеколог денес",
+      "summary": "Крварењето во бременост е често и не значи секогаш проблем, но треба да се провери истиот ден.",
+      "reasons": [
+        "Секое крварење во бременост треба да го процени гинеколог истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог или одете во гинеколошко-акушерска служба (породилиште) уште денес.",
+        "Носете влошка (не тампон) за да може да се процени количеството."
+      ],
+      "watch_for": [
+        "Ако крварењето стане обилно, веднаш повикајте 194 или 112.",
+        "Ако се појави силна болка, болка во рамото или несвестица, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-preg-bleeding",
+        "nhs-miscarriage"
+      ]
+    },
+    "o_urgent_post_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се во породилиште или кај гинеколог денес",
+      "summary": "По породување крварењето постепено се намалува; обилно крварење, грутки или температура треба да се проверат.",
+      "reasons": [
+        "По породување, обилно крварење, грутки или температура треба да се проверат истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во породилиштето каде што се породивте или кај вашиот гинеколог уште денес."
+      ],
+      "watch_for": [
+        "Ако ја менувате влошката секој час или почесто, веднаш повикајте 194 или 112.",
+        "Ако се појави вртоглавица, несвестица или забрзано чукање на срцето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heavy-periods"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте бараат гинеколошки преглед истиот ден.",
+      "reasons": [
+        "Многу обилното крварење или знаците на губење крв треба да се проверат денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна гинеколошка служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави вртоглавица, несвестица или крварењето стане уште пообилно, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heavy-periods",
+        "nhs-pid"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте бараат гинеколошки преглед истиот ден.",
+      "reasons": [
+        "Болка и температура може да значат воспаление на карличните органи."
+      ],
+      "do_now": [
+        "Јавете се во дежурна гинеколошка служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави вртоглавица, несвестица или крварењето стане уште пообилно, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heavy-periods",
+        "nhs-pid"
+      ]
+    },
+    "o_doc48_gyn_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај гинеколог во наредните 1–2 дена",
+      "summary": "Крварењето по менопауза треба да се испита без одлагање. Најчесто причината не е сериозна, но треба да се провери.",
+      "reasons": [
+        "Крварењето по менопауза треба секогаш да се испита без одлагање."
+      ],
+      "do_now": [
+        "Закажете преглед кај гинеколог во наредните 1–2 дена и кажете дека крвавите по менопауза.",
+        "Ако не можат да ве примат толку брзо, јавете се кај вашиот избран лекар.",
+        "Забележете кога крвавите и колку."
+      ],
+      "watch_for": [
+        "Ако крварењето стане многу обилно или се појави вртоглавица, веднаш повикајте 194 или 112.",
+        "Ако се појави температура и болка во стомакот, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pmb"
+      ]
+    },
+    "o_gp_gyn_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај гинеколог оваа недела",
+      "summary": "Ова крварење треба да се испита, без одлагање, но не итно.",
+      "reasons": [
+        "Крварењето меѓу циклусите или по однос треба да го процени гинеколог."
+      ],
+      "do_now": [
+        "Закажете кај вашиот гинеколог оваа недела.",
+        "Забележете кога крвавите и колку."
+      ],
+      "watch_for": [
+        "Ако крварењето стане многу обилно или се појави вртоглавица, веднаш повикајте 194 или 112.",
+        "Ако се појави температура и болка во стомакот, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pmb"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај гинеколог или избран лекар",
+      "summary": "Обилните менструации се чести и можат да се ублажат.",
+      "reasons": [
+        "Обилните менструации може да се ублажат; лекарот ќе провери и дали имате анемија (малокрвност)."
+      ],
+      "do_now": [
+        "Водете дневник на менструациите (денови, колку влошки).",
+        "Закажете кај гинеколог."
+      ],
+      "watch_for": [
+        "Ако се појави вртоглавица, несвестица или ја менувате влошката секој час, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heavy-periods"
+      ]
+    },
+    "o_gp": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај гинеколог или избран лекар",
+      "summary": "Обилните менструации се чести и можат да се ублажат.",
+      "reasons": [
+        "Обилните менструации се чести и можат да се ублажат."
+      ],
+      "do_now": [
+        "Водете дневник на менструациите (денови, колку влошки).",
+        "Закажете кај гинеколог."
+      ],
+      "watch_for": [
+        "Ако се појави вртоглавица, несвестица или ја менувате влошката секој час, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heavy-periods"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Легнете со малку подигнати нозе.",
+        "Зачувајте ги влошките или ткивото за да му ги покажете на лекарот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teen menstrual bleeding uses the same questions; heavy bleeding with faintness is a red flag at any age.",
+    "chronic": "Anticoagulant use is asked directly; no other condition-specific threshold."
+  },
+  "sources": [
+    {
+      "id": "nhs-heavy-periods",
+      "title": "NHS (Велика Британија) — Heavy periods",
+      "url": "https://www.nhs.uk/conditions/heavy-periods/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pmb",
+      "title": "NHS (Велика Британија) — Post-menopausal bleeding",
+      "url": "https://www.nhs.uk/symptoms/post-menopausal-bleeding/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-miscarriage",
+      "title": "NHS (Велика Британија) — Miscarriage",
+      "url": "https://www.nhs.uk/conditions/miscarriage/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ectopic",
+      "title": "NHS (Велика Британија) — Ectopic pregnancy",
+      "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-preg-bleeding",
+      "title": "NHS (Велика Британија) — Vaginal bleeding in pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/common-symptoms/vaginal-bleeding/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pid",
+      "title": "NHS (Велика Британија) — Pelvic inflammatory disease",
+      "url": "https://www.nhs.uk/conditions/pelvic-inflammatory-disease-pid/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sti",
+      "title": "NHS (Велика Британија) — Sexually transmitted infections",
+      "url": "https://www.nhs.uk/conditions/sexually-transmitted-infections-stis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

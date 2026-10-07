@@ -15,12 +15,18 @@ class TriageSession extends Model
      * No user_id: guidance sessions are never linked to an account. Whoever
      * started a session proves it with the secret token issued at creation.
      */
+    public const ENGINE_V1 = 1;
+
+    public const ENGINE_V2 = 2;
+
     protected $fillable = [
+        'engine',
         'triage_flow_id',
         'token_hash',
         'terms_accepted_at',
         'emergency_stopped',
         'outcome_code',
+        'outcome_level',
         'completed_at',
     ];
 
@@ -34,6 +40,7 @@ class TriageSession extends Model
             'terms_accepted_at' => 'datetime',
             'emergency_stopped' => 'boolean',
             'completed_at' => 'datetime',
+            'engine' => 'integer',
         ];
     }
 
@@ -55,14 +62,26 @@ class TriageSession extends Model
         return hash_equals($this->token_hash, self::hashToken($token));
     }
 
+    /** @return BelongsTo<TriageFlow, $this> */
     public function flow(): BelongsTo
     {
         return $this->belongsTo(TriageFlow::class, 'triage_flow_id');
     }
 
+    /** @return HasMany<TriageSessionAnswer, $this> */
     public function answers(): HasMany
     {
         return $this->hasMany(TriageSessionAnswer::class);
+    }
+
+    /**
+     * v2: the flows chosen for this session, in the order they run.
+     *
+     * @return HasMany<TriageSessionFlow, $this>
+     */
+    public function sessionFlows(): HasMany
+    {
+        return $this->hasMany(TriageSessionFlow::class)->orderBy('position');
     }
 
     public function isCompleted(): bool

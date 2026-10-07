@@ -1,0 +1,497 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "falls-older",
+  "title": "Пад кај постаро лице",
+  "summary_en": "Falls in older adults. Cannot get up / suspected hip fracture, head injury on anticoagulants, blackout before fall, chest pain/palpitations, stroke signs, long lie → emergency/same day. Injury or new confusion → same day. Recurrent falls (≥2 in 12 months), fear of falling → GP for a falls assessment (NICE NG249). Uninjured single trip → self-care with prevention tips.",
+  "notes_en": "NHS falls; NICE NG249 (2025) falls risk assessment triggers (≥2 falls/12 months, fear of falling, injury); head injury with anticoagulation; syncope. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 78,
+  "body_areas": [
+    "general",
+    "legs"
+  ],
+  "search_terms": [
+    "пад",
+    "паднав",
+    "баба падна",
+    "дедо падна",
+    "постаро лице падна",
+    "паѓање"
+  ],
+  "red_flags": [
+    {
+      "code": "cannot_get_up",
+      "label": "Не може да стане или да стапне на ногата, или ногата е скусена и свртена нанадвор",
+      "outcome": "o_emergency",
+      "source": "nhs-falls"
+    },
+    {
+      "code": "head_anticoag",
+      "label": "Удри со главата, а пие лекови за разредување на крвта",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "head_signs",
+      "label": "По ударот во главата: поспаност, повраќање, збунетост или губење свест",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "stroke",
+      "label": "Опуштено лице, слабост на рака или нога, нејасен говор",
+      "outcome": "o_emergency",
+      "source": "nhs-stroke"
+    },
+    {
+      "code": "chest",
+      "label": "Болка во градите или силно чукање на срцето пред или по падот",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "long_lie",
+      "label": "Лежеше на подот повеќе од еден час пред да биде пронајден/а",
+      "outcome": "o_emergency",
+      "source": "nhs-falls"
+    }
+  ],
+  "entry": "i_help_up",
+  "nodes": {
+    "i_help_up": {
+      "type": "info",
+      "title": "Ако е сè уште на подот",
+      "text": "Не кревајте го нагло. Ако не е повреден/а, помогнете му полека: прво на колена, потоа до стабилен стол. Ако боли или не може, покријте го/ја да не се излади и повикајте помош.",
+      "next": "q_cause"
+    },
+    "q_cause": {
+      "type": "question",
+      "kind": "single",
+      "text": "Што мислите, зошто се случи падот?",
+      "options": [
+        {
+          "value": "trip",
+          "label": "Се сопна или се лизна"
+        },
+        {
+          "value": "dizzy",
+          "label": "Му/ѝ се заврте или му/ѝ се стемни пред очи"
+        },
+        {
+          "value": "blackout",
+          "label": "Изгуби свест пред да падне или не се сеќава на падот"
+        },
+        {
+          "value": "legs_gave",
+          "label": "Нозете попуштија"
+        },
+        {
+          "value": "dont_know",
+          "label": "Не знам"
+        }
+      ],
+      "next": "q_after"
+    },
+    "q_after": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи сега?",
+      "options": [
+        {
+          "value": "pain",
+          "label": "Болка, оток или модринка (колк, рака, рамо, ребра)"
+        },
+        {
+          "value": "head_bump",
+          "label": "Удар во главата без други тегоби"
+        },
+        {
+          "value": "confused_new",
+          "label": "Повеќе збунет/а од вообичаено"
+        },
+        {
+          "value": "unwell",
+          "label": "Изгледа болно — температура, кашлица, печење при мокрење"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_history"
+    },
+    "q_history": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "repeat",
+          "label": "Паднал/а и порано во последните 12 месеци"
+        },
+        {
+          "value": "fear",
+          "label": "Се плаши да оди поради страв од пад"
+        },
+        {
+          "value": "new_meds",
+          "label": "Неодамна почнал/а нов лек или се сменила дозата"
+        },
+        {
+          "value": "lives_alone",
+          "label": "Живее сам/а"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_cause",
+            "eq": "blackout"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_after",
+                "includes": "pain"
+              },
+              {
+                "answer": "q_after",
+                "includes": "confused_new"
+              },
+              {
+                "answer": "q_after",
+                "includes": "head_bump"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_after",
+            "includes": "unwell"
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_cause",
+                "eq": "dizzy"
+              },
+              {
+                "answer": "q_cause",
+                "eq": "legs_gave"
+              },
+              {
+                "answer": "q_cause",
+                "eq": "dont_know"
+              },
+              {
+                "answer": "q_history",
+                "includes": "new_meds"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_history",
+                "includes": "repeat"
+              },
+              {
+                "answer": "q_history",
+                "includes": "fear"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Кај постари лица падовите почесто доведуваат до скршеници и понекогаш се знак на друга болест.",
+      "reasons": [
+        "Губењето свест пред падот треба да се испита истиот ден (на пр. ритамот на срцето)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не оставајте го/ја сам/а."
+      ],
+      "watch_for": [
+        "Ако се појави поспаност, повраќање, слабост или нејасен говор, веднаш повикајте 194 или 112.",
+        "Ако не може да стапне на ногата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-falls"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Кај постари лица падовите почесто доведуваат до скршеници и понекогаш се знак на друга болест.",
+      "reasons": [
+        "По пад кај постаро лице, болката, ударот во главата или новата збунетост бараат преглед истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не оставајте го/ја сам/а."
+      ],
+      "watch_for": [
+        "Ако се појави поспаност, повраќање, слабост или нејасен говор, веднаш повикајте 194 или 112.",
+        "Ако не може да стапне на ногата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-falls"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Кај постари лица падовите почесто доведуваат до скршеници и понекогаш се знак на друга болест.",
+      "reasons": [
+        "Пад со знаци на инфекција кај постаро лице треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не оставајте го/ја сам/а."
+      ],
+      "watch_for": [
+        "Ако се појави поспаност, повраќање, слабост или нејасен говор, веднаш повикајте 194 или 112.",
+        "Ако не може да стапне на ногата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-falls"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот треба да ја најде причината за падот (на пр. притисок, лекови, вртоглавица).",
+      "reasons": [
+        "Падот без јасна причина или по нов лек треба да го процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; понесете список на сите лекови."
+      ],
+      "watch_for": [
+        "Ако се појави главоболка, поспаност, повраќање или нова збунетост, веднаш повикајте 194 или 112.",
+        "Ако падне повторно, јавете се истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-falls"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете проценка на ризикот од падови",
+      "summary": "Повторените падови може да се намалат со вежби за рамнотежа, проверка на лековите, видот и домот.",
+      "reasons": [
+        "Повторените падови или стравот од пад се причина за проценка на ризикот од падови."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар и побарајте проценка на ризикот од падови.",
+        "Отстранете ги килимчињата и препреките; добро осветлување ноќе."
+      ],
+      "watch_for": [
+        "Ако падне и удри со главата додека пие лекови за разредување на крвта, веднаш повикајте 194 или 112.",
+        "Ако не може да стане по пад, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "fizikalna-medicina"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nice-ng249"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Еден пад со сопнување, без повреда, обично не бара преглед.",
+      "reasons": [
+        "Еден пад со сопнување, без повреда, обично не бара преглед."
+      ],
+      "do_now": [
+        "Проверете за модринки и болка во наредните 24 часа.",
+        "Добро осветлување, цврсти влечки и без килимчиња на патот."
+      ],
+      "watch_for": [
+        "Ако се појави болка, поспаност, повраќање или нова збунетост, веднаш повикајте 194 или 112.",
+        "Ако падне повторно или се плаши да оди, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-falls"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не го кревајте ако може да е скршена коската; покријте го/ја со ќебе.",
+        "Не давајте храна и пијалак додека не стигне помош.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "older_adult": "This flow is written for adults 65+ and the questions assume them.",
+    "pregnancy": "Falls in pregnancy with abdominal pain/bleeding are covered by the pregnancy-concerns flow.",
+    "chronic": "Anticoagulation is a red flag item; other conditions do not change routing."
+  },
+  "sources": [
+    {
+      "id": "nhs-falls",
+      "title": "NHS (Велика Британија) — Falls",
+      "url": "https://www.nhs.uk/conditions/falls/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng249",
+      "title": "NICE (Велика Британија) — NG249 Falls: assessment and prevention in older people",
+      "url": "https://www.nice.org.uk/guidance/ng249",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-broken-leg",
+      "title": "NHS (Велика Британија) — Broken leg",
+      "url": "https://www.nhs.uk/conditions/broken-leg/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-fainting",
+      "title": "NHS (Велика Британија) — Fainting",
+      "url": "https://www.nhs.uk/symptoms/fainting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stroke",
+      "title": "NHS (Велика Британија) — Stroke — symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

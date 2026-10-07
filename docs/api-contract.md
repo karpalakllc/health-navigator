@@ -213,8 +213,11 @@ limiters are layered on top:
 | `api-notifications` | `/me/notifications*`, `/me/notification-preferences`, `/me/review-reminders*` (inline) | 120/min per user |
 | `api-review-reminders` | `POST /me/review-reminders` (inline) | 30/hour per user |
 | `api-unsubscribe` | `GET`/`POST /notifications/unsubscribe` (inline, no sign-in) | 30/min per IP |
-| `api-triage-sessions` | guidance session create/answer/emergency | 10/hour |
+| `api-feedback` | `POST /feedback`, `POST /feedback/reasons` („Дали ви помогна?“, docs/urgent-care.md) | 20/min and 200/day per network (keyed hash, as `api-ux-events`) |
+| `api-funnel` | `POST /feedback/steps` (anonymous step counters) | 120/min and 1200/hour per network (keyed hash) |
+| `api-triage-sessions` | guidance session start (v1 and v2), v1 answer/emergency | 30/hour per IP |
 | `api-triage-complete` | guidance completion | 5/hour |
+| `api-triage-steps` | guidance v2 steps: state, demographics, symptoms, screen, answer, emergency, no-match | 600/hour per IP |
 
 Login additionally locks an account out after **5 failed attempts per minute**,
 counted per email + IP (`AuthController`). It counts failures, not requests, so
@@ -285,6 +288,10 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/specialties/{slug}` | `cache.public` |
 | `GET` | `/transparency` | `cache.public` |
 | `GET` | `/triage/flow` | `module:guidance` |
+| `GET` | `/triage/v2/catalog` | `module:guidance` |
+| `GET` | `/triage/v2/sessions/{id}` | `module:guidance`, `throttle:api-triage-steps` |
+| `GET` | `/urgent-care` | `cache.public:60` |
+| `GET` | `/urgent-care/cities` | `cache.public:60` |
 | `GET` | `/usernames/availability` | `auth.sanctum.optional`, `throttle:api-username-check` |
 | `GET` | `/ux/heatmap` | `throttle:120,1,api-ux-heatmap` |
 | `PATCH` | `/forum/categories/{category}/topics/{topic}/moderation` | `auth:sanctum`, `module:forum` |
@@ -303,6 +310,9 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/facilities/{slug}/corrections` | `auth.sanctum.optional`, `throttle:5,10,api-corrections-burst`, `throttle:15,60,api-corrections-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/profile-reports` | `auth.sanctum.optional`, `throttle:5,10,api-profile-reports-burst`, `throttle:15,60,api-profile-reports-hourly`, `altcha` |
 | `POST` | `/facilities/{slug}/reviews` | `auth:sanctum`, `can:create,App\Models\Review`, `verified`, `throttle:api-reviews` |
+| `POST` | `/feedback` | `throttle:api-feedback` |
+| `POST` | `/feedback/reasons` | `throttle:api-feedback` |
+| `POST` | `/feedback/steps` | `throttle:api-funnel` |
 | `POST` | `/forum/categories/{category}/topics` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumTopic`, `verified`, `throttle:api-forum-topics` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/posts` | `auth:sanctum`, `module:forum`, `can:create,App\Models\ForumPost`, `verified`, `throttle:api-forum-posts` |
 | `POST` | `/forum/categories/{category}/topics/{topic}/reports` | `auth:sanctum`, `verified`, `throttle:10,10,api-reports-burst`, `throttle:40,1440,api-reports-daily`, `altcha`, `module:forum` |
@@ -320,12 +330,19 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/triage/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
 | `POST` | `/triage/sessions/{id}/complete` | `module:guidance`, `throttle:api-triage-complete` |
 | `POST` | `/triage/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-sessions` |
+| `POST` | `/triage/v2/sessions` | `module:guidance`, `throttle:api-triage-sessions` |
+| `POST` | `/triage/v2/sessions/{id}/emergency` | `module:guidance`, `throttle:api-triage-steps` |
+| `POST` | `/triage/v2/sessions/{id}/no-match` | `module:guidance`, `throttle:api-triage-steps` |
 | `POST` | `/ux/events` | `throttle:api-ux-events` |
 | `PUT` | `/forum/posts/{post}/helpful` | `auth:sanctum`, `verified`, `module:forum`, `can:create,App\Models\ForumPost`, `throttle:60,10,api-forum-post-helpful` |
 | `PUT` | `/me/doctor/reviews/{review}/reply` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `PUT` | `/me/notification-preferences` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `PUT` | `/reviews/{review}/helpful` | `auth:sanctum`, `verified`, `can:create,App\Models\Review`, `throttle:60,10,api-review-helpful` |
 | `PUT` | `/triage/sessions/{id}/answers` | `module:guidance`, `throttle:api-triage-sessions` |
+| `PUT` | `/triage/v2/sessions/{id}/answer` | `module:guidance`, `throttle:api-triage-steps` |
+| `PUT` | `/triage/v2/sessions/{id}/demographics` | `module:guidance`, `throttle:api-triage-steps` |
+| `PUT` | `/triage/v2/sessions/{id}/screen` | `module:guidance`, `throttle:api-triage-steps` |
+| `PUT` | `/triage/v2/sessions/{id}/symptoms` | `module:guidance`, `throttle:api-triage-steps` |
 <!-- END generated route table -->
 
 ### Notes
@@ -582,6 +599,18 @@ nobody can hold an account locked by merely sending traffic.
   (`answers`, `emergency`, `complete`) must send it as the
   `X-Guidance-Token` header. A missing or wrong token is `404`, the same as an
   unknown id.
+- Guidance **v2** (`/triage/v2`, docs/triage-flows.md) follows the same rules:
+  `POST /triage/v2/sessions` (terms accepted) returns the secret and the first
+  state; every later call sends `X-Guidance-Token`, and a v1 session id is a
+  `404` there. Each call returns the session's **state** (`stage`:
+  `demographics` → `symptoms` → `screen` → `question` → `result`) and never a
+  rule, condition, score or a node's routing. Answers are option codes,
+  `yes`/`no`/`unsure`, bounded numbers or `unknown` only (422 otherwise);
+  re-submitting an earlier stage or question discards what came after it. A
+  ticked red flag, `POST …/emergency` or an emergency outcome ends the session
+  (`level: emergency_now`, 194/112 in `call`); further answers are 422.
+  `GET /triage/v2/catalog` is 404 (and a session cannot start) when no flow is
+  published.
 - `/search` does not record who searched. The normalised query (lower-cased,
   whitespace collapsed, truncated to 64 characters) is counted per day in
   `search_term_daily` after the response is sent; there is no per-search row.

@@ -1,0 +1,492 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "vomiting-diarrhoea-child",
+  "title": "Повраќање или пролив кај дете",
+  "summary_en": "Childhood vomiting/diarrhoea and dehydration. Green/bloody vomit, blood in stool with pain, drowsy, no urine 12h → emergency. Infants <3 m vomiting, dehydration signs, unable to keep fluids → same day. Vomiting >2 days / diarrhoea >7 days → paediatrician. NICE CG84 dehydration features (not reproduced).",
+  "notes_en": "NHS D&V and dehydration; NICE CG84 (gastroenteritis in under 5s) dehydration/shock features; WHO IMCI (unable to drink). Bilious vomiting as red flag (malrotation/obstruction). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 74,
+  "body_areas": [
+    "abdomen"
+  ],
+  "search_terms": [
+    "дете повраќа",
+    "бебе повраќа",
+    "пролив кај дете",
+    "дехидрација",
+    "стомачен вирус дете"
+  ],
+  "red_flags": [
+    {
+      "code": "colour",
+      "label": "Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "drowsy",
+      "label": "Тешко се буди, не реагира или е млитаво",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "no_urine",
+      "label": "Не мокрело 12 часа или повеќе (суви пелени)",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "green_vomit",
+      "label": "Повраќа зелена (жолчна) течност",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "blood",
+      "label": "Крв во повраќаното или столицата, или црна столица",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "severe_pain",
+      "label": "Силна болка во стомакот што не попушта",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали забележувате нешто од ова?",
+      "options": [
+        {
+          "value": "cannot_keep",
+          "label": "Не може да задржи ниту мали голтки течност"
+        },
+        {
+          "value": "dehydration",
+          "label": "Сува уста, нема солзи, вдлабнати очи или теме, помалку мокри пелени"
+        },
+        {
+          "value": "unusual",
+          "label": "Не е како порано — раздразливо или многу поспано"
+        },
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "projectile",
+          "label": "Силно (млазно) повраќање по секое хранење (бебе)"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае?",
+      "options": [
+        {
+          "value": "lt_24h",
+          "label": "Помалку од 24 часа"
+        },
+        {
+          "value": "1_2d",
+          "label": "1–2 дена"
+        },
+        {
+          "value": "3_7d",
+          "label": "3–7 дена"
+        },
+        {
+          "value": "gt_7d",
+          "label": "Повеќе од 7 дена (пролив)"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_emergency_infant_fever"
+        },
+        {
+          "when": {
+            "demo": "age_band",
+            "in": [
+              "infant_0_3m"
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "dehydration"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "cannot_keep"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "unusual"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "projectile"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m"
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "3_7d"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_7d"
+              },
+              {
+                "demo": "conditions",
+                "includes_any": [
+                  "immunosuppressed",
+                  "kidney_disease",
+                  "diabetes"
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со бебето на преглед денес, без чекање",
+      "summary": "Најмалите бебиња многу брзо губат течности.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци повраќањето и проливот бараат преглед истиот ден, без чекање."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, не мокри или повраќа зелено, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nice-cg84"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето можеби губи повеќе течности отколку што внесува.",
+      "reasons": [
+        "Знаците на губење течности (дехидрација) или млазното повраќање бараат преглед истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте раствор за рехидрација (од аптека) во многу мали голтки, на пр. лажичка на секои неколку минути. Ако доите, продолжете."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди или не мокрело 12 часа, веднаш повикајте 194 или 112.",
+        "Ако повраќа зелено или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dehydration"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето можеби губи повеќе течности отколку што внесува.",
+      "reasons": [
+        "Бебе со повраќање/пролив и температура треба да го види лекар денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте раствор за рехидрација (од аптека) во многу мали голтки, на пр. лажичка на секои неколку минути. Ако доите, продолжете."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди или не мокрело 12 часа, веднаш повикајте 194 или 112.",
+        "Ако повраќа зелено или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dehydration"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Тегобите траат подолго од очекуваното.",
+      "reasons": [
+        "Повраќање подолго од 2 дена, пролив подолг од неколку дена или хронична болест бараат проценка кај педијатар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Продолжете со течности и раствор за рехидрација."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво или не мокри 12 часа, веднаш повикајте 194 или 112.",
+        "Ако се појават знаци на дехидрација, одете на преглед истиот ден."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Повраќањето кај деца обично поминува за 1–2 дена, а проливот за 5–7 дена.",
+      "reasons": [
+        "Повраќањето кај деца обично поминува за 1–2 дена, а проливот за 5–7 дена."
+      ],
+      "do_now": [
+        "Давајте течности често, во мали количини; раствор за рехидрација од аптека е најдобар.",
+        "Ако доите или давате адаптирано млеко, продолжете.",
+        "Детето нека не оди во градинка/училиште 2 дена по последната епизода."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди, не мокрело 12 часа или повраќа зелено, веднаш повикајте 194 или 112.",
+        "Ако се појават сува уста, нема солзи или помалку мокри пелени, одете на преглед истиот ден."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-dv",
+        "nice-cg84"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_infant_fever": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Кај бебиња помлади од 3 месеци температурата може да е единствениот знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или температура што не сте можеле да ја измерите — треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Не завиткувајте го бебето премногу и продолжете да го доите или да му давате млеко.",
+        "Не давајте лекови без совет од лекар.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-under5-urgent"
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow; ages 1–12 use the same rules; infants have extra rules."
+  },
+  "sources": [
+    {
+      "id": "nhs-dv",
+      "title": "NHS (Велика Британија) — Diarrhoea and vomiting",
+      "url": "https://www.nhs.uk/symptoms/diarrhoea-and-vomiting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dehydration",
+      "title": "NHS (Велика Британија) — Dehydration",
+      "url": "https://www.nhs.uk/conditions/dehydration/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-cg84",
+      "title": "NICE (Велика Британија) — CG84 Diarrhoea and vomiting caused by gastroenteritis in under 5s",
+      "url": "https://www.nice.org.uk/guidance/cg84",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "who-imci",
+      "title": "Светска здравствена организација (WHO) — Integrated Management of Childhood Illness (IMCI) chart booklet",
+      "url": "https://www.who.int/publications/i/item/9789241506823",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-febrile-seizures",
+      "title": "NHS (Велика Британија) — Febrile seizures",
+      "url": "https://www.nhs.uk/conditions/febrile-seizures/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

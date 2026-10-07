@@ -1,0 +1,642 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "rash-with-fever-child",
+  "title": "Осип кај дете (со или без температура)",
+  "summary_en": "Rash in children with focus on meningitis/sepsis signs. Non-blanching rash, stiff neck, light sensitivity, drowsy, cold extremities → 194. Infants, unwell child, scarlet-fever pattern, rash near eyes/blisters in eczema → same day/48h. Chickenpox/HFMD/viral rash in a well child → home care with safety net.",
+  "notes_en": "NHS rashes in babies and children; meningitis (glass test, dark skin advice); scarlet fever; chickenpox (newborn/immunosuppressed exceptions); hand, foot and mouth disease; eczema herpeticum as same-day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 93,
+  "body_areas": [
+    "skin",
+    "general"
+  ],
+  "search_terms": [
+    "осип кај дете",
+    "дамки кај дете",
+    "сипаници",
+    "овчи сипаници",
+    "менингитис",
+    "шарлах"
+  ],
+  "red_flags": [
+    {
+      "code": "breathing",
+      "label": "Дише многу брзо или тешко, стенка при дишење или стомачето/меѓу ребрата му се вовлекува",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "colour",
+      "label": "Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "drowsy",
+      "label": "Тешко се буди, не реагира или е млитаво",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "nonblanch",
+      "label": "Осип што не бледнее кога ќе притиснете чаша врз него",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "stiff_neck",
+      "label": "Вкочанет врат или многу му пречи светлината",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "cold_extremities",
+      "label": "Студени раце и стапала со температура, или болки во нозете поради кои не сака да оди",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "swelling",
+      "label": "Отекување на усните, јазикот или лицето",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    }
+  ],
+  "entry": "i_glass",
+  "nodes": {
+    "i_glass": {
+      "type": "info",
+      "title": "Тест со чаша",
+      "text": "Притиснете странично стаклена чаша врз осипот. Ако дамките не исчезнуваат низ стаклото, тоа е итен случај — повикајте 194. На темна кожа проверете на подлачните места (дланки, стапала, стомак).",
+      "next": "q_type"
+    },
+    "q_type": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што најдобро го опишува осипот?",
+      "options": [
+        {
+          "value": "blisters_itchy",
+          "label": "Чешачки меурчиња по целото тело (како овчи сипаници)"
+        },
+        {
+          "value": "sandpaper",
+          "label": "Ситен црвен осип груб како шкурка, со болно грло и/или црвен јазик"
+        },
+        {
+          "value": "hands_mouth",
+          "label": "Ранички во устата и дамки на дланките и стапалата"
+        },
+        {
+          "value": "blotchy",
+          "label": "Црвени дамки што бледнеат под притисок"
+        },
+        {
+          "value": "eczema_blisters",
+          "label": "Детето има екцем и се појавија болни меурчиња или красти"
+        },
+        {
+          "value": "near_eye",
+          "label": "Осип или меурчиња околу окото"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_fever"
+    },
+    "q_fever": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали има температура?",
+      "next": "q_behaviour"
+    },
+    "q_behaviour": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како се однесува детето?",
+      "options": [
+        {
+          "value": "normal",
+          "label": "Си игра и пие како обично"
+        },
+        {
+          "value": "bit_off",
+          "label": "Малку е потиштено, но реагира"
+        },
+        {
+          "value": "unwell",
+          "label": "Многу е болно, не е како порано"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_fever",
+                "eq": "yes"
+              }
+            ]
+          },
+          "goto": "o_emergency_infant_fever"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_fever",
+                    "eq": "yes"
+                  },
+                  {
+                    "not": {
+                      "answer": "q_behaviour",
+                      "eq": "normal"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "answer": "q_behaviour",
+            "eq": "unwell"
+          },
+          "goto": "o_urgent_now_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_type",
+                "includes": "eczema_blisters"
+              },
+              {
+                "answer": "q_type",
+                "includes": "near_eye"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_type",
+                "includes": "blisters_itchy"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_0_3m"
+                    ]
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes": "immunosuppressed"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes": "sandpaper"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_fever",
+                "eq": "yes"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m"
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_behaviour",
+            "eq": "bit_off"
+          },
+          "goto": "o_doc48_3"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед сега",
+      "summary": "Осип кај бебе или кај многу болно дете треба веднаш да го прегледа лекар.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци осип со температура или промена во однесувањето треба веднаш да се провери."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-rashes-children",
+        "nhs-meningitis"
+      ]
+    },
+    "o_urgent_now_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед сега",
+      "summary": "Осип кај бебе или кај многу болно дете треба веднаш да го прегледа лекар.",
+      "reasons": [
+        "Детето е многу болно; осипот со такво однесување треба веднаш да се провери."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-rashes-children",
+        "nhs-meningitis"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Овој вид осип бара лекување истиот ден.",
+      "reasons": [
+        "Болни меурчиња на екцем или осип околу окото бараат лекување истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "dermatologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-rashes-children"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Овој вид осип бара лекување истиот ден.",
+      "reasons": [
+        "Овчи сипаници кај бебиња под 4 недели или кај ослабен имунитет бараат брза проценка."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "dermatologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-rashes-children"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го погледне осипот и грлото.",
+      "reasons": [
+        "Осипот личи на шарлах (скарлатина), кој се лекува со антибиотик по преглед."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар; кажете дека детето има осип (можеби ќе ве примат во посебен термин)."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-scarlet-fever"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го погледне осипот и грлото.",
+      "reasons": [
+        "Кај бебе под 1 година осип со температура вреди да го види педијатар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар; кажете дека детето има осип (можеби ќе ве примат во посебен термин)."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-scarlet-fever"
+      ]
+    },
+    "o_doc48_3": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го погледне осипот и грлото.",
+      "reasons": [
+        "Ако детето не е сосема како порано, педијатарот треба да го види."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар; кажете дека детето има осип (можеби ќе ве примат во посебен термин)."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-scarlet-fever"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Повеќето осипи кај деца што си играат и пијат нормално се од вируси и поминуваат сами.",
+      "reasons": [
+        "Повеќето осипи кај деца што си играат и пијат нормално се од вируси и поминуваат сами."
+      ],
+      "do_now": [
+        "Давајте течности; облечете го лесно.",
+        "Кај овчи сипаници: кратки нокти, лесна памучна облека; фармацевтот може да ве посоветува за средство против чешање.",
+        "Детето нека не оди во градинка/училиште додека меурчињата не се исушат."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето стане многу болно, тешко се буди или дише тешко, веднаш повикајте 194 или 112.",
+        "Ако сте бремени или во контакт со бремена жена или новороденче, кажете му на лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-chickenpox",
+        "nhs-hfmd"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со детето и следете како дише.",
+        "Ако е без свест, а дише, ставете го на страна. Не давајте храна ни пијалак.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_infant_fever": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Кај бебиња помлади од 3 месеци температурата може да е единствениот знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или температура што не сте можеле да ја измерите — треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Не завиткувајте го бебето премногу и продолжете да го доите или да му давате млеко.",
+        "Не давајте лекови без совет од лекар.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-under5-urgent"
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow."
+  },
+  "sources": [
+    {
+      "id": "nhs-rashes-children",
+      "title": "NHS (Велика Британија) — Rashes in babies and children",
+      "url": "https://www.nhs.uk/symptoms/rashes-babies-and-children/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-scarlet-fever",
+      "title": "NHS (Велика Британија) — Scarlet fever",
+      "url": "https://www.nhs.uk/conditions/scarlet-fever/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-chickenpox",
+      "title": "NHS (Велика Британија) — Chickenpox",
+      "url": "https://www.nhs.uk/conditions/chickenpox/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-hfmd",
+      "title": "NHS (Велика Британија) — Hand, foot and mouth disease",
+      "url": "https://www.nhs.uk/conditions/hand-foot-mouth-disease/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-febrile-seizures",
+      "title": "NHS (Велика Британија) — Febrile seizures",
+      "url": "https://www.nhs.uk/conditions/febrile-seizures/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

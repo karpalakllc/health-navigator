@@ -1,0 +1,931 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "chest-pain",
+  "title": "Болка во градите",
+  "summary_en": "Adult chest pain. Any ongoing pressure-type pain, radiation, autonomic symptoms or breathlessness → 194. Pleuritic pain with DVT risk/leg swelling → emergency (possible PE). Otherwise short-lived/musculoskeletal pain → GP; reflux-type → pharmacy with safety net. Over-65, diabetes, known heart disease lower the threshold.",
+  "notes_en": "Any pressure/radiating/autonomic chest pain is treated as possible ACS (NHS 999 criteria). Pleuritic pain + Wells-type risk items (not a score) escalates for possible PE. Diabetics, older adults and known heart disease get a lower threshold because atypical presentations are common. Assumptions: Users with ongoing pain of unclear character are better over-triaged to same-day care. The DVT-risk list is a plain-language checklist, not the Wells score (scores are not reproduced). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 95,
+  "body_areas": [
+    "chest"
+  ],
+  "search_terms": [
+    "болка во градите",
+    "притисок во градите",
+    "стегање во градите",
+    "градна болка",
+    "срце боли"
+  ],
+  "red_flags": [
+    {
+      "code": "ongoing_pressure",
+      "label": "Болка, притисок, стегање или печење во градите што трае подолго од неколку минути или доаѓа и си оди при мирување",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    },
+    {
+      "code": "radiating",
+      "label": "Болката се шири кон раката, вратот, вилицата, грбот или стомакот",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    },
+    {
+      "code": "autonomic",
+      "label": "Болката е придружена со потење, гадење, вртоглавица или чувство на несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    },
+    {
+      "code": "breathless",
+      "label": "Ненадејно отежнато дишење или недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    },
+    {
+      "code": "coughing_blood",
+      "label": "Искашлување крв",
+      "outcome": "o_emergency",
+      "source": "nhs-pe"
+    },
+    {
+      "code": "collapse",
+      "label": "Несвестица, колапс или многу бледа, сива или студена и влажна кожа",
+      "outcome": "o_emergency",
+      "source": "nhs-heart-attack"
+    },
+    {
+      "code": "tearing",
+      "label": "Ненадејна, многу силна болка што се чувствува како кинење и се шири кон грбот",
+      "help": "Ретка, но итна состојба на големиот крвен сад (аорта).",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    }
+  ],
+  "entry": "q_pattern",
+  "nodes": {
+    "q_pattern": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како најдобро би ја опишале болката?",
+      "options": [
+        {
+          "value": "sharp_breath",
+          "label": "Остра болка што се засилува при длабоко дишење или кашлање"
+        },
+        {
+          "value": "press_spot",
+          "label": "Боли на едно место кога ќе притиснам, по напор или удар"
+        },
+        {
+          "value": "burning_meal",
+          "label": "Печење зад градната коска по јадење или кога легнувам"
+        },
+        {
+          "value": "rash_band",
+          "label": "Печење или боцкање во појас на едната страна, со или без осип (меурчиња)"
+        },
+        {
+          "value": "brief_gone",
+          "label": "Кратка болка што помина сама и сега ја немам"
+        },
+        {
+          "value": "other",
+          "label": "Друго / не сум сигурен"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_pattern",
+                "eq": "sharp_breath"
+              }
+            ]
+          },
+          "goto": "o_emergency_3"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "sharp_breath"
+          },
+          "goto": "q_dvt_risk"
+        },
+        {
+          "goto": "q_cardiac_risk"
+        }
+      ]
+    },
+    "q_dvt_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "leg_swelling",
+          "label": "Отечена, топла или болна потколеница на едната нога"
+        },
+        {
+          "value": "recent_surgery",
+          "label": "Операција, гипс или подолго лежење во последните 4 недели"
+        },
+        {
+          "value": "long_travel",
+          "label": "Долго патување (над 4 часа седење) во последните 4 недели"
+        },
+        {
+          "value": "pregnant_post",
+          "label": "Бременост или породување во последните 6 недели"
+        },
+        {
+          "value": "prior_clot",
+          "label": "Порано сте имале тромб (згрутчување крв) во нога или бели дробови"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_pattern",
+                "eq": "sharp_breath"
+              },
+              {
+                "answer": "q_dvt_risk",
+                "includes_any": [
+                  "leg_swelling",
+                  "recent_surgery",
+                  "long_travel",
+                  "pregnant_post",
+                  "prior_clot"
+                ]
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_cardiac_risk"
+        }
+      ]
+    },
+    "q_cardiac_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи за вас?",
+      "options": [
+        {
+          "value": "known_heart",
+          "label": "Позната болест на срцето (ангина, инфаркт, стент, бајпас)"
+        },
+        {
+          "value": "diabetes",
+          "label": "Дијабетес"
+        },
+        {
+          "value": "high_bp",
+          "label": "Висок крвен притисок или висок холестерол"
+        },
+        {
+          "value": "smoker",
+          "label": "Пушите"
+        },
+        {
+          "value": "cocaine",
+          "label": "Неодамна сте користеле кокаин или други стимуланси"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "now",
+          "label": "Ја имам сега"
+        },
+        {
+          "value": "today",
+          "label": "Се појави денес, сега ја немам"
+        },
+        {
+          "value": "days",
+          "label": "Доаѓа и си оди неколку дена"
+        },
+        {
+          "value": "weeks",
+          "label": "Повеќе од 2 недели"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_cardiac_risk",
+                "includes": "cocaine"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "now"
+              }
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_pattern",
+                "eq": "sharp_breath"
+              },
+              {
+                "answer": "q_dvt_risk",
+                "includes_any": [
+                  "leg_swelling",
+                  "recent_surgery",
+                  "long_travel",
+                  "pregnant_post",
+                  "prior_clot"
+                ]
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_cardiac_risk",
+                "includes": "cocaine"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "now"
+              }
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_pattern",
+                "eq": "sharp_breath"
+              }
+            ]
+          },
+          "goto": "o_emergency_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_duration",
+                "eq": "now"
+              },
+              {
+                "answer": "q_pattern",
+                "eq": "other"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_duration",
+                "eq": "now"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "answer": "q_cardiac_risk",
+                        "includes_any": [
+                          "known_heart",
+                          "diabetes"
+                        ]
+                      },
+                      {
+                        "demo": "conditions",
+                        "includes_any": [
+                          "heart_disease",
+                          "diabetes"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_duration",
+                "eq": "today"
+              },
+              {
+                "answer": "q_cardiac_risk",
+                "includes_any": [
+                  "known_heart",
+                  "diabetes",
+                  "high_bp",
+                  "smoker"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "sharp_breath"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "rash_band"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_duration",
+            "eq": "weeks"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "brief_gone"
+          },
+          "goto": "o_gp_2"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "burning_meal"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "press_spot"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_urgent"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Остра болка при дишење заедно со ризик за тромб (згрутчување крв) може да значи тромб во белите дробови — тоа бара итен преглед."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете и мирувајте; не одете пеш и не качувајте скали.",
+        "Ако диспечерот ви каже, следете ги неговите упатства за лекови.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_2": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Болка во градите по употреба на стимуланси бара итен преглед."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете и мирувајте; не одете пеш и не качувајте скали.",
+        "Ако диспечерот ви каже, следете ги неговите упатства за лекови.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_emergency_3": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Во бременост и до 6 недели по породување ризикот од тромб е поголем; остра болка при дишење бара итен преглед."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете и мирувајте; не одете пеш и не качувајте скали.",
+        "Ако диспечерот ви каже, следете ги неговите упатства за лекови.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болката во градите не секогаш е од срцето, но кога не е јасна причината, најбезбедно е да се провери истиот ден (на пр. ЕКГ).",
+      "reasons": [
+        "Болката е присутна сега и не одговара на јасна безопасна шема — подобро е да ве прегледаат денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или служба за итна помош во вашиот град уште денес.",
+        "Не возете сами ако болката се враќа."
+      ],
+      "watch_for": [
+        "Ако болката стане постојана, силна или се шири кон раката, вратот или вилицата, веднаш повикајте 194 или 112.",
+        "Ако почнете да се потите, да ви се гади или да ви снема воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болката во градите не секогаш е од срцето, но кога не е јасна причината, најбезбедно е да се провери истиот ден (на пр. ЕКГ).",
+      "reasons": [
+        "Кај постари лица, лица со дијабетес или позната срцева болест, болката во градите почесто е од срцето и може да изгледа благо."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или служба за итна помош во вашиот град уште денес.",
+        "Не возете сами ако болката се враќа."
+      ],
+      "watch_for": [
+        "Ако болката стане постојана, силна или се шири кон раката, вратот или вилицата, веднаш повикајте 194 или 112.",
+        "Ако почнете да се потите, да ви се гади или да ви снема воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болката во градите не секогаш е од срцето, но кога не е јасна причината, најбезбедно е да се провери истиот ден (на пр. ЕКГ).",
+      "reasons": [
+        "Болка во градите денес, заедно со ризични фактори за срцето, треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или служба за итна помош во вашиот град уште денес.",
+        "Не возете сами ако болката се враќа."
+      ],
+      "watch_for": [
+        "Ако болката стане постојана, силна или се шири кон раката, вратот или вилицата, веднаш повикајте 194 или 112.",
+        "Ако почнете да се потите, да ви се гади или да ви снема воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Описот не укажува на итна состојба, но треба лекар да ве прегледа и да ги слушне белите дробови.",
+      "reasons": [
+        "Остра болка при дишење без знаци за тромб може да е од мускулите или од воспаление (на пр. на белите дробови), но треба преглед."
+      ],
+      "do_now": [
+        "Закажете кај вашиот избран лекар во рок од 1–2 дена."
+      ],
+      "watch_for": [
+        "Ако болката стане силна или постојана, веднаш повикајте 194 или 112.",
+        "Ако се појави недостиг на воздух или искашлување крв, веднаш повикајте 194 или 112.",
+        "Ако добиете висока температура или се чувствувате сè полошо, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain",
+        "nhs-shingles"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Описот не укажува на итна состојба, но треба лекар да ве прегледа и да ги слушне белите дробови.",
+      "reasons": [
+        "Болка во појас со меурчиња може да е херпес зостер, кај кој лекувањето е најкорисно во првите денови."
+      ],
+      "do_now": [
+        "Закажете кај вашиот избран лекар во рок од 1–2 дена."
+      ],
+      "watch_for": [
+        "Ако болката стане силна или постојана, веднаш повикајте 194 или 112.",
+        "Ако се појави недостиг на воздух или искашлување крв, веднаш повикајте 194 или 112.",
+        "Ако добиете висока температура или се чувствувате сè полошо, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain",
+        "nhs-shingles"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар оваа недела",
+      "summary": "Болката сега ја нема или се повторува подолго време без знаци за итност; лекарот може да одлучи дали треба ЕКГ или други испитувања.",
+      "reasons": [
+        "Болка што доаѓа и си оди неколку недели треба да ја процени вашиот избран лекар."
+      ],
+      "do_now": [
+        "Забележете кога се јавува болката, колку трае и што ја предизвикува — тоа многу му помага на лекарот."
+      ],
+      "watch_for": [
+        "Ако болката се врати и трае подолго од неколку минути, веднаш повикајте 194 или 112.",
+        "Ако се појави потење, гадење или недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_gp_2": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар оваа недела",
+      "summary": "Болката сега ја нема или се повторува подолго време без знаци за итност; лекарот може да одлучи дали треба ЕКГ или други испитувања.",
+      "reasons": [
+        "Кратка болка што поминала е честа и најчесто безопасна, но треба да се спомене кај лекар."
+      ],
+      "do_now": [
+        "Забележете кога се јавува болката, колку трае и што ја предизвикува — тоа многу му помага на лекарот."
+      ],
+      "watch_for": [
+        "Ако болката се врати и трае подолго од неколку минути, веднаш повикајте 194 или 112.",
+        "Ако се појави потење, гадење или недостиг на воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Болка што се засилува на притисок или при движење, по напор или удар, најчесто е од мускулите или ребрата.",
+      "reasons": [
+        "Болка што се јавува на притисок, по напор или удар најчесто е од мускулите или ребрата."
+      ],
+      "do_now": [
+        "Одморете се и избегнувајте напор што ја засилува болката.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако болката се промени во притисок или стегање, веднаш повикајте 194 или 112.",
+        "Ако се појави недостиг на воздух, потење или несвестица, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 1–2 недели, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Печењето по јадење или кога легнувате често е поврзано со желудечна киселина.",
+      "reasons": [
+        "Печење по јадење честопати е од желудечна киселина (рефлукс); фармацевтот може да ве посоветува."
+      ],
+      "do_now": [
+        "Разговарајте со фармацевт за средства против киселина.",
+        "Избегнувајте тешки оброци доцна навечер; кревањето на главата при спиење може да помогне."
+      ],
+      "watch_for": [
+        "Ако болката не е поврзана со јадење, туку се јавува при напор, веднаш повикајте 194 или 112.",
+        "Ако се шири кон раката или вилицата, веднаш повикајте 194 или 112.",
+        "Ако тегобите траат подолго од 2 недели или тешко голтате, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_urgent": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болката во градите не секогаш е од срцето, но кога не е јасна причината, најбезбедно е да се провери истиот ден (на пр. ЕКГ).",
+      "reasons": [
+        "Болката во градите не секогаш е од срцето, но кога не е јасна причината, најбезбедно е да се провери истиот ден (на пр. ЕКГ)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или служба за итна помош во вашиот град уште денес.",
+        "Не возете сами ако болката се враќа."
+      ],
+      "watch_for": [
+        "Ако болката стане постојана, силна или се шири кон раката, вратот или вилицата, веднаш повикајте 194 или 112.",
+        "Ако почнете да се потите, да ви се гади или да ви снема воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-chest-pain"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете и мирувајте; не одете пеш и не качувајте скали.",
+        "Ако диспечерот ви каже, следете ги неговите упатства за лекови.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "older_adult": "Referenced: ≥65 with pain now → same day.",
+    "chronic": "Referenced via demo.conditions heart_disease/diabetes."
+  },
+  "sources": [
+    {
+      "id": "nhs-chest-pain",
+      "title": "NHS (Велика Британија) — Chest pain",
+      "url": "https://www.nhs.uk/symptoms/chest-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-heart-attack",
+      "title": "NHS (Велика Британија) — Heart attack",
+      "url": "https://www.nhs.uk/conditions/heart-attack/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pe",
+      "title": "NHS (Велика Британија) — Pulmonary embolism",
+      "url": "https://www.nhs.uk/conditions/pulmonary-embolism/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dvt",
+      "title": "NHS (Велика Британија) — Deep vein thrombosis (DVT)",
+      "url": "https://www.nhs.uk/conditions/deep-vein-thrombosis-dvt/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-shingles",
+      "title": "NHS (Велика Британија) — Shingles",
+      "url": "https://www.nhs.uk/conditions/shingles/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

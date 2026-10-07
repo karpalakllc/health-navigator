@@ -1,0 +1,569 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "limb-injury",
+  "title": "Повреда на рака или нога",
+  "summary_en": "Limb/joint injury (all ages). Open fracture, obvious deformity, cold/pale/pulseless limb, major trauma → 194/ED. Unable to bear weight, severe swelling, suspected fracture, hip injury in older adults → same day. Sprain → self-care. Swollen calf without injury → DVT pathway.",
+  "notes_en": "NHS broken arm/leg/ankle and sprains; DVT (swollen calf) and septic arthritis/gout (hot joint) included as non-traumatic presentations. Ottawa rules are public but not reproduced; 'cannot bear weight' and 'bone tenderness' approximate them conservatively. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 58,
+  "body_areas": [
+    "arms",
+    "legs"
+  ],
+  "search_terms": [
+    "скршена рака",
+    "фрактура",
+    "истегнување",
+    "уганување",
+    "зглоб",
+    "колено",
+    "глужд"
+  ],
+  "red_flags": [
+    {
+      "code": "open",
+      "label": "Коската се гледа или прободува кожата",
+      "outcome": "o_emergency",
+      "source": "nhs-broken-leg"
+    },
+    {
+      "code": "deformed",
+      "label": "Раката или ногата е видливо искривена или во неприроден положај",
+      "outcome": "o_emergency",
+      "source": "nhs-broken-leg"
+    },
+    {
+      "code": "cold_limb",
+      "label": "Делот под повредата е студен, бел или син, или трне и не може да се движи",
+      "outcome": "o_emergency",
+      "source": "nhs-broken-arm"
+    },
+    {
+      "code": "major",
+      "label": "Повредата е од сообраќајка, пад од висина или има повеќе тешки повреди",
+      "outcome": "o_emergency",
+      "source": "nhs-broken-leg"
+    },
+    {
+      "code": "hip_older",
+      "label": "Постаро лице падна и не може да стане или да стапне на ногата (можна скршеница на колкот)",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "older_65_plus"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-broken-leg"
+    }
+  ],
+  "entry": "q_cause",
+  "nodes": {
+    "q_cause": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како настана?",
+      "options": [
+        {
+          "value": "injury",
+          "label": "Пад, удар или извиткување"
+        },
+        {
+          "value": "no_injury",
+          "label": "Без повреда — ногата/раката отече и боли сама од себе"
+        }
+      ],
+      "next": "q_signs"
+    },
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "cannot_bear",
+          "label": "Не можам да стапнам на ногата или да ја користам раката"
+        },
+        {
+          "value": "crack",
+          "label": "Се слушна крцкање при повредата"
+        },
+        {
+          "value": "severe_swelling",
+          "label": "Силен оток или модринка што брзо се појави"
+        },
+        {
+          "value": "bone_tender",
+          "label": "Многу боли кога ќе притиснам на коската"
+        },
+        {
+          "value": "calf",
+          "label": "Отечен, топол и болен лист (потколеница) на едната нога"
+        },
+        {
+          "value": "red_hot_joint",
+          "label": "Зглобот е црвен, топол и многу болен, со или без температура"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_pain"
+    },
+    "q_pain": {
+      "type": "question",
+      "kind": "scale",
+      "text": "Колку е силна болката, од 0 до 10?",
+      "min_label": "Без болка",
+      "max_label": "Најсилна болка",
+      "next": [
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "calf"
+          },
+          "goto": "o_urgent_dvt_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_signs",
+                "includes": "red_hot_joint"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes": "immunosuppressed"
+                  },
+                  {
+                    "not": {
+                      "answer": "q_cause",
+                      "eq": "injury"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes_any": [
+                  "cannot_bear",
+                  "crack",
+                  "severe_swelling",
+                  "bone_tender"
+                ]
+              },
+              {
+                "answer": "q_pain",
+                "gte": 8
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m",
+                  "child_1_4"
+                ]
+              },
+              {
+                "answer": "q_cause",
+                "eq": "injury"
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_cause",
+                "eq": "injury"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "red_hot_joint"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "answer": "q_cause",
+            "eq": "no_injury"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_dvt_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Отечен и болен лист без повреда треба да се провери истиот ден (на пр. ултразвук).",
+      "reasons": [
+        "Отечен, топол и болен лист може да значи тромб во вената (длабока венска тромбоза)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не масирајте ја ногата."
+      ],
+      "watch_for": [
+        "Ако се појави ненадеен недостиг на воздух, болка во градите или искашлување крв, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "interna-medicina",
+          "vaskularna-hirurgija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dvt"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Повредата може да бара снимка или имобилизација (гипс, шина).",
+      "reasons": [
+        "Црвен, топол, многу болен зглоб без повреда може да значи инфекција на зглобот или гихт (протин); треба преглед денес."
+      ],
+      "do_now": [
+        "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
+        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+      ],
+      "watch_for": [
+        "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-broken-arm",
+        "nhs-broken-leg"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Повредата може да бара снимка или имобилизација (гипс, шина).",
+      "reasons": [
+        "Знаците може да укажуваат на скршеница; потребен е преглед и можеби снимка денес."
+      ],
+      "do_now": [
+        "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
+        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+      ],
+      "watch_for": [
+        "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-broken-arm",
+        "nhs-broken-leg"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Повредата може да бара снимка или имобилизација (гипс, шина).",
+      "reasons": [
+        "Кај мали деца повредите на рацете и нозете тешко се проценуваат и треба да ги види лекар истиот ден."
+      ],
+      "do_now": [
+        "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
+        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+      ],
+      "watch_for": [
+        "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-broken-arm",
+        "nhs-broken-leg"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот треба да ја процени повредата или зглобот.",
+      "reasons": [
+        "По 65 години коските полесно се кршат; лекарот треба да ја процени повредата."
+      ],
+      "do_now": [
+        "Мирување, ладен облог 20 минути неколкупати дневно, кренете го делот."
+      ],
+      "watch_for": [
+        "Ако болката нагло се засили, делот стане студен или бледо-син, веднаш повикајте 194 или 112.",
+        "Ако не можете да стапнете на ногата, јавете се во итна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ortopedija",
+          "revmatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sprains",
+        "nhs-gout"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот треба да ја процени повредата или зглобот.",
+      "reasons": [
+        "Црвен и топол зглоб треба да го процени лекар."
+      ],
+      "do_now": [
+        "Мирување, ладен облог 20 минути неколкупати дневно, кренете го делот."
+      ],
+      "watch_for": [
+        "Ако болката нагло се засили, делот стане студен или бледо-син, веднаш повикајте 194 или 112.",
+        "Ако не можете да стапнете на ногата, јавете се во итна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ortopedija",
+          "revmatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sprains",
+        "nhs-gout"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Болката и отокот без повреда треба да се испитаат, но не итно.",
+      "reasons": [
+        "Болка и оток без повреда треба да се испитаат."
+      ],
+      "do_now": [
+        "Одморете го делот; фармацевтот може да ве посоветува за болката."
+      ],
+      "watch_for": [
+        "Ако се појави отечен топол лист, недостиг на воздух или висока температура, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "revmatologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sprains"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Изгледа како истегнување или уганување без знаци за скршеница.",
+      "reasons": [
+        "Изгледа како истегнување или уганување без знаци за скршеница."
+      ],
+      "do_now": [
+        "Мирување, ладен облог (завиткан во крпа) 20 минути, лесно стегање со завој и кревање на делот.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако делот стане студен, бел или син, или трне, веднаш повикајте 194 или 112.",
+        "Ако по 1 недела нема подобрување или не можете да стапнете на ногата, јавете се кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "fizikalna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-sprains"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не го исправувајте и не го поместувајте повредениот дел; потпрете го во положбата во која е.",
+        "При отворена рана, покријте ја со чиста газа; не туркајте ја коската назад.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "infant_0_3m": "Referenced via under-5 injury rule.",
+    "infant_3_12m": "Referenced via under-5 injury rule.",
+    "child": "Under-5 referenced; older children follow adult thresholds. Non-accidental injury is out of scope — clinician to advise on wording.",
+    "pregnancy": "Swollen calf (DVT) already same day; pregnancy raises DVT risk but does not change routing."
+  },
+  "sources": [
+    {
+      "id": "nhs-broken-arm",
+      "title": "NHS (Велика Британија) — Broken arm or wrist",
+      "url": "https://www.nhs.uk/conditions/broken-arm-or-wrist/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-broken-leg",
+      "title": "NHS (Велика Британија) — Broken leg",
+      "url": "https://www.nhs.uk/conditions/broken-leg/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-broken-ankle",
+      "title": "NHS (Велика Британија) — Broken ankle",
+      "url": "https://www.nhs.uk/conditions/broken-ankle/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sprains",
+      "title": "NHS (Велика Британија) — Sprains and strains",
+      "url": "https://www.nhs.uk/conditions/sprains-and-strains/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dvt",
+      "title": "NHS (Велика Британија) — Deep vein thrombosis (DVT)",
+      "url": "https://www.nhs.uk/conditions/deep-vein-thrombosis-dvt/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-gout",
+      "title": "NHS (Велика Британија) — Gout",
+      "url": "https://www.nhs.uk/conditions/gout/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-falls",
+      "title": "NHS (Велика Британија) — Falls",
+      "url": "https://www.nhs.uk/conditions/falls/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}
