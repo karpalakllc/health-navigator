@@ -31,6 +31,10 @@ export const UX_ROUTES = [
   "/forum/[categorySlug]",
   "/forum/[categorySlug]/[topicSlug]",
   "/forum/tags/[tag]",
+  "/urgent-care",
+  "/urgent-care/[city]",
+  "/guides",
+  "/guides/[slug]",
   // ux-routes:end
 ] as const;
 
@@ -78,6 +82,10 @@ export function uxRouteTemplate(pathname: string): UxRoute | null {
       // Only the profile itself; /doctors/x/claim, /correction and
       // /objection are forms and are not tracked.
       return parts.length === 2 ? (`/${section}/[slug]` as UxRoute) : null;
+    case "urgent-care":
+      return parts.length === 2 ? "/urgent-care/[city]" : null;
+    case "guides":
+      return parts.length === 2 ? "/guides/[slug]" : null;
     case "forum":
       if (first === "new") return null;
       if (first === "tags") {

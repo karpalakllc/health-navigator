@@ -26,6 +26,9 @@ final class UxSamplePath
             '/forum/[categorySlug]' => ForumCategory::query()->published()->orderBy('id')->value('slug'),
             '/forum/tags/[tag]' => ForumTag::query()->orderBy('id')->value('slug'),
             '/forum/[categorySlug]/[topicSlug]' => self::topicPath(),
+            // Static pages with fixed slugs (apps/web: content/guides, lib/mk-places).
+            '/urgent-care/[city]' => 'skopje',
+            '/guides/[slug]' => 'kako-do-uput',
             default => null,
         };
 
