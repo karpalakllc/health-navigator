@@ -37,6 +37,7 @@ class ReviewImpactTest extends TestCase
     {
         parent::setUp();
 
+        $this->withHeader('X-Z360-Consent', 'statistics');
         Mail::fake();
         $this->doctor = Doctor::factory()->create(['slug' => 'ana-petrovska']);
         $this->author = User::factory()->create();
@@ -57,17 +58,20 @@ class ReviewImpactTest extends TestCase
         return $this->withServerVariables(['REMOTE_ADDR' => $ip])->postJson('/api/v1/reviews/views', ['ids' => $ids]);
     }
 
-    public function test_a_privacy_signal_counts_nothing_also_on_the_api(): void
+    public function test_no_consent_header_counts_nothing_and_a_privacy_signal_does_not_block_consent(): void
     {
         $review = $this->review();
+        $ip = ['REMOTE_ADDR' => '198.51.100.9'];
 
-        foreach (['Sec-GPC', 'DNT'] as $header) {
-            $this->withHeaders([$header => '1'])->withServerVariables(['REMOTE_ADDR' => '198.51.100.9'])
-                ->postJson('/api/v1/reviews/views', ['ids' => [$review->id]])
-                ->assertOk()->assertJsonPath('data.counted', 0);
-        }
-
+        $this->flushHeaders();
+        $this->withServerVariables($ip)->postJson('/api/v1/reviews/views', ['ids' => [$review->id]])->assertNoContent();
         $this->assertSame(0, (int) $review->fresh()->view_count);
+
+        // Explicit consent overrides Global Privacy Control / Do Not Track.
+        $this->withHeaders(['X-Z360-Consent' => 'statistics', 'Sec-GPC' => '1', 'DNT' => '1'])->withServerVariables($ip)
+            ->postJson('/api/v1/reviews/views', ['ids' => [$review->id]])
+            ->assertOk()->assertJsonPath('data.counted', 1);
+        $this->assertSame(1, (int) $review->fresh()->view_count);
 
         // Approved, but on a profile that is not published: not counted.
         $hidden = $this->review(['reviewable_id' => Doctor::factory()->unpublished()->create()->id]);
