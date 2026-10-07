@@ -270,11 +270,11 @@ final class VerificationEngine
     private function reindex(array $reindex): void
     {
         foreach (array_chunk(array_values(array_unique($reindex['doctor'])), self::CHUNK) as $chunk) {
-            Doctor::query()->whereKey($chunk)->get()->searchable();
+            (new Doctor)->queueMakeSearchable(Doctor::query()->whereKey($chunk)->get());
         }
 
         foreach (array_chunk(array_values(array_unique($reindex['facility'])), self::CHUNK) as $chunk) {
-            Facility::query()->whereKey($chunk)->get()->searchable();
+            (new Facility)->queueMakeSearchable(Facility::query()->whereKey($chunk)->get());
         }
     }
 
