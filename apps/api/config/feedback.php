@@ -20,6 +20,26 @@ return [
     /* A step id within a funnel: a node key, `start`, `outcome:<level>` … */
     'step_pattern' => '/^[a-z0-9][a-z0-9_.:-]{0,63}$/',
 
+    /*
+     * The values a well-formed key may name. Anything else is dropped without
+     * being stored (204), so rotating addresses cannot create unbounded
+     * counter rows. Guide slugs: apps/web/src/content/guides/guides.tsx;
+     * places: apps/web/src/lib/mk-places.ts (+ `all`); outcome levels:
+     * App\Enums\TriageOutcomeLevel; flow keys and node ids come from the
+     * imported flow definitions. FeedbackVocabularyParityTest keeps the web
+     * lists in step.
+     */
+    'known_guides' => [
+        'kako-do-uput',
+        'shto-pokriva-fzom',
+        'moj-termin',
+        'maticen-lekar',
+        'prava-na-pacientite',
+        'participacija',
+    ],
+
+    'known_places' => ['all', 'skopje', 'aerodrom', 'butel', 'gazi-baba', 'gjorce-petrov', 'karpos', 'kisela-voda', 'saraj', 'centar', 'cair', 'suto-orizari', 'aracinovo', 'zelenikovo', 'ilinden', 'petrovec', 'sopiste', 'studenicani', 'cucer-sandevo', 'bitola', 'demir-hisar', 'dolneni', 'krivogastani', 'krusevo', 'mogila', 'novaci', 'prilep', 'resen', 'veles', 'gradsko', 'demir-kapija', 'kavadarci', 'lozovo', 'negotino', 'rosoman', 'sveti-nikole', 'caska', 'kumanovo', 'kratovo', 'kriva-palanka', 'lipkovo', 'rankovce', 'staro-nagoricane', 'ohrid', 'vevcani', 'debar', 'debarca', 'kicevo', 'makedonski-brod', 'plasnica', 'struga', 'centar-zupa', 'strumica', 'bogdanci', 'bosilovo', 'valandovo', 'vasilevo', 'gevgelija', 'dojran', 'konce', 'novo-selo', 'radovis', 'tetovo', 'bogovinje', 'brvenica', 'vrapciste', 'gostivar', 'zelino', 'jegunovce', 'mavrovo-i-rostuse', 'tearce', 'stip', 'berovo', 'vinica', 'delcevo', 'zrnovci', 'karbinci', 'kocani', 'makedonska-kamenica', 'pehcevo', 'probistip', 'cesinovo-oblesevo'],
+
     'max_depth' => 200,
 
     'max_length' => 96,

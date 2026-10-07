@@ -53,4 +53,24 @@ class FeedbackVocabularyParityTest extends TestCase
         $this->assertSame(config('feedback.funnel_pattern'), $this->webPattern('FEEDBACK_FUNNEL_PATTERN'));
         $this->assertSame(config('feedback.step_pattern'), $this->webPattern('FEEDBACK_STEP_PATTERN'));
     }
+
+    public function test_known_guides_and_places_match_the_web_content(): void
+    {
+        $guides = base_path('../web/src/content/guides/guides.tsx');
+        $places = base_path('../web/src/lib/mk-places.ts');
+
+        if (! is_file($guides) || ! is_file($places)) {
+            $this->markTestSkipped('The web app is not next to the API in this checkout.');
+        }
+
+        preg_match_all('/^    slug: "([^"]+)"/m', (string) file_get_contents($guides), $slugs);
+        $this->assertSame($slugs[1], config('feedback.known_guides'));
+
+        preg_match_all('/(?:place|skopje)\(\s*"[^"]+",\s*"([^"]+)"/', (string) file_get_contents($places), $latin);
+        $ids = array_map(
+            fn (string $name): string => preg_replace('/[^a-z0-9]+/', '-', preg_replace('/\p{Mn}/u', '', \Normalizer::normalize(mb_strtolower($name), \Normalizer::FORM_D))),
+            $latin[1],
+        );
+        $this->assertSame(['all', ...$ids], config('feedback.known_places'));
+    }
 }

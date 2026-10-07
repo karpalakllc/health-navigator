@@ -267,7 +267,12 @@ Item: `<namespace>:<slug>[:<slug>[:<slug>]]`, namespaces `guide`,
 `_`), ≤ 96 chars. Funnel: `guidance|urgent-care|page:<slug>[:<slug>]`. Step:
 `[a-z0-9][a-z0-9_.:-]{0,63}`; depth 0–200. Reasons — after „Да“: `clear`,
 `found-place`, `next-step`; after „Не“: `unclear`, `not-found`, `wrong-info`,
-`outdated`, `not-relevant`. Anything else → 422. The same vocabulary is in
+`outdated`, `not-relevant`. Anything else → 422. A well-formed key that names
+nothing known is answered 204 and **not stored**: items must be a known guide
+slug (`guide:`), `urgent-care:all` or a place id, or `guidance:<flow key |
+global>:outcome:<one of the six levels>`; funnels must be `guidance:<known flow
+key>` with a step of `start`, `outcome:<level>` or a node id of any version of
+that flow (`App\Support\Feedback\FeedbackKeys`, `config/feedback.php`). The same vocabulary is in
 `apps/api/config/feedback.php` and `apps/web/src/lib/feedback.ts`
 (`FeedbackVocabularyParityTest`). Limiters: `api-feedback` 20/min + 200/day,
 `api-funnel` 120/min + 1200/h, per network (HMAC, as `api-ux-events`).

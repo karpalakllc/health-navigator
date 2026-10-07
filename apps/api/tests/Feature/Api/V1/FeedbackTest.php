@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Services\Triage\V2\FlowImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -15,12 +16,19 @@ class FeedbackTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function importFixtureFlows(): void
+    {
+        config(['triage.flows_path' => base_path('tests/Fixtures/triage')]);
+        app(FlowImporter::class)->import();
+    }
+
     public function test_votes_add_up_per_item_and_day(): void
     {
+        $this->importFixtureFlows();
         $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertNoContent();
         $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertNoContent();
         $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => false])->assertNoContent();
-        $this->postJson('/api/v1/feedback', ['item' => 'guidance:headache:outcome:see_gp_this_week', 'helpful' => true])->assertNoContent();
+        $this->postJson('/api/v1/feedback', ['item' => 'guidance:example-sore-throat:outcome:see_gp_this_week', 'helpful' => true])->assertNoContent();
 
         $row = DB::table('feedback_counters')->where('item_key', 'guide:kako-do-uput')->first();
         $this->assertSame([2, 1], [(int) $row->helpful, (int) $row->not_helpful]);
@@ -57,15 +65,51 @@ class FeedbackTest extends TestCase
 
     public function test_steps_count_how_far_visitors_get(): void
     {
-        foreach ([['start', 0], ['q-red-flags', 1], ['q-red-flags', 1], ['outcome:self_care_with_safety_net', 2]] as [$step, $depth]) {
-            $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:headache', 'step' => $step, 'depth' => $depth])->assertNoContent();
+        $this->importFixtureFlows();
+
+        foreach ([['start', 0], ['q_duration', 1], ['q_duration', 1], ['outcome:self_care_with_safety_net', 2]] as [$step, $depth]) {
+            $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:example-sore-throat', 'step' => $step, 'depth' => $depth])->assertNoContent();
         }
 
-        $this->assertSame(2, (int) DB::table('funnel_step_counters')->where('step', 'q-red-flags')->value('reached'));
+        $this->assertSame(2, (int) DB::table('funnel_step_counters')->where('step', 'q_duration')->value('reached'));
 
-        $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:headache', 'step' => 'Што ве боли?', 'depth' => 1])->assertUnprocessable();
+        $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:example-sore-throat', 'step' => 'Што ве боли?', 'depth' => 1])->assertUnprocessable();
         $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guide:x', 'step' => 'start', 'depth' => 0])->assertUnprocessable();
-        $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:headache', 'step' => 'start', 'depth' => 999])->assertUnprocessable();
+        $this->postJson('/api/v1/feedback/steps', ['funnel' => 'guidance:example-sore-throat', 'step' => 'start', 'depth' => 999])->assertUnprocessable();
+    }
+
+    public function test_well_formed_keys_that_name_nothing_known_are_dropped_without_being_stored(): void
+    {
+        $this->importFixtureFlows();
+
+        foreach ([
+            'guide:invented-slug',
+            'urgent-care:nowhere',
+            'page:anything',
+            'guidance:no-such-flow:outcome:pharmacy_advice',
+            'guidance:example-sore-throat:outcome:not_a_level',
+            'guidance:example-sore-throat:outcome',
+        ] as $item) {
+            $this->postJson('/api/v1/feedback', ['item' => $item, 'helpful' => true])->assertNoContent();
+            $this->postJson('/api/v1/feedback/reasons', ['item' => $item, 'helpful' => true, 'reasons' => ['clear']])->assertNoContent();
+        }
+
+        foreach ([
+            ['guidance:no-such-flow', 'start'],
+            ['guidance:example-sore-throat', 'q_invented'],
+            ['guidance:example-sore-throat', 'outcome:nonsense'],
+            ['urgent-care:bitola', 'start'],
+        ] as [$funnel, $step]) {
+            $this->postJson('/api/v1/feedback/steps', ['funnel' => $funnel, 'step' => $step, 'depth' => 1])->assertNoContent();
+        }
+
+        foreach (['feedback_counters', 'feedback_reason_counters', 'funnel_step_counters'] as $table) {
+            $this->assertSame(0, DB::table($table)->count(), $table);
+        }
+
+        $this->postJson('/api/v1/feedback', ['item' => 'guidance:global:outcome:emergency_now', 'helpful' => true])->assertNoContent();
+        $this->postJson('/api/v1/feedback', ['item' => 'urgent-care:all', 'helpful' => true])->assertNoContent();
+        $this->assertSame(2, DB::table('feedback_counters')->count());
     }
 
     public function test_nothing_about_the_visitor_is_stored(): void
@@ -82,14 +126,14 @@ class FeedbackTest extends TestCase
     public function test_votes_are_rate_limited_per_network(): void
     {
         for ($i = 0; $i < 20; $i++) {
-            $this->postJson('/api/v1/feedback', ['item' => 'guide:x', 'helpful' => true])->assertNoContent();
+            $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertNoContent();
         }
 
-        $this->postJson('/api/v1/feedback', ['item' => 'guide:x', 'helpful' => true])->assertTooManyRequests();
+        $this->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertTooManyRequests();
         $this->assertSame(20, (int) DB::table('feedback_counters')->value('helpful'));
 
         // Another network is not affected.
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
-            ->postJson('/api/v1/feedback', ['item' => 'guide:x', 'helpful' => true])->assertNoContent();
+            ->postJson('/api/v1/feedback', ['item' => 'guide:kako-do-uput', 'helpful' => true])->assertNoContent();
     }
 }
