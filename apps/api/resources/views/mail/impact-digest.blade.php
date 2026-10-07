@@ -20,6 +20,9 @@
 @if ($stats['forum_replies_received'] > 0)
 - Вашите теми во форумот добија **{{ $stats['forum_replies_received'] }}** {{ $stats['forum_replies_received'] === 1 ? 'нов одговор' : 'нови одговори' }}.
 @endif
+@if (($stats['forum_helpful_votes'] ?? 0) > 0)
+- Членовите ги означија одговорите во форумот како „Корисно“ **{{ $stats['forum_helpful_votes'] }}** {{ $stats['forum_helpful_votes'] === 1 ? 'пат' : 'пати' }}.
+@endif
 
 „Прикажана“ значи дека рецензијата била на екранот на посетител — не дека секој ја прочитал. Секој посетител се брои најмногу еднаш дневно.
 

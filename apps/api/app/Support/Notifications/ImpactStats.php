@@ -21,7 +21,7 @@ final class ImpactStats
     /**
      * One calendar month.
      *
-     * @return array{review_views: int, helpful_votes: int, replies: int, forum_answers: int, forum_replies_received: int, review_views_total: int}
+     * @return array{review_views: int, helpful_votes: int, replies: int, forum_answers: int, forum_replies_received: int, forum_helpful_votes: int, review_views_total: int}
      */
     public static function forMonth(User $user, CarbonInterface $month): array
     {
@@ -59,6 +59,15 @@ final class ImpactStats
                 ->whereHas('topic', fn ($topic) => $topic
                     ->where('user_id', $user->getKey())
                     ->where('status', ForumContentStatus::Approved))
+                ->count(),
+            // W8-C „Корисно“ on the member's published forum replies, given by
+            // others this month (self-votes are not possible; the count only).
+            'forum_helpful_votes' => DB::table('forum_post_helpful_votes')
+                ->join('forum_posts', 'forum_posts.id', '=', 'forum_post_helpful_votes.forum_post_id')
+                ->where('forum_posts.user_id', $user->getKey())
+                ->where('forum_posts.status', ForumContentStatus::Approved->value)
+                ->where('forum_post_helpful_votes.user_id', '!=', $user->getKey())
+                ->whereBetween('forum_post_helpful_votes.created_at', [$start, $end])
                 ->count(),
             'review_views_total' => (int) Review::query()->whereIn('id', $reviewIds)->sum('view_count'),
         ];

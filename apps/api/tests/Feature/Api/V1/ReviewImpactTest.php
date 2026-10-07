@@ -11,6 +11,7 @@ use App\Models\MemberNotification;
 use App\Models\NotificationPreference;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\ForumPostHelpfulVotes;
 use App\Support\ReviewHelpfulVotes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -153,5 +154,25 @@ class ReviewImpactTest extends TestCase
         $this->artisan('notifications:send-impact-digest', ['--month' => now()->format('Y-m')])->assertSuccessful();
 
         Mail::assertNothingQueued();
+    }
+
+    public function test_the_digest_counts_forum_helpful_votes_on_the_members_replies(): void
+    {
+        $this->travelTo(now()->setDate(2026, 9, 15));
+        $category = ForumCategory::factory()->create();
+        $topic = ForumTopic::factory()->create(['forum_category_id' => $category->id, 'status' => 'approved', 'published_at' => now()->subMonths(2)]);
+        $reply = ForumPost::factory()->create(['forum_topic_id' => $topic->id, 'user_id' => $this->author->id, 'status' => 'approved', 'published_at' => now()->subMonths(2)]);
+        ForumPostHelpfulVotes::add($reply, User::factory()->create());
+        ForumPostHelpfulVotes::add($reply, User::factory()->create());
+        NotificationPreference::query()->create(['user_id' => $this->author->id, 'impact_digest' => true]);
+
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(9, 0));
+        // A vote in October belongs to the next digest.
+        ForumPostHelpfulVotes::add($reply, User::factory()->create());
+        $this->artisan('notifications:send-impact-digest')->assertSuccessful();
+
+        Mail::assertQueued(ImpactDigestMail::class, fn (ImpactDigestMail $mail): bool => $mail->hasTo($this->author->email)
+            && $mail->stats['forum_helpful_votes'] === 2
+            && str_contains($mail->render(), 'одговорите во форумот'));
     }
 }

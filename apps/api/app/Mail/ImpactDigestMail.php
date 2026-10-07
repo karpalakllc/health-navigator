@@ -20,7 +20,7 @@ class ImpactDigestMail extends Mailable implements ShouldQueue, Unsubscribable
     use HasUnsubscribeLink, Queueable, SerializesModels;
 
     /**
-     * @param  array{review_views: int, helpful_votes: int, replies: int, forum_answers: int, forum_replies_received: int, review_views_total: int}  $stats
+     * @param  array{review_views: int, helpful_votes: int, replies: int, forum_answers: int, forum_replies_received: int, forum_helpful_votes: int, review_views_total: int}  $stats
      */
     public function __construct(
         public readonly string $recipientName,
