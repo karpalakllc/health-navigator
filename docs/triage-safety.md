@@ -111,6 +111,7 @@ Do **not** use in user-facing or outcome copy:
 |-----------|----------|
 | No published flow | `GET /triage/flow` → 404; web shows safe fallback |
 | Invalid / unknown session | 404; no guessed outcome |
+| `GET /triage/v2/sessions/{id}` on an unfinished session whose walk is complete | Completes it (a previous request was interrupted); otherwise read-only |
 | Session already completed | Reject further answer updates; `complete` is idempotent or 409 |
 | Emergency stopped | `complete` returns **only** emergency outcome |
 | Rule evaluation error | Log server-side; return generic safe outcome + support message |

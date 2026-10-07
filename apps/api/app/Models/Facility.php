@@ -100,7 +100,11 @@ class Facility extends Model
             if ($facility->isDirty('emergency_department_status')) {
                 $facility->has_emergency_services = $facility->emergency_department_status === self::ED_CONFIRMED;
             } elseif ($facility->isDirty('has_emergency_services')) {
-                if ($facility->has_emergency_services) {
+                if ($facility->has_emergency_services && $facility->emergency_department_status === self::ED_NONE) {
+                    // Staff said there is no emergency department; the legacy
+                    // flag never overrides that decision.
+                    $facility->has_emergency_services = false;
+                } elseif ($facility->has_emergency_services) {
                     $facility->emergency_department_status = self::ED_CONFIRMED;
                 } elseif ($facility->emergency_department_status === self::ED_CONFIRMED) {
                     $facility->emergency_department_status = null;

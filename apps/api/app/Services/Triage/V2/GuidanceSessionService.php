@@ -330,6 +330,12 @@ final class GuidanceSessionService
     /**
      * Where the session stands, as the browser needs it. Never contains a
      * rule, a condition, a score or the routing of a node.
+     *
+     * Not read-only by design: the POST that gives the last answer calls this
+     * and it finishes the session (outcome stats are written once, here).
+     * `GET /triage/v2/sessions/{id}` calls it too; it only writes when a
+     * previous request was interrupted after the last answer was stored, so
+     * a reload completes the session instead of leaving it open.
      */
     public function state(TriageSession $session): array
     {

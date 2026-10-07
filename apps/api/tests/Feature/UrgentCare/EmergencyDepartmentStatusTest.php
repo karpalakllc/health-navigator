@@ -99,6 +99,18 @@ class EmergencyDepartmentStatusTest extends TestCase
         $this->assertNull($facility->refresh()->emergency_department_status);
     }
 
+    public function test_the_legacy_flag_never_turns_a_staff_none_into_confirmed(): void
+    {
+        $facility = $this->hospital('Болница', ['emergency_department_status' => Facility::ED_NONE]);
+
+        $facility->has_emergency_services = true;
+        $facility->save();
+
+        $facility->refresh();
+        $this->assertSame(Facility::ED_NONE, $facility->emergency_department_status);
+        $this->assertFalse($facility->has_emergency_services);
+    }
+
     public function test_the_finder_lists_likely_ones_after_confirmed_ones_with_their_status(): void
     {
         $likely = $this->hospital('А Општа болница', ['emergency_department_status' => Facility::ED_UNCONFIRMED_LIKELY]);
