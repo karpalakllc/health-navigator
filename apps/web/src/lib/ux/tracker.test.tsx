@@ -349,6 +349,27 @@ describe("navigation", () => {
   });
 });
 
+describe("back/forward cache", () => {
+  it("starts a new view when the page is restored", () => {
+    window.dispatchEvent(new Event("pagehide"));
+    expect(sent.flatMap((b) => b.views)).toHaveLength(1);
+
+    const restored = new Event("pageshow");
+    Object.defineProperty(restored, "persisted", { value: true });
+    clock = 60_000;
+    window.dispatchEvent(restored);
+    clock = 60_500;
+    click(document.getElementById("para")!);
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(sent.flatMap((b) => b.views)).toEqual([
+      { r: "/doctors/[slug]", vc: "mobile", s: 25, t: null },
+      // The restored page is a view of its own, clicked within a second.
+      { r: "/doctors/[slug]", vc: "mobile", s: 25, t: 0 },
+    ]);
+  });
+});
+
 describe("privacy signals", () => {
   it("are on with Global Privacy Control or Do Not Track", () => {
     expect(privacySignalOn({ navigator: { globalPrivacyControl: true } })).toBe(

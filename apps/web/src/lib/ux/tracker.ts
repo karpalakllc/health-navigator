@@ -115,6 +115,8 @@ export function createTracker({
   // A click on a <label> makes the browser click its control too; that second
   // click is the same gesture and is not counted again.
   let labelled: Element | null = null;
+  // The current page's path, for a view restored from the back/forward cache.
+  let pathname: string | null = null;
 
   const viewport = () => {
     const width = win.innerWidth;
@@ -247,6 +249,31 @@ export function createTracker({
     }
   };
 
+  const startView = (next: string, startedAt: number) => {
+    // The previous view ends with the navigation. It waits in the queue
+    // with any clicks (one request per page would quickly use up a shared
+    // address's limit); leaving the page still sends it at once.
+    endView();
+    if (views.length > 0 || clicks.length > 0) arm();
+    recent = [];
+
+    pathname = next;
+    const route = uxRouteTemplate(next);
+    view = route
+      ? {
+          route,
+          startedAt,
+          depth: 0,
+          firstClickAt: null,
+          clicks: 0,
+          reported: false,
+        }
+      : null;
+
+    if (depthTimer) clearTimeout(depthTimer);
+    depthTimer = route ? setTimeout(measureDepth, FIRST_DEPTH_DELAY_MS) : null;
+  };
+
   const onScroll = () => {
     if (scrollFrame) return;
     scrollFrame = win.requestAnimationFrame(() => {
@@ -261,37 +288,21 @@ export function createTracker({
     if (doc.visibilityState === "hidden") flush(true);
   };
   const onPageHide = () => flush(true);
+  // Restored from the back/forward cache: the view closed on pagehide, so this
+  // is a new one (clicks would otherwise join a view already reported).
+  const onPageShow = (event: PageTransitionEvent) => {
+    if (event.persisted && pathname !== null) startView(pathname, now());
+  };
 
   doc.addEventListener("click", onClick, { capture: true, passive: true });
   win.addEventListener("scroll", onScroll, { passive: true });
   doc.addEventListener("visibilitychange", onHide);
   win.addEventListener("pagehide", onPageHide);
+  win.addEventListener("pageshow", onPageShow);
 
   return {
-    setPath(pathname, startedAt) {
-      // The previous view ends with the navigation. It waits in the queue
-      // with any clicks (one request per page would quickly use up a shared
-      // address's limit); leaving the page still sends it at once.
-      endView();
-      if (views.length > 0 || clicks.length > 0) arm();
-      recent = [];
-
-      const route = uxRouteTemplate(pathname);
-      view = route
-        ? {
-            route,
-            startedAt: startedAt ?? now(),
-            depth: 0,
-            firstClickAt: null,
-            clicks: 0,
-            reported: false,
-          }
-        : null;
-
-      if (depthTimer) clearTimeout(depthTimer);
-      depthTimer = route
-        ? setTimeout(measureDepth, FIRST_DEPTH_DELAY_MS)
-        : null;
+    setPath(next, startedAt) {
+      startView(next, startedAt ?? now());
     },
     flush,
     stop() {
@@ -304,6 +315,7 @@ export function createTracker({
       win.removeEventListener("scroll", onScroll);
       doc.removeEventListener("visibilitychange", onHide);
       win.removeEventListener("pagehide", onPageHide);
+      win.removeEventListener("pageshow", onPageShow);
     },
   };
 }
