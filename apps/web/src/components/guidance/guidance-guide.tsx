@@ -585,14 +585,25 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
 
   // ------------------------------------------------------------- render
 
-  const pageTitle =
-    phase === "intro" ? (
-      <h1 ref={headingRef} tabIndex={-1} className="type-h1 text-ink">
-        {t("guidance.title")}
-      </h1>
-    ) : (
-      <h1 className="sr-only">{t("guidance.title")}</h1>
-    );
+  const pageTitle = (
+    <>
+      {catalog.preview ? (
+        <p
+          role="note"
+          className="rounded-card bg-sand px-4 py-3 type-body font-semibold text-ink"
+        >
+          {t("guidance.previewBanner")}
+        </p>
+      ) : null}
+      {phase === "intro" ? (
+        <h1 ref={headingRef} tabIndex={-1} className="type-h1 text-ink">
+          {t("guidance.title")}
+        </h1>
+      ) : (
+        <h1 className="sr-only">{t("guidance.title")}</h1>
+      )}
+    </>
+  );
 
   if (phase === "intro") {
     return (

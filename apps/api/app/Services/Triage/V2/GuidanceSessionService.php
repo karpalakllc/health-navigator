@@ -10,6 +10,7 @@ use App\Models\TriageSessionAnswer;
 use App\Models\TriageSessionFlow;
 use App\Services\Triage\V2\Escalation\EscalationRequest;
 use App\Services\Triage\V2\Escalation\TriageEscalation;
+use App\Support\DeploymentEnvironment;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -72,9 +73,34 @@ final class GuidanceSessionService
             ->all();
     }
 
-    /** @return Collection<int, TriageFlowVersion> */
+    /**
+     * The local draft preview (config triage.preview_drafts): only ever on
+     * outside a deployment, so a draft can never be served to the public.
+     */
+    public static function previewActive(): bool
+    {
+        return config('triage.preview_drafts') === true && ! DeploymentEnvironment::isDeployed();
+    }
+
+    /**
+     * The versions offered to visitors: the published ones, or — in the local
+     * draft preview — the latest version of every flow, reviewed or not.
+     *
+     * @return Collection<int, TriageFlowVersion>
+     */
     private function publishedVersions(): Collection
     {
+        if (self::previewActive()) {
+            return TriageFlowVersion::query()
+                ->whereHas('flow', fn ($q) => $q->v2())
+                ->with('flow')
+                ->orderBy('version')
+                ->get()
+                ->groupBy('triage_flow_id')
+                ->map(fn (Collection $versions) => $versions->last())
+                ->values();
+        }
+
         return TriageFlowVersion::query()
             ->where('status', TriageFlowVersion::STATUS_PUBLISHED)
             ->whereHas('flow', fn ($q) => $q->v2())

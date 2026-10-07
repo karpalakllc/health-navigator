@@ -9,6 +9,7 @@ use App\Models\TriageSession;
 use App\Models\TriageSessionAnswer;
 use App\Models\TriageSessionFlow;
 use App\Models\User;
+use App\Services\Triage\V2\FlowImporter;
 use Database\Seeders\TriageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -59,6 +60,25 @@ class TriageV2ApiTest extends TestCase
     private function answer(string $flow, string $node, array $values): TestResponse
     {
         return $this->guide('PUT', '/answer', ['flow' => $flow, 'node' => $node, 'values' => $values]);
+    }
+
+    public function test_the_draft_preview_serves_unpublished_flows_only_outside_a_deployment(): void
+    {
+        $this->useFixtureFlows();
+        app(FlowImporter::class)->import();
+
+        // Off by default: a draft is not offered.
+        $this->getJson(self::BASE.'/catalog')->assertNotFound();
+
+        config(['triage.preview_drafts' => true]);
+        $preview = $this->getJson(self::BASE.'/catalog')->assertOk();
+        $this->assertContains('example-sore-throat', array_column($preview->json('data.flows'), 'key'));
+        $this->assertTrue($preview->json('data.preview'));
+        $this->assertTrue($this->postJson(self::BASE.'/sessions', ['accepted_terms' => true])->json('data.preview'));
+
+        // A deployed environment ignores the flag.
+        $this->app['env'] = 'production';
+        $this->getJson(self::BASE.'/catalog')->assertNotFound();
     }
 
     public function test_catalog_lists_only_published_flows_and_no_rules(): void

@@ -29,7 +29,7 @@ class TriageV2Controller extends Controller
             return ApiResponse::errorCode('guidance.unavailable', 404);
         }
 
-        return ApiResponse::success([
+        return $this->respond([
             'flows' => $flows,
             'max_symptoms' => (int) config('triage.max_symptoms', 3),
         ]);
@@ -47,7 +47,7 @@ class TriageV2Controller extends Controller
 
         [$session, $token] = $this->guidance->start((bool) $validated['accepted_terms']);
 
-        return ApiResponse::success([
+        return $this->respond([
             'session_id' => $session->id,
             'session_token' => $token,
             'state' => $this->guidance->state($session),
@@ -56,7 +56,7 @@ class TriageV2Controller extends Controller
 
     public function show(string $id, Request $request): JsonResponse
     {
-        return ApiResponse::success($this->guidance->state($this->find($id, $request)));
+        return $this->respond($this->guidance->state($this->find($id, $request)));
     }
 
     public function demographics(string $id, Request $request): JsonResponse
@@ -70,7 +70,7 @@ class TriageV2Controller extends Controller
             'conditions.*' => ['string', 'max:40', 'distinct'],
         ]);
 
-        return ApiResponse::success($this->guidance->saveDemographics($this->find($id, $request), $validated));
+        return $this->respond($this->guidance->saveDemographics($this->find($id, $request), $validated));
     }
 
     public function symptoms(string $id, Request $request): JsonResponse
@@ -80,7 +80,7 @@ class TriageV2Controller extends Controller
             'flows.*' => ['string', 'max:64', 'distinct'],
         ]);
 
-        return ApiResponse::success($this->guidance->chooseSymptoms($this->find($id, $request), $validated['flows']));
+        return $this->respond($this->guidance->chooseSymptoms($this->find($id, $request), $validated['flows']));
     }
 
     public function screen(string $id, Request $request): JsonResponse
@@ -90,7 +90,7 @@ class TriageV2Controller extends Controller
             'red_flags.*' => ['string', 'max:120', 'distinct'],
         ]);
 
-        return ApiResponse::success($this->guidance->answerScreen($this->find($id, $request), $validated['red_flags']));
+        return $this->respond($this->guidance->answerScreen($this->find($id, $request), $validated['red_flags']));
     }
 
     public function answer(string $id, Request $request): JsonResponse
@@ -102,7 +102,7 @@ class TriageV2Controller extends Controller
             'values.*' => ['string', 'max:64'],
         ]);
 
-        return ApiResponse::success($this->guidance->answer(
+        return $this->respond($this->guidance->answer(
             $this->find($id, $request),
             $validated['flow'],
             $validated['node'],
@@ -112,7 +112,7 @@ class TriageV2Controller extends Controller
 
     public function emergency(string $id, Request $request): JsonResponse
     {
-        return ApiResponse::success($this->guidance->emergencyShortcut($this->find($id, $request)));
+        return $this->respond($this->guidance->emergencyShortcut($this->find($id, $request)));
     }
 
     public function noMatch(string $id, Request $request): JsonResponse
@@ -121,7 +121,19 @@ class TriageV2Controller extends Controller
             'body_area' => ['nullable', 'string', 'max:16'],
         ]);
 
-        return ApiResponse::success($this->guidance->noMatch($this->find($id, $request), $validated['body_area'] ?? null));
+        return $this->respond($this->guidance->noMatch($this->find($id, $request), $validated['body_area'] ?? null));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function respond(array $data, int $status = 200): JsonResponse
+    {
+        if (GuidanceSessionService::previewActive()) {
+            $data['preview'] = true;
+        }
+
+        return ApiResponse::success($data, $status);
     }
 
     private function find(string $id, Request $request): TriageSession

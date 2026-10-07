@@ -60,6 +60,8 @@ export type CatalogFlow = {
 export type GuidanceCatalog = {
   flows: CatalogFlow[];
   max_symptoms: number;
+  /** Local draft preview: the API serves unreviewed flows (never in a deployment). */
+  preview?: boolean;
 };
 
 export type QuestionOption = {

@@ -364,7 +364,10 @@ export function SymptomsStep({
                   {t("guidance.areaAll")}
                 </FilterChip>
               </li>
-              {areas.map((a) => (
+              {(area !== null && !areas.includes(area)
+                ? [...areas, area]
+                : areas
+              ).map((a) => (
                 <li key={a}>
                   <FilterChip
                     selected={area === a}
@@ -392,9 +395,15 @@ export function SymptomsStep({
           </p>
         </div>
         {shown.length === 0 ? (
-          <p className="type-reading text-ink-2" role="status">
-            {tFormat("guidance.searchNoResults", { query: query.trim() })}
-          </p>
+          query.trim() === "" && area !== null ? (
+            <p className="type-reading text-ink-2" aria-live="polite">
+              {t("guidance.areaNoFlows")}
+            </p>
+          ) : (
+            <p className="type-reading text-ink-2" role="status">
+              {tFormat("guidance.searchNoResults", { query: query.trim() })}
+            </p>
+          )
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {shown.map((flow) => {

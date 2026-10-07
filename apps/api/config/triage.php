@@ -16,6 +16,14 @@ return [
      */
     'grandfathered_flows' => ['general'],
 
+    /*
+     * Local draft preview: serve the latest version of every flow, draft or
+     * reviewed, instead of only the published ones. Honoured only outside a
+     * deployment (App\Support\DeploymentEnvironment); platform:preflight
+     * fails a deployed environment that sets it.
+     */
+    'preview_drafts' => (bool) env('TRIAGE_PREVIEW_DRAFTS', false),
+
     /* The flow offered when the visitor finds no matching symptom. */
     'fallback_flow' => 'general',
 
