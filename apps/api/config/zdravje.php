@@ -35,6 +35,19 @@ return [
     ],
 
     /*
+    | Staff e-mails excused from the panel's two-factor requirement — honoured
+    | only when APP_ENV is "local" (never development, staging or production),
+    | so the owner's local demo can skip the code prompt. Preflight refuses a
+    | deployment that sets it. Comma-separated.
+    */
+    'mfa' => [
+        'local_exempt_emails' => array_values(array_filter(array_map(
+            static fn (string $email): string => strtolower(trim($email)),
+            explode(',', (string) env('STAFF_MFA_LOCAL_EXEMPT_EMAILS', '')),
+        ))),
+    ],
+
+    /*
     |--------------------------------------------------------------------------
     | Local demo seeding
     |--------------------------------------------------------------------------

@@ -233,6 +233,10 @@ class PlatformPreflightCommand extends Command
         if ($problem !== null) {
             $this->addError('filament.admin.mfa', "The admin panel's two-factor authentication {$problem}. Staff holding admin.access must be made to enrol (AdminPanelProvider).");
         }
+
+        if (config('zdravje.mfa.local_exempt_emails', []) !== []) {
+            $this->addError('zdravje.mfa.local_exempt_emails', 'STAFF_MFA_LOCAL_EXEMPT_EMAILS is a local-demo setting; remove it from this environment.');
+        }
     }
 
     private function checkCors(): void
