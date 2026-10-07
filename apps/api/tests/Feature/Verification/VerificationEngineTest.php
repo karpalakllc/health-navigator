@@ -19,6 +19,7 @@ use App\Support\Import\NameKey;
 use App\Support\Licences\SpecialtyKey;
 use App\Support\Verification\Engine\EvidenceLoader;
 use App\Support\Verification\Engine\VerificationEngine;
+use App\Support\Verification\Engine\VerifiedDraftPublisher;
 use App\Support\Verification\VerificationBasis;
 use App\Support\Verification\VerificationWriter;
 use Carbon\CarbonImmutable;
@@ -546,5 +547,105 @@ class VerificationEngineTest extends TestCase
         $this->assertFalse($duplicate->fresh()->is_published);
         $this->assertFalse($ambiguous->fresh()->is_published || $twin->fresh()->is_published);
         $this->assertSame('ambiguous_name', $this->reasons($ambiguous)['reason']);
+    }
+
+    private function newItem(Doctor|Facility $subject, array $details = []): void
+    {
+        $key = ($subject instanceof Doctor ? 'doctor:' : 'facility:').$subject->id;
+        ImportReviewItem::raise('fzom', ImportReviewKind::New, $key, 'draft', $details, $subject);
+    }
+
+    public function test_a_verified_draft_with_another_open_review_item_is_not_in_the_bulk_set(): void
+    {
+        $facility = $this->facility();
+        $doctor = $this->fzomDoctor('Ана Дупликатска', $facility);
+        $this->licence('Ана Дупликатска', 'педијатрија', $doctor);
+        $this->newItem($doctor);
+        ImportReviewItem::raise('fzom', ImportReviewKind::Unmatched, 'fzom-duplicate:'.$doctor->id, 'Possibly the same person', ['reason' => 'possible_duplicate', 'candidate_doctor_ids' => [999]], $doctor);
+        // A facility draft the register verifies, with an open conflict.
+        $this->newItem($facility);
+        ImportReviewItem::raise('fzom', ImportReviewKind::Conflict, 'facility:'.$facility->id.':phone', 'Phone differs', ['field' => 'phone'], $facility);
+
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+        $this->assertTrue($facility->fresh()->isVerified());
+
+        $publisher = app(VerifiedDraftPublisher::class);
+        $this->assertSame(0, $publisher->count());
+        $this->assertSame(0, $publisher->publishAll(User::factory()->create()));
+        $this->assertFalse($doctor->fresh()->is_published);
+        $this->assertFalse($facility->fresh()->is_published);
+
+        // Once staff settle the other item, the draft is in the set.
+        ImportReviewItem::query()->where('kind', '!=', ImportReviewKind::New->value)->get()
+            ->each(fn (ImportReviewItem $item) => $item->resolve(ImportReviewStatus::Dismissed, 'dismissed', null));
+        $this->assertSame(2, $publisher->count());
+    }
+
+    public function test_publishing_by_any_path_closes_the_new_item_and_a_staff_unpublish_sticks(): void
+    {
+        $facility = $this->facility();
+        $doctor = $this->fzomDoctor('Борис Скриен', $facility);
+        $this->licence('Борис Скриен', 'педијатрија', $doctor);
+        $this->newItem($doctor);
+        $unlicensed = $this->fzomDoctor('Вера Скриена', $facility);
+        $this->newItem($unlicensed);
+
+        // Staff publish through the edit form, then deliberately unpublish.
+        foreach ([$doctor, $unlicensed] as $subject) {
+            $subject->forceFill(['is_published' => true])->save();
+            $this->assertNotNull($subject->fresh()->published_at, 'publishing stamps published_at whatever the path');
+            $this->assertSame(0, ImportReviewItem::query()->open()->where('kind', ImportReviewKind::New)->where('subject_id', $subject->id)->count());
+            $subject->forceFill(['is_published' => false])->save();
+        }
+
+        $this->adjudicate();
+        $publisher = app(VerifiedDraftPublisher::class);
+        $this->assertSame(0, $publisher->count());
+        $this->assertSame(0, $publisher->countFzomUnverified());
+
+        // An item left open from before (published earlier, unpublished by staff) does not count either.
+        foreach ([$doctor, $unlicensed] as $subject) {
+            $this->newItem($subject);
+        }
+        $this->assertSame(0, $publisher->count());
+        $this->assertSame(0, $publisher->countFzomUnverified());
+        $publisher->publishAll(User::factory()->create());
+        $publisher->publishAllFzomUnverified(User::factory()->create());
+        $this->assertFalse($doctor->fresh()->is_published, 'a staff unpublish sticks');
+        $this->assertFalse($unlicensed->fresh()->is_published, 'a staff unpublish sticks');
+    }
+
+    public function test_a_fzom_draft_without_a_specialty_is_never_verified_by_a_general_licence_on_name_alone(): void
+    {
+        $facility = $this->facility();
+        $doctor = Doctor::factory()->unpublished()->create(['full_name' => 'Ели Лабораториска']);
+        $doctor->forceFill(['fzo_facsimile' => '777001', 'import_source' => 'fzom'])->saveQuietly();
+        $this->record('fzom', 'doctor:777001', FieldProvenance::SUBJECT_DOCTOR, $doctor->id, ['name' => 'x']);
+        DB::table('doctor_facility')->insert(['doctor_id' => $doctor->id, 'facility_id' => $facility->id, 'is_primary' => true, 'source' => 'fzom', 'created_at' => now(), 'updated_at' => now()]);
+        $this->newItem($doctor, ['dentist' => false, 'no_specialty' => true]);
+        $this->licence('Ели Лабораториска', 'доктор на медицина во ПЗЗ'); // unattached, staged no_match
+
+        $run = $this->adjudicate();
+
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('no_specialty_unverifiable', $this->reasons($doctor)['reason']);
+        $this->assertSame(1, $run->counts['doctors_unverified.no_specialty_unverifiable']);
+        $publisher = app(VerifiedDraftPublisher::class);
+        $this->assertSame(0, $publisher->count());
+        $this->assertSame(0, $publisher->countFzomUnverified());
+        // The importer's warning stays on the draft for the owner.
+        $this->assertTrue(ImportReviewItem::query()->open()->where('kind', ImportReviewKind::New)->where('subject_id', $doctor->id)->value('details')['no_specialty']);
+    }
+
+    public function test_a_draft_the_importer_marked_without_a_specialty_stays_out_of_the_bulk_sets_even_when_verified(): void
+    {
+        $doctor = $this->fzomDoctor('Зоран Безспецијален', $this->facility());
+        $this->licence('Зоран Безспецијален', 'педијатрија', $doctor);
+        $this->newItem($doctor, ['no_specialty' => true]);
+
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+        $this->assertSame(0, app(VerifiedDraftPublisher::class)->count());
     }
 }

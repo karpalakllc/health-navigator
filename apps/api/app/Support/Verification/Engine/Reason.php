@@ -24,6 +24,9 @@ final class Reason
 
     public const NO_SPECIALTY = 'no_specialty';
 
+    /** No specialty on the profile: a general doctor's licence would match it on the name alone. */
+    public const NO_SPECIALTY_UNVERIFIABLE = 'no_specialty_unverifiable';
+
     public const AMBIGUOUS_NAME = 'ambiguous_name';
 
     public const STALE_SOURCE = 'stale_source';
@@ -56,6 +59,7 @@ final class Reason
         self::NAME_MISMATCH => 'The licence holder\'s name differs from the profile name',
         self::SPECIALTY_MISMATCH => 'Licence specialty does not fit the profile\'s',
         self::NO_SPECIALTY => 'The profile has no specialty to compare with the licence specialist\'s',
+        self::NO_SPECIALTY_UNVERIFIABLE => 'No specialty on the profile: a general licence of this name is not enough (check it is a doctor, add the specialty)',
         self::AMBIGUOUS_NAME => 'Another doctor of the same name could hold the licence',
         self::STALE_SOURCE => 'Only a website flagged as compromised or stale lists the doctor',
         self::LOW_CONFIDENCE_SOURCE => 'Only a website entry the research marked as uncertain lists the doctor',

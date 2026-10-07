@@ -20,6 +20,13 @@ class ListImportReviewItems extends ListRecords
     protected static string $resource = ImportReviewItemResource::class;
 
     /**
+     * The highest item id in the set when the bulk modal opened: a click
+     * publishes at most what the owner saw counted (items raised while the
+     * modal was open wait for the next look).
+     */
+    public ?int $bulkCeiling = null;
+
+    /**
      * @return array<string, Tab>
      */
     public function getTabs(): array
@@ -49,6 +56,9 @@ class ListImportReviewItems extends ListRecords
                 ->color('success')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->count() > 0)
                 ->requiresConfirmation()
+                ->mountUsing(function (): void {
+                    $this->bulkCeiling = (int) app(VerifiedDraftPublisher::class)->pending()->max('id');
+                })
                 ->modalHeading(fn (): string => sprintf('Publish %d verified drafts?', app(VerifiedDraftPublisher::class)->count()))
                 ->modalDescription(fn (): Htmlable => $this->sampleDescription())
                 ->modalSubmitActionLabel('Publish all')
@@ -59,7 +69,7 @@ class ListImportReviewItems extends ListRecords
                         abort(403);
                     }
 
-                    $published = app(VerifiedDraftPublisher::class)->publishAll($user);
+                    $published = app(VerifiedDraftPublisher::class)->publishAll($user, $this->bulkCeiling);
                     Notification::make()->title("Published {$published} verified profiles")->success()->send();
                 }),
             // Owner's decision: ФЗОМ lists them today, the Комора list has no
@@ -72,6 +82,9 @@ class ListImportReviewItems extends ListRecords
                 ->color('gray')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->countFzomUnverified() > 0)
                 ->requiresConfirmation()
+                ->mountUsing(function (): void {
+                    $this->bulkCeiling = (int) app(VerifiedDraftPublisher::class)->pendingFzomUnverified()->max('id');
+                })
                 ->modalHeading(fn (): string => sprintf('Publish %d unverified ФЗОМ drafts?', app(VerifiedDraftPublisher::class)->countFzomUnverified()))
                 ->modalDescription(fn (): Htmlable => $this->fzomUnverifiedSampleDescription())
                 ->modalSubmitActionLabel('Publish all, unverified')
@@ -82,7 +95,7 @@ class ListImportReviewItems extends ListRecords
                         abort(403);
                     }
 
-                    $published = app(VerifiedDraftPublisher::class)->publishAllFzomUnverified($user);
+                    $published = app(VerifiedDraftPublisher::class)->publishAllFzomUnverified($user, $this->bulkCeiling);
                     Notification::make()->title("Published {$published} unverified ФЗОМ profiles")->success()->send();
                 }),
         ];
@@ -99,7 +112,9 @@ class ListImportReviewItems extends ListRecords
             ->implode('');
 
         return new HtmlString(
-            '<p>Every hidden draft the verification engine verified becomes public. A random sample to glance at:</p>'
+            '<p>Every hidden, never-published draft the verification engine verified becomes public. '
+            .'Drafts with any other open item (possible duplicate, conflict, missing, uncertain), drafts the import marked as having no specialty, '
+            .'and profiles staff unpublished stay hidden. A random sample to glance at:</p>'
             .'<ul style="margin-top:.5rem;list-style:disc;padding-inline-start:1.25rem;text-align:start">'.$rows.'</ul>'
         );
     }
@@ -116,7 +131,8 @@ class ListImportReviewItems extends ListRecords
 
         return new HtmlString(
             '<p>Doctors ФЗОМ lists today whose name has no licence on the Комора list become public, still „Неверифициран“. '
-            .'Ambiguous names, disagreeing sources, specialty mismatches, website-only drafts and drafts with any other open item stay hidden. '
+            .'Ambiguous names, disagreeing sources, specialty mismatches, website-only drafts, drafts without a specialty, drafts with any other open item '
+            .'and profiles staff unpublished stay hidden. '
             .'A random sample to glance at:</p>'
             .'<ul style="margin-top:.5rem;list-style:disc;padding-inline-start:1.25rem;text-align:start">'.$rows.'</ul>'
         );

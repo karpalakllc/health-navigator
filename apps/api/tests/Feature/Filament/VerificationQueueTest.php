@@ -94,6 +94,23 @@ class VerificationQueueTest extends TestCase
         Livewire::test(ListImportReviewItems::class)->assertActionHidden('publishVerified');
     }
 
+    public function test_publish_all_publishes_no_more_than_the_modal_counted(): void
+    {
+        $first = $this->draft(true, 'Ана Избројана');
+        $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
+
+        $page = Livewire::test(ListImportReviewItems::class)
+            ->mountAction('publishVerified')
+            ->assertMountedActionModalSee('Publish 1 verified drafts?');
+
+        // Verified while the modal was open: not what the owner saw.
+        $late = $this->draft(true, 'Бранко Задоцнет');
+        $page->callMountedAction();
+
+        $this->assertTrue($first->fresh()->is_published);
+        $this->assertFalse($late->fresh()->is_published);
+    }
+
     public function test_publish_fzom_unverified_publishes_only_fzom_drafts_without_a_licence_and_without_blocking_items(): void
     {
         $unverified = function (string $name, string $reason): Doctor {

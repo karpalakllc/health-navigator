@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\DeletesReplacedMedia;
+use App\Models\Concerns\HasImportDraftLifecycle;
 use App\Models\Concerns\HasVerification;
 use App\Models\Concerns\InvalidatesTaxonomyCache;
 use App\Support\Import\ImportBookkeeping;
@@ -28,7 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */
-    use DeletesReplacedMedia, HasFactory, HasVerification, InvalidatesTaxonomyCache, LogsActivity, Searchable, SoftDeletes;
+    use DeletesReplacedMedia, HasFactory, HasImportDraftLifecycle, HasVerification, InvalidatesTaxonomyCache, LogsActivity, Searchable, SoftDeletes;
 
     protected $fillable = [
         'slug',

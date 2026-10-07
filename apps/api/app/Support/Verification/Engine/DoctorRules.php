@@ -23,9 +23,13 @@ final class DoctorRules
 
         $licence = $e->licence;
         $sites = array_values(array_filter($e->websites, fn (WebsiteFact $site): bool => $site->counts()));
+        // A profile without any specialty (often laboratory staff in ФЗОМ)
+        // only "fits" a general doctor's licence by its name: never enough
+        // to verify it (whyNot: no_specialty_unverifiable).
+        $byLicence = $e->specialtyNames !== [];
 
         // 1. Official registers: the ФЗОМ contract and the Комора licence.
-        if ($e->fzomCurrent && $licence?->holds() && $licence->uniqueFit) {
+        if ($byLicence && $e->fzomCurrent && $licence?->holds() && $licence->uniqueFit) {
             return Verdict::verified(VerificationRule::FzomLicence, [
                 'source_record_id' => $e->fzomRecordId,
                 'komora_licence_id' => $licence->komoraLicenceId,
@@ -36,7 +40,7 @@ final class DoctorRules
         //    The list's namesakes: every profile of this name is backed by a
         //    distinct valid licence that fits it, so whichever is theirs,
         //    the ФЗОМ doctor holds one (no number is attached).
-        if ($e->fzomCurrent && $licence === null && $e->namesakeLicences >= 2) {
+        if ($byLicence && $e->fzomCurrent && $licence === null && $e->namesakeLicences >= 2) {
             return Verdict::verified(VerificationRule::FzomLicence, [
                 'source_record_id' => $e->fzomRecordId,
                 'namesake_licences' => $e->namesakeLicences,
@@ -56,7 +60,7 @@ final class DoctorRules
 
         // 2. The institution's own staff page and a licence nobody else on
         //    the list could hold.
-        if ($sites !== [] && $licence?->holds() && $licence->nameUnique) {
+        if ($byLicence && $sites !== [] && $licence?->holds() && $licence->nameUnique) {
             return Verdict::verified(VerificationRule::WebsiteLicence, [
                 'source_record_id' => $sites[0]->recordId,
                 'facility_id' => $sites[0]->facilityId,
@@ -116,6 +120,7 @@ final class DoctorRules
             $licence !== null && ! $licence->valid => Verdict::unverified(Reason::LICENCE_EXPIRED, $evidence),
             $e->fzomRecordId !== null && ! $e->fzomCurrent && $sites === [] => Verdict::unverified(Reason::SOURCE_REMOVED, ['source_record_id' => $e->fzomRecordId]),
             $licence !== null && ! $licence->nameAgrees => Verdict::unverified(Reason::NAME_MISMATCH, $evidence),
+            $e->specialtyNames === [] && ($licence?->holds() || $e->namesakeLicences >= 2) => Verdict::unverified(Reason::NO_SPECIALTY_UNVERIFIABLE, $evidence),
             (($licence !== null && ! $licence->fits) || $e->stagedMismatch !== null) && $e->specialtyNames === [] => Verdict::unverified(Reason::NO_SPECIALTY, $evidence),
             ($licence !== null && ! $licence->fits) || $e->stagedMismatch !== null => Verdict::unverified(Reason::SPECIALTY_MISMATCH, $evidence),
             ($licence !== null || $e->licenceAmbiguous) && ($e->fzomCurrent || $sites !== []) => Verdict::unverified(Reason::AMBIGUOUS_NAME, $evidence),
