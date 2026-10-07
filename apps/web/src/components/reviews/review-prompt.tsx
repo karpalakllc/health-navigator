@@ -116,6 +116,7 @@ export function ReviewPrompt({
           tone="apricot"
           padding="md"
           aria-labelledby={titleId}
+          data-track="review-prompt"
           className="motion-fade-in flex flex-col gap-3"
         >
           <div className="flex items-start gap-3">

@@ -40,7 +40,11 @@ export function HomeUnanswered({
   }
 
   return (
-    <section aria-labelledby="home-unanswered-title" className={className}>
+    <section
+      aria-labelledby="home-unanswered-title"
+      data-track="home-help"
+      className={className}
+    >
       <SectionHeader
         id="home-unanswered-title"
         title={t("help.homeTitle")}

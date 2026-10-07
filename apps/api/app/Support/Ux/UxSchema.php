@@ -53,6 +53,7 @@ final class UxSchema
     public const TARGET_CONTEXTS = [
         'doctor-card', 'facility-card', 'pharmacy-card', 'forum-topic', 'site-nav', 'tab-bar',
         'breadcrumbs', 'pagination', 'home-how-it-works', 'home-forum-band',
+        'home-help', 'review-prompt',
         'header', 'nav', 'main', 'footer', 'aside', 'search', 'dialog', 'form', 'page',
     ];
 

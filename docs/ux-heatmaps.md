@@ -33,7 +33,7 @@ the time to the first click in buckets (< 1 s, 1–3, 3–10, 10–30, > 30 s, n
 **Target keys** never contain text. `context` is the nearest `data-track`
 attribute (`doctor-card`, `facility-card`, `pharmacy-card`, `forum-topic`,
 `site-nav`, `tab-bar`, `breadcrumbs`, `pagination`, `home-how-it-works`,
-`home-forum-band`) or else the landmark (`header`, `nav`, `main`, `footer`,
+`home-forum-band`, `home-help`, `review-prompt`) or else the landmark (`header`, `nav`, `main`, `footer`,
 `aside`, `search`, `dialog`, `form`, `page`). `element` is what was clicked:
 `link`, `button`, `input-<type>`, `select`, `label`, `summary`, `role-<role>`,
 `focusable`, `pointer` (a `cursor: pointer` element without semantics), or —
