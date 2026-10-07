@@ -5,8 +5,12 @@ namespace App\Providers;
 use App\Http\Controllers\Api\V1\ProfileReportController;
 use App\Http\Middleware\RejectInvalidUtf8;
 use App\Http\Responses\ApiResponse;
+use App\Models\ForumPost;
+use App\Models\ForumTopic;
+use App\Models\Review;
 use App\Models\TriageFlow;
 use App\Models\User;
+use App\Observers\ContributorLevelObserver;
 use App\Observers\TriageFlowObserver;
 use App\Policies\RolePolicy;
 use App\Support\DeploymentEnvironment;
@@ -36,6 +40,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
 
         TriageFlow::observe(TriageFlowObserver::class);
+
+        // W8-C: contributor levels follow moderation of their content.
+        Review::observe(ContributorLevelObserver::class);
+        ForumTopic::observe(ContributorLevelObserver::class);
+        ForumPost::observe(ContributorLevelObserver::class);
 
         // Staff sign in through the 2FA-protected panel, and API login refuses them
         // (auth.staff_use_admin). Apply the same rule to tokens they already hold:

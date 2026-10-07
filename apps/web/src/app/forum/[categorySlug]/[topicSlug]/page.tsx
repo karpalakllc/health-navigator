@@ -8,6 +8,7 @@ import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
 import { FORUM_REPLY_ANCHOR } from "@/lib/forum/answer-link";
 import { ScrollToHash } from "@/components/forum/scroll-to-hash";
+import { ForumReplyHelpfulButton } from "@/components/levels/forum-reply-helpful-button";
 import { ReportButton } from "@/components/reports/report-button";
 import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { BackLink } from "@/components/ui/back-link";
@@ -261,7 +262,19 @@ export default async function TopicDetailPage({
                           isTopicAuthor={post.is_topic_author === true}
                           actions={
                             post.viewer?.is_own ? undefined : (
-                              <div className="flex w-full justify-end">
+                              <div className="flex w-full flex-wrap items-start justify-between gap-2">
+                                <ForumReplyHelpfulButton
+                                  postId={post.id}
+                                  count={post.helpful_count ?? 0}
+                                  voted={
+                                    post.viewer?.has_voted_helpful ?? false
+                                  }
+                                  isLoggedIn={isLoggedIn}
+                                  mustChooseUsername={
+                                    session?.user?.must_choose_username === true
+                                  }
+                                  returnTo={redirectPath}
+                                />
                                 <ReportButton
                                   target={{ kind: "forum_post", id: post.id }}
                                   label={tFormat("reports.actionPost", {

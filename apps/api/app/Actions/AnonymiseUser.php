@@ -6,6 +6,7 @@ use App\Actions\DoctorAccount\ForgetDoctorAccountData;
 use App\Enums\ForumContentStatus;
 use App\Enums\ReviewStatus;
 use App\Models\ContentReport;
+use App\Models\ContributorLevel;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\MemberNotification;
@@ -148,6 +149,10 @@ final class AnonymiseUser
 
             // Dashboard counts keep working; the events stop pointing at anyone.
             DB::table('analytics_events')->where('user_id', $locked->getKey())->update(['user_id' => null]);
+
+            // W8-C: levels are recognition for a person; a deleted account has
+            // none, and its posts must not be linkable through one.
+            ContributorLevel::query()->whereKey($locked->getKey())->delete();
 
             return $avatarPath;
         });

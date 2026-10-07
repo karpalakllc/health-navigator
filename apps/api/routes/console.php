@@ -145,3 +145,11 @@ Schedule::command('model:prune', ['--model' => [MemberNotification::class]])
     ->dailyAt('04:55')
     ->onOneServer()
     ->withoutOverlapping();
+
+// W8-C: contributor levels and the monthly top lists, rebuilt from public
+// content (docs/levels.md). Moderation and vote events keep them current
+// during the day.
+Schedule::command('levels:recompute')
+    ->dailyAt('03:30')
+    ->onOneServer()
+    ->withoutOverlapping();

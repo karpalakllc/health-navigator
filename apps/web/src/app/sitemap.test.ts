@@ -56,6 +56,7 @@ describe("sitemap", () => {
     const list = await urls();
 
     expect(list).toContain("https://zdravje.test/transparency");
+    expect(list).toContain("https://zdravje.test/community");
     expect(list).toContain("https://zdravje.test/doctors");
     expect(list.some((url) => url.includes("/search"))).toBe(false);
   });

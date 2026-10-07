@@ -4,12 +4,14 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AltchaChallengeController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ContentReportController;
+use App\Http\Controllers\Api\V1\ContributorLevelController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorClaimController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorDashboardController;
 use App\Http\Controllers\Api\V1\FacilityController;
 use App\Http\Controllers\Api\V1\ForumController;
+use App\Http\Controllers\Api\V1\ForumPostHelpfulController;
 use App\Http\Controllers\Api\V1\ForumTagController;
 use App\Http\Controllers\Api\V1\ForumUnansweredController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -306,4 +308,19 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/notifications/unsubscribe', [NotificationController::class, 'showUnsubscribe']);
         Route::post('/notifications/unsubscribe', [NotificationController::class, 'unsubscribe']);
     });
+
+    // W8-C: contributor levels and the monthly top lists (docs/levels.md).
+    // „Корисно“ on forum replies mirrors the review vote: members who may
+    // post, one vote each, toggled.
+    Route::middleware(['auth:sanctum', 'verified', 'module:forum', 'can:create,'.ForumPost::class, 'throttle:60,10,api-forum-post-helpful'])
+        ->group(function (): void {
+            Route::put('/forum/posts/{post}/helpful', [ForumPostHelpfulController::class, 'store'])
+                ->where('post', '[0-9]{1,18}');
+            Route::delete('/forum/posts/{post}/helpful', [ForumPostHelpfulController::class, 'destroy'])
+                ->where('post', '[0-9]{1,18}');
+        });
+    Route::get('/me/levels', [ContributorLevelController::class, 'me'])
+        ->middleware(['auth:sanctum', 'throttle:60,1,api-me-levels']);
+    Route::get('/community/leaderboards', [ContributorLevelController::class, 'leaderboards'])
+        ->middleware('cache.public:300');
 });

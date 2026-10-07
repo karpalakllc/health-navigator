@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ContributorLevel } from "@/components/levels/contributor-level";
 import { Card } from "@/components/ui/card";
 import { Tag, VerifiedTag } from "@/components/ui/tag";
 import { Monogram } from "@/components/ui/user-avatar";
@@ -86,6 +87,7 @@ export function ForumPostCard({
               {author.name}
             </p>
             {isTopicAuthor ? <Tag>{t("forum.authorBadge")}</Tag> : null}
+            <ContributorLevel ladder="forum" level={author.level} />
             {staff ? <VerifiedTag>{staff}</VerifiedTag> : null}
           </div>
           {stats ? <p className="type-meta text-ink-2">{stats}</p> : null}

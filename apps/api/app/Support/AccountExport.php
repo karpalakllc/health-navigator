@@ -6,6 +6,7 @@ use App\Enums\ForumContentStatus;
 use App\Enums\ReviewResponseSource;
 use App\Models\AnalyticsEvent;
 use App\Models\ContentReport;
+use App\Models\ContributorLevel;
 use App\Models\Doctor;
 use App\Models\DoctorChangeRequest;
 use App\Models\DoctorClaimRequest;
@@ -116,6 +117,10 @@ final class AccountExport
             'created_at' => $reminder->created_at?->toIso8601String(),
         ]);
         echo ',';
+        $this->writeForumHelpfulVotes();
+        echo ',';
+        // W8-C: the levels derived from the member's public content.
+        echo $this->member('contributor_levels', $this->contributorLevels()).',';
         $this->writeList('devices', $this->devices(), fn (PersonalAccessToken $token): array => [
             'name' => $token->name,
             'created_at' => $token->created_at?->toIso8601String(),
@@ -359,6 +364,54 @@ final class AccountExport
         }
 
         echo ']';
+    }
+
+    /**
+     * W8-C: „Корисно“ on forum replies (reply id and time).
+     */
+    private function writeForumHelpfulVotes(): void
+    {
+        echo json_encode('forum_helpful_votes', JSON_THROW_ON_ERROR).':[';
+
+        $first = true;
+        $votes = DB::table('forum_post_helpful_votes')
+            ->where('user_id', $this->user->getKey())
+            ->select(['id', 'forum_post_id', 'created_at']);
+
+        foreach ($votes->lazyById(self::CHUNK) as $vote) {
+            echo ($first ? '' : ',').$this->encode([
+                'forum_post_id' => (int) $vote->forum_post_id,
+                'voted_at' => $vote->created_at === null ? null : Carbon::parse($vote->created_at)->toIso8601String(),
+            ]);
+            $first = false;
+        }
+
+        echo ']';
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function contributorLevels(): ?array
+    {
+        $row = ContributorLevel::query()->find($this->user->getKey());
+
+        if ($row === null) {
+            return null;
+        }
+
+        return [
+            'review_level' => $row->review_level,
+            'review_points' => $row->review_points,
+            'reviews_count' => $row->reviews_count,
+            'review_helpful_count' => $row->review_helpful_count,
+            'forum_level' => $row->forum_level,
+            'forum_points' => $row->forum_points,
+            'forum_topics_count' => $row->forum_topics_count,
+            'forum_replies_count' => $row->forum_replies_count,
+            'forum_helpful_count' => $row->forum_helpful_count,
+            'computed_at' => $row->computed_at?->toIso8601String(),
+        ];
     }
 
     /**

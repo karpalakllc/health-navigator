@@ -14,7 +14,7 @@ final class ForumAuthorCounts
     public static function eagerLoad(): Closure
     {
         return static function (Relation $relation): void {
-            $relation->with('roles')->withCount([
+            $relation->with(['roles', 'contributorLevel'])->withCount([
                 'forumTopics as forum_topics_count' => static fn ($query) => $query->approved(),
                 'forumPosts as forum_posts_count' => static fn ($query) => $query->approved(),
             ]);
