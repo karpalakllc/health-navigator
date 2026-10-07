@@ -301,6 +301,16 @@ class ContributorLevelsTest extends TestCase
         $this->getJson('/api/v1/community/leaderboards')->assertOk()->assertJsonPath('data.forum', null);
     }
 
+    public function test_the_lists_carry_the_rules_so_the_page_explains_the_real_numbers(): void
+    {
+        $this->getJson('/api/v1/community/leaderboards')
+            ->assertOk()
+            ->assertJsonPath('data.rules.reviews.review_points', LevelRules::REVIEW_POINTS)
+            ->assertJsonPath('data.rules.reviews.ladder.1', ['level' => 2, 'reviews' => 3, 'points' => 35])
+            ->assertJsonPath('data.rules.forum.ladder.3', ['level' => 4, 'posts' => 50, 'points' => 380])
+            ->assertJsonPath('data.rules.helpful_per_voter_per_author', LevelRules::HELPFUL_PER_VOTER_PER_AUTHOR);
+    }
+
     public function test_the_lists_hold_at_most_ten_members(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-07 12:00', LevelRules::TIMEZONE));

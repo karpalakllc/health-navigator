@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Models\SiteSetting;
 use App\Support\Levels\ContributorLevels;
+use App\Support\Levels\LevelRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
  * - GET /me/levels: the member's own levels and what the next ones need.
  * - GET /community/leaderboards: last month's „Најкорисни рецензенти“ and
  *   „Најактивни во форумот“, by username only (the forum list is null while
- *   the forum module is off).
+ *   the forum module is off), with the rules that produce them.
  */
 class ContributorLevelController extends Controller
 {
@@ -32,6 +33,6 @@ class ContributorLevelController extends Controller
             $boards['forum'] = null;
         }
 
-        return ApiResponse::success($boards);
+        return ApiResponse::success([...$boards, 'rules' => LevelRules::describe()]);
     }
 }

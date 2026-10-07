@@ -79,6 +79,43 @@ final class LevelRules
     public const LEADERBOARD_SIZE = 10;
 
     /**
+     * The rules as the public page explains them, so the web never keeps
+     * its own copy of the numbers.
+     *
+     * @return array<string, mixed>
+     */
+    public static function describe(): array
+    {
+        $ladder = fn (array $ladder, string $countKey): array => array_map(
+            fn (int $level, array $requirement): array => ['level' => $level, $countKey => $requirement[0], 'points' => $requirement[1]],
+            array_keys($ladder),
+            array_values($ladder),
+        );
+
+        return [
+            'reviews' => [
+                'review_points' => self::REVIEW_POINTS,
+                'helpful_points' => self::REVIEW_HELPFUL_POINTS,
+                'removed_penalty' => self::REVIEW_REMOVED_PENALTY,
+                'reviews_per_day' => self::REVIEWS_PER_DAY,
+                'ladder' => $ladder(self::REVIEW_LADDER, 'reviews'),
+            ],
+            'forum' => [
+                'topic_points' => self::TOPIC_POINTS,
+                'reply_points' => self::REPLY_POINTS,
+                'helpful_points' => self::REPLY_HELPFUL_POINTS,
+                'removed_penalty' => self::FORUM_REMOVED_PENALTY,
+                'topics_per_day' => self::TOPICS_PER_DAY,
+                'replies_per_day' => self::REPLIES_PER_DAY,
+                'ladder' => $ladder(self::FORUM_LADDER, 'posts'),
+            ],
+            'helpful_per_item' => self::HELPFUL_PER_ITEM,
+            'helpful_per_voter_per_author' => self::HELPFUL_PER_VOTER_PER_AUTHOR,
+            'leaderboard_size' => self::LEADERBOARD_SIZE,
+        ];
+    }
+
+    /**
      * @param  array<int, array{0: int, 1: int}>  $ladder
      */
     public static function levelFor(array $ladder, int $count, int $points): int
