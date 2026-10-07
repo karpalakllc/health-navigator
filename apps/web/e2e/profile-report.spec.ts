@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mk } from "../src/i18n/mk";
-import { doctor, facilitySlug, pharmacySlug } from "./support/fixtures";
+import { doctor, facilitySlug } from "./support/fixtures";
 
 /*
  * „Пријави профил“ (W7-C) end to end, as a guest: the flag opens the sheet,
@@ -10,7 +10,7 @@ import { doctor, facilitySlug, pharmacySlug } from "./support/fixtures";
  * absorbed by the API with the same answer, so the test is safe to repeat.
  */
 test.describe("profile reports", () => {
-  test("a guest reports a pharmacy profile; ALTCHA runs under the CSP", async ({
+  test("a guest reports a facility profile; ALTCHA runs under the CSP", async ({
     page,
   }) => {
     const violations: string[] = [];
@@ -25,7 +25,9 @@ test.describe("profile reports", () => {
         response.status() === 200,
     );
 
-    await page.goto(`/pharmacies/${pharmacySlug}`);
+    // Facilities, not pharmacies: the pharmacies module is off in the E2E
+    // seed (modules.spec.ts), so their profiles answer 404.
+    await page.goto(`/facilities/${facilitySlug}`);
 
     const flag = page.getByRole("button", { name: mk.profileReports.action });
     await flag.click();
@@ -48,7 +50,7 @@ test.describe("profile reports", () => {
       .check();
     await dialog
       .getByRole("textbox", { name: mk.profileReports.noteLabel })
-      .fill("Аптеката е затворена од минатиот месец (E2E).");
+      .fill("Установата е затворена од минатиот месец (E2E).");
     await dialog
       .getByRole("button", { name: mk.profileReports.submit })
       .click();
@@ -60,10 +62,10 @@ test.describe("profile reports", () => {
     expect(violations).toEqual([]);
   });
 
+  // Pharmacy profiles use the same header slot; their module is off here.
   for (const path of [
     `/doctors/${doctor.slug}`,
     `/facilities/${facilitySlug}`,
-    `/pharmacies/${pharmacySlug}`,
   ]) {
     test(`the flag sits in the profile header's title row (${path})`, async ({
       page,
