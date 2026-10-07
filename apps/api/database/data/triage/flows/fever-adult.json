@@ -1,0 +1,554 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "fever-adult",
+  "title": "Температура кај возрасни",
+  "summary_en": "Adult fever. Sepsis signs, meningism, non-blanching rash, confusion → emergency. Immunosuppression/chemo, pregnancy, ≥65 with high fever, travel → same day. Fever >3 days → 48h. Otherwise self-care with safety net.",
+  "notes_en": "NHS fever in adults + sepsis signs (public). Hypothermia <36 treated as concerning. Pregnancy and immunosuppression lower thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 72,
+  "body_areas": [
+    "general"
+  ],
+  "search_terms": [
+    "температура",
+    "треска",
+    "висока температура",
+    "фебрилен",
+    "грозница"
+  ],
+  "red_flags": [
+    {
+      "code": "sepsis_resp",
+      "label": "Многу забрзано дишење или недостиг на воздух",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "sepsis_skin",
+      "label": "Кожа, усни или јазик се посинети, сиви, многу бледи или со дамки",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "rash_nonblanch",
+      "label": "Осип што не бледнее кога ќе притиснете чаша врз него",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "confusion",
+      "label": "Збунетост, нејасен говор или тешко будење",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "stiff_neck",
+      "label": "Вкочанет врат или многу пречи светлината",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "no_urine",
+      "label": "Не сте мокреле цел ден (околу 18 часа или повеќе)",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "seizure",
+      "label": "Напад (грч)",
+      "outcome": "o_emergency",
+      "source": "nhs-fever-adults"
+    }
+  ],
+  "entry": "q_temp",
+  "nodes": {
+    "q_temp": {
+      "type": "question",
+      "kind": "number",
+      "text": "Колкава е највисоката измерена температура?",
+      "help": "Ако не сте мериле, оставете празно и одговорете на следното прашање.",
+      "unit": "celsius",
+      "min": 34,
+      "max": 43,
+      "step": 0.1,
+      "optional": true,
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_3d",
+          "label": "Помалку од 3 дена"
+        },
+        {
+          "value": "3_5d",
+          "label": "3–5 дена"
+        },
+        {
+          "value": "gt_5d",
+          "label": "Повеќе од 5 дена"
+        }
+      ],
+      "next": "q_situation"
+    },
+    "q_situation": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "chemo",
+          "label": "Примате хемотерапија или сте имале трансплантација"
+        },
+        {
+          "value": "travel",
+          "label": "Неодамна сте патувале надвор од Европа"
+        },
+        {
+          "value": "post_op",
+          "label": "Имавте операција или процедура во последните 2 недели"
+        },
+        {
+          "value": "feel_very_unwell",
+          "label": "Се чувствувате многу лошо, полошо од било кога"
+        },
+        {
+          "value": "cough_urine",
+          "label": "Имате кашлица, болка при мокрење или болка во стомакот"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_temp",
+            "lte": 35.9
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "includes": "chemo"
+              },
+              {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_situation",
+            "includes": "feel_very_unwell"
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_situation",
+                "includes": "travel"
+              },
+              {
+                "answer": "q_situation",
+                "includes": "post_op"
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_temp",
+                "gte": 38
+              }
+            ]
+          },
+          "goto": "o_urgent_5"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_temp",
+                "gte": 39
+              }
+            ]
+          },
+          "goto": "o_urgent_6"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "3_5d"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_5d"
+              },
+              {
+                "demo": "conditions",
+                "includes_any": [
+                  "immunosuppressed",
+                  "heart_disease",
+                  "lung_disease",
+                  "kidney_disease",
+                  "diabetes"
+                ]
+              },
+              {
+                "answer": "q_situation",
+                "includes": "cough_urine"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Ниска телесна температура при болест исто така може да е знак за сериозна инфекција."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Кај ослабен имунитет температурата може да значи сериозна инфекција — треба да се јавите веднаш (и на онкологот/тимот што ве лекува)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Чувството дека сте многу лошо е важен знак и треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Температура по патување или по операција треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_5": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Температура во бременост треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_6": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
+      "reasons": [
+        "Кај постари лица висока температура треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-sepsis"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но температурата трае или имате придружни тегоби.",
+      "reasons": [
+        "Температура што трае повеќе од 3 дена или е придружена со други тегоби треба да ја процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте многу течности и одморајте се."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки или осип што не бледнее, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-fever-adults"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Кратка температура без други знаци најчесто е од вирусна инфекција и поминува сама.",
+      "reasons": [
+        "Кратка температура без други знаци најчесто е од вирусна инфекција и поминува сама."
+      ],
+      "do_now": [
+        "Одморајте се и пијте многу течности.",
+        "Фармацевтот може да ве посоветува за средство за намалување на температурата.",
+        "Носете лесна облека; не се завиткувајте премногу."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
+        "Ако не мокрите цел ден, веднаш повикајте 194 или 112.",
+        "Ако температурата трае повеќе од 3 дена или се чувствувате полошо, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-fever-adults"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-fever-adults",
+      "title": "NHS (Велика Британија) — Fever in adults",
+      "url": "https://www.nhs.uk/symptoms/fever-in-adults/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

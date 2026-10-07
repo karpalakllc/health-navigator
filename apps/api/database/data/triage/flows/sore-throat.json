@@ -1,0 +1,370 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "sore-throat",
+  "title": "Болка во грлото",
+  "summary_en": "Adult sore throat. Stridor, drooling/can't swallow saliva, breathing difficulty → emergency. One-sided severe swelling/trismus (quinsy), immunosuppression/carbimazole-type drugs → same day. High fever + pus no cough → 48h. Otherwise pharmacy/self-care.",
+  "notes_en": "NHS sore throat/tonsillitis/quinsy. FeverPAIN/Centor scores are public but not reproduced; a plain 'fever + pus, no cough' item approximates them conservatively. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 40,
+  "body_areas": [
+    "head",
+    "throat"
+  ],
+  "search_terms": [
+    "болка во грлото",
+    "гуша",
+    "ангина",
+    "крајници",
+    "тонзилитис"
+  ],
+  "red_flags": [
+    {
+      "code": "breathing",
+      "label": "Отежнато или бучно дишење (свирење при вдишување)",
+      "outcome": "o_emergency",
+      "source": "nhs-sore-throat"
+    },
+    {
+      "code": "drooling",
+      "label": "Не можете да ја голтате плунката, течат плунки",
+      "outcome": "o_emergency",
+      "source": "nhs-sore-throat"
+    },
+    {
+      "code": "swelling_face",
+      "label": "Отекување на јазикот, усните или вратот што брзо напредува",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    }
+  ],
+  "entry": "q_features",
+  "nodes": {
+    "q_features": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "one_sided",
+          "label": "Многу силна болка или оток на едната страна, тешко ја отворам устата"
+        },
+        {
+          "value": "cannot_drink",
+          "label": "Не можам да пијам течности"
+        },
+        {
+          "value": "fever_pus",
+          "label": "Температура и бели наслаги на крајниците, без кашлица"
+        },
+        {
+          "value": "immuno_drugs",
+          "label": "Пијам лекови што можат да го намалат бројот на бели крвни клетки (на пр. за тироидна жлезда, хемотерапија)"
+        },
+        {
+          "value": "lump_neck",
+          "label": "Оток или грутка на вратот што не се повлекува"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_1w",
+          "label": "Помалку од 1 недела"
+        },
+        {
+          "value": "1_2w",
+          "label": "1–2 недели"
+        },
+        {
+          "value": "gt_2w",
+          "label": "Повеќе од 2 недели"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "one_sided"
+              },
+              {
+                "answer": "q_features",
+                "includes": "cannot_drink"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "immuno_drugs"
+              },
+              {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_features",
+            "includes": "fever_pus"
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "gt_2w"
+              },
+              {
+                "answer": "q_features",
+                "includes": "lump_neck"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_pharm"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори може да укажуваат на компликација што треба да ја види лекар истиот ден.",
+      "reasons": [
+        "Силна еднострана болка или неможност за пиење може да значи гноен џеб (апсцес) или дехидрација."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта; во поголем град — и на УНГ (уво-нос-грло) служба."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко или бучно, веднаш повикајте 194 или 112.",
+        "Ако не можете да ја голтате плунката, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-tonsillitis"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашите одговори може да укажуваат на компликација што треба да ја види лекар истиот ден.",
+      "reasons": [
+        "Кај ослабен имунитет или одредени лекови, болното грло може да е знак за низок број бели крвни клетки."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта; во поголем град — и на УНГ (уво-нос-грло) служба."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко или бучно, веднаш повикајте 194 или 112.",
+        "Ако не можете да ја голтате плунката, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-tonsillitis"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот ќе процени дали е потребен брис или антибиотик.",
+      "reasons": [
+        "Температура со наслаги без кашлица може да е бактериска инфекција."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте течности и одморајте се."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење или не можете да голтате, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sore-throat"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Подолготрајната болка или оток на вратот треба да се испитаат.",
+      "reasons": [
+        "Болка или оток што траат повеќе од 2 недели треба да се испитаат."
+      ],
+      "do_now": [
+        "Закажете преглед оваа недела."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење или не можете да голтате, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sore-throat"
+      ]
+    },
+    "o_pharm": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Болката во грлото најчесто е од вирус и поминува за околу недела.",
+      "reasons": [
+        "Болката во грлото најчесто е од вирус и поминува за околу недела."
+      ],
+      "do_now": [
+        "Фармацевтот може да предложи пастили, спреј или средство против болка.",
+        "Пијте топли или ладни течности, грглајте со млака солена вода (возрасни)."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење или не можете да ја голтате плунката, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 1 недела или имате висока температура, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-sore-throat"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено и останете мирни; не легнувајте.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "No pregnancy-specific threshold in public sore-throat guidance; fever in pregnancy is handled by the fever flow.",
+    "older_adult": "No age-specific threshold in public guidance; immunosuppression (demo.conditions) is referenced."
+  },
+  "sources": [
+    {
+      "id": "nhs-sore-throat",
+      "title": "NHS (Велика Британија) — Sore throat",
+      "url": "https://www.nhs.uk/symptoms/sore-throat/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-tonsillitis",
+      "title": "NHS (Велика Британија) — Tonsillitis (incl. quinsy)",
+      "url": "https://www.nhs.uk/conditions/tonsillitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-glandular-fever",
+      "title": "NHS (Велика Британија) — Glandular fever",
+      "url": "https://www.nhs.uk/conditions/glandular-fever/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-anaphylaxis",
+      "title": "NHS (Велика Британија) — Anaphylaxis",
+      "url": "https://www.nhs.uk/conditions/anaphylaxis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

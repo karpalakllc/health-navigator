@@ -1,0 +1,548 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "asthma-attack",
+  "title": "Напад на астма",
+  "summary_en": "Asthma attack (children ≥1 and adults). Too breathless to speak/eat, blue lips, drowsy/exhausted, reliever not helping per plan, peak flow <50% best with no response → 194. Partial response → same day. Resolved attack → see GP/paediatrician within 2 days (NHS). Poor control (reliever >3x/week, night waking) → GP.",
+  "notes_en": "NHS asthma attack (fetched 2026-10-07): sit upright, reliever per plan, call 999 if worse/no improvement/no inhaler, see GP within 2 days after an attack. Puff counts deliberately not reproduced (user follows own plan). Peak-flow bands (<50%, 50–75%) are widely published public thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "child_1_4",
+      "child_5_12",
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 92,
+  "body_areas": [
+    "chest"
+  ],
+  "search_terms": [
+    "астма",
+    "напад на астма",
+    "свирење во градите",
+    "пумпичка не помага",
+    "инхалатор"
+  ],
+  "red_flags": [
+    {
+      "code": "cannot_speak",
+      "label": "Толку тешко дише што не може да зборува, јаде или спие",
+      "outcome": "o_emergency",
+      "source": "nhs-asthma"
+    },
+    {
+      "code": "blue_drowsy",
+      "label": "Сини или сиви усни, поспаност, збунетост или исцрпеност",
+      "outcome": "o_emergency",
+      "source": "nhs-asthma"
+    },
+    {
+      "code": "no_relief",
+      "label": "Пумпичката (инхалаторот) за олеснување не помага ни по максималниот број вдишувања според вашиот план",
+      "outcome": "o_emergency",
+      "source": "nhs-asthma"
+    },
+    {
+      "code": "no_inhaler",
+      "label": "Тешко дише, а нема пумпичка за олеснување при рака",
+      "outcome": "o_emergency",
+      "source": "nhs-asthma"
+    }
+  ],
+  "entry": "i_plan",
+  "nodes": {
+    "i_plan": {
+      "type": "info",
+      "title": "Додека одговарате",
+      "text": "Седнете исправено и смирете се. Користете ја пумпичката за олеснување според вашиот план за астма (со комора ако имате). Ако ви е полошо во кој било момент, повикајте 194.",
+      "next": "q_response"
+    },
+    "q_response": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како реагираше на пумпичката?",
+      "options": [
+        {
+          "value": "full",
+          "label": "Помогна целосно, сега дишам нормално"
+        },
+        {
+          "value": "partial",
+          "label": "Малку помогна, но сè уште тешко дишам"
+        },
+        {
+          "value": "short",
+          "label": "Помага, но тегобите се враќаат за помалку од 4 часа"
+        }
+      ],
+      "next": "q_peak"
+    },
+    "q_peak": {
+      "type": "question",
+      "kind": "single",
+      "text": "Ако мерите врвен проток (пик-флоу), колку е во однос на вашиот најдобар резултат?",
+      "options": [
+        {
+          "value": "gt_75",
+          "label": "Над 75 %"
+        },
+        {
+          "value": "50_75",
+          "label": "50–75 %"
+        },
+        {
+          "value": "lt_50",
+          "label": "Под 50 %"
+        },
+        {
+          "value": "no_meter",
+          "label": "Не мерам / немам апарат"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_peak",
+                "eq": "lt_50"
+              },
+              {
+                "not": {
+                  "answer": "q_response",
+                  "eq": "full"
+                }
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "goto": "q_control"
+        }
+      ]
+    },
+    "q_control": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи во последните недели?",
+      "options": [
+        {
+          "value": "reliever_often",
+          "label": "Користам пумпичка за олеснување повеќе од 3 пати неделно"
+        },
+        {
+          "value": "night",
+          "label": "Се будам ноќе поради астма"
+        },
+        {
+          "value": "prior_severe",
+          "label": "Порано сум бил/а во болница поради астма"
+        },
+        {
+          "value": "fever_cough",
+          "label": "Имам температура и кашлица со жолта или зелена слуз"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_peak",
+                "eq": "lt_50"
+              },
+              {
+                "not": {
+                  "answer": "q_response",
+                  "eq": "full"
+                }
+              }
+            ]
+          },
+          "goto": "o_emergency_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_response",
+                "eq": "partial"
+              },
+              {
+                "answer": "q_response",
+                "eq": "short"
+              },
+              {
+                "answer": "q_peak",
+                "eq": "lt_50"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_control",
+                "includes": "prior_severe"
+              },
+              {
+                "not": {
+                  "answer": "q_response",
+                  "eq": "full"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "child_1_4"
+                    ]
+                  }
+                ]
+              },
+              {
+                "not": {
+                  "answer": "q_response",
+                  "eq": "full"
+                }
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_response",
+                "eq": "full"
+              },
+              {
+                "answer": "q_control",
+                "includes": "fever_cough"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_control",
+                "includes": "reliever_often"
+              },
+              {
+                "answer": "q_control",
+                "includes": "night"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_emergency_1": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Врвниот проток под 50 % без подобрување значи тежок напад."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено; продолжете со пумпичката за олеснување како што е во вашиот план или како што ќе ви каже диспечерот.",
+        "Ако помошта не стигнала за 10 минути, а сè уште тешко дишете, повторете според планот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Нападот не се смирува целосно со пумпичката.",
+      "reasons": [
+        "Нападот не се смирува целосно — треба преглед истиот ден."
+      ],
+      "do_now": [
+        "Одете во дежурна служба или итна амбуланта уште денес; понесете ги пумпичките и планот за астма."
+      ],
+      "watch_for": [
+        "Ако не може да зборува во цели реченици, усните поплават или пумпичката не помага, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pulmologija",
+          "urgentna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Нападот не се смирува целосно со пумпичката.",
+      "reasons": [
+        "Кај лица што порано биле во болница поради астма, прагот за преглед е понизок."
+      ],
+      "do_now": [
+        "Одете во дежурна служба или итна амбуланта уште денес; понесете ги пумпичките и планот за астма."
+      ],
+      "watch_for": [
+        "Ако не може да зборува во цели реченици, усните поплават или пумпичката не помага, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pulmologija",
+          "urgentna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Нападот не се смирува целосно со пумпичката.",
+      "reasons": [
+        "Кај мали деца и во бременост нецелосно смирен напад бара преглед денес."
+      ],
+      "do_now": [
+        "Одете во дежурна служба или итна амбуланта уште денес; понесете ги пумпичките и планот за астма."
+      ],
+      "watch_for": [
+        "Ако не може да зборува во цели реченици, усните поплават или пумпичката не помага, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pulmologija",
+          "urgentna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 2 дена",
+      "summary": "По секој напад на астма е важно да се разгледа терапијата.",
+      "reasons": [
+        "И по смирен напад, треба да се видите со лекар во рок од 2 дена за да се спречи следниот."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар/педијатар или пулмолог во рок од 2 дена.",
+        "Избегнувајте ги познатите предизвикувачи (чад, прашина, ладен воздух)."
+      ],
+      "watch_for": [
+        "Ако тешкото дишење се врати и пумпичката не помага, веднаш повикајте 194 или 112.",
+        "Ако пумпичката ви треба почесто од секои 4 часа, јавете се истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Честата употреба на пумпичка за олеснување или будењето ноќе значат дека астмата не е под контрола.",
+      "reasons": [
+        "Астмата не е добро контролирана; лекарот може да ја прилагоди терапијата."
+      ],
+      "do_now": [
+        "Закажете преглед за проверка на терапијата и техниката на вдишување."
+      ],
+      "watch_for": [
+        "Ако се појави напад што не реагира на пумпичката, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 2 дена",
+      "summary": "По секој напад на астма е важно да се разгледа терапијата.",
+      "reasons": [
+        "По секој напад на астма е важно да се разгледа терапијата."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар/педијатар или пулмолог во рок од 2 дена.",
+        "Избегнувајте ги познатите предизвикувачи (чад, прашина, ладен воздух)."
+      ],
+      "watch_for": [
+        "Ако тешкото дишење се врати и пумпичката не помага, веднаш повикајте 194 или 112.",
+        "Ако пумпичката ви треба почесто од секои 4 часа, јавете се истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено; продолжете со пумпичката за олеснување како што е во вашиот план или како што ќе ви каже диспечерот.",
+        "Ако помошта не стигнала за 10 минути, а сè уште тешко дишете, повторете според планот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Referenced (child_1_4 lower threshold); school-age children use the same rules with a parent.",
+    "older_adult": "Same thresholds; COPD in older adults uses shortness-of-breath.",
+    "chronic": "Flow is for people with asthma; prior severe attacks are asked directly."
+  },
+  "sources": [
+    {
+      "id": "nhs-asthma",
+      "title": "NHS (Велика Британија) — Asthma (incl. asthma attacks)",
+      "url": "https://www.nhs.uk/conditions/asthma/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sob",
+      "title": "NHS (Велика Британија) — Shortness of breath",
+      "url": "https://www.nhs.uk/symptoms/shortness-of-breath/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

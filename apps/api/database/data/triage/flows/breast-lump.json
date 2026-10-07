@@ -1,0 +1,415 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "breast-lump",
+  "title": "Грутка или промени во дојката",
+  "summary_en": "Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast with fever while breastfeeding → 24–48h (same day if unwell). Any new lump, nipple inversion/discharge with blood, skin dimpling → GP/gynaecologist this week with instruction to request breast ultrasound/mammography referral without delay.",
+  "notes_en": "NHS breast lump / breast cancer symptoms / mastitis. Any new lump → prompt GP/gynaecology (NHS urgent referral). Men are included (labels are sex-neutral). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 40,
+  "body_areas": [
+    "chest"
+  ],
+  "search_terms": [
+    "грутка во дојката",
+    "дојка",
+    "јазол во дојката",
+    "болна дојка",
+    "мастит",
+    "брадавица"
+  ],
+  "red_flags": [
+    {
+      "code": "sepsis",
+      "label": "Црвена, болна дојка со висока температура и тресење, збунетост или забрзано дишење",
+      "outcome": "o_emergency",
+      "source": "nhs-mastitis"
+    }
+  ],
+  "entry": "q_changes",
+  "nodes": {
+    "q_changes": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што забележувате?",
+      "options": [
+        {
+          "value": "lump",
+          "label": "Нова грутка или задебелување во дојката или пазувот"
+        },
+        {
+          "value": "skin",
+          "label": "Вдлабнување, брчкање или кожа како кора од портокал"
+        },
+        {
+          "value": "nipple",
+          "label": "Брадавицата се вовлече, или има крвав секрет"
+        },
+        {
+          "value": "red_hot",
+          "label": "Црвена, топла и болна дојка"
+        },
+        {
+          "value": "pain_cycle",
+          "label": "Болка што се менува со менструалниот циклус"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_breastfeeding"
+    },
+    "q_breastfeeding": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали доите или сте се породиле во последните неколку месеци?",
+      "next": "q_fever"
+    },
+    "q_fever": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали имате температура или се чувствувате како да имате грип?",
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_changes",
+                "includes": "red_hot"
+              },
+              {
+                "answer": "q_fever",
+                "eq": "yes"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes": "immunosuppressed"
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes": "diabetes"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_changes",
+                "includes": "red_hot"
+              },
+              {
+                "answer": "q_fever",
+                "eq": "yes"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_changes",
+                "includes": "lump"
+              },
+              {
+                "answer": "q_changes",
+                "includes": "skin"
+              },
+              {
+                "answer": "q_changes",
+                "includes": "nipple"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_changes",
+                "includes": "red_hot"
+              },
+              {
+                "answer": "q_breastfeeding",
+                "eq": "yes"
+              }
+            ]
+          },
+          "goto": "o_self_bf_1"
+        },
+        {
+          "when": {
+            "answer": "q_changes",
+            "includes": "pain_cycle"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_gp"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Воспалена дојка со температура кај лица со поголем ризик треба брзо да се лекува.",
+      "reasons": [
+        "Воспалена дојка со температура кај ослабен имунитет или дијабетес треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар, гинеколог или во дежурна служба уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави тресење, збунетост или забрзано дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-mastitis"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Маститот (воспаление на дојката) често се подобрува, но понекогаш бара лекување.",
+      "reasons": [
+        "Воспалена дојка со температура (мастит) може да бара лекување."
+      ],
+      "do_now": [
+        "Ако доите, продолжете да доите или изцедувајте млеко од таа дојка.",
+        "Закажете кај избраниот лекар или гинеколог."
+      ],
+      "watch_for": [
+        "Ако се појави тресење, збунетост или забрзано дишење, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 12–24 часа, јавете се во дежурна служба."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-mastitis"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете преглед оваа недела",
+      "summary": "Повеќето грутки во дојката не се канцер, но секоја нова промена треба брзо да се испита.",
+      "reasons": [
+        "Секоја нова грутка или промена на кожата или брадавицата треба да се испита без одлагање, иако најчесто не е опасна."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар или гинеколог оваа недела и кажете дека имате нова промена во дојката.",
+        "Лекарот може да ве упати на ултразвук или мамографија (снимка на дојката)."
+      ],
+      "watch_for": [
+        "Ако грутката брзо расте, кожата се отвора или се појави температура, јавете се кај лекар истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ginekologija",
+          "opsta-hirurgija",
+          "radiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-breast-lump",
+        "nhs-breast-cancer-symptoms"
+      ]
+    },
+    "o_self_bf_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Црвенило без температура при доење најчесто е од застој на млеко.",
+      "reasons": [
+        "Црвенило при доење често е од застој на млекото и може да се подобри со доење."
+      ],
+      "do_now": [
+        "Продолжете да доите често, почнувајќи од болната дојка.",
+        "Топли облози пред доење и ладни потоа; одморајте се."
+      ],
+      "watch_for": [
+        "Ако се појави температура, тресење или не се подобри за 24 часа, јавете се кај лекар истиот ден.",
+        "Ако се појави збунетост или забрзано дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "ginekologija",
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-mastitis"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Болката во дојките поврзана со циклусот е честа.",
+      "reasons": [
+        "Болката поврзана со циклусот е честа и најчесто безопасна."
+      ],
+      "do_now": [
+        "Удобен градник што добро држи може да помогне.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако забележите грутка, промена на кожата или брадавицата, закажете кај лекар оваа недела."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-breast-lump"
+      ]
+    },
+    "o_gp": {
+      "level": "see_gp_this_week",
+      "title": "Закажете преглед оваа недела",
+      "summary": "Повеќето грутки во дојката не се канцер, но секоја нова промена треба брзо да се испита.",
+      "reasons": [
+        "Повеќето грутки во дојката не се канцер, но секоја нова промена треба брзо да се испита."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар или гинеколог оваа недела и кажете дека имате нова промена во дојката.",
+        "Лекарот може да ве упати на ултразвук или мамографија (снимка на дојката)."
+      ],
+      "watch_for": [
+        "Ако грутката брзо расте, кожата се отвора или се појави температура, јавете се кај лекар истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ginekologija",
+          "opsta-hirurgija",
+          "radiologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-breast-lump",
+        "nhs-breast-cancer-symptoms"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teens: breast lumps are very rarely serious; same routing (this week) is conservative.",
+    "pregnancy": "Lactational mastitis is covered via the breastfeeding question; pregnancy itself does not change routing (a new lump still needs assessment).",
+    "older_adult": "Same routing; risk rises with age but every new lump already goes to this-week assessment."
+  },
+  "sources": [
+    {
+      "id": "nhs-breast-lump",
+      "title": "NHS (Велика Британија) — Breast lump",
+      "url": "https://www.nhs.uk/symptoms/breast-lump/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-breast-cancer-symptoms",
+      "title": "NHS (Велика Британија) — Symptoms of breast cancer in women",
+      "url": "https://www.nhs.uk/conditions/breast-cancer-in-women/symptoms-of-breast-cancer-in-women/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-mastitis",
+      "title": "NHS (Велика Британија) — Mastitis",
+      "url": "https://www.nhs.uk/conditions/mastitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

@@ -1,0 +1,468 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "child-breathing",
+  "title": "Отежнато дишење кај дете",
+  "summary_en": "Breathing difficulty in children. Severe distress, apnoea, cyanosis, stridor at rest, exhaustion → 194. Infants <3 months with any breathing difficulty, bronchiolitis with poor feeding, croup with stridor that settles → same day. Mild croup/cold → home with safety net. Wheeze in known asthma → asthma plan + same-day if no relief.",
+  "notes_en": "NHS under-5 urgent signs, bronchiolitis (poor feeding <50%, apnoea), croup (stridor at rest), asthma; WHO pocket book for choking/inhaled foreign body. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "infant_0_3m",
+      "infant_3_12m",
+      "child_1_4",
+      "child_5_12"
+    ]
+  },
+  "urgency_rank": 94,
+  "body_areas": [
+    "chest",
+    "throat"
+  ],
+  "search_terms": [
+    "дете тешко дише",
+    "бебе тешко дише",
+    "свирење во градите",
+    "лаечка кашлица",
+    "круп",
+    "бронхиолитис"
+  ],
+  "red_flags": [
+    {
+      "code": "severe",
+      "label": "Многу тешко дише, стенка (пуфка), ноздрите му се шират или меѓу ребрата/под ребрата се вовлекува",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "pauses",
+      "label": "Паузи во дишењето (престанува да дише за 10 секунди или подолго)",
+      "outcome": "o_emergency",
+      "source": "nhs-bronchiolitis"
+    },
+    {
+      "code": "blue",
+      "label": "Сини или сиви усни, јазик или кожа",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "stridor_rest",
+      "label": "Висок, бучен звук при вдишување и кога мирува, или е многу вознемирено/исцрпено",
+      "outcome": "o_emergency",
+      "source": "nhs-croup"
+    },
+    {
+      "code": "drowsy",
+      "label": "Тешко се буди, млитаво е или не реагира",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "choking",
+      "label": "Можеби вдишало (голтнало) мал предмет и се гуши или кашла силно",
+      "outcome": "o_emergency",
+      "source": "who-pocketbook"
+    }
+  ],
+  "entry": "q_pattern",
+  "nodes": {
+    "q_pattern": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Што забележувате?",
+      "options": [
+        {
+          "value": "barking",
+          "label": "Лаечка кашлица, засипнат глас, бучно вдишување кога плаче"
+        },
+        {
+          "value": "wheeze",
+          "label": "Свирење во градите при издишување"
+        },
+        {
+          "value": "cold",
+          "label": "Течење од нос и кашлица, а потоа побрзо дишење"
+        },
+        {
+          "value": "fever",
+          "label": "Температура"
+        },
+        {
+          "value": "feeding",
+          "label": "Пие или јаде помалку од половина од вообичаеното"
+        },
+        {
+          "value": "asthma",
+          "label": "Детето има астма и пумпичката (инхалаторот) не помага"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_better_calm"
+    },
+    "q_better_calm": {
+      "type": "question",
+      "kind": "yes_no",
+      "text": "Дали дишењето е мирно и тивко кога детето се смирува или спие?",
+      "next": [
+        {
+          "when": {
+            "demo": "age_band",
+            "in": [
+              "infant_0_3m"
+            ]
+          },
+          "goto": "o_urgent_now_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "includes": "asthma"
+          },
+          "goto": "o_urgent_now_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_pattern",
+                "includes": "feeding"
+              },
+              {
+                "answer": "q_better_calm",
+                "eq": "no"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_pattern",
+                "includes": "fever"
+              },
+              {
+                "answer": "q_pattern",
+                "includes": "cold"
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m",
+                  "infant_3_12m"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_pattern",
+                "includes": "wheeze"
+              },
+              {
+                "answer": "q_pattern",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "includes": "barking"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_doc48"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_now_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед сега",
+      "summary": "Отежнатото дишење кај најмалите и при астма што не реагира на лекот бара итна проценка.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци секое отежнато дишење треба веднаш да се провери."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако дишењето стане уште потешко, се појават паузи или поплавување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-under5-urgent",
+        "nhs-asthma"
+      ]
+    },
+    "o_urgent_now_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед сега",
+      "summary": "Отежнатото дишење кај најмалите и при астма што не реагира на лекот бара итна проценка.",
+      "reasons": [
+        "Ако пумпичката за олеснување не помага според планот за астма, детето треба веднаш да се прегледа."
+      ],
+      "do_now": [
+        "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако дишењето стане уште потешко, се појават паузи или поплавување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-under5-urgent",
+        "nhs-asthma"
+      ]
+    },
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето треба да го види лекар истиот ден за да се провери колку добро дише.",
+      "reasons": [
+        "Помало пиење или бучно дишење и при мирување значи дека детето треба да го види лекар денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте мали количини течност почесто."
+      ],
+      "watch_for": [
+        "Ако дишењето стане многу тешко, се појават паузи, стенкање или поплавување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-bronchiolitis",
+        "nhs-croup"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Детето треба да го види лекар истиот ден за да се провери колку добро дише.",
+      "reasons": [
+        "Кај бебиња бронхиолитисот (вирусно воспаление на малите дишни патишта) може брзо да се влоши."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте мали количини течност почесто."
+      ],
+      "watch_for": [
+        "Ако дишењето стане многу тешко, се појават паузи, стенкање или поплавување, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-bronchiolitis",
+        "nhs-croup"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но педијатарот треба да ги слушне градите.",
+      "reasons": [
+        "Свирење или температура со отежнато дишење треба да ги процени педијатар."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Чистете го носот со физиолошки раствор пред хранење."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко, се појават паузи, стенкање или поплавување, веднаш повикајте 194 или 112.",
+        "Ако пие помалку од половина од вообичаеното, одете на преглед истиот ден."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-bronchiolitis"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Благиот круп (бучна, лаечка кашлица без отежнато дишење при мирување) најчесто поминува за 2–3 дена.",
+      "reasons": [
+        "Благ круп (лаечка кашлица) најчесто поминува за неколку дена."
+      ],
+      "do_now": [
+        "Држете го детето смирено — плачот го влошува дишењето.",
+        "Не користете пареа или топла вода за вдишување (ризик од изгореници)."
+      ],
+      "watch_for": [
+        "Ако детето бучно дише и кога мирува, стенка, или усните поплават, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 2–3 дена или имате загриженост, јавете се кај педијатар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-croup"
+      ]
+    },
+    "o_doc48": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Нема знаци за итност, но педијатарот треба да ги слушне градите.",
+      "reasons": [
+        "Нема знаци за итност, но педијатарот треба да ги слушне градите."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Чистете го носот со физиолошки раствор пред хранење."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко, се појават паузи, стенкање или поплавување, веднаш повикајте 194 или 112.",
+        "Ако пие помалку од половина од вообичаеното, одете на преглед истиот ден."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-bronchiolitis"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Држете го детето исправено во скут, смирено.",
+        "Ако се гуши, а е свесно, охрабрете го да кашла.",
+        "Понесете ја здравствената книшка на детето.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Child flow; older children (5–12) use the same signs; teenagers use the adult shortness-of-breath flow.",
+    "chronic": "Asthma is asked directly; immunosuppressed/heart/lung disease children: clinician to decide whether to add a lower threshold."
+  },
+  "sources": [
+    {
+      "id": "nhs-under5-urgent",
+      "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
+      "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-bronchiolitis",
+      "title": "NHS (Велика Британија) — Bronchiolitis",
+      "url": "https://www.nhs.uk/conditions/bronchiolitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-croup",
+      "title": "NHS (Велика Британија) — Croup",
+      "url": "https://www.nhs.uk/conditions/croup/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-asthma",
+      "title": "NHS (Велика Британија) — Asthma (incl. asthma attacks)",
+      "url": "https://www.nhs.uk/conditions/asthma/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "who-pocketbook",
+      "title": "Светска здравствена организација (WHO) — Pocket book of hospital care for children (2nd ed.)",
+      "url": "https://www.who.int/publications/i/item/978-92-4-154837-3",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

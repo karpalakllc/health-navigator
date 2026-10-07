@@ -1,0 +1,622 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "diarrhoea-vomiting-adult",
+  "title": "Пролив или повраќање кај возрасни",
+  "summary_en": "Adult D&V. Vomiting blood, black stools, severe abdominal pain, confusion, no urine 12h+, stiff neck → emergency/same day. Unable to keep fluids >24h, bloody diarrhoea, risk groups, pregnancy → same day/48h. >7 days diarrhoea or >2 days vomiting → GP.",
+  "notes_en": "NHS diarrhoea and vomiting: >2 days vomiting / >7 days diarrhoea → GP; dehydration and blood → urgent. 'Sick day' medication note is generic (no drug instructions). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 60,
+  "body_areas": [
+    "abdomen"
+  ],
+  "search_terms": [
+    "пролив",
+    "повраќање",
+    "гадење",
+    "стомачен вирус",
+    "дијареја",
+    "труење со храна"
+  ],
+  "red_flags": [
+    {
+      "code": "blood_vomit",
+      "label": "Повраќате крв или нешто што личи на талог од кафе",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "black_stool",
+      "label": "Црна, катранеста столица или многу крв во столицата",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "severe_pain",
+      "label": "Многу силна болка во стомакот што не попушта",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "confused",
+      "label": "Збунетост, многу тешко будење или несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "stiff_neck",
+      "label": "Вкочанет врат, осетливост на светлина или осип што не бледнее",
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    }
+  ],
+  "entry": "q_signs",
+  "nodes": {
+    "q_signs": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "no_fluids",
+          "label": "Не можам да задржам ниту голтка течност"
+        },
+        {
+          "value": "no_urine",
+          "label": "Не сум мокрел/а 12 часа или повеќе, или урината е многу темна"
+        },
+        {
+          "value": "dizzy_standing",
+          "label": "Ми се врти кога ќе станам"
+        },
+        {
+          "value": "bloody_diarrhoea",
+          "label": "Крв во проливот"
+        },
+        {
+          "value": "high_fever",
+          "label": "Температура 38 °C или повеќе"
+        },
+        {
+          "value": "travel",
+          "label": "Неодамна патував во странство"
+        },
+        {
+          "value": "hospital_ab",
+          "label": "Неодамна бев во болница или пиев антибиотици"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае?",
+      "options": [
+        {
+          "value": "lt_24h",
+          "label": "Помалку од 24 часа"
+        },
+        {
+          "value": "1_2d",
+          "label": "1–2 дена"
+        },
+        {
+          "value": "3_7d",
+          "label": "3–7 дена"
+        },
+        {
+          "value": "gt_7d",
+          "label": "Повеќе од 7 дена"
+        }
+      ],
+      "next": "q_risk"
+    },
+    "q_risk": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "diuretics",
+          "label": "Пијам лекови за мокрење, за притисок (на пр. АКЕ-инхибитори) или метформин"
+        },
+        {
+          "value": "ibd",
+          "label": "Имам воспалителна болест на цревата"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "no_urine"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_signs",
+                "includes": "no_fluids"
+              },
+              {
+                "answer": "q_duration",
+                "in": [
+                  "1_2d",
+                  "3_7d",
+                  "gt_7d"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  },
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "heart_disease",
+                      "lung_disease",
+                      "kidney_disease",
+                      "diabetes"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "no_fluids"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "dizzy_standing"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "bloody_diarrhoea"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "dizzy_standing"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_risk",
+            "includes": "diuretics"
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes": "travel"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "hospital_ab"
+              },
+              {
+                "answer": "q_risk",
+                "includes": "ibd"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "high_fever"
+              }
+            ]
+          },
+          "goto": "o_doc48_3"
+        },
+        {
+          "when": {
+            "answer": "q_duration",
+            "eq": "gt_7d"
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_duration",
+            "eq": "3_7d"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте може да значат дехидрација што бара преглед истиот ден.",
+      "reasons": [
+        "Немање урина 12 часа или повеќе е знак за дехидрација (губење течности)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте мали голтки течност на секои неколку минути."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, несвестица, крв во повраќаното или силна болка во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте може да значат дехидрација што бара преглед истиот ден.",
+      "reasons": [
+        "Не можете да задржите течности повеќе од еден ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте мали голтки течност на секои неколку минути."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, несвестица, крв во повраќаното или силна болка во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте може да значат дехидрација што бара преглед истиот ден.",
+      "reasons": [
+        "Во бременост, постара возраст или кај хронична болест дехидрацијата настанува побрзо."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте мали голтки течност на секои неколку минути."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, несвестица, крв во повраќаното или силна болка во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот ќе процени дали се потребни анализи или промена на лековите.",
+      "reasons": [
+        "Крв во проливот или вртоглавица при станување треба да ги процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности; раствор за рехидрација од аптека може да помогне."
+      ],
+      "watch_for": [
+        "Ако престанете да мокрите, се појави збунетост или крв во повраќаното, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот ќе процени дали се потребни анализи или промена на лековите.",
+      "reasons": [
+        "При пролив и повраќање некои лекови треба привремено да се прилагодат — разговарајте со лекар или фармацевт."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности; раствор за рехидрација од аптека може да помогне."
+      ],
+      "watch_for": [
+        "Ако престанете да мокрите, се појави збунетост или крв во повраќаното, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_doc48_3": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Лекарот ќе процени дали се потребни анализи или промена на лековите.",
+      "reasons": [
+        "Вашата состојба бара лекарот да одлучи дали е потребна анализа на столица."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар.",
+        "Пијте доволно течности; раствор за рехидрација од аптека може да помогне."
+      ],
+      "watch_for": [
+        "Ако престанете да мокрите, се појави збунетост или крв во повраќаното, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Подолготрајниот пролив треба да се испита.",
+      "reasons": [
+        "Пролив подолг од 7 дена треба да се испита."
+      ],
+      "do_now": [
+        "Закажете оваа недела; лекарот може да побара анализа на столица."
+      ],
+      "watch_for": [
+        "Ако се појави крв во столицата, силна болка или знаци на дехидрација (многу малку урина, вртоглавица), веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Проливот и повраќањето најчесто поминуваат за неколку дена; најважно е надоместувањето течности.",
+      "reasons": [
+        "Фармацевтот може да ве посоветува за рехидрација (надоместување течности)."
+      ],
+      "do_now": [
+        "Прашајте фармацевт за раствор за рехидрација.",
+        "Мијте ги рацете често и не подготвувајте храна за други."
+      ],
+      "watch_for": [
+        "Ако престанете да мокрите, се појави крв или силна болка, веднаш повикајте 194 или 112.",
+        "Ако проливот трае повеќе од 7 дена, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Проливот обично поминува за 5–7 дена, а повраќањето за 1–2 дена.",
+      "reasons": [
+        "Проливот обично поминува за 5–7 дена, а повраќањето за 1–2 дена."
+      ],
+      "do_now": [
+        "Пијте многу течности, во мали голтки.",
+        "Јадете кога ќе можете; лесна храна.",
+        "Останете дома 2 дена по последната епизода."
+      ],
+      "watch_for": [
+        "Ако престанете да мокрите, се појави збунетост, крв во повраќаното или столицата, веднаш повикајте 194 или 112.",
+        "Ако повраќањето трае повеќе од 2 дена или проливот повеќе од 7, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "older_adult": "Referenced: dehydration signs in ≥65 → same day."
+  },
+  "sources": [
+    {
+      "id": "nhs-dv",
+      "title": "NHS (Велика Британија) — Diarrhoea and vomiting",
+      "url": "https://www.nhs.uk/symptoms/diarrhoea-and-vomiting/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dehydration",
+      "title": "NHS (Велика Британија) — Dehydration",
+      "url": "https://www.nhs.uk/conditions/dehydration/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-meningitis",
+      "title": "NHS (Велика Британија) — Meningitis",
+      "url": "https://www.nhs.uk/conditions/meningitis/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stomach-ache",
+      "title": "NHS (Велика Британија) — Stomach ache",
+      "url": "https://www.nhs.uk/symptoms/stomach-ache/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

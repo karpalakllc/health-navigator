@@ -1,0 +1,545 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "back-pain",
+  "title": "Болка во грбот",
+  "summary_en": "Adult back pain. Cauda equina signs (saddle numbness, bladder/bowel change, bilateral leg weakness), trauma in elderly, tearing pain → emergency. Fever/immunosuppression/cancer history, night pain → same day/48h. Sciatica without red flags → GP. Simple mechanical → self-care.",
+  "notes_en": "NHS back pain/sciatica: cauda equina emergency signs; infection/cancer/osteoporosis as yellow-orange flags. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 55,
+  "body_areas": [
+    "back"
+  ],
+  "search_terms": [
+    "болка во грбот",
+    "крста",
+    "лумбаго",
+    "дискус",
+    "ишијас"
+  ],
+  "red_flags": [
+    {
+      "code": "saddle",
+      "label": "Трпнење или губење на чувството околу анусот, половите органи или внатрешната страна на бутовите",
+      "help": "Знак за притисок на нервите на дното на 'рбетот (синдром на коњска опашка).",
+      "outcome": "o_emergency",
+      "source": "nhs-back-pain"
+    },
+    {
+      "code": "bladder_bowel",
+      "label": "Ново тешко мокрење, неможност да мокрите или неконтролирано испуштање урина или столица",
+      "outcome": "o_emergency",
+      "source": "nhs-back-pain"
+    },
+    {
+      "code": "both_legs",
+      "label": "Слабост или трпнење во двете нозе или нестабилен од, што се влошува",
+      "outcome": "o_emergency",
+      "source": "nhs-back-pain"
+    },
+    {
+      "code": "trauma",
+      "label": "Болката почна по сериозен пад или незгода",
+      "outcome": "o_emergency",
+      "source": "nhs-back-pain"
+    },
+    {
+      "code": "tearing",
+      "label": "Ненадејна, многу силна болка во средината на грбот или стомакот, со несвестица",
+      "outcome": "o_emergency",
+      "source": "nhs-back-pain"
+    },
+    {
+      "code": "chest",
+      "label": "Болка во градите или отежнато дишење",
+      "outcome": "o_emergency",
+      "source": "nhs-chest-pain"
+    }
+  ],
+  "entry": "q_features",
+  "nodes": {
+    "q_features": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Дали нешто од ова важи?",
+      "options": [
+        {
+          "value": "fever",
+          "label": "Температура или треска"
+        },
+        {
+          "value": "cancer",
+          "label": "Канцер сега или порано"
+        },
+        {
+          "value": "night",
+          "label": "Болката е постојана и полоша ноќе, не се смирува при одмор"
+        },
+        {
+          "value": "weight_loss",
+          "label": "Губење тежина без причина"
+        },
+        {
+          "value": "one_leg",
+          "label": "Болка или трпнење што се шири низ едната нога под коленото"
+        },
+        {
+          "value": "flank_urine",
+          "label": "Болка на едната страна, кон препоните, или крв во урината"
+        },
+        {
+          "value": "minor_fall_older",
+          "label": "Помал пад или лесен напор, а имам остеопороза или сум над 65 години"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_6w",
+          "label": "Помалку од 6 недели"
+        },
+        {
+          "value": "gt_6w",
+          "label": "Повеќе од 6 недели"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_features",
+                "includes": "flank_urine"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "fever"
+              },
+              {
+                "all": [
+                  {
+                    "demo": "conditions",
+                    "includes": "immunosuppressed"
+                  },
+                  {
+                    "answer": "q_features",
+                    "includes": "night"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_features",
+            "includes": "flank_urine"
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_features",
+                "includes": "night"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "cancer"
+              },
+              {
+                "answer": "q_features",
+                "includes": "minor_fall_older"
+              }
+            ]
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "night"
+              },
+              {
+                "answer": "q_features",
+                "includes": "weight_loss"
+              }
+            ]
+          },
+          "goto": "o_doc48_3"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "one_leg"
+              },
+              {
+                "answer": "q_duration",
+                "eq": "gt_6w"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Придружните знаци бараат лекарот да ве прегледа истиот ден.",
+      "reasons": [
+        "Болка во слабината или крв во урината во бременост треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот или тешкотии со мокрењето, веднаш повикајте 194 или 112.",
+        "Ако слабоста во нозете се влошува, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "urologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_urgent_2": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Придружните знаци бараат лекарот да ве прегледа истиот ден.",
+      "reasons": [
+        "Болка во грбот со температура или ослабен имунитет може да значи инфекција и треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот или тешкотии со мокрењето, веднаш повикајте 194 или 112.",
+        "Ако слабоста во нозете се влошува, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "urologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Придружните знаци бараат лекарот да ве прегледа истиот ден.",
+      "reasons": [
+        "Болката може да е од бубрезите (на пр. камен или инфекција)."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот или тешкотии со мокрењето, веднаш повикајте 194 или 112.",
+        "Ако слабоста во нозете се влошува, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "urologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но вашата историја бара грбот да го прегледа лекар.",
+      "reasons": [
+        "Нова, постојана болка во грбот по 65 години треба да ја процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот, слабост во двете нозе или проблем со мокрењето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ortopedija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но вашата историја бара грбот да го прегледа лекар.",
+      "reasons": [
+        "Кај претходен канцер или остеопороза треба да се исклучи промена на коската."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот, слабост во двете нозе или проблем со мокрењето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ortopedija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_doc48_3": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Нема итни знаци, но вашата историја бара грбот да го прегледа лекар.",
+      "reasons": [
+        "Ноќната болка или губењето тежина треба да ги процени лекар."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот, слабост во двете нозе или проблем со мокрењето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "ortopedija",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Ишијасот најчесто се подобрува за неколку недели, но лекарот може да ви помогне со болката и вежбите.",
+      "reasons": [
+        "Ишијасот или подолготрајната болка треба да ги процени избраниот лекар."
+      ],
+      "do_now": [
+        "Останете умерено активни; долго лежење не помага.",
+        "Фармацевтот може да ве посоветува за средство против болка."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот, слабост во двете нозе или проблем со мокрењето или столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "fizikalna-medicina",
+          "nevrologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-sciatica"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Најголемиот дел од болките во грбот се подобруваат за неколку недели без посебно лекување.",
+      "reasons": [
+        "Најголемиот дел од болките во грбот се подобруваат за неколку недели без посебно лекување."
+      ],
+      "do_now": [
+        "Останете активни колку што можете; кратки прошетки помагаат.",
+        "Топол или ладен облог и средство против болка по совет на фармацевт."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот или половите органи, веднаш повикајте 194 или 112.",
+        "Ако имате проблем со мокрењето или столицата, веднаш повикајте 194 или 112.",
+        "Ако слабоста во нозете се влошува, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 6 недели или болката е многу силна, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "fizikalna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-back-pain"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Итно побарајте помош",
+      "summary": "Некои од знаците што ги одбравте може да значат притисок врз нервите или друга итна состојба. Тоа бара преглед веднаш, во болница.",
+      "reasons": [
+        "Некои од знаците што ги одбравте може да значат притисок врз нервите или друга итна состојба. Тоа бара преглед веднаш, во болница."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не одложувајте до утре — притисокот врз нервите треба да се лекува во рок од неколку часа.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Back pain is common in pregnancy; flank pain/urinary blood in pregnancy is referenced (same day). Labour-type pain is in the pregnancy-concerns flow."
+  },
+  "sources": [
+    {
+      "id": "nhs-back-pain",
+      "title": "NHS (Велика Британија) — Back pain",
+      "url": "https://www.nhs.uk/conditions/back-pain/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sciatica",
+      "title": "NHS (Велика Британија) — Sciatica",
+      "url": "https://www.nhs.uk/conditions/sciatica/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-kidney-stones",
+      "title": "NHS (Велика Британија) — Kidney stones",
+      "url": "https://www.nhs.uk/conditions/kidney-stones/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-chest-pain",
+      "title": "NHS (Велика Британија) — Chest pain",
+      "url": "https://www.nhs.uk/symptoms/chest-pain/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}

@@ -1,0 +1,539 @@
+{
+  "schema": "zdravje.triage/1",
+  "key": "cough-cold-flu",
+  "title": "Кашлица, настинка или грип",
+  "summary_en": "Adult cough/cold/flu. Breathing difficulty, chest pain, coughing blood, confusion → emergency. Risk groups with flu-like illness, high fever + breathlessness → same day/48h. Cough >3 weeks → GP. Otherwise pharmacy/self-care.",
+  "notes_en": "NHS cough/flu/cold pages; risk groups for flu complications; cough >3 weeks → GP. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "audience": {
+    "age_bands": [
+      "teen_13_17",
+      "adult_18_64",
+      "older_65_plus"
+    ]
+  },
+  "urgency_rank": 45,
+  "body_areas": [
+    "chest",
+    "head"
+  ],
+  "search_terms": [
+    "кашлица",
+    "настинка",
+    "грип",
+    "течење од нос",
+    "кивање",
+    "ковид"
+  ],
+  "red_flags": [
+    {
+      "code": "severe_sob",
+      "label": "Многу отежнато дишење или не можете да зборувате во цели реченици",
+      "outcome": "o_emergency",
+      "source": "nhs-cough"
+    },
+    {
+      "code": "chest_pain",
+      "label": "Болка или притисок во градите",
+      "outcome": "o_emergency",
+      "source": "nhs-flu"
+    },
+    {
+      "code": "blood",
+      "label": "Искашлувате повеќе крв (не само траги во слузта)",
+      "outcome": "o_emergency",
+      "source": "nhs-cough"
+    },
+    {
+      "code": "blue",
+      "label": "Посинети или сиви усни или кожа",
+      "outcome": "o_emergency",
+      "source": "nhs-sob"
+    },
+    {
+      "code": "confused",
+      "label": "Збунетост или многу тешко будење",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
+    }
+  ],
+  "entry": "q_symptoms",
+  "nodes": {
+    "q_symptoms": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Кои тегоби ги имате?",
+      "options": [
+        {
+          "value": "fever_high",
+          "label": "Температура над 38 °C"
+        },
+        {
+          "value": "sob_mild",
+          "label": "Полесно ми снемува воздух отколку вообичаено"
+        },
+        {
+          "value": "sharp_breath",
+          "label": "Боли при длабоко вдишување"
+        },
+        {
+          "value": "blood_streaks",
+          "label": "Траги крв во слузта"
+        },
+        {
+          "value": "runny_nose",
+          "label": "Течење или затнат нос, кивање"
+        },
+        {
+          "value": "sore_throat",
+          "label": "Болка во грлото"
+        },
+        {
+          "value": "aches",
+          "label": "Болки во мускулите и замор"
+        },
+        {
+          "value": "none",
+          "label": "Само кашлица",
+          "exclusive": true
+        }
+      ],
+      "next": "q_duration"
+    },
+    "q_duration": {
+      "type": "question",
+      "kind": "single",
+      "text": "Колку долго трае ова?",
+      "options": [
+        {
+          "value": "lt_1w",
+          "label": "Помалку од 1 недела"
+        },
+        {
+          "value": "1_3w",
+          "label": "1–3 недели"
+        },
+        {
+          "value": "gt_3w",
+          "label": "Повеќе од 3 недели"
+        }
+      ],
+      "next": "q_trend"
+    },
+    "q_trend": {
+      "type": "question",
+      "kind": "single",
+      "text": "Како се менува состојбата?",
+      "options": [
+        {
+          "value": "better",
+          "label": "Полека се подобрува"
+        },
+        {
+          "value": "same",
+          "label": "Иста е"
+        },
+        {
+          "value": "worse_after_better",
+          "label": "Се подобри, а потоа повторно се влоши"
+        },
+        {
+          "value": "worse",
+          "label": "Постојано се влошува"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_symptoms",
+                "includes": "sob_mild"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "fever_high"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "heart_disease",
+                      "lung_disease",
+                      "kidney_disease",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "demo": "pregnancy",
+                    "in": [
+                      "pregnant",
+                      "unsure"
+                    ]
+                  }
+                ]
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "fever_high"
+              }
+            ]
+          },
+          "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_trend",
+                "eq": "worse_after_better"
+              },
+              {
+                "answer": "q_trend",
+                "eq": "worse"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "sharp_breath"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "sob_mild"
+              }
+            ]
+          },
+          "goto": "o_doc48_2"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_duration",
+                "eq": "gt_3w"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "blood_streaks"
+              }
+            ]
+          },
+          "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "answer": "q_symptoms",
+            "includes": "sore_throat"
+          },
+          "goto": "o_pharm_1"
+        },
+        {
+          "when": {
+            "answer": "q_symptoms",
+            "includes": "runny_nose"
+          },
+          "goto": "o_self_1"
+        },
+        {
+          "goto": "o_self"
+        }
+      ]
+    }
+  },
+  "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Комбинацијата на недостиг на воздух и температура треба да се провери истиот ден.",
+      "reasons": [
+        "Недостиг на воздух со температура може да значи воспаление на белите дробови."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако дишењето стане многу тешко, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите, посинување или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "infektologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pneumonia"
+      ]
+    },
+    "o_doc48_1": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Вашите одговори покажуваат поголем ризик од компликации или можна компликација.",
+      "reasons": [
+        "Кај ризичните групи грипот почесто има компликации; лекарот може да одлучи за лекување."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар (може и телефонски ако тоа е можно).",
+        "Одморајте се, пијте многу течности."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-flu",
+        "nhs-cough"
+      ]
+    },
+    "o_doc48_2": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Вашите одговори покажуваат поголем ризик од компликации или можна компликација.",
+      "reasons": [
+        "Влошување по почетно подобрување или болка при дишење може да значи компликација."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар (може и телефонски ако тоа е можно).",
+        "Одморајте се, пијте многу течности."
+      ],
+      "watch_for": [
+        "Ако дишењето стане тешко при мирување, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-flu",
+        "nhs-cough"
+      ]
+    },
+    "o_gp_1": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Долготрајна кашлица или траги крв треба да се испитаат.",
+      "reasons": [
+        "Кашлица подолга од 3 недели или траги крв треба да ги испита избраниот лекар."
+      ],
+      "do_now": [
+        "Закажете преглед оваа недела; лекарот може да побара снимка на белите дробови."
+      ],
+      "watch_for": [
+        "Ако искашлувате повеќе крв или ви снемува воздух, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "pulmologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-cough"
+      ]
+    },
+    "o_pharm_1": {
+      "level": "pharmacy_advice",
+      "title": "Фармацевтот може да ве посоветува",
+      "summary": "Симптомите личат на вообичаена вирусна инфекција.",
+      "reasons": [
+        "Фармацевтот може да ве посоветува за симптомите."
+      ],
+      "do_now": [
+        "Фармацевтот може да ве посоветува за средства за грло, нос и температура.",
+        "Одморајте се и пијте топли течности."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење или болка во градите, веднаш повикајте 194 или 112.",
+        "Ако не се подобри за 1 недела, закажете кај лекар."
+      ],
+      "care": {
+        "setting": "pharmacy",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-cold"
+      ]
+    },
+    "o_self_1": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Настинката и полесниот грип најчесто поминуваат сами; антибиотиците не помагаат кај вирусни инфекции.",
+      "reasons": [
+        "Настинките најчесто поминуваат за 7–10 дена."
+      ],
+      "do_now": [
+        "Одморајте се, пијте течности, проветрувајте ја просторијата.",
+        "Мијте ги рацете и избегнувајте блиски контакти со ризични лица."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење, болка во градите или збунетост, веднаш повикајте 194 или 112.",
+        "Ако кашлицата трае повеќе од 3 недели или се влошува, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-cold",
+        "nhs-cough"
+      ]
+    },
+    "o_self": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Настинката и полесниот грип најчесто поминуваат сами; антибиотиците не помагаат кај вирусни инфекции.",
+      "reasons": [
+        "Настинката и полесниот грип најчесто поминуваат сами; антибиотиците не помагаат кај вирусни инфекции."
+      ],
+      "do_now": [
+        "Одморајте се, пијте течности, проветрувајте ја просторијата.",
+        "Мијте ги рацете и избегнувајте блиски контакти со ризични лица."
+      ],
+      "watch_for": [
+        "Ако се појави отежнато дишење, болка во градите или збунетост, веднаш повикајте 194 или 112.",
+        "Ако кашлицата трае повеќе од 3 недели или се влошува, закажете кај избраниот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-cold",
+        "nhs-cough"
+      ]
+    },
+    "o_emergency": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено; олабавете тесна облека.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ]
+    }
+  },
+  "populations": {
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+  },
+  "sources": [
+    {
+      "id": "nhs-cough",
+      "title": "NHS (Велика Британија) — Cough",
+      "url": "https://www.nhs.uk/symptoms/cough/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-flu",
+      "title": "NHS (Велика Британија) — Flu",
+      "url": "https://www.nhs.uk/conditions/flu/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-cold",
+      "title": "NHS (Велика Британија) — Common cold",
+      "url": "https://www.nhs.uk/conditions/common-cold/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-pneumonia",
+      "title": "NHS (Велика Британија) — Pneumonia",
+      "url": "https://www.nhs.uk/conditions/pneumonia/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sob",
+      "title": "NHS (Велика Британија) — Shortness of breath",
+      "url": "https://www.nhs.uk/symptoms/shortness-of-breath/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS (Велика Британија) — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-07"
+    }
+  ]
+}
