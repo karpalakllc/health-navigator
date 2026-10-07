@@ -1005,7 +1005,7 @@ Breathing difficulty in children. Severe distress, apnoea, cyanosis, stridor at 
 
 **Red flags (asked first):**
 
-- Многу тешко дише, стенка (пуфка), ноздрите му се шират или меѓу ребрата/под ребрата се вовлекува → 194/112 — source: `nhs-under5-urgent`
+- Многу тешко дише, стенка при дишење, ноздрите му се шират или меѓу ребрата/под ребрата се вовлекува → 194/112 — source: `nhs-under5-urgent`
 - Паузи во дишењето (престанува да дише за 10 секунди или подолго) → 194/112 — source: `nhs-bronchiolitis`
 - Сини или сиви усни, јазик или кожа → 194/112 — source: `nhs-under5-urgent`
 - Висок, бучен звук при вдишување и кога мирува, или е многу вознемирено/исцрпено → 194/112 — source: `nhs-croup`
@@ -1035,7 +1035,7 @@ Rash in children with focus on meningitis/sepsis signs. Non-blanching rash, stif
 
 **Red flags (asked first):**
 
-- Дише многу брзо или тешко, стенка (пуфка) при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
+- Дише многу брзо или тешко, стенка при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
 - Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки → 194/112 — source: `nhs-under5-urgent`
 - Тешко се буди, не реагира или е млитаво → 194/112 — source: `nhs-under5-urgent`
 - Напад (грч) → 194/112 — source: `nhs-under5-urgent`
@@ -1069,7 +1069,7 @@ Fever in children under 13. NHS under-5 999 signs as red flags. <3 months ≥38 
 
 **Red flags (asked first):**
 
-- Дише многу брзо или тешко, стенка (пуфка) при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
+- Дише многу брзо или тешко, стенка при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
 - Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки → 194/112 — source: `nhs-under5-urgent`
 - Тешко се буди, не реагира или е млитаво → 194/112 — source: `nhs-under5-urgent`
 - Слаб, писклив или непрекинат плач што е невообичаен за детето → 194/112 — source: `nhs-under5-urgent`
@@ -1176,7 +1176,7 @@ Crying baby (0–12 months). Weak/high-pitched/continuous cry with illness signs
 
 **Red flags (asked first):**
 
-- Дише многу брзо или тешко, стенка (пуфка) при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
+- Дише многу брзо или тешко, стенка при дишење или стомачето/меѓу ребрата му се вовлекува → 194/112 — source: `nhs-under5-urgent`
 - Кожата, усните или јазикот се сини, сиви, многу бледи или со дамки → 194/112 — source: `nhs-under5-urgent`
 - Тешко се буди, не реагира или е млитаво → 194/112 — source: `nhs-under5-urgent`
 - Слаб, писклив или непрекинат плач што е невообичаен за детето → 194/112 — source: `nhs-under5-urgent`
