@@ -2,7 +2,7 @@
   "schema": "zdravje.triage/1",
   "key": "mental-health",
   "title": "Психичко здравје: вознемиреност, лошо расположение, криза",
-  "summary_en": "Mental health (teens and adults). Crisis red flags (suicidal plan/intent, self-harm now, risk to others, severe confusion/psychosis with danger) → global crisis outcome (194/112 + nearest ED). Thoughts of death without plan → same-day mental-health contact; panic attack first time with chest pain → emergency via chest pain; low mood/anxiety >2 weeks → GP; mild → self-care with safety net.",
+  "summary_en": "Mental health (teens and adults). Crisis red flags (suicidal plan/intent, self-harm now, risk to others, severe confusion/psychosis with danger) → global crisis outcome (194/112 + nearest ED). Frequent thoughts of death, psychotic or manic features, inability to function, teens or postpartum with any thoughts → same day; occasional thoughts without plan → 24–48h; low mood/anxiety >2 weeks → GP; mild → self-care with safety net (194/112 always repeated).",
   "notes_en": "NHS suicidal thoughts / urgent mental-health help / depression / anxiety / psychosis; WHO suicide fact sheet. Any self-harm or suicidal intent routes to global:crisis and never to self-care. Passive ideation without plan → 24–48h; frequent → same day; teens and postpartum have lower thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
