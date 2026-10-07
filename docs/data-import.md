@@ -371,10 +371,10 @@ specialties carry the ФЗОМ wording), or a slug that is itself a group key.
 
 1. Drafts the verification engine verified (two sources agree,
    [`verification.md`](verification.md)) can go public together:
-   **„Објави ги сите верифицирани“** shows their number and a random sample
-   of 20, then publishes them all. **„Објави ги и неверифицираните од
+   **„Објави ги сите верификувани“** shows their number and a random sample
+   of 20, then publishes them all. **„Објави ги и неверификуваните од
    ФЗОМ“** does the same for ФЗОМ doctors with no licence on the Комора list
-   and nothing else open on them: public, still „Неверифициран“
+   and nothing else open on them: public, still „Неверификуван“
    ([`verification.md`](verification.md) §8;
    `IMPORT_AUTO_PUBLISH_FZOM_UNVERIFIED` for later runs). Check other drafts against the source
    before publishing: **Publish selected drafts** (bulk) once a batch is
@@ -451,12 +451,18 @@ short error line only — never names or numbers):
 
 - **Failed scheduled run**: the command exited non-zero (the scheduler's
   failure hook).
+- **Stale register** („Застарен регистар“): the verification engine found
+  no ФЗОМ import or 304 within `IMPORT_FZOM_MAX_AGE_DAYS` (45); nothing from
+  ФЗОМ verifies a profile until it is imported again
+  ([`verification.md`](verification.md) §2b).
 - **ImportRunFinished**: dispatched by `ImportRunAnnouncer` when a real
   (not dry, not *not modified*) `import:fzom` or `import:komora-licences` run
   ends, by hand or scheduled; `AlertOnImportRun` mails on a failed run or a
   large diff. Contract: `source` (`fzom` / `komora`), `succeeded`, `seen`
   (source records after filtering), `created`, `updated`, `missing`
-  (profiles or licence links), `conflicts`, `unmatched` (review entries),
+  (profiles or licence links), `conflicts`, `unmatched` (records not tied to
+  one profile: ФЗОМ review entries; for the Комора, staging rows, most of
+  which never become review items),
   `runId`, `error`, `reviewUrl` (the run in **Import runs**). Website imports
   are run by hand and not announced.
 

@@ -1,7 +1,8 @@
 # Profile verification: rules and evidence
 
-How doctor, facility and pharmacy profiles become „Верифициран“ /
-„Верифицирана установа“ / „Верифицирана аптека“ — automatically, from the
+How doctor, facility and pharmacy profiles become „Верификуван“ (doctors)
+or „Верификувана“ (facilities and pharmacies, short form without a noun —
+owner's decision, 2026-10-07) — automatically, from the
 import evidence — and what is left for a person. The badge, its wording and
 the staff Verify / Unverify actions are described with the API
 (`verification` on the doctor, facility and pharmacy resources); the
@@ -44,7 +45,7 @@ and rule names only — never a licence number or a ФЗО facsimile.
 | Rule (`evidence.rule`) | Basis shown | Evidence required (all of it) |
 |---|---|---|
 | `owner_claim` | `owner_claim` | Staff linked a member account to the profile (`owner_user_id` and `owner_linked_at` set by `AssignDoctorOwner`, after checking the person outside the platform). |
-| `fzom_licence` | `official_registers` | 1. ФЗОМ lists the doctor in the latest complete snapshot that was applied (source record seen by that run, `import_missing_runs = 0`); 2. the attached Комора licence is on the latest list (`missing_since` empty) and valid today; 3. the licence holder's name is the profile name (normalised, either word order); 4. the licence specialty fits the profile's specialties (licence specialty mapping, §6); 5. no other row on the list with the same name also fits the profile. |
+| `fzom_licence` | `official_registers` | 0. the profile has at least one specialty (§2a); 1. ФЗОМ lists the doctor in the latest complete snapshot that was applied (source record seen by that run, `import_missing_runs = 0`); 2. the attached Комора licence is on the latest list (`missing_since` empty) and valid today; 3. the licence holder's name is the profile name (normalised, either word order); 4. the licence specialty fits the profile's specialties (licence specialty mapping, §6); 5. no other row on the list with the same name also fits the profile. |
 | `fzom_licence` (namesakes) | `official_registers` | ФЗОМ as above, no licence attached, and the list holds **several** valid licences of this name that fit the profile — at least as many as there are profiles of that name without a licence. Whichever is theirs, the ФЗОМ doctor holds one. No number is attached (`namesake_licences` = how many). |
 | `fzom_dentist` | `official_registers` (public label „Регистар на ФЗОМ“) | **Dentists only** (every specialty of the profile is a dental one, `stomatologija*`): ФЗОМ lists them in the latest complete snapshot as above. Nothing else is needed (owner's decision, 2026-10: there is no public dental licence list). A Комора licence attached to the profile and lapsed (expired or off the list) still blocks it. A dentist who drops out of ФЗОМ loses the badge on the next run (`source_removed`; a published one raises `verification_lost`). |
 | `website_licence` | `licence_and_website` | 1. The institution's own staff page lists the doctor (website import, research confidence „high“, the profile still linked to that institution, the site not flagged — §5); 2. the attached licence is on the list, valid, the profile's name and specialty as above; 3. **no other row on the whole list has this name** (stricter than ФЗОМ: a staff page is a weaker anchor than a contract). |
@@ -57,8 +58,12 @@ Everything else is **unverified**, with the first reason that applies:
 | `suppressed` | Removed on objection or deleted; never verified automatically | no |
 | `licence_off_list` | The attached licence is no longer on the latest complete Комора list | only if the profile was public and verified (§4) |
 | `licence_expired` | The attached licence has expired | as above |
+| `stale_register` | ФЗОМ was not imported, nor confirmed unchanged by a 304, within `IMPORT_FZOM_MAX_AGE_DAYS` (45): nothing from ФЗОМ is current. `import:adjudicate --report` warns and the import alert inbox gets „Застарен регистар“ | as above |
 | `source_removed` | No longer in the latest ФЗОМ snapshot (facility: no longer in the register) | as above |
+| `website_removed` | The latest import of the institution's site no longer lists the doctor (and ФЗОМ does not) | as above |
+| `website_outdated` | No import of the site listed the doctor within `IMPORT_WEBSITE_MAX_AGE_DAYS` (180) | as above |
 | `licence_name_differs` | The licence holder's name is not the profile's (renamed by hand?) | no |
+| `no_specialty_unverifiable` | The profile has no specialty; a general doctor's licence would fit it on the name alone (§2a) | no — the ФЗОМ „new“ item already warns „check they are doctors“; add the specialty or verify by hand |
 | `no_specialty` | The profile has no specialty to compare with a specialist licence | no — map the page's wording (Specialty aliases), then it is re-evaluated |
 | `specialty_mismatch` | The licence specialty does not fit the profile's | one item **per wording pair** when it is a mapping question (§3) |
 | `ambiguous_name` | Another doctor of the same name could hold the licence | the licence's own „ambiguous“ item (Комора) |
@@ -76,6 +81,30 @@ absent. They remain drafts until a later import brings a second source, or
 staff verify them individually — except `fzom_no_licence` drafts, which the
 owner decided may go public unverified (§8).
 
+### 2a. Profiles without a specialty
+
+A ФЗОМ draft without any specialty is mostly laboratory staff; its „new“
+item says to check they are doctors. A general doctor's licence „fits“ such
+a profile (§6), but only by the name, so no licence-based rule
+(`fzom_licence`, its namesake variant, `website_licence`) verifies it:
+reason `no_specialty_unverifiable`. The bulk publish sets skip every draft
+the ФЗОМ import marked `no_specialty` (§8).
+
+### 2b. Freshness of the evidence
+
+- **ФЗОМ:** "current" means listed by the latest complete applied
+  snapshot (without a complete one, the latest successful apply of any
+  kind). If ФЗОМ was not imported or confirmed unchanged (304) within
+  `IMPORT_FZOM_MAX_AGE_DAYS` (45), nothing from ФЗОМ counts:
+  `stale_register` for doctors and facilities, a warning in `--report` and
+  a mail to the import alert inbox.
+- **Websites:** every website import stamps `last_seen_at` on each
+  institution and staff-page entry it lists, changed or not. An entry older
+  than its institution's record was missing from the latest import of that
+  site → `website_removed`. An entry no import listed within
+  `IMPORT_WEBSITE_MAX_AGE_DAYS` (180) → `website_outdated`. Entries stored
+  before this stamp existed are refreshed by the next import of their slice.
+
 ## 3. Facilities and pharmacies
 
 | Rule | Basis | Evidence |
@@ -83,7 +112,7 @@ owner decided may go public unverified (§8).
 | `fzom_register` | `official_registers` | The ФЗОМ register lists the institution in the latest complete snapshot, and the profile still carries the register's tax number (ЕДБ, or the ФЗО code for an institution without one), the same name words (case, quotes and punctuation aside) and the same town. |
 
 Unverified: `register_mismatch` (in the register, but name, town or tax
-number differ — an item when the profile is public), `source_removed`,
+number differ — an item when the profile is public), `stale_register`, `source_removed`,
 `not_in_register` (known from its website only), `no_pharmacy_register`
 (pharmacies: ФЗОМ's pharmacy contracts are deliberately not imported and no
 other official pharmacy register is imported yet, so pharmacies wait for
@@ -99,7 +128,7 @@ and big groups first):
 |---|---|---|
 | `specialty_mapping` — „Licence specialty X never fits Y: N doctors“ | every doctor behind the wording pair (name and workplace agree, the specialty mapping does not). Only specialist licences: a general doctor's licence on a specialist profile contradicts the profile (often a doctor in specialisation) and mapping it would be wrong, so it stays unverified without an item. | Add the compatibility in **Licence specialty mapping**, or Dismiss (they stay unverified). The next run re-matches and verifies. |
 | `flagged_source` — „Website flagged as compromised/stale: … N doctors would be verified“ | every doctor that site's staff list would verify | **Trust this website** (after checking the site is current and clean) or Dismiss |
-| `verification_lost` | a **published** profile lost its verification (licence expired or off the list, gone from ФЗОМ) | Hide it, or verify by hand after checking |
+| `verification_lost` | a **published** profile lost its verification (licence expired or off the list, gone from ФЗОМ or the staff page, a stale source). Raised again on every run while the profile stays unverified, so it stays open until the verification returns (closed `no_longer_applies`) or staff act; a dismissal sticks while nothing changes | Hide it, verify by hand after checking, or Dismiss |
 | `register_mismatch` | a **published** facility no longer matches the register | Fix the profile or verify by hand |
 
 Komora „ambiguous“ licence items (several profiles fit one licence) are
@@ -150,34 +179,45 @@ verification it is extended:
 |---|---|
 | After every successful import apply | ФЗОМ and Комора (listener `VerifyAfterImportRun` on `ImportRunFinished`), websites (the command). `IMPORT_VERIFY_AFTER_IMPORT=false` turns it off. A busy engine is skipped; a failing one never fails the import. |
 | Nightly, 05:50 | `import:adjudicate` (always on: it only reads and writes the database). An expired licence loses its badge on the day it expires. |
-| By hand | `php artisan import:adjudicate` (apply), `--dry-run` (decide and count, write nothing; the licence re-match is skipped), `--report` (the owner's summary: verified by rule, unverified by reason, open questions by reason, drafts ready to publish — counts only, never names). |
+| By hand | `php artisan import:adjudicate` (apply), `--dry-run` (decide and count, write nothing; the licence re-match is skipped), `--report` (the owner's summary: verified by rule, unverified by reason, open questions by reason, drafts ready to publish, a stale-ФЗОМ warning — counts only, never names; like `--dry-run` it writes nothing to profiles but records its run as a dry-run `import_runs` row). |
 
 Each run is an `import_runs` row with source `verification` and its counts
 (**Data import → Import runs**). Status changes of drafts are not written to
 the audit log one by one (like imports); changes of published profiles are
 (log `verification`). Staff decisions are never overridden: an automatic
-call on a profile staff decided returns `staff_decision_kept`; **Release**
-hands it back to the engine.
+call on a profile staff decided returns `staff_decision_kept`. The writer
+re-reads the verification columns with the row locked before every
+automatic write, so a staff decision made while a run is in progress wins
+too. **Release** hands it back to the engine.
 
 ## 8. Publishing verified drafts
 
-The engine never publishes on its own unless asked:
+The engine never publishes on its own unless asked. Both sets below take
+only **never-published** drafts (`published_at` empty: publishing by any
+path — the edit form, a table action, the queue, auto-publish — stamps it
+and closes the profile's „new“ items, and unpublishing keeps it), so a
+profile staff unpublished is never re-published in bulk. Both skip drafts
+with **any other open review item** (possible duplicate, conflict, missing,
+uncertain…) and drafts the ФЗОМ import marked `no_specialty`. A click
+publishes no more than the modal counted (the highest item id when it
+opened).
 
-- **„Објави ги сите верифицирани“** (header action in Import review,
+- **„Објави ги сите верификувани“** (header action in Import review,
   `imports.manage`): shows how many verified hidden drafts there are and a
   random sample of 20 to glance at, then publishes them all through the
   normal publish action (suppressed doctors refused, hidden imported
-  specialties published along, their „new“ items closed).
+  specialties published along, their „new“ items closed). Auto-published
+  drafts are sent to the search index after the run.
 - `IMPORT_AUTO_PUBLISH_VERIFIED=true` (default `false`): each run publishes
   the drafts **it newly verified** — not the backlog, which stays for the
   bulk action.
 
 Owner's decision (2026-10): doctors ФЗОМ lists today whose name has **no
-licence on the Комора list** are published but stay „Неверифициран“; they
+licence on the Комора list** are published but stay „Неверификуван“; they
 are verified automatically once a licence (or a staff page of the same
 institution) appears.
 
-- **„Објави ги и неверифицираните од ФЗОМ“** (next to the first action,
+- **„Објави ги и неверификуваните од ФЗОМ“** (next to the first action,
   `imports.manage`): count and a random sample of 20, then publishes the
   open „new“ drafts whose engine reason is `fzom_no_licence` — set by the
   engine, never a staff decision — and that have **no other open review
@@ -225,14 +265,21 @@ counts only):
 | Комора `ambiguous` licence items left open (after namesake settling) | 17 |
 | Other open import items (not verification): unmapped website specialty wordings / website facility matches | 133 / 4 |
 | Licence rows kept as staging only (`no_match`), formerly one review item each | 3,926 |
-| Verified drafts ready for „Објави ги сите верифицирани“ | 7,706 of 11,397 drafts |
+| Verified drafts ready for „Објави ги сите верификувани“ | 7,706 of 11,397 drafts |
 
 ## 10. Known limits
 
 - Pharmacies cannot be verified automatically until an official pharmacy
-  register is imported (ФЗОМ pharmacy contracts are excluded on purpose).
+  register is imported (ФЗОМ pharmacy contracts are excluded on purpose);
+  staff verify them. The public copy names only ФЗОМ and the Лекарска
+  комора.
 - The Ministry's facility register is not imported; facilities are checked
   against ФЗОМ only.
+- An `owner_claim` verification stays when an attached licence later
+  expires: the identity was checked by a person (owner's choice; staff can
+  Unverify).
+- The nightly run (05:50) may read a ФЗОМ import (Monday 05:30) still being
+  applied; the next run corrects it (at most a day of staleness).
 - Website warnings come from keyword matching on free-text research notes.
 - A staff page whose specialty wording nobody has mapped yet does not
   contradict ФЗОМ (rule `fzom_website`): the identity rests on the name at
