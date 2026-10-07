@@ -1805,6 +1805,10 @@ export const mk = {
     ladderForumNeeds: "{posts} и {points}",
     ladderForumNote: "Во форумот се бројат темите и одговорите во туѓи теми.",
     openForum: "Отвори форум",
+    /** Forum hub aside → /community. */
+    forumHubLead:
+      "Кои членови минатиот месец најмногу им помогнаа на другите и како се добиваат звањата.",
+    forumHubLink: "Види ја заедницата",
   },
 } as const;
 

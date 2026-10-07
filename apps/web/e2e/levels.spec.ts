@@ -11,6 +11,19 @@ import { attemptUser, forum, users } from "./support/fixtures";
  * shows the member's own progress card.
  */
 test.describe("contributor levels", () => {
+  test("the forum hub links to the community page", async ({ page }) => {
+    await page.goto("/forum");
+    await page
+      .getByRole("complementary")
+      .getByRole("link", { name: mk.levels.forumHubLink })
+      .click();
+
+    await expect(page).toHaveURL(/\/community$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: mk.levels.heroTitle }),
+    ).toBeVisible();
+  });
+
   test("the footer leads to the community page with its lists and rules", async ({
     page,
   }) => {

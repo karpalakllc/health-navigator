@@ -16,6 +16,7 @@ import {
   type ForumTopicRowData,
 } from "@/components/forum/forum-topic-row";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
+import { ForumCommunityCard } from "@/components/levels/forum-community-card";
 import { Button, TextLink } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getSessionToken } from "@/lib/auth/session";
@@ -269,6 +270,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
               )}
             </section>
             <ForumRulesCard settings={settings} />
+            <ForumCommunityCard />
           </aside>
         }
       />
