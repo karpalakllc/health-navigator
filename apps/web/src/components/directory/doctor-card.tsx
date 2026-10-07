@@ -81,13 +81,15 @@ export function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
                 })}
               </p>
             ) : null}
-            <VerificationBadge
-              verification={doctor.verification}
-              kind="doctor"
-              className="mt-2"
-            />
           </div>
         </div>
+        {/* Its own line at the card's edge, not under the name beside the
+            photo: there the toggletip would run off a 390px screen. */}
+        <VerificationBadge
+          verification={doctor.verification}
+          kind="doctor"
+          className="mt-3 self-start"
+        />
 
         <div className="mt-4 flex flex-col gap-2">
           {place ? (
