@@ -1564,6 +1564,27 @@ export const mk = {
       "Испративте повеќе пријави за кратко време. Обидете се повторно подоцна.",
     honeypotLabel: "Оставете го ова поле празно",
   },
+  // W8-A: „Прашања без одговор“ / „Помогнете некому“.
+  help: {
+    homeTitle: "Помогнете некому",
+    homeLead:
+      "Овие прашања сè уште чекаат прв одговор. Ако имате слично искуство, споделете го.",
+    homeAll: "Сите прашања без одговор",
+    answer: "Одговори",
+    /** Read after „Одговори“ by screen readers: which topic. */
+    answerTopic: "на темата „{title}“",
+    askedBy: "Прашува {name}",
+    viewLabel: "Приказ на темите",
+    viewLatest: "Неодамнешни",
+    viewUnanswered: "Без одговор",
+    viewUnansweredCount: "Без одговор ({count})",
+    listTitle: "Прашања без одговор",
+    listLead:
+      "Теми на кои сè уште никој не одговорил, најновите прво. Вашето искуство може да помогне.",
+    emptyTitle: "Сите прашања имаат одговор.",
+    emptyBody: "Благодариме на сите што помагаат.",
+    emptyAction: "Неодамнешни дискусии",
+  },
 } as const;
 
 export type MkMessages = typeof mk;

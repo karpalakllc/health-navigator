@@ -1,13 +1,18 @@
 import { ChipLink } from "@/components/ui/chip";
 import { t } from "@/i18n/t";
 
+export type ForumCategorySort = "latest" | "active" | "unanswered";
+
 type ForumCategoryToolbarProps = {
   categorySlug: string;
-  currentSort: "latest" | "active";
+  currentSort: ForumCategorySort;
   searchQuery?: string;
 };
 
-/** „Најнови / Најактивни“ as chip links; the current one is marked. */
+/**
+ * „Најнови / Најактивни / Без одговор“ as chip links; the current one is
+ * marked. „Без одговор“ lists the category's questions nobody has answered.
+ */
 export function ForumCategoryToolbar({
   categorySlug,
   currentSort,
@@ -16,7 +21,7 @@ export function ForumCategoryToolbar({
   const base = `/forum/${categorySlug}`;
   const q = searchQuery?.trim();
 
-  function href(sort: "latest" | "active") {
+  function href(sort: ForumCategorySort) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (sort !== "latest") params.set("sort", sort);
@@ -31,6 +36,12 @@ export function ForumCategoryToolbar({
       </ChipLink>
       <ChipLink href={href("active")} current={currentSort === "active"}>
         {t("forum.sortActive")}
+      </ChipLink>
+      <ChipLink
+        href={href("unanswered")}
+        current={currentSort === "unanswered"}
+      >
+        {t("help.viewUnanswered")}
       </ChipLink>
     </nav>
   );

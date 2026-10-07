@@ -6,6 +6,7 @@ import { ForumPostCard } from "@/components/forum/forum-post-card";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
+import { FORUM_REPLY_ANCHOR } from "@/lib/forum/answer-link";
 import { ReportButton } from "@/components/reports/report-button";
 import { RemovedPlaceholder } from "@/components/reviews/removed-placeholder";
 import { BackLink } from "@/components/ui/back-link";
@@ -302,6 +303,8 @@ export default async function TopicDetailPage({
             ) : (
               <Card
                 as="section"
+                // „Одговори“ links (forumAnswerHref) land here for guests.
+                id={FORUM_REPLY_ANCHOR}
                 padding="md"
                 aria-labelledby="forum-login-heading"
                 className="flex flex-col items-start gap-3 lg:p-8"
@@ -313,7 +316,7 @@ export default async function TopicDetailPage({
                   {t("forum.loginCtaBody")}
                 </p>
                 <Button
-                  href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+                  href={`/login?redirect=${encodeURIComponent(`${redirectPath}#${FORUM_REPLY_ANCHOR}`)}`}
                   size="lg"
                   className="w-full sm:w-auto"
                 >

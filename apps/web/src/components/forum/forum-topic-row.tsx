@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
 import { formatForumLastActivity } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { t, tCount } from "@/i18n/t";
+import { t, tCount, tFormat } from "@/i18n/t";
 
 export type ForumTopicRowData = {
   href: string;
@@ -15,6 +16,11 @@ export type ForumTopicRowData = {
   lastActivityAt: string | null;
   isPinned?: boolean;
   isLocked?: boolean;
+  /**
+   * „Прашања без одговор“: an „Одговори“ button to the topic's reply box
+   * (forumAnswerHref) in place of the reply count.
+   */
+  answerHref?: string;
 };
 
 /**
@@ -68,7 +74,13 @@ export function ForumTopicRow({
   ].filter(Boolean);
 
   return (
-    <li className="relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 transition-colors hover:bg-cream sm:px-5">
+    <li
+      className={cn(
+        "relative flex min-h-[4.5rem] items-start gap-4 border-t border-line px-4 py-4 first:border-t-0 transition-colors hover:bg-cream sm:px-5",
+        // Phones: the answer button goes under the title, not beside it.
+        topic.answerHref && "max-sm:flex-col max-sm:gap-3",
+      )}
+    >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {topic.isPinned || topic.isLocked ? (
           <div className="flex flex-wrap gap-2">
@@ -93,7 +105,22 @@ export function ForumTopicRow({
           ))}
         </p>
       </div>
-      <ForumReplyCount count={topic.repliesCount} />
+      {topic.answerHref ? (
+        // Above the stretched title link, so both stay clickable.
+        <Button
+          href={topic.answerHref}
+          variant="secondary"
+          size="sm"
+          leadingIcon="reply"
+          // Starts with the visible label (WCAG 2.5.3), then names the topic.
+          aria-label={`${t("help.answer")} ${tFormat("help.answerTopic", { title: topic.title })}`}
+          className="relative z-10 mt-0.5 shrink-0"
+        >
+          {t("help.answer")}
+        </Button>
+      ) : (
+        <ForumReplyCount count={topic.repliesCount} />
+      )}
     </li>
   );
 }
