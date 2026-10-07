@@ -295,6 +295,43 @@ replaces only the specialty links it made itself, never staff-made ones. The
 navigation badge counts unmapped wordings. Aliases are neither created nor
 deleted by hand (a deleted one would come back with the catalogue default).
 
+### Website wordings mapped in 2026-10
+
+The first real website import left 133 wordings unmapped. Each was reviewed
+and 94 are mapped where the meaning is certain
+(`App\Support\Import\Website\SpecialtyText::WEBSITE_WORDINGS`): new imports
+map them on first sight, and the data migration
+`2026_10_16_130000_map_website_specialty_wordings` maps the aliases already
+stored — only those still unmapped, not excluded and never edited by staff
+(`updated_at = created_at`), so it never overrides a staff decision; their
+open review items are resolved (`alias_mapped`). Re-import the website
+slices afterwards to re-link the doctors. Rules: a subspecialty on a base
+specialty takes the precise field („Интерна медицина - пневмофтизиолог“ →
+Пулмологија), a paediatric subspecialty stays Педијатрија, a doctor in
+specialisation keeps today's specialty (Општа медицина / Стоматологија), a
+precise surgical field wins over „општа хирургија“.
+
+Left unmapped on purpose (39; staff decide in **Specialty aliases** if a
+person is affected): job titles and degrees (FOUNDER, МЕДИЦИНСКИ ДИРЕКТОР,
+ДИРЕКТОР ПЗУ …, ОСНОВАЧ И ИЗВРШЕН ДИРЕКТОР, РАКОВОДИТЕЛ НА МИКРОБИОЛОШКА И
+МОЛЕКУЛАРНА ЛАБОРАТОРИЈА, ШЕФ НА ИВФ-ОДДЕЛОТ, ОДДЕЛ, НАУКИ, MR.SCI, PHD IN
+ORAL AND MAXILLOFACIAL SURGERY, МАСТЕР ПО ПРОТЕТИКА, МАГИСТЕР ПО ОРАЛНА
+ХИРУРГИЈА И ИМПЛАНТОЛОГИЈА, МАГИСТЕР ПО ХУМАНА АСИСТИРАНА РЕПРОДУКЦИЈА …,
+SPECIALIST); specialisations in progress (ВО ТЕК, СУПСПЕЦИЈАЛИЗАЦИЈА ПО
+НЕФРОЛОГИЈА, НА СУПСПЕЦИЈАЛИЗАЦИЈА [ПО ТРАУМАТОЛОГИЈА / ПО ОСТЕОАРТИКУЛАРНА
+РАДИОДИЈАГНОСТИКА], СПЕЦИЈАЛИЗАЦИЈА ПО ПСИХИЈАТРИЈА / НЕВРОПСИХИЈАТРИЈА —
+finished or not is unclear); fragments of a split wording (ПУЛМО, ХЕМАТО);
+fields the catalogue lacks or that are not specialties (ТРАНСПЛАНТОЛОГИЈА,
+ТОКСИКОЛОГИЈА, ВАСКУЛАРНА МЕДИЦИНА, ЕСТЕТСКА МЕДИЦИНА, ДЕБЕЛИНА, ДИЕТЕТИКА И
+ДИЕТОТЕРАПИЈА, ПРОБЛЕМИ НА КОСА, ИВФ, СТЕРИЛИТЕТ, ИНФЕРТИЛИТЕТ); and
+ambiguous ones (ЕЛЕКТРОФИЗИОЛОГИЈА — cardiac or neuro; ДЕТСКА
+КАРДИОХИРУРГИЈА — paediatric or cardiac surgery; СУПСПЕЦ. ПЕДИЈАТРИСКА
+ДИЈАГНОСТИКА; MJEKE FAMILJARE — family-medicine specialist or GP; РАДИОЛОГИЈА
+И НУКЛЕАРНА МЕДИЦИНА and ИНТЕРНА МЕДИЦИНА И СЕМЕЈНА МЕДИЦИНА — two separate
+specialties). Most of these people get a specialty from another part of
+their wording; the few who do not keep none from the website until staff
+map the wording.
+
 The two tables are kept apart on purpose: an alias picks exactly one of our
 specialties, while the licence mapping groups wordings of two sources and
 lets a licence fit several groups (a cardiologist contracted as an

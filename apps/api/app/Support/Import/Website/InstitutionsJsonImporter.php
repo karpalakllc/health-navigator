@@ -80,7 +80,7 @@ final class InstitutionsJsonImporter
         $baseDir = dirname($jsonPath);
         $provenance = new ProvenanceWriter($context);
         $writer = new DirectoryWriter($context, $provenance);
-        $specialties = new SpecialtyResolver($context, self::SOURCE, SpecialtyText::EXTRA_ALIASES);
+        $specialties = new SpecialtyResolver($context, self::SOURCE, SpecialtyText::extraAliases());
         $this->suppressions = new ImportSuppressions;
         $this->indexFacilities();
 
