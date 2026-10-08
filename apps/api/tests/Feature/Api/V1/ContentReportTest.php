@@ -365,6 +365,22 @@ class ContentReportTest extends TestCase
         Mail::assertNotQueued(UgcRejectedMail::class);
     }
 
+    public function test_keeping_already_hidden_content_closes_open_reports_as_hidden(): void
+    {
+        Mail::fake();
+        $review = $this->approvedReview();
+        $review->reject(User::factory()->moderator()->create(), 'Претходно отстрането.');
+        $reporter = User::factory()->create();
+        $report = ContentReport::factory()->about($review)->create(['user_id' => $reporter->id]);
+
+        $report->keepContent(User::factory()->moderator()->create());
+
+        $this->assertSame(ReportStatus::Hidden, $report->fresh()->status);
+        Mail::assertQueued(ContentReportOutcomeMail::class, function (ContentReportOutcomeMail $mail) use ($reporter): bool {
+            return $mail->hasTo($reporter->email) && $mail->removed;
+        });
+    }
+
     private static function text(string $html): string
     {
         return trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($html))));

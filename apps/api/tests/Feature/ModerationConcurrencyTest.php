@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\ForumContentStatus;
+use App\Enums\ReportStatus;
 use App\Enums\ReviewStatus;
+use App\Mail\ContentReportOutcomeMail;
 use App\Mail\UgcApprovedMail;
+use App\Mail\UgcRejectedMail;
+use App\Models\ContentReport;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
@@ -17,6 +21,7 @@ use Tests\TestCase;
 
 /**
  * Dual-moderator approve must not double-count replies or double-mail.
+ * Keep vs hide on the same reported item must serialize on the content row.
  */
 class ModerationConcurrencyTest extends TestCase
 {
@@ -62,5 +67,44 @@ class ModerationConcurrencyTest extends TestCase
 
         $this->assertSame(ReviewStatus::Approved, $review->fresh()->status);
         Mail::assertQueued(UgcApprovedMail::class, 1);
+    }
+
+    public function test_keep_after_hide_does_not_mark_reports_kept(): void
+    {
+        Mail::fake();
+
+        $review = Review::factory()->approved()->create();
+        // Two queue rows for the same item, as two moderators would hold them.
+        $keep = ContentReport::factory()->about($review)->create()->load('reportable');
+        $hide = ContentReport::factory()->about($review)->create()->load('reportable');
+
+        $hide->hideContent(User::factory()->moderator()->create());
+        $keep->keepContent(User::factory()->moderator()->create());
+
+        $this->assertSame(ReviewStatus::Rejected, $review->fresh()->status);
+        $this->assertSame(ReportStatus::Hidden, $keep->fresh()->status);
+        $this->assertSame(ReportStatus::Hidden, $hide->fresh()->status);
+        Mail::assertQueued(ContentReportOutcomeMail::class, 2);
+        Mail::assertQueued(ContentReportOutcomeMail::class, fn (ContentReportOutcomeMail $mail): bool => $mail->removed);
+        Mail::assertQueued(UgcRejectedMail::class, 1);
+    }
+
+    public function test_hide_after_keep_does_not_unpublish_kept_content(): void
+    {
+        Mail::fake();
+
+        $review = Review::factory()->approved()->create();
+        $keep = ContentReport::factory()->about($review)->create()->load('reportable');
+        $hide = ContentReport::factory()->about($review)->create()->load('reportable');
+
+        $keep->keepContent(User::factory()->moderator()->create());
+        $hide->hideContent(User::factory()->moderator()->create());
+
+        $this->assertSame(ReviewStatus::Approved, $review->fresh()->status);
+        $this->assertSame(ReportStatus::Kept, $keep->fresh()->status);
+        $this->assertSame(ReportStatus::Kept, $hide->fresh()->status);
+        Mail::assertQueued(ContentReportOutcomeMail::class, 2);
+        Mail::assertQueued(ContentReportOutcomeMail::class, fn (ContentReportOutcomeMail $mail): bool => ! $mail->removed);
+        Mail::assertNotQueued(UgcRejectedMail::class);
     }
 }

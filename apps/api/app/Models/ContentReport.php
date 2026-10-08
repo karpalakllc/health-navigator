@@ -143,12 +143,15 @@ class ContentReport extends Model
         $category ??= $this->suggestedRemovalCategory();
 
         DB::transaction(function () use ($moderator, $note, $category): void {
-            $type = Relation::getMorphedModel($this->reportable_type) ?? $this->reportable_type;
-            $content = is_a($type, Model::class, true)
-                ? $type::query()->whereKey($this->reportable_id)->lockForUpdate()->first()
-                : null;
+            $content = $this->lockReportableForUpdate();
 
-            if (self::isPublished($content)) {
+            // Content lock first, then report rows — same order as keepContent,
+            // so concurrent keep/hide serialize instead of deadlocking.
+            $hasOpen = $this->openReportsQuery()->lockForUpdate()->exists();
+
+            // Only unpublish when open reports remain. A concurrent keep that
+            // already closed them must not be undone by a stale hide click.
+            if (self::isPublished($content) && $hasOpen) {
                 if ($content instanceof Review) {
                     $content->reject($moderator, $note, afterReport: true, category: $category);
                 } elseif ($content instanceof ForumPost) {
@@ -201,14 +204,45 @@ class ContentReport extends Model
 
     /**
      * Leave the item up and close every open report on it.
+     *
+     * Locks the reportable row first (same as hideContent) so concurrent
+     * keep/hide serialize. If the content is already unpublished, fail closed:
+     * close remaining open reports as Hidden so reporters are not told the
+     * item „останува објавена“ while it is gone.
      */
     public function keepContent(User $moderator): void
     {
-        // Same lock as hideContent: concurrent keep/hide must not both close
-        // open reports and mail reporters twice.
         DB::transaction(function () use ($moderator): void {
+            $content = $this->lockReportableForUpdate();
+
+            if (! self::isPublished($content)) {
+                $this->closeOpenReports(ReportStatus::Hidden, $moderator);
+
+                return;
+            }
+
             $this->closeOpenReports(ReportStatus::Kept, $moderator);
         });
+    }
+
+    /**
+     * @return Builder<ContentReport>
+     */
+    private function openReportsQuery(): Builder
+    {
+        return self::query()
+            ->open()
+            ->where('reportable_type', $this->reportable_type)
+            ->where('reportable_id', $this->reportable_id);
+    }
+
+    private function lockReportableForUpdate(): ?Model
+    {
+        $type = Relation::getMorphedModel($this->reportable_type) ?? $this->reportable_type;
+
+        return is_a($type, Model::class, true)
+            ? $type::query()->whereKey($this->reportable_id)->lockForUpdate()->first()
+            : null;
     }
 
     /**
@@ -218,11 +252,7 @@ class ContentReport extends Model
      */
     private function closeOpenReports(ReportStatus $outcome, User $moderator): void
     {
-        $open = self::query()
-            ->open()
-            ->where('reportable_type', $this->reportable_type)
-            ->where('reportable_id', $this->reportable_id)
-            ->lockForUpdate();
+        $open = $this->openReportsQuery()->lockForUpdate();
 
         $reporterIds = (clone $open)->pluck('user_id')->unique()->all();
 

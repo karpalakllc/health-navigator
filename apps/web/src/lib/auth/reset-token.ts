@@ -14,8 +14,16 @@ import { secureCookies } from "@/lib/site-url";
 
 export const RESET_COOKIE = "zdravje_password_reset";
 
-/** Where the form lives; the cookie is scoped to it (and the redirect to it). */
+/** Where the form lives after the emailed link is stripped of credentials. */
 export const RESET_FORM_PATH = "/reset-password/new";
+
+/**
+ * Cookie path must cover both the form page and the BFF that reads the token
+ * (`POST /api/session/reset-password`). Path-scoping to the form alone dropped
+ * the cookie on that POST. httpOnly + SameSite=Lax still keep the token out of
+ * JS and cross-site POSTs (same pattern as the session cookie).
+ */
+export const RESET_COOKIE_PATH = "/";
 
 /** Laravel's default broker expiry; the cookie need not outlive the token. */
 const RESET_COOKIE_MAX_AGE_SECONDS = 60 * 60;
@@ -31,7 +39,7 @@ export function resetCookieOptions(
     // Lax, not strict: the cookie is set on a navigation that started in a mail
     // client, and strict would withhold it from the redirect that follows.
     sameSite: "lax" as const,
-    path: RESET_FORM_PATH,
+    path: RESET_COOKIE_PATH,
     maxAge: maxAgeSeconds,
   };
 }

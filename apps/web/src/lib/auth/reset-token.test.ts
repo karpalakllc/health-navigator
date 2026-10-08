@@ -5,6 +5,7 @@ import {
   decodeResetCookie,
   encodeResetCookie,
   RESET_COOKIE,
+  RESET_COOKIE_PATH,
   RESET_FORM_PATH,
 } from "@/lib/auth/reset-token";
 
@@ -26,7 +27,7 @@ describe("GET /reset-password", () => {
     expect(await response.text()).toBe("");
   });
 
-  it("hands the token over in an httpOnly cookie scoped to the form", () => {
+  it("hands the token over in an httpOnly cookie the BFF can read", () => {
     const response = GET(new NextRequest(link));
     const cookie = response.cookies.get(RESET_COOKIE);
 
@@ -35,7 +36,8 @@ describe("GET /reset-password", () => {
       email: "ana@example.mk",
     });
     expect(cookie?.httpOnly).toBe(true);
-    expect(cookie?.path).toBe(RESET_FORM_PATH);
+    // Must include /api/session/reset-password, not only the form path.
+    expect(cookie?.path).toBe(RESET_COOKIE_PATH);
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 

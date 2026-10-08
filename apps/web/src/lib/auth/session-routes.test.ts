@@ -17,7 +17,7 @@ const { POST: reply } = await import("@/app/api/forum/posts/route");
 const { POST: avatar } = await import("@/app/api/session/avatar/route");
 const { POST: resetPassword } =
   await import("@/app/api/session/reset-password/route");
-const { RESET_COOKIE, RESET_FORM_PATH } =
+const { RESET_COOKIE, RESET_COOKIE_PATH } =
   await import("@/lib/auth/reset-token");
 const { t } = await import("@/i18n/t");
 const { SESSION_COOKIE } = await import("@/lib/auth/session");
@@ -211,7 +211,7 @@ describe("reset password", () => {
     );
   };
 
-  it("clears the spent reset cookie on the form's path when it succeeds", async () => {
+  it("clears the spent reset cookie on the shared cookie path when it succeeds", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ message: "ok" }), { status: 200 }),
     );
@@ -221,7 +221,7 @@ describe("reset password", () => {
 
     expect(response.status).toBe(200);
     expect(cookie).toContain(`${RESET_COOKIE}=;`);
-    expect(cookie).toContain(`Path=${RESET_FORM_PATH}`);
+    expect(cookie).toContain(`Path=${RESET_COOKIE_PATH}`);
     expect(cookie).toContain("Max-Age=0");
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.test/api/v1/auth/reset-password",
