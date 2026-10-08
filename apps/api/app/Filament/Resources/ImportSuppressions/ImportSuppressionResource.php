@@ -28,9 +28,9 @@ class ImportSuppressionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNoSymbol;
 
-    protected static ?string $navigationLabel = 'Suppressed profiles';
+    protected static ?string $navigationLabel = 'Потиснати профили';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
+    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
 
     protected static ?int $navigationSort = 4;
 

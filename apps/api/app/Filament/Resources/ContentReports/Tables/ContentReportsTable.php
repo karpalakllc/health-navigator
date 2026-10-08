@@ -41,8 +41,9 @@ class ContentReportsTable
                 TextColumn::make('note')
                     ->label('Reporter note')
                     ->limit(60)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->wrap()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('open_reports')
                     ->label('Open reports on item')
                     ->state(fn (ContentReport $record): int => $record->openReportsOnSameContent())
@@ -85,7 +86,7 @@ class ContentReportsTable
                     )->all()),
             ])
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()->label('Преглед'),
                 ContentReportActions::hide(),
                 ContentReportActions::keep(),
             ]);

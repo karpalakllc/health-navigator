@@ -39,7 +39,7 @@ class ListImportReviewItems extends ListRecords
     {
         $open = ImportReviewItem::query()->open()->selectRaw('kind, count(*) as aggregate')->groupBy('kind')->pluck('aggregate', 'kind');
 
-        $tabs = ['all' => Tab::make('All')];
+        $tabs = ['all' => Tab::make('Сите')];
 
         foreach (ImportReviewKind::cases() as $kind) {
             $tabs[$kind->value] = Tab::make($kind->label())

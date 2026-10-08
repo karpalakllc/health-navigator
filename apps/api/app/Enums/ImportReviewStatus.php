@@ -11,4 +11,13 @@ enum ImportReviewStatus: string
 
     /** Staff decided nothing needs doing. */
     case Dismissed = 'dismissed';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Open => 'Отворено',
+            self::Resolved => 'Решено',
+            self::Dismissed => 'Отфрлено',
+        };
+    }
 }

@@ -208,4 +208,44 @@ class ImportAdminTest extends TestCase
         $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
         $this->assertNotNull(ImportReviewItemResource::subjectUrl($item));
     }
+
+    public function test_duplicate_review_rows_use_compact_mk_list_copy_not_waterfall_prose(): void
+    {
+        $item = ImportReviewItem::query()->create([
+            'source' => 'cleanup',
+            'kind' => ImportReviewKind::Uncertain,
+            'status' => ImportReviewStatus::Open,
+            'item_key' => 'duplicates:website_into_register:test',
+            'title' => 'Possible duplicates: 91 website draft(s) of „ЈЗУ Универзитетска клиника за трауматологија, ортопедски болести, анестезија, реанимација и интензивно лекување и ургентен центар“ have the name of a ФЗОМ doctor',
+            'details' => [
+                'reason' => 'possible_duplicate',
+                'kind' => 'website_into_register',
+                'pairs' => [[1, 2], [3, 4]],
+                'count' => 91,
+                'other_town' => 0,
+                'facility_name' => 'ЈЗУ Универзитетска клиника за трауматологија',
+                'action' => 'Each draft has the name of exactly one ФЗОМ doctor in the whole register. „Спои ги“ moves each draft\'s workplace into the ФЗОМ profile and deletes the draft; „Остави“ keeps them apart.',
+            ],
+            'priority' => 99,
+        ]);
+
+        $listTitle = ImportReviewItemResource::listTitle($item);
+        $summary = ImportReviewItemResource::summary($item);
+        $guidance = ImportReviewItemResource::guidance($item);
+
+        $this->assertStringContainsString('Можни дупликати', $listTitle);
+        $this->assertStringContainsString('91', $listTitle);
+        $this->assertLessThan(120, mb_strlen($listTitle));
+        $this->assertStringNotContainsString('Each draft has', $summary);
+        $this->assertStringNotContainsString('Possible duplicates', $summary);
+        $this->assertLessThan(80, mb_strlen($summary));
+        $this->assertStringContainsString('Спои ги', $guidance);
+        $this->assertGreaterThan(80, mb_strlen($guidance));
+
+        $this->actingAs($this->staff(RoleCatalog::ADMINISTRATOR));
+        Livewire::test(ListImportReviewItems::class)
+            ->assertCanSeeTableRecords([$item])
+            ->assertSee('Можни дупликати')
+            ->assertDontSee('Each draft has the name of exactly one');
+    }
 }
