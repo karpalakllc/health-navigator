@@ -263,9 +263,9 @@ class BulkPublishTest extends TestCase
         $this->assertSame(ImportReviewStatus::Open, $brokenItem->fresh()->status, 'Rolled back with its transaction: still to decide.');
 
         $notification = $admin->notifications()->sole();
-        $this->assertSame('Објавувањето заврши', $notification->data['title']);
-        $this->assertStringContainsString('објавени 1 од 2', $notification->data['body']);
-        $this->assertStringContainsString('Неуспешни 1', $notification->data['body']);
+        $this->assertSame('Publishing finished', $notification->data['title']);
+        $this->assertStringContainsString('published 1 of 2', $notification->data['body']);
+        $this->assertStringContainsString('Failed 1', $notification->data['body']);
         $this->assertStringContainsString('#'.$brokenItem->id, $notification->data['body']);
     }
 
@@ -308,7 +308,7 @@ class BulkPublishTest extends TestCase
         $operation->refresh();
         $this->assertSame(BulkOperationStatus::Failed, $operation->status);
         $this->assertStringContainsString('database went away', (string) $operation->error);
-        $this->assertSame('Објавувањето застана', $admin->notifications()->sole()->data['title']);
+        $this->assertSame('Publishing stopped', $admin->notifications()->sole()->data['title']);
         $this->assertSame($operation->id, $this->bulk()->unfinished()?->id);
     }
 
@@ -347,7 +347,7 @@ class BulkPublishTest extends TestCase
         $this->draft('Задоцнет Доктор');
         $this->artisan('import:publish', ['set' => 'verified', '--by' => 'owner@example.test'])
             ->expectsOutputToContain('Continuing bulk publish #'.$stopped->id)
-            ->expectsOutputToContain('објавени 5 од 5')
+            ->expectsOutputToContain('published 5 of 5')
             ->assertSuccessful();
 
         $this->assertSame(1, BulkOperation::query()->count());

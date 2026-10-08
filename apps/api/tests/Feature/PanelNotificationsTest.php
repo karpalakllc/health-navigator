@@ -33,7 +33,7 @@ class PanelNotificationsTest extends TestCase
     public function test_the_panel_bell_writes_json_data_with_the_filament_format(): void
     {
         $staff = User::factory()->create();
-        $this->notify($staff, 'Објавувањето заврши');
+        $this->notify($staff, 'Publishing finished');
 
         $row = DB::table('notifications')->first();
         $this->assertNotNull($row);
@@ -67,7 +67,7 @@ class PanelNotificationsTest extends TestCase
     public function test_panel_notifications_are_in_the_export_and_go_with_the_account(): void
     {
         $staff = User::factory()->create();
-        $this->notify($staff, 'Објавувањето заврши');
+        $this->notify($staff, 'Publishing finished');
         $this->notify(User::factory()->create(), 'Туѓо');
 
         ob_start();
@@ -75,7 +75,7 @@ class PanelNotificationsTest extends TestCase
         $export = json_decode((string) ob_get_clean(), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertCount(1, $export['panel_notifications']);
-        $this->assertSame('Објавувањето заврши', $export['panel_notifications'][0]['title']);
+        $this->assertSame('Publishing finished', $export['panel_notifications'][0]['title']);
         $this->assertSame('Објавени 3 од 3.', $export['panel_notifications'][0]['body']);
 
         app(AnonymiseUser::class)->handle($staff);

@@ -39,7 +39,7 @@ class ListImportReviewItems extends ListRecords
     {
         $open = ImportReviewItem::query()->open()->selectRaw('kind, count(*) as aggregate')->groupBy('kind')->pluck('aggregate', 'kind');
 
-        $tabs = ['all' => Tab::make('Сите')];
+        $tabs = ['all' => Tab::make('All')];
 
         foreach (ImportReviewKind::cases() as $kind) {
             $tabs[$kind->value] = Tab::make($kind->label())
@@ -57,7 +57,7 @@ class ListImportReviewItems extends ListRecords
     {
         return [
             Action::make('publishVerified')
-                ->label('Објави ги сите верификувани')
+                ->label('Publish all verified')
                 ->icon('heroicon-o-check-badge')
                 ->color('success')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->count() > 0)
@@ -71,10 +71,10 @@ class ListImportReviewItems extends ListRecords
                 ->action(fn () => $this->startBulkPublish(BulkPublish::TYPE_VERIFIED, $this->bulkCeiling)),
             // Owner's decision: ФЗОМ lists them today, the Комора list has no
             // licence of their name, nothing else is open on them → public,
-            // but „Неверификуван“ (verified later automatically if a licence
+            // but “Unverified” (verified later automatically if a licence
             // appears).
             Action::make('publishFzomUnverified')
-                ->label('Објави ги и неверификуваните од ФЗОМ')
+                ->label('Publish unverified ФЗОМ drafts too')
                 ->icon('heroicon-o-eye')
                 ->color('gray')
                 ->visible(fn (): bool => (auth()->user()?->can('imports.manage') ?? false) && app(VerifiedDraftPublisher::class)->countFzomUnverified() > 0)
@@ -119,8 +119,8 @@ class ListImportReviewItems extends ListRecords
             $operation = $bulk->start($type, $user, $upToId, $itemIds);
         } catch (BulkPublishAlreadyRunning) {
             Notification::make()
-                ->title('Веќе тече едно објавување')
-                ->body('Почекајте да заврши (напредокот е прикажан над табелата) или прекинете го таму.')
+                ->title('A publish is already running')
+                ->body('Wait for it to finish (progress is shown above the table) or cancel it there.')
                 ->warning()
                 ->send();
 
@@ -132,11 +132,11 @@ class ListImportReviewItems extends ListRecords
         }
 
         if ($operation->status === BulkOperationStatus::Completed) {
-            Notification::make()->title('Објавувањето заврши')->body(BulkPublish::summary($operation))->success()->send();
+            Notification::make()->title('Publishing finished')->body(BulkPublish::summary($operation))->success()->send();
         } else {
             Notification::make()
-                ->title('Објавувањето започна…')
-                ->body(sprintf('%s: %d профили се објавуваат во делови. Напредокот е прикажан над табелата; кога ќе заврши, ќе добиете известување.', BulkPublish::label($type), $operation->total))
+                ->title('Publishing started…')
+                ->body(sprintf('%s: %d profiles are publishing in chunks. Progress is shown above the table; you will get a notification when it finishes.', BulkPublish::label($type), $operation->total))
                 ->info()
                 ->send();
         }
@@ -171,7 +171,7 @@ class ListImportReviewItems extends ListRecords
 
     /**
      * Doctor drafts current in ФЗОМ with no licence on the Комора list and
-     * no other open review item: they become public as „Неверификуван“.
+     * no other open review item: they become public as “Unverified”.
      */
     private function fzomUnverifiedSampleDescription(): Htmlable
     {
@@ -180,7 +180,7 @@ class ListImportReviewItems extends ListRecords
             ->implode('');
 
         return new HtmlString(
-            '<p>Doctors ФЗОМ lists today whose name has no licence on the Комора list become public, still „Неверификуван“. '
+            '<p>Doctors ФЗОМ lists today whose name has no licence on the Комора list become public, still “Unverified”. '
             .'Ambiguous names, disagreeing sources, specialty mismatches, website-only drafts, drafts without a specialty, drafts with any other open item '
             .'and profiles staff unpublished stay hidden. '
             .'A random sample to glance at:</p>'

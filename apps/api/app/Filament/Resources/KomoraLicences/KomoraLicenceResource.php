@@ -26,9 +26,9 @@ class KomoraLicenceResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCheckBadge;
 
-    protected static ?string $navigationLabel = 'Лиценци (Комора)';
+    protected static ?string $navigationLabel = 'Licences (Комора)';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
+    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
 
     protected static ?int $navigationSort = 40;
 

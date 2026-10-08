@@ -70,7 +70,7 @@ class GuidanceFlowAdminTest extends TestCase
         Livewire::actingAs($this->staff())
             ->test(ListGuidanceFlows::class)
             ->assertSee('Болки во грлото (пример)')
-            ->assertSee('нацрт — чека лекарски преглед');
+            ->assertSee('draft — awaiting clinician review');
 
         $this->assertSame(2, TriageFlowVersion::query()->where('status', 'draft')->count());
     }

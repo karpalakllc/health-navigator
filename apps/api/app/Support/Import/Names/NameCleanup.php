@@ -401,11 +401,11 @@ final class NameCleanup
     public static function raiseItem(Doctor|Facility $subject, string $field, string $current, ?string $suggestion, string $problem, ?int $runId): ImportReviewItem
     {
         $type = ImportReviewItem::subjectTypeOf($subject);
-        $label = $type === 'doctor' ? 'Име' : 'Назив на установа';
-        $label = $field === 'title' ? 'Титула' : $label;
+        $label = $type === 'doctor' ? 'Name' : 'Facility name';
+        $label = $field === 'title' ? 'Title' : $label;
         $title = $suggestion !== null
-            ? sprintf('%s: „%s“ → „%s“?', $label, $current, $suggestion)
-            : sprintf('%s: „%s“', $label, $current);
+            ? sprintf('%s: “%s” → “%s”?', $label, $current, $suggestion)
+            : sprintf('%s: “%s”', $label, $current);
 
         return ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:'.$type.':'.$subject->getKey().':'.$field, $title, [
             'reason' => self::REASON,
@@ -413,7 +413,7 @@ final class NameCleanup
             'field' => $field,
             'current' => $current,
             'suggestion' => $suggestion,
-            'action' => (self::PROBLEMS[$problem] ?? $problem).($suggestion !== null ? ' „Прифати предлог“ ја поставува предложената вредност.' : ' Уредете го профилот ако треба промена.'),
+            'action' => (self::PROBLEMS[$problem] ?? $problem).($suggestion !== null ? ' “Accept suggestion” sets the proposed value.' : ' Edit the profile if it needs a change.'),
         ], $subject, $runId, (bool) $subject->getAttribute('is_published') ? 20 : 5);
     }
 
@@ -450,25 +450,25 @@ final class NameCleanup
      */
     public static function raiseBatch(string $problem, array $changes, ?int $runId): ImportReviewItem
     {
-        return ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:batch:'.$problem, sprintf('%d имиња: %s', count($changes), self::PROBLEMS[$problem] ?? $problem), [
+        return ImportReviewItem::raise(self::SOURCE, ImportReviewKind::Uncertain, 'name:batch:'.$problem, sprintf('%d names: %s', count($changes), self::PROBLEMS[$problem] ?? $problem), [
             'reason' => self::REASON,
             'problem' => $problem,
             'changes' => $changes,
             'proposals' => implode('; ', array_map(fn (array $change): string => $change['current'].' → '.$change['suggestion'], $changes)),
-            'action' => (self::PROBLEMS[$problem] ?? $problem).' „Прифати предлог“ ги поставува сите предлози (профил изменет оттогаш се прескокнува); „Остави“ ги задржува сите.',
+            'action' => (self::PROBLEMS[$problem] ?? $problem).' “Accept suggestion” applies every proposal (a profile changed since is skipped); “Keep apart” keeps them all.',
         ], null, $runId, 15);
     }
 
     /** One-line descriptions of the uncertain cases (the review item and the CSV). */
     public const PROBLEMS = [
-        'latin_script' => 'Име на латиница; имената во именикот се на кирилица.',
-        'mixed_script' => 'Латинска буква без кирилична двојка во кирилична збор.',
-        'institution_in_name' => 'Установа или правна форма во лично име.',
-        'role_in_name' => 'Професија или титула во средина на името.',
-        'text_after_comma' => 'Текст по запирка што не е титула.',
-        'name_order' => 'Веројатно напишано презиме прво.',
-        'licence_name_differs' => 'Исчистеното име повеќе не би се совпаднало со листата на Комора.',
-        'title_unrecognised' => 'Титула што правилата не ја познаваат.',
+        'latin_script' => 'Name in Latin script; the directory writes names in Cyrillic.',
+        'mixed_script' => 'A Latin letter without a Cyrillic look-alike inside a Cyrillic word.',
+        'institution_in_name' => 'An institution or legal form inside a person\'s name.',
+        'role_in_name' => 'A profession or title in the middle of the name.',
+        'text_after_comma' => 'Text after a comma that is not a title.',
+        'name_order' => 'Probably written surname first.',
+        'licence_name_differs' => 'The cleaned name would no longer match the Комора licence list.',
+        'title_unrecognised' => 'A title the rules do not know.',
     ];
 
     /**

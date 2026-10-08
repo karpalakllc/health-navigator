@@ -16,13 +16,13 @@ class FeedbackReport extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedHandThumbUp;
 
-    protected static ?string $navigationLabel = 'Повратни информации';
+    protected static ?string $navigationLabel = 'Feedback';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Platform';
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $title = 'Повратни информации';
+    protected static ?string $title = 'Feedback';
 
     protected static ?string $slug = 'feedback-report';
 
@@ -58,11 +58,11 @@ class FeedbackReport extends Page
     public function namespaceOptions(): array
     {
         return [
-            '' => 'Сите',
-            'guide:' => 'Водичи',
-            'urgent-care:' => 'Каде веднаш',
-            'guidance:' => 'Насоки за симптоми',
-            'page:' => 'Други страници',
+            '' => 'All',
+            'guide:' => 'Guides',
+            'urgent-care:' => 'Urgent care',
+            'guidance:' => 'Symptom guidance',
+            'page:' => 'Other pages',
         ];
     }
 
@@ -72,10 +72,10 @@ class FeedbackReport extends Page
     public function periodOptions(): array
     {
         return [
-            ['value' => 7, 'label' => 'Последни 7 дена'],
-            ['value' => 30, 'label' => 'Последни 30 дена'],
-            ['value' => 90, 'label' => 'Последни 90 дена'],
-            ['value' => 365, 'label' => 'Последна година'],
+            ['value' => 7, 'label' => 'Last 7 days'],
+            ['value' => 30, 'label' => 'Last 30 days'],
+            ['value' => 90, 'label' => 'Last 90 days'],
+            ['value' => 365, 'label' => 'Last year'],
         ];
     }
 
@@ -125,14 +125,14 @@ class FeedbackReport extends Page
     public function reasonLabels(): array
     {
         return [
-            '+clear' => 'Јасно објаснето',
-            '+found-place' => 'Најдов каде да одам',
-            '+next-step' => 'Знам што следно',
-            '−unclear' => 'Нејасно',
-            '−not-found' => 'Не најдов што барав',
-            '−wrong-info' => 'Погрешни податоци',
-            '−outdated' => 'Застарено',
-            '−not-relevant' => 'Не се однесува на мене',
+            '+clear' => 'Clearly explained',
+            '+found-place' => 'Found where to go',
+            '+next-step' => 'Know what to do next',
+            '−unclear' => 'Unclear',
+            '−not-found' => 'Did not find what I needed',
+            '−wrong-info' => 'Wrong information',
+            '−outdated' => 'Outdated',
+            '−not-relevant' => 'Not relevant to me',
         ];
     }
 

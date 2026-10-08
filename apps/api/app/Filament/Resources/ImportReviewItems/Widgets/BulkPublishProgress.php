@@ -58,7 +58,7 @@ class BulkPublishProgress extends Widget
         }
 
         if ($this->seenStatus === BulkOperationStatus::Running->value && $operation->status !== BulkOperationStatus::Running) {
-            $notification = Notification::make()->title($operation->status === BulkOperationStatus::Completed ? 'Објавувањето заврши' : 'Објавувањето застана')->body(BulkPublish::summary($operation));
+            $notification = Notification::make()->title($operation->status === BulkOperationStatus::Completed ? 'Publishing finished' : 'Publishing stopped')->body(BulkPublish::summary($operation));
             ($operation->status === BulkOperationStatus::Completed && $operation->failed === 0 ? $notification->success() : $notification->warning())->send();
             $this->dispatch('bulk-publish-finished');
         }

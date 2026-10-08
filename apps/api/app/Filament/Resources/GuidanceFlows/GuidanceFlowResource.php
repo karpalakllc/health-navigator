@@ -115,7 +115,7 @@ class GuidanceFlowResource extends Resource
         $review = $version->latestReview;
 
         if ($review === null) {
-            return 'нацрт — чека лекарски преглед';
+            return 'draft — awaiting clinician review';
         }
 
         return ($review->decision === 'approved' ? 'Approved' : 'Changes requested')

@@ -86,7 +86,7 @@ class ContentReportsTable
                     )->all()),
             ])
             ->recordActions([
-                ViewAction::make()->label('Преглед'),
+                ViewAction::make(),
                 ContentReportActions::hide(),
                 ContentReportActions::keep(),
             ]);

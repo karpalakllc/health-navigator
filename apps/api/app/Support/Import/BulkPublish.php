@@ -299,10 +299,10 @@ final class BulkPublish
         $operation->forceFill(['status' => BulkOperationStatus::Failed, 'error' => mb_substr($error, 0, 500), 'heartbeat_at' => now()])->save();
 
         $this->notifyStarter($operation, Notification::make()
-            ->title('Објавувањето застана')
-            ->body(sprintf('%s: објавени %d од %d. Продолжете го од Import review („Продолжи“)%s.',
+            ->title('Publishing stopped')
+            ->body(sprintf('%s: published %d of %d. Resume from Import review (“Resume”)%s.',
                 self::label($operation->type), $operation->published, $operation->total,
-                $operation->type === self::TYPE_SELECTED ? '' : ' или со php artisan import:publish '.$operation->type))
+                $operation->type === self::TYPE_SELECTED ? '' : ' or with php artisan import:publish '.$operation->type))
             ->danger());
     }
 
@@ -358,7 +358,7 @@ final class BulkPublish
     {
         $operation->forceFill(['status' => BulkOperationStatus::Completed, 'finished_at' => now(), 'heartbeat_at' => now()])->save();
 
-        $notification = Notification::make()->title('Објавувањето заврши')->body(self::summary($operation));
+        $notification = Notification::make()->title('Publishing finished')->body(self::summary($operation));
         $this->notifyStarter($operation, $operation->failed > 0 ? $notification->warning() : $notification->success());
 
         return $operation;
@@ -376,23 +376,23 @@ final class BulkPublish
     public static function label(string $type): string
     {
         return match ($type) {
-            self::TYPE_VERIFIED => 'Верификуваните профили',
-            self::TYPE_FZOM_UNVERIFIED => 'Неверификуваните од ФЗОМ',
-            self::TYPE_SELECTED => 'Избраните профили',
+            self::TYPE_VERIFIED => 'Verified profiles',
+            self::TYPE_FZOM_UNVERIFIED => 'Unverified ФЗОМ drafts',
+            self::TYPE_SELECTED => 'Selected profiles',
             default => $type,
         };
     }
 
     public static function summary(BulkOperation $operation): string
     {
-        $summary = sprintf('%s: објавени %d од %d.', self::label($operation->type), $operation->published, $operation->total);
+        $summary = sprintf('%s: published %d of %d.', self::label($operation->type), $operation->published, $operation->total);
 
         if ($operation->skipped > 0) {
-            $summary .= sprintf(' Прескокнати %d (веќе објавени, отстранети на приговор или повеќе не се во групата).', $operation->skipped);
+            $summary .= sprintf(' Skipped %d (already published, removed after an objection, or no longer in the set).', $operation->skipped);
         }
 
         if ($operation->failed > 0) {
-            $summary .= sprintf(' Неуспешни %d (ставки: %s) — проверете ги во Import review.', $operation->failed,
+            $summary .= sprintf(' Failed %d (items: %s) — check them in Import review.', $operation->failed,
                 collect($operation->failures ?? [])->take(10)->pluck('item')->map(fn (int $id): string => '#'.$id)->implode(', '));
         }
 

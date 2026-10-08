@@ -91,17 +91,17 @@ class BulkPublishPageTest extends TestCase
             ->mountAction('publishVerified')
             ->assertMountedActionModalSee('Publish 5 verified drafts?')
             ->callMountedAction()
-            ->assertNotified('Објавувањето започна…')
+            ->assertNotified('Publishing started…')
             ->assertDispatched('bulk-publish-started');
 
         $this->assertSame(2, $this->published());
         $operation = BulkOperation::query()->sole();
         $this->assertSame(BulkOperation::DRIVER_INLINE, $operation->driver);
 
-        $this->get('/admin/import-review-items')->assertOk()->assertSee('Објавување во тек');
+        $this->get('/admin/import-review-items')->assertOk()->assertSee('Publishing in progress');
 
         $widget = Livewire::test(BulkPublishProgress::class)
-            ->assertSee('Објавување во тек')
+            ->assertSee('Publishing in progress')
             ->assertSee('2 / 5')
             ->assertSeeHtml('wire:poll.3s.keep-alive="tick"');
 
@@ -109,13 +109,13 @@ class BulkPublishPageTest extends TestCase
         $this->assertSame(4, $this->published());
 
         $widget->call('tick')
-            ->assertSee('Објавувањето заврши')
+            ->assertSee('Publishing finished')
             ->assertDontSeeHtml('wire:poll')
             ->assertDispatched('bulk-publish-finished')
-            ->assertNotified('Објавувањето заврши');
+            ->assertNotified('Publishing finished');
         $this->assertSame(5, $this->published());
         $this->assertSame(BulkOperationStatus::Completed, $operation->fresh()->status);
-        $this->assertSame('Објавувањето заврши', $this->admin->notifications()->sole()->data['title']);
+        $this->assertSame('Publishing finished', $this->admin->notifications()->sole()->data['title']);
     }
 
     public function test_a_small_set_is_done_before_the_notification(): void
@@ -124,7 +124,7 @@ class BulkPublishPageTest extends TestCase
 
         Livewire::test(ListImportReviewItems::class)
             ->callAction('publishVerified')
-            ->assertNotified('Објавувањето заврши');
+            ->assertNotified('Publishing finished');
 
         $this->assertSame(2, $this->published());
     }
@@ -137,18 +137,18 @@ class BulkPublishPageTest extends TestCase
 
         Livewire::test(ListImportReviewItems::class)
             ->callAction('publishVerified')
-            ->assertNotified('Објавувањето започна…');
+            ->assertNotified('Publishing started…');
 
         Queue::assertPushed(RunBulkPublish::class);
         $this->assertSame(0, $this->published(), 'Nothing is published inside the request.');
 
         // A worker is expected: the page only watches…
-        Livewire::test(BulkPublishProgress::class)->call('tick')->assertSee('во позадина');
+        Livewire::test(BulkPublishProgress::class)->call('tick')->assertSee('in the background');
         $this->assertSame(0, $this->published());
 
         // …until nothing has moved for a while (no worker running).
         $this->travel(BulkPublish::STALE_SECONDS + 1)->seconds();
-        Livewire::test(BulkPublishProgress::class)->assertSee('продолжува додека оваа страница е отворена')->call('tick');
+        Livewire::test(BulkPublishProgress::class)->assertSee('continues while this page is open')->call('tick');
         $this->assertSame(3, $this->published());
     }
 
@@ -160,7 +160,7 @@ class BulkPublishPageTest extends TestCase
 
         Livewire::test(ListImportReviewItems::class)
             ->callAction('publishVerified')
-            ->assertNotified('Веќе тече едно објавување');
+            ->assertNotified('A publish is already running');
 
         $this->assertSame(1, BulkOperation::query()->count());
         $this->assertSame(1, $this->published());
@@ -176,7 +176,7 @@ class BulkPublishPageTest extends TestCase
         $viewer->givePermissionTo(Permission::findByName('imports.view'));
         $this->actingAs($viewer);
 
-        Livewire::test(BulkPublishProgress::class)->call('tick')->assertSee('1 / 3')->assertDontSee('Прекини');
+        Livewire::test(BulkPublishProgress::class)->call('tick')->assertSee('1 / 3')->assertDontSee('Cancel');
         $this->assertSame(1, $this->published());
     }
 
@@ -189,7 +189,7 @@ class BulkPublishPageTest extends TestCase
         $operation->forceFill(['status' => BulkOperationStatus::Failed, 'error' => 'QueryException: gone'])->save();
 
         Livewire::test(BulkPublishProgress::class)
-            ->assertSee('Објавувањето застана')
+            ->assertSee('Publishing stopped')
             ->assertSee('QueryException: gone')
             ->call('resume')
             ->assertSee('2 / 3');
@@ -215,7 +215,7 @@ class BulkPublishPageTest extends TestCase
         // Three selected: over the limit.
         Livewire::test(ListImportReviewItems::class)
             ->callTableBulkAction('publish', $items->slice(2))
-            ->assertNotified('Објавувањето започна…');
+            ->assertNotified('Publishing started…');
         $operation = BulkOperation::query()->sole();
         $this->assertSame(BulkPublish::TYPE_SELECTED, $operation->type);
         $this->assertSame(3, $operation->total);

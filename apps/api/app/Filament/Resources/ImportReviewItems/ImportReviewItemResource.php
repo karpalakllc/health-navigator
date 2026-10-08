@@ -36,9 +36,9 @@ use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 
 /**
- * The import review queue („Увоз на податоци“): drafts to publish, values
- * that changed on live profiles, conflicts with staff edits, records the
- * source dropped, and rows the importer could not place.
+ * The import review queue (Data import): drafts to publish, values that
+ * changed on live profiles, conflicts with staff edits, records the source
+ * dropped, and rows the importer could not place.
  */
 class ImportReviewItemResource extends Resource
 {
@@ -46,15 +46,15 @@ class ImportReviewItemResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxStack;
 
-    protected static ?string $navigationLabel = 'Преглед на увоз';
+    protected static ?string $navigationLabel = 'Import review';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
+    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $modelLabel = 'ставка за преглед';
+    protected static ?string $modelLabel = 'import review item';
 
-    protected static ?string $pluralModelLabel = 'преглед на увоз';
+    protected static ?string $pluralModelLabel = 'import review';
 
     public static function canCreate(): bool
     {
@@ -71,27 +71,27 @@ class ImportReviewItemResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            TextEntry::make('kind')->label('Вид')->badge()->formatStateUsing(fn (ImportReviewKind $state): string => $state->label()),
-            TextEntry::make('status')->label('Статус')->badge()->formatStateUsing(fn (ImportReviewStatus $state): string => $state->label()),
-            TextEntry::make('source')->label('Извор'),
-            TextEntry::make('title')->label('Предмет')->columnSpanFull(),
+            TextEntry::make('kind')->label('Kind')->badge()->formatStateUsing(fn (ImportReviewKind $state): string => $state->label()),
+            TextEntry::make('status')->label('Status')->badge()->formatStateUsing(fn (ImportReviewStatus $state): string => $state->label()),
+            TextEntry::make('source')->label('Source'),
+            TextEntry::make('title')->label('Subject')->columnSpanFull(),
             TextEntry::make('guidance')
-                ->label('Упатство')
+                ->label('Guidance')
                 ->state(fn (ImportReviewItem $record): string => self::guidance($record))
                 ->placeholder('—')
                 ->columnSpanFull(),
             TextEntry::make('subject_link')
-                ->label('Профил')
+                ->label('Profile')
                 ->state(fn (ImportReviewItem $record): string => self::subjectLabel($record))
                 ->url(fn (ImportReviewItem $record): ?string => self::subjectUrl($record)),
-            TextEntry::make('run.id')->label('Увоз')->placeholder('—'),
+            TextEntry::make('run.id')->label('Import run')->placeholder('—'),
             KeyValueEntry::make('details')
-                ->label('Детали')
+                ->label('Details')
                 ->state(fn (ImportReviewItem $record): array => self::flatDetails($record->details ?? []))
                 ->columnSpanFull(),
-            TextEntry::make('resolution')->label('Резолуција')->placeholder('—'),
-            TextEntry::make('resolvedBy.name')->label('Решил')->placeholder('—'),
-            TextEntry::make('resolved_at')->label('Решено')->dateTime()->placeholder('—'),
+            TextEntry::make('resolution')->label('Resolution')->placeholder('—'),
+            TextEntry::make('resolvedBy.name')->label('Resolved by')->placeholder('—'),
+            TextEntry::make('resolved_at')->label('Resolved')->dateTime()->placeholder('—'),
         ]);
     }
 
@@ -100,7 +100,7 @@ class ImportReviewItemResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('kind')
-                    ->label('Вид')
+                    ->label('Kind')
                     ->badge()
                     ->formatStateUsing(fn (ImportReviewKind $state): string => $state->label())
                     ->color(fn (ImportReviewKind $state): string => match ($state) {
@@ -113,7 +113,7 @@ class ImportReviewItemResource extends Resource
                 // One growing text column: short title + one-line summary.
                 // Full prose belongs on the View page — never in two wrap() cells.
                 TextColumn::make('title')
-                    ->label('Предмет')
+                    ->label('Subject')
                     ->searchable()
                     ->state(fn (ImportReviewItem $record): string => self::listTitle($record))
                     ->description(fn (ImportReviewItem $record): string => self::summary($record))
@@ -122,29 +122,29 @@ class ImportReviewItemResource extends Resource
                     ->wrap()
                     ->extraCellAttributes(['class' => 'min-w-72 max-w-2xl']),
                 TextColumn::make('source')
-                    ->label('Извор')
+                    ->label('Source')
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn (mixed $state): string => match ((string) $state) {
-                        'cleanup' => 'чистење',
-                        'verification' => 'верификација',
+                        'cleanup' => 'cleanup',
+                        'verification' => 'verification',
                         'fzom' => 'ФЗОМ',
-                        'website' => 'веб',
+                        'website' => 'website',
                         default => (string) ($state ?: '—'),
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
-                    ->label('Статус')
+                    ->label('Status')
                     ->badge()
                     ->formatStateUsing(fn (ImportReviewStatus $state): string => $state->label())
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('priority')
-                    ->label('Приоритет')
+                    ->label('Priority')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Подигнато')
+                    ->label('Raised')
                     ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(),
@@ -155,18 +155,18 @@ class ImportReviewItemResource extends Resource
             ->modifyQueryUsing(fn ($query) => $query->with('run'))
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Статус')
+                    ->label('Status')
                     ->options(collect(ImportReviewStatus::cases())->mapWithKeys(fn (ImportReviewStatus $s) => [$s->value => $s->label()])->all())
                     ->default(ImportReviewStatus::Open->value),
                 SelectFilter::make('source')
-                    ->label('Извор')
+                    ->label('Source')
                     ->options(fn (): array => ImportReviewItem::query()->distinct()->orderBy('source')->pluck('source', 'source')->all()),
                 SelectFilter::make('subject_type')
-                    ->label('Запис')
-                    ->options(['doctor' => 'Лекар', 'facility' => 'Установа']),
+                    ->label('Record')
+                    ->options(['doctor' => 'Doctor', 'facility' => 'Facility']),
             ])
             ->recordActions([
-                ViewAction::make()->label('Преглед'),
+                ViewAction::make(),
                 self::publishAction(),
                 self::acceptAction(),
                 self::keepAction(),
@@ -180,13 +180,13 @@ class ImportReviewItemResource extends Resource
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkAction::make('publish')
-                        ->label('Објави избраните нацрти')
+                        ->label('Publish selected drafts')
                         ->icon('heroicon-o-eye')
                         ->color('success')
                         ->requiresConfirmation()
-                        ->modalHeading('Објави избраните нацрти?')
-                        ->modalDescription('Се објавуваат профилите на избраните „нови“ ставки. Проверете ги прво: увезените нацрти не се верификувани.')
-                        ->modalSubmitActionLabel('Објави')
+                        ->modalHeading('Publish selected drafts?')
+                        ->modalDescription('Publishes the doctor and facility profiles of the selected "new" items. Check each one first: imported drafts are not verified.')
+                        ->modalSubmitActionLabel('Publish')
                         ->visible(fn (): bool => self::canManage())
                         // Keys only: "select all" can mean thousands of rows.
                         ->fetchSelectedRecords(false)
@@ -194,8 +194,8 @@ class ImportReviewItemResource extends Resource
                             $ids = $records->map(fn ($key): int => (int) $key)->values()->all();
 
                             // A large selection goes to the background, like
-                            // „Објави ги сите верификувани“ (one request runs
-                            // out of time after a few thousand).
+                            // "Publish all verified" (one request runs out of
+                            // time after a few thousand).
                             if (count($ids) > app(BulkPublish::class)->selectionInlineLimit) {
                                 $livewire->startBulkPublish(BulkPublish::TYPE_SELECTED, null, $ids);
 
@@ -204,15 +204,15 @@ class ImportReviewItemResource extends Resource
 
                             $published = app(VerifiedDraftPublisher::class)->publishChunk($ids, self::actor())['published'];
 
-                            Notification::make()->title("Објавени {$published} профили")->success()->send();
+                            Notification::make()->title("Published {$published} profiles")->success()->send();
                         })
                         ->deselectRecordsAfterCompletion(),
                     BulkAction::make('dismiss')
-                        ->label('Отфрли избрани')
+                        ->label('Dismiss selected')
                         ->icon('heroicon-o-x-mark')
                         ->requiresConfirmation()
-                        ->modalHeading('Отфрли избрани?')
-                        ->modalSubmitActionLabel('Отфрли')
+                        ->modalHeading('Dismiss selected?')
+                        ->modalSubmitActionLabel('Dismiss')
                         ->visible(fn (): bool => self::canManage())
                         ->fetchSelectedRecords(false)
                         ->action(function (Collection $records): void {
@@ -238,17 +238,17 @@ class ImportReviewItemResource extends Resource
     public static function publishAction(): Action
     {
         return Action::make('publish')
-            ->label('Објави')
+            ->label('Publish')
             ->icon('heroicon-o-eye')
             ->color('success')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::New)
             ->requiresConfirmation()
-            ->modalHeading('Објави профил?')
-            ->modalDescription('Профилот станува јавен. Увезените нацрти не се верификувани: проверете име, работно место и специјалност.')
-            ->modalSubmitActionLabel('Објави')
+            ->modalHeading('Publish profile?')
+            ->modalDescription('The profile becomes public. Imported drafts are not verified: check name, workplace and specialty.')
+            ->modalSubmitActionLabel('Publish')
             ->action(function (ImportReviewItem $record): void {
                 if (self::open($record) && app(ImportReviewActions::class)->publish($record, self::actor())) {
-                    Notification::make()->title('Објавено')->success()->send();
+                    Notification::make()->title('Published')->success()->send();
                 }
             });
     }
@@ -256,16 +256,16 @@ class ImportReviewItemResource extends Resource
     public static function acceptAction(): Action
     {
         return Action::make('accept')
-            ->label('Користи увезена вредност')
+            ->label('Use imported value')
             ->icon('heroicon-o-arrow-down-tray')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::Conflict && isset($record->details['field']))
             ->requiresConfirmation()
-            ->modalHeading('Замени со увезената вредност?')
-            ->modalDescription(fn (ImportReviewItem $record): string => sprintf('Замени „%s“ со „%s“.', $record->details['current'] ?? '—', $record->details['incoming'] ?? '—'))
-            ->modalSubmitActionLabel('Замени')
+            ->modalHeading('Replace with the imported value?')
+            ->modalDescription(fn (ImportReviewItem $record): string => sprintf('Replace “%s” with “%s”.', $record->details['current'] ?? '—', $record->details['incoming'] ?? '—'))
+            ->modalSubmitActionLabel('Replace')
             ->action(function (ImportReviewItem $record): void {
                 if (self::open($record) && ! app(ImportReviewActions::class)->acceptIncoming($record, self::actor())) {
-                    Notification::make()->title('Не е применето: полето е заклучено, профилот е изменет, или ова поле не може да се постави од редот. Уредете го профилот.')->warning()->send();
+                    Notification::make()->title('Not applied: the field is locked, the profile changed, or this field cannot be set from the queue. Edit the profile.')->warning()->send();
                 }
             });
     }
@@ -273,27 +273,27 @@ class ImportReviewItemResource extends Resource
     public static function keepAction(): Action
     {
         return Action::make('keep')
-            ->label('Задржи и заклучи')
+            ->label('Keep current and lock')
             ->icon('heroicon-o-lock-closed')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::Conflict && isset($record->details['field']))
             ->requiresConfirmation()
-            ->modalHeading('Задржи ја тековната вредност?')
-            ->modalDescription('Тековната вредност останува и полето се заклучува против идни увози (отклучете го на профилот).')
-            ->modalSubmitActionLabel('Задржи')
+            ->modalHeading('Keep the current value?')
+            ->modalDescription('The current value stays and the field is locked against future imports (unlock it on the profile).')
+            ->modalSubmitActionLabel('Keep')
             ->action(fn (ImportReviewItem $record) => self::open($record) ? app(ImportReviewActions::class)->keepCurrent($record, self::actor()) : null);
     }
 
     public static function hideAction(): Action
     {
         return Action::make('hide')
-            ->label('Сокриј профил')
+            ->label('Hide profile')
             ->icon('heroicon-o-eye-slash')
             ->color('danger')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::Missing)
             ->requiresConfirmation()
-            ->modalHeading('Сокриј профил?')
-            ->modalDescription('Профилот се повлекува од јавност. Ништо не се брише; оценките остануваат.')
-            ->modalSubmitActionLabel('Сокриј')
+            ->modalHeading('Hide profile?')
+            ->modalDescription('The profile is withdrawn from public view. Nothing is deleted; reviews stay.')
+            ->modalSubmitActionLabel('Hide')
             ->action(fn (ImportReviewItem $record) => self::open($record) ? app(ImportReviewActions::class)->hide($record, self::actor()) : null);
     }
 
@@ -305,18 +305,18 @@ class ImportReviewItemResource extends Resource
     public static function trustSiteAction(): Action
     {
         return Action::make('trustSite')
-            ->label('Довери ја страницата')
+            ->label('Trust this website')
             ->icon('heroicon-o-shield-check')
             ->color('success')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->kind === ImportReviewKind::Uncertain
                 && ($record->details['reason'] ?? null) === 'flagged_source')
             ->requiresConfirmation()
-            ->modalHeading('Довери ја оваа страница?')
-            ->modalDescription('Нејзиниот список на персонал повторно важи како доказ за верификација, за секој лекар што го наведува. Направете го ова само откако ќе проверите дека страницата е тековна и чиста.')
-            ->modalSubmitActionLabel('Довери')
+            ->modalHeading('Trust this website?')
+            ->modalDescription('Its staff list counts again as verification evidence for every doctor who lists it. Do this only after you have checked the page is current and clean.')
+            ->modalSubmitActionLabel('Trust')
             ->action(function (ImportReviewItem $record): void {
                 if (self::open($record) && $record->resolve(ImportReviewStatus::Resolved, EvidenceLoader::TRUSTED_RESOLUTION, self::actor())) {
-                    Notification::make()->title('Доверено. Следниот тек на верификација (ноќен, или import:adjudicate) ја користи.')->success()->send();
+                    Notification::make()->title('Trusted. The next verification run (nightly, or import:adjudicate) uses it.')->success()->send();
                 }
             });
     }
@@ -327,17 +327,17 @@ class ImportReviewItemResource extends Resource
     public static function acceptSuggestionAction(): Action
     {
         return Action::make('acceptSuggestion')
-            ->label('Прифати предлог')
+            ->label('Accept suggestion')
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && NameReviewActions::hasSuggestion($record))
             ->requiresConfirmation()
             ->modalDescription(fn (ImportReviewItem $record): string => isset($record->details['changes'])
                 ? (string) ($record->details['proposals'] ?? '')
-                : sprintf('„%s“ → „%s“', $record->details['current'] ?? '—', $record->details['suggestion'] ?? '—'))
+                : sprintf('“%s” → “%s”', $record->details['current'] ?? '—', $record->details['suggestion'] ?? '—'))
             ->action(function (ImportReviewItem $record): void {
                 if (self::open($record) && ! app(NameReviewActions::class)->accept($record, self::actor())) {
-                    Notification::make()->title('Не е применето: полето е заклучено или изменето оттогаш. Уредете го профилот.')->warning()->send();
+                    Notification::make()->title('Not applied: the field is locked or changed since. Edit the profile.')->warning()->send();
                 }
             });
     }
@@ -348,7 +348,7 @@ class ImportReviewItemResource extends Resource
     public static function mergeDuplicatesAction(): Action
     {
         return Action::make('mergeDuplicates')
-            ->label('Спои ги')
+            ->label('Merge')
             ->icon('heroicon-o-arrows-pointing-in')
             ->color('success')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && NameReviewActions::isMergeGroup($record))
@@ -360,7 +360,7 @@ class ImportReviewItemResource extends Resource
                 }
 
                 $result = app(NameReviewActions::class)->merge($record, self::actor());
-                Notification::make()->title("Споени {$result['merged']}, прескокнати {$result['skipped']} (веќе не се скриен нацрт, или ги нема).")->success()->send();
+                Notification::make()->title("Merged {$result['merged']}, skipped {$result['skipped']} (no longer a hidden draft, or gone).")->success()->send();
             });
     }
 
@@ -370,7 +370,7 @@ class ImportReviewItemResource extends Resource
     public static function keepNameAction(): Action
     {
         return Action::make('keepName')
-            ->label('Остави')
+            ->label('Keep apart')
             ->icon('heroicon-o-hand-raised')
             ->color('gray')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->source === NameCleanup::SOURCE)
@@ -380,7 +380,7 @@ class ImportReviewItemResource extends Resource
     public static function dismissAction(): Action
     {
         return Action::make('dismiss')
-            ->label(fn (ImportReviewItem $record): string => $record->kind === ImportReviewKind::Changed ? 'Означено' : 'Отфрли')
+            ->label(fn (ImportReviewItem $record): string => $record->kind === ImportReviewKind::Changed ? 'Mark seen' : 'Dismiss')
             ->icon('heroicon-o-check')
             ->color('gray')
             ->visible(fn (ImportReviewItem $record): bool => self::open($record) && $record->source !== NameCleanup::SOURCE)
@@ -414,8 +414,8 @@ class ImportReviewItemResource extends Resource
 
         return match (true) {
             $subject === null => '—',
-            $subject instanceof Doctor => $subject->full_name.($subject->is_published ? ' (јавен)' : ' (скриен нацрт)'),
-            default => $subject->name.($subject->is_published ? ' (јавен)' : ' (скриен нацрт)'),
+            $subject instanceof Doctor => $subject->full_name.($subject->is_published ? ' (public)' : ' (hidden draft)'),
+            default => $subject->name.($subject->is_published ? ' (public)' : ' (hidden draft)'),
         };
     }
 
@@ -440,7 +440,7 @@ class ImportReviewItemResource extends Resource
 
     /**
      * Compact list title: structured duplicate/name rows stay scannable;
-     * legacy English titles from older runs are rewritten from details.
+     * legacy long titles from older runs are rewritten from details.
      */
     public static function listTitle(ImportReviewItem $record): string
     {
@@ -455,18 +455,18 @@ class ImportReviewItemResource extends Resource
             if ($kind === 'namesakes' || isset($details['candidate_doctor_ids'])) {
                 $ids = (array) ($details['candidate_doctor_ids'] ?? []);
 
-                return sprintf('Исто име · %d профили', $count > 0 ? $count : count($ids));
+                return sprintf('Same name · %d profiles', $count > 0 ? $count : count($ids));
             }
 
-            $suffix = $elsewhere > 0 ? sprintf(' · %d во друг град', $elsewhere) : '';
+            $suffix = $elsewhere > 0 ? sprintf(' · %d in another town', $elsewhere) : '';
 
             return $facility !== ''
-                ? sprintf('Можни дупликати · %d · %s%s', $count, $facility, $suffix)
-                : sprintf('Можни дупликати · %d%s', $count, $suffix);
+                ? sprintf('Possible duplicates · %d · %s%s', $count, $facility, $suffix)
+                : sprintf('Possible duplicates · %d%s', $count, $suffix);
         }
 
         if (($details['reason'] ?? null) === NameCleanup::REASON && isset($details['changes']) && is_array($details['changes'])) {
-            return sprintf('%d имиња · %s', count($details['changes']), NameCleanup::PROBLEMS[$details['problem'] ?? ''] ?? ($details['problem'] ?? 'cleanup'));
+            return sprintf('%d names · %s', count($details['changes']), NameCleanup::PROBLEMS[$details['problem'] ?? ''] ?? ($details['problem'] ?? 'cleanup'));
         }
 
         return $record->title;
@@ -480,19 +480,19 @@ class ImportReviewItemResource extends Resource
         $details = $record->details ?? [];
 
         return match ($record->kind) {
-            ImportReviewKind::Conflict => sprintf('%s: „%s“ → „%s“', $details['field'] ?? '?', $details['current'] ?? '—', $details['incoming'] ?? '—'),
+            ImportReviewKind::Conflict => sprintf('%s: “%s” → “%s”', $details['field'] ?? '?', $details['current'] ?? '—', $details['incoming'] ?? '—'),
             ImportReviewKind::Changed => implode(', ', array_keys((array) ($details['fields'] ?? []))) ?: '—',
-            ImportReviewKind::Missing => sprintf('Отсутен %s увози%s', $details['runs'] ?? '?', ($details['published'] ?? false) ? ', јавен' : ''),
+            ImportReviewKind::Missing => sprintf('Absent %s runs%s', $details['runs'] ?? '?', ($details['published'] ?? false) ? ', public' : ''),
             ImportReviewKind::Unmatched => self::reasonLabel((string) ($details['reason'] ?? 'unmatched')),
             ImportReviewKind::New => ($details['needs_licence_verification'] ?? false)
-                ? 'Проверете лиценца пред објава'
+                ? 'Verify licence before publishing'
                 : (string) ($details['source_url'] ?? '—'),
             ImportReviewKind::Uncertain => self::uncertainSummary($details),
         };
     }
 
     /**
-     * Full guidance for the View page (Macedonian for known shapes; stored text otherwise).
+     * Full guidance for the View page (English for known shapes; stored text otherwise).
      */
     public static function guidance(ImportReviewItem $record): string
     {
@@ -517,33 +517,33 @@ class ImportReviewItemResource extends Resource
             $kind = (string) ($details['kind'] ?? '');
 
             return match ($kind) {
-                'website_into_register' => 'Спои во ФЗОМ профил, или остави одвоено',
-                'website_twins' => 'Спои веб-нацрти, или остави одвоено',
-                'namesakes' => 'Споредете истоименици · спојте само рачно',
-                default => 'Спои ги / Остави',
+                'website_into_register' => 'Merge into ФЗОМ profile, or keep apart',
+                'website_twins' => 'Merge website drafts, or keep apart',
+                'namesakes' => 'Compare namesakes · merge only by hand',
+                default => 'Merge / Keep apart',
             };
         }
 
         if (($details['reason'] ?? null) === NameCleanup::REASON) {
             if (isset($details['suggestion']) && is_string($details['suggestion']) && $details['suggestion'] !== '') {
-                return 'Прифати предлог, или остави';
+                return 'Accept suggestion, or keep apart';
             }
 
             if (isset($details['changes'])) {
-                return 'Прифати ги предлозите, или остави';
+                return 'Accept suggestions, or keep apart';
             }
 
-            return NameCleanup::PROBLEMS[$details['problem'] ?? ''] ?? 'Уредете го профилот ако треба';
+            return NameCleanup::PROBLEMS[$details['problem'] ?? ''] ?? 'Edit the profile if needed';
         }
 
         if (($details['reason'] ?? null) === 'flagged_source') {
-            return 'Довери ја страницата ако е тековна и чиста';
+            return 'Trust the website if it is current and clean';
         }
 
         // Never dump multi-sentence `action` prose into the list description.
         $reason = trim((string) ($details['reason'] ?? ''));
 
-        return $reason !== '' ? self::reasonLabel($reason) : 'Отвори за детали';
+        return $reason !== '' ? self::reasonLabel($reason) : 'Open for details';
     }
 
     /**
@@ -555,11 +555,11 @@ class ImportReviewItemResource extends Resource
             $elsewhere = (int) ($details['other_town'] ?? 0);
 
             return match ((string) ($details['kind'] ?? '')) {
-                'website_into_register' => 'Секој нацрт го носи името на точно еден ФЗОМ лекар во регистарот'
-                    .($elsewhere > 0 ? " ({$elsewhere} се во друг град)" : '')
-                    .'. „Спои ги“ го пренесува работното место (и титулата/специјалностите кога профилот нема) во ФЗОМ профилот и го брише нацртот; „Остави“ ги држи одвоени.',
-                'website_twins' => 'Иста личност на две страници? „Спои ги“ го пренесува работното место во другиот профил (јавниот, или најстариот нацрт) и го брише нацртот; „Остави“ ги држи одвоени.',
-                'namesakes' => 'Неколку профили со ова име (можни истоименици): споредете ги; спојте рачно само ако се иста личност, или „Остави“.',
+                'website_into_register' => 'Each draft has the name of exactly one ФЗОМ doctor in the register'
+                    .($elsewhere > 0 ? " ({$elsewhere} in another town)" : '')
+                    .'. “Merge” moves the workplace (and title/specialties when the profile has none) into the ФЗОМ profile and deletes the draft; “Keep apart” leaves them separate.',
+                'website_twins' => 'Same person on two sites? “Merge” moves the workplace into the other profile (the public one, or the oldest draft) and deletes the draft; “Keep apart” leaves them separate.',
+                'namesakes' => 'Several profiles with this name (possible namesakes): compare them; merge by hand only if they are the same person, or “Keep apart”.',
                 default => null,
             };
         }
@@ -572,12 +572,12 @@ class ImportReviewItemResource extends Resource
             }
 
             if (isset($details['changes'])) {
-                return $problem.' „Прифати предлог“ ги поставува сите предлози (профил изменет оттогаш се прескокнува); „Остави“ ги задржува сите.';
+                return $problem.' “Accept suggestion” applies every proposal (a profile changed since is skipped); “Keep apart” keeps them all.';
             }
 
             return isset($details['suggestion']) && is_string($details['suggestion']) && $details['suggestion'] !== ''
-                ? $problem.' „Прифати предлог“ ја поставува предложената вредност.'
-                : $problem.' Уредете го профилот ако треба промена.';
+                ? $problem.' “Accept suggestion” sets the proposed value.'
+                : $problem.' Edit the profile if it needs a change.';
         }
 
         return null;
@@ -586,10 +586,10 @@ class ImportReviewItemResource extends Resource
     private static function reasonLabel(string $reason): string
     {
         return match ($reason) {
-            'flagged_source' => 'Означен извор',
-            'possible_duplicate' => 'Можен дупликат',
-            'name_cleanup' => 'Чистење на имиња',
-            'unmatched', '' => 'Неповрзано',
+            'flagged_source' => 'Flagged source',
+            'possible_duplicate' => 'Possible duplicate',
+            'name_cleanup' => 'Name cleanup',
+            'unmatched', '' => 'Unmatched',
             default => str_replace('_', ' ', $reason),
         };
     }

@@ -11,16 +11,16 @@
                         <p class="text-sm font-medium text-gray-950 dark:text-white">
                             @switch($operation->status)
                                 @case(\App\Enums\BulkOperationStatus::Running)
-                                    Објавување во тек — {{ $label }}
+                                    Publishing in progress — {{ $label }}
                                     @break
                                 @case(\App\Enums\BulkOperationStatus::Completed)
-                                    Објавувањето заврши — {{ $label }}
+                                    Publishing finished — {{ $label }}
                                     @break
                                 @case(\App\Enums\BulkOperationStatus::Failed)
-                                    Објавувањето застана — {{ $label }}
+                                    Publishing stopped — {{ $label }}
                                     @break
                                 @default
-                                    Објавувањето е прекинато — {{ $label }}
+                                    Publishing cancelled — {{ $label }}
                             @endswitch
                         </p>
                         <p class="text-sm tabular-nums text-gray-600 dark:text-gray-400">
@@ -30,7 +30,7 @@
 
                     <div
                         role="progressbar"
-                        aria-label="Напредок на објавувањето"
+                        aria-label="Publishing progress"
                         aria-valuemin="0"
                         aria-valuemax="100"
                         aria-valuenow="{{ $percent }}"
@@ -40,18 +40,18 @@
                     </div>
 
                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Објавени {{ $operation->published }}
+                        Published {{ $operation->published }}
                         @if ($operation->skipped > 0)
-                            · прескокнати {{ $operation->skipped }}
+                            · skipped {{ $operation->skipped }}
                         @endif
                         @if ($operation->failed > 0)
-                            · неуспешни {{ $operation->failed }}
+                            · failed {{ $operation->failed }}
                         @endif
                         @if ($operation->isRunning())
                             @if ($operation->driver === \App\Models\BulkOperation::DRIVER_INLINE || $stalled)
-                                · продолжува додека оваа страница е отворена
+                                · continues while this page is open
                             @else
-                                · во позадина; може да ја затворите страницата
+                                · in the background; you can close the page
                             @endif
                         @endif
                     </p>
@@ -62,12 +62,12 @@
 
                     @if ($canManage && $operation->status === \App\Enums\BulkOperationStatus::Failed)
                         <div class="flex gap-2">
-                            <x-filament::button size="sm" wire:click="resume">Продолжи</x-filament::button>
-                            <x-filament::button size="sm" color="gray" wire:click="cancel" wire:confirm="Да се прекине објавувањето? Објавеното останува објавено.">Прекини</x-filament::button>
+                            <x-filament::button size="sm" wire:click="resume">Resume</x-filament::button>
+                            <x-filament::button size="sm" color="gray" wire:click="cancel" wire:confirm="Cancel publishing? Already-published profiles stay public.">Cancel</x-filament::button>
                         </div>
                     @elseif ($canManage && $operation->isRunning())
                         <div>
-                            <x-filament::button size="sm" color="gray" wire:click="cancel" wire:confirm="Да се прекине објавувањето? Објавеното останува објавено.">Прекини</x-filament::button>
+                            <x-filament::button size="sm" color="gray" wire:click="cancel" wire:confirm="Cancel publishing? Already-published profiles stay public.">Cancel</x-filament::button>
                         </div>
                     @endif
                 </div>

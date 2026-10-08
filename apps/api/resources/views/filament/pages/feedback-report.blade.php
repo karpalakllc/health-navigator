@@ -12,7 +12,7 @@
     <x-filament::section>
         <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;">
             <label style="display:flex;flex-direction:column;gap:.25rem;">
-                <span style="font-size:.875rem;font-weight:500;">Период</span>
+                <span style="font-size:.875rem;font-weight:500;">Period</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="days" id="feedback-days">
                         @foreach ($this->periodOptions() as $option)
@@ -22,7 +22,7 @@
                 </x-filament::input.wrapper>
             </label>
             <label style="display:flex;flex-direction:column;gap:.25rem;">
-                <span style="font-size:.875rem;font-weight:500;">Дел од страницата</span>
+                <span style="font-size:.875rem;font-weight:500;">Site section</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="namespace" id="feedback-namespace">
                         @foreach ($this->namespaceOptions() as $value => $label)
@@ -33,25 +33,25 @@
             </label>
         </div>
         <p style="margin-top:.75rem;font-size:.8rem;opacity:.7;">
-            Анонимни дневни збирови: без посетители, сесии, IP адреси или слободен текст.
-            Еден посетител може да гласа повеќе пати, па бројките се ориентациски. Се чуваат {{ config('feedback.retention_days', 730) }} дена.
+            Anonymous daily totals: no visitors, sessions, IP addresses or free text.
+            One visitor may vote more than once, so the numbers are indicative. Kept for {{ config('feedback.retention_days', 730) }} days.
         </p>
     </x-filament::section>
 
-    <x-filament::section heading="„Дали ви помогна?“ по ставка" class="mt-6">
+    <x-filament::section heading="“Was this helpful?” by item" class="mt-6">
         @if ($items === [])
-            <p style="font-size:.875rem;opacity:.7;">Сè уште нема гласови во овој период.</p>
+            <p style="font-size:.875rem;opacity:.7;">No votes in this period yet.</p>
         @else
             <div style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
                     <thead>
                         <tr>
-                            <th style="{{ $head }}">Ставка</th>
-                            <th style="{{ $head }}text-align:right;">Помогна</th>
-                            <th style="{{ $head }}text-align:right;">Не помогна</th>
-                            <th style="{{ $head }}text-align:right;">Вкупно</th>
-                            <th style="{{ $head }}text-align:right;">% помогна</th>
-                            <th style="{{ $head }}">Причини</th>
+                            <th style="{{ $head }}">Item</th>
+                            <th style="{{ $head }}text-align:right;">Helpful</th>
+                            <th style="{{ $head }}text-align:right;">Not helpful</th>
+                            <th style="{{ $head }}text-align:right;">Total</th>
+                            <th style="{{ $head }}text-align:right;">% helpful</th>
+                            <th style="{{ $head }}">Reasons</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,12 +77,12 @@
         @endif
     </x-filament::section>
 
-    <x-filament::section heading="Докаде стигнуваат посетителите (чекори)" class="mt-6">
+    <x-filament::section heading="How far visitors get (steps)" class="mt-6">
         @if ($funnels === [])
-            <p style="font-size:.875rem;opacity:.7;">Сè уште нема забележани чекори во овој период.</p>
+            <p style="font-size:.875rem;opacity:.7;">No funnel steps recorded in this period yet.</p>
         @else
             <label style="display:flex;flex-direction:column;gap:.25rem;max-width:28rem;margin-bottom:1rem;">
-                <span style="font-size:.875rem;font-weight:500;">Тек</span>
+                <span style="font-size:.875rem;font-weight:500;">Flow</span>
                 <x-filament::input.wrapper>
                     <x-filament::input.select wire:model.live="funnel" id="feedback-funnel">
                         @foreach ($funnels as $name)
@@ -95,10 +95,10 @@
                 <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
                     <thead>
                         <tr>
-                            <th style="{{ $head }}text-align:right;">Длабочина</th>
-                            <th style="{{ $head }}">Чекор</th>
-                            <th style="{{ $head }}text-align:right;">Стигнале</th>
-                            <th style="{{ $head }}text-align:right;">Од претходната длабочина</th>
+                            <th style="{{ $head }}text-align:right;">Depth</th>
+                            <th style="{{ $head }}">Step</th>
+                            <th style="{{ $head }}text-align:right;">Reached</th>
+                            <th style="{{ $head }}text-align:right;">Of previous depth</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -113,7 +113,7 @@
                     </tbody>
                 </table>
             </div>
-            <p style="font-size:.75rem;opacity:.7;margin-top:.5rem;">„Од претходната длабочина“ = колку од посетителите на претходниот чекор стигнале до оваа длабочина; остатокот застанал.</p>
+            <p style="font-size:.75rem;opacity:.7;margin-top:.5rem;">“Of previous depth” = how many of the visitors at the previous step reached this depth; the rest stopped.</p>
         @endif
     </x-filament::section>
 </x-filament-panels::page>

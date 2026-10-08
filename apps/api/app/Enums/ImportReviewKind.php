@@ -29,13 +29,6 @@ enum ImportReviewKind: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::New => 'Нов',
-            self::Changed => 'Промена',
-            self::Conflict => 'Конфликт',
-            self::Missing => 'Исчезнат',
-            self::Unmatched => 'Неповрзан',
-            self::Uncertain => 'Нејасно',
-        };
+        return ucfirst($this->value);
     }
 }

@@ -72,7 +72,7 @@ class ReviewsTable
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('burst_flagged_at')),
             ])
             ->recordActions([
-                ViewAction::make()->label('Преглед'),
+                ViewAction::make(),
                 Action::make('approve')
                     ->visible(fn (Review $record): bool => $record->status === ReviewStatus::Pending
                         && auth()->user()?->can('update', $record))

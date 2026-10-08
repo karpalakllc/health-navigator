@@ -14,10 +14,6 @@ enum ImportReviewStatus: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Open => 'Отворено',
-            self::Resolved => 'Решено',
-            self::Dismissed => 'Отфрлено',
-        };
+        return ucfirst($this->value);
     }
 }

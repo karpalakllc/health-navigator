@@ -39,9 +39,9 @@ class SpecialtyAliasResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLanguage;
 
-    protected static ?string $navigationLabel = 'Алијаси на специјалности';
+    protected static ?string $navigationLabel = 'Specialty aliases';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
+    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
 
     protected static ?int $navigationSort = 3;
 

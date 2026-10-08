@@ -40,9 +40,9 @@ class LicenceSpecialtyMappingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static ?string $navigationLabel = 'Мапирање специјалности';
+    protected static ?string $navigationLabel = 'Licence specialty mapping';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
+    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
 
     protected static ?int $navigationSort = 41;
 

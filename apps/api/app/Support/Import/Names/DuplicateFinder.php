@@ -133,10 +133,10 @@ final class DuplicateFinder
         foreach ($grouped as $groupKey => $group) {
             $count = count($group['pairs']);
             $elsewhere = $group['elsewhere'];
-            $facility = $group['facility_id'] !== null ? ($facilityNames[$group['facility_id']] ?? '#'.$group['facility_id']) : 'без работно место';
+            $facility = $group['facility_id'] !== null ? ($facilityNames[$group['facility_id']] ?? '#'.$group['facility_id']) : 'no workplace';
             $title = $group['kind'] === 'website_into_register'
-                ? sprintf('Можни дупликати: %d веб-нацрт(и) од „%s“ со име на ФЗОМ лекар%s', $count, $facility, $elsewhere > 0 ? sprintf(' (%d во друг град)', $elsewhere) : '')
-                : sprintf('Можни дупликати: %d веб-нацрт(и) од „%s“ со име на друг веб-профил во истиот град', $count, $facility);
+                ? sprintf('Possible duplicates: %d website draft(s) of „%s“ have the name of a ФЗОМ doctor%s', $count, $facility, $elsewhere > 0 ? sprintf(' (%d in another town)', $elsewhere) : '')
+                : sprintf('Possible duplicates: %d website draft(s) of „%s“ have the name of another website profile in the same town', $count, $facility);
             usort($group['pairs'], fn (array $a, array $b): int => $a <=> $b);
 
             $groups[] = [
@@ -151,8 +151,8 @@ final class DuplicateFinder
                     'other_town' => $elsewhere,
                     'facility_name' => $facility,
                     'action' => $group['kind'] === 'website_into_register'
-                        ? 'Секој нацрт го носи името на точно еден ФЗОМ лекар во регистарот'.($elsewhere > 0 ? " ({$elsewhere} се во друг град)" : '').'. „Спои ги“ го пренесува работното место (и титулата/специјалностите кога профилот нема) во ФЗОМ профилот и го брише нацртот; „Остави“ ги држи одвоени.'
-                        : 'Иста личност на две страници? „Спои ги“ го пренесува работното место во другиот профил (јавниот, или најстариот нацрт) и го брише нацртот; „Остави“ ги држи одвоени.',
+                        ? 'Each draft has the name of exactly one ФЗОМ doctor in the whole register'.($elsewhere > 0 ? " ({$elsewhere} of them contracted in another town)" : '').'. “Merge” moves each draft\'s workplace (and title, specialties when the profile has none) into the ФЗОМ profile and deletes the draft; “Keep apart” keeps them apart.'
+                        : 'One person listed on two sites? “Merge” moves each hidden draft\'s workplace into the other profile (the public one, or the oldest draft) and deletes the draft; “Keep apart” keeps them apart.',
                 ],
                 'facility_id' => $group['facility_id'],
                 // Big groups first; mostly same-town ones before the rest.
@@ -180,13 +180,13 @@ final class DuplicateFinder
             $result[] = [
                 'kind' => 'namesakes',
                 'key' => 'duplicates:namesakes:'.sha1($key),
-                'title' => sprintf('Исто име, %d профили: %s', count($ids), $name),
+                'title' => sprintf('Same name, %d profiles: %s', count($ids), $name),
                 'details' => [
                     'reason' => self::REASON,
                     'kind' => 'namesakes',
                     'candidate_doctor_ids' => $ids,
                     'count' => count($ids),
-                    'action' => 'Неколку профили со ова име (можни истоименици): споредете ги; спојте рачно само ако се иста личност, или „Остави“.',
+                    'action' => 'Several profiles of this name (namesakes are possible): compare them; merge by hand only if they are one person, or “Keep apart”.',
                 ],
                 'facility_id' => null,
                 'priority' => 1,
