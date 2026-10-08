@@ -117,14 +117,22 @@ class ImportReviewItemResource extends Resource
                     ->searchable()
                     ->state(fn (ImportReviewItem $record): string => self::listTitle($record))
                     ->description(fn (ImportReviewItem $record): string => self::summary($record))
-                    ->tooltip(fn (ImportReviewItem $record): string => $record->title)
+                    ->tooltip(fn (ImportReviewItem $record): string => self::listTitle($record))
                     ->limit(96)
                     ->wrap()
                     ->extraCellAttributes(['class' => 'min-w-72 max-w-2xl']),
                 TextColumn::make('source')
                     ->label('Извор')
                     ->badge()
-                    ->color('gray'),
+                    ->color('gray')
+                    ->formatStateUsing(fn (mixed $state): string => match ((string) $state) {
+                        'cleanup' => 'чистење',
+                        'verification' => 'верификација',
+                        'fzom' => 'ФЗОМ',
+                        'website' => 'веб',
+                        default => (string) ($state ?: '—'),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('Статус')
                     ->badge()
@@ -532,7 +540,10 @@ class ImportReviewItemResource extends Resource
             return 'Довери ја страницата ако е тековна и чиста';
         }
 
-        return self::reasonLabel((string) ($details['reason'] ?? $details['action'] ?? '—'));
+        // Never dump multi-sentence `action` prose into the list description.
+        $reason = trim((string) ($details['reason'] ?? ''));
+
+        return $reason !== '' ? self::reasonLabel($reason) : 'Отвори за детали';
     }
 
     /**
