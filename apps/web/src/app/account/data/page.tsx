@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { AccountDelete } from "@/components/account/account-delete";
+import { AccountExport } from "@/components/account/account-export";
 import {
   AccountLayout,
   AccountPage,
 } from "@/components/account/account-layout";
 import { AccountPageHero } from "@/components/account/account-page-hero";
-import { buttonClassName } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FormError } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { SectionHeader } from "@/components/ui/section-header";
 import { fetchMe } from "@/lib/api/me";
@@ -22,12 +21,6 @@ export const metadata = pageMetadata(t("account.navData"), undefined, {
 
 const LOGIN = "/login?redirect=/account/data";
 
-/** Set by /api/account/export when it sends the browser back here. */
-const EXPORT_ERRORS: Record<string, MessageKey> = {
-  throttled: "account.data.exportThrottled",
-  error: "account.data.exportError",
-};
-
 const DELETE_CONSEQUENCES: MessageKey[] = [
   "account.data.deleteListPersonal",
   "account.data.deleteListContent",
@@ -35,11 +28,7 @@ const DELETE_CONSEQUENCES: MessageKey[] = [
   "account.data.deleteListEmail",
 ];
 
-export default async function AccountDataPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ export?: string }>;
-}) {
+export default async function AccountDataPage() {
   if (!(await getSessionToken())) {
     redirect(LOGIN);
   }
@@ -54,9 +43,6 @@ export default async function AccountDataPage({
 
     throw error;
   }
-
-  const exportStatus = (await searchParams).export;
-  const exportError = exportStatus ? EXPORT_ERRORS[exportStatus] : undefined;
 
   return (
     <AccountPage>
@@ -76,19 +62,7 @@ export default async function AccountDataPage({
             <p className="type-body text-ink-2 measure">
               {t("account.data.exportBody")}
             </p>
-            {exportError ? <FormError>{t(exportError)}</FormError> : null}
-            {/* A plain link, not next/link: this is a file download from a
-                route handler, not a page, and must work without JavaScript. */}
-            <a
-              href="/api/account/export"
-              className={buttonClassName({
-                variant: "primary",
-                className: "w-full sm:w-auto sm:self-start",
-              })}
-            >
-              <Icon name="file-text" size={20} />
-              <span>{t("account.data.exportAction")}</span>
-            </a>
+            <AccountExport />
           </div>
         </Card>
 

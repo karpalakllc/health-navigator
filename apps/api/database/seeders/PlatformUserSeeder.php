@@ -37,8 +37,8 @@ class PlatformUserSeeder extends Seeder
             return;
         }
 
-        $admin = User::query()->updateOrCreate(
-            ['email' => EmailAddress::normalize((string) config('zdravje.admin.email'))],
+        $admin = $this->upsertDemoUser(
+            EmailAddress::normalize((string) config('zdravje.admin.email')),
             [
                 'name' => 'Platform Admin',
                 'username' => 'zdravje_admin',
@@ -48,8 +48,8 @@ class PlatformUserSeeder extends Seeder
             ],
         );
 
-        $moderator = User::query()->updateOrCreate(
-            ['email' => EmailAddress::normalize((string) config('zdravje.seed.moderator.email'))],
+        $moderator = $this->upsertDemoUser(
+            EmailAddress::normalize((string) config('zdravje.seed.moderator.email')),
             [
                 'name' => 'Platform Moderator',
                 'username' => 'zdravje_moderator',
@@ -59,8 +59,8 @@ class PlatformUserSeeder extends Seeder
             ],
         );
 
-        $member = User::query()->updateOrCreate(
-            ['email' => EmailAddress::normalize((string) config('zdravje.seed.member.email'))],
+        $member = $this->upsertDemoUser(
+            EmailAddress::normalize((string) config('zdravje.seed.member.email')),
             [
                 'name' => 'Test Member',
                 'username' => self::seededUsername((string) config('zdravje.seed.member.email')),
@@ -80,6 +80,19 @@ class PlatformUserSeeder extends Seeder
         // straight to the code prompt instead of the set-up page.
         $this->ensureDemoAuthenticator($admin, self::DEMO_ADMIN_TOTP_SECRET);
         $this->ensureDemoAuthenticator($moderator, self::DEMO_MODERATOR_TOTP_SECRET);
+    }
+
+    /**
+     * updateOrCreate uses fill(); user_kind is not fillable, so forceFill here.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function upsertDemoUser(string $email, array $attributes): User
+    {
+        $user = User::query()->firstOrNew(['email' => $email]);
+        $user->forceFill($attributes)->save();
+
+        return $user;
     }
 
     /**

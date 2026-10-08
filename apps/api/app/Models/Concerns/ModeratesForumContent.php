@@ -7,6 +7,7 @@ use App\Enums\RemovalCategory;
 use App\Models\User;
 use App\Support\UgcMailer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 trait ModeratesForumContent
 {
@@ -35,25 +36,47 @@ trait ModeratesForumContent
 
     public function approve(User $moderator): void
     {
-        $wasApproved = $this->status === ForumContentStatus::Approved;
+        $transitioned = false;
 
-        $this->status = ForumContentStatus::Approved;
-        $this->markPublicationTimestamps();
+        DB::transaction(function () use ($moderator, &$transitioned): void {
+            /** @var static|null $locked */
+            $locked = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
-        $this->forceFill([
-            'moderated_by_id' => $moderator->id,
-            'moderated_at' => now(),
-            'rejection_note' => null,
-            'removed_at' => null,
-            'removal_category' => null,
-        ])->save();
+            if ($locked === null) {
+                return;
+            }
 
-        // Guard against double-counting if an already-approved record is re-approved.
-        if (! $wasApproved) {
-            $this->afterApproved();
+            // Two staff approving the same pending row must not both run
+            // afterApproved() (reply counters) or both mail the author.
+            if ($locked->status === ForumContentStatus::Approved) {
+                $this->setRawAttributes($locked->getAttributes());
+                $this->syncOriginal();
+
+                return;
+            }
+
+            $locked->forceFill([
+                'status' => ForumContentStatus::Approved,
+                'published_at' => $locked->published_at ?? now(),
+                'moderated_by_id' => $moderator->id,
+                'moderated_at' => now(),
+                'rejection_note' => null,
+                'removed_at' => null,
+                'removal_category' => null,
+            ])->save();
+
+            $locked->afterApproved();
+            $transitioned = true;
+
+            $this->setRawAttributes($locked->getAttributes());
+            $this->syncOriginal();
+        });
+
+        // Outside the transaction: queue after_commit=true still defers the job
+        // until any outer transaction commits (e.g. hideContent).
+        if ($transitioned) {
+            UgcMailer::notifyApproved($this->fresh());
         }
-
-        UgcMailer::notifyApproved($this->fresh());
     }
 
     /**
@@ -69,23 +92,48 @@ trait ModeratesForumContent
      */
     public function reject(User $moderator, ?string $note = null, bool $afterReport = false, ?RemovalCategory $category = null): void
     {
-        $wasPublished = $this->status === ForumContentStatus::Approved;
+        $transitioned = false;
 
-        $this->forceFill([
-            'status' => ForumContentStatus::Rejected,
-            // Published content keeps its publication date: a reply's
-            // placeholder stays in place, and the transparency figures still
-            // count the month it was published in. Public listings go by
-            // status, so a removed topic is not listed for having one.
-            'published_at' => $wasPublished ? $this->published_at : null,
-            'moderated_by_id' => $moderator->id,
-            'moderated_at' => now(),
-            'rejection_note' => $note,
-            'removed_at' => $wasPublished ? now() : $this->removed_at,
-            'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $this->removal_category,
-        ])->save();
+        DB::transaction(function () use ($moderator, $note, $category, &$transitioned): void {
+            /** @var static|null $locked */
+            $locked = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
-        UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
+            if ($locked === null) {
+                return;
+            }
+
+            if ($locked->status === ForumContentStatus::Rejected) {
+                $this->setRawAttributes($locked->getAttributes());
+                $this->syncOriginal();
+
+                return;
+            }
+
+            $wasPublished = $locked->status === ForumContentStatus::Approved;
+
+            $locked->forceFill([
+                'status' => ForumContentStatus::Rejected,
+                // Published content keeps its publication date: a reply's
+                // placeholder stays in place, and the transparency figures still
+                // count the month it was published in. Public listings go by
+                // status, so a removed topic is not listed for having one.
+                'published_at' => $wasPublished ? $locked->published_at : null,
+                'moderated_by_id' => $moderator->id,
+                'moderated_at' => now(),
+                'rejection_note' => $note,
+                'removed_at' => $wasPublished ? now() : $locked->removed_at,
+                'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $locked->removal_category,
+            ])->save();
+
+            $transitioned = true;
+
+            $this->setRawAttributes($locked->getAttributes());
+            $this->syncOriginal();
+        });
+
+        if ($transitioned) {
+            UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
+        }
     }
 
     /**

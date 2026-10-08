@@ -11,23 +11,20 @@ class CreateStaffUser extends CreateRecord
 {
     protected static string $resource = StaffUserResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        $data['user_kind'] = UserKind::Staff;
-
-        return $data;
-    }
-
     /**
      * Staff are verified from creation: nobody signs up for these accounts, so
      * nobody would ever click a verification link — and an unverified account is
-     * what the public sign-up treats as still pending.
+     * what the public sign-up treats as still pending. user_kind is not fillable,
+     * so it is force-filled here rather than passed through the form data.
      */
     protected function handleRecordCreation(array $data): Model
     {
-        $record = new ($this->getModel())($data);
-        $record->email_verified_at = now();
-        $record->save();
+        $record = new ($this->getModel());
+        $record->forceFill([
+            ...$data,
+            'user_kind' => UserKind::Staff,
+            'email_verified_at' => now(),
+        ])->save();
 
         return $record;
     }

@@ -37,7 +37,9 @@ use Laravel\Sanctum\HasApiTokens;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'display_name', 'username', 'email', 'password', 'user_kind', 'avatar_path'])]
+// user_kind is intentionally not fillable: Client ↔ Staff flips must go through
+// forceFill / forceCreate (registration, staff create, bootstrap, seeders).
+#[Fillable(['name', 'display_name', 'username', 'email', 'password', 'avatar_path'])]
 // The second-factor columns are hidden here as well as by Filament's traits, so
 // that dropping a trait can never start serialising them.
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]

@@ -85,7 +85,7 @@ class PlatformBootstrapCommand extends Command
                 return self::FAILURE;
             }
 
-            $admin = User::query()->create([
+            $admin = User::query()->forceCreate([
                 'name' => 'Platform Admin',
                 'email' => $adminEmail,
                 'password' => $adminPassword,
@@ -117,7 +117,7 @@ class PlatformBootstrapCommand extends Command
             }
 
             $this->warn("Promoting existing account {$adminEmail}; it keeps its current password.");
-            $admin->update(['user_kind' => UserKind::Staff]);
+            $admin->forceFill(['user_kind' => UserKind::Staff])->save();
         }
 
         // Staff are verified from creation; an unverified one is what the public

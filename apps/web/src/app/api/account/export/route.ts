@@ -1,67 +1,80 @@
+import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
+import { guardJson } from "@/lib/auth/request-guard";
+import { t } from "@/i18n/t";
+
+type ExportPayload = {
+  password?: unknown;
+};
 
 /**
- * Downloads the member's data export (GET /me/export).
- *
- * The account page links here directly, so it works without JavaScript: on
- * success the API's JSON is streamed straight through as an attachment and the
- * browser stays on the page; on failure the browser is sent back to the page
- * with a reason it can show. The bearer token stays in this server — the
- * browser only ever carries the httpOnly session cookie.
+ * Downloads the member's data export (POST /me/export) after password step-up.
+ * The bearer token stays in this server — the browser only carries the
+ * httpOnly session cookie and the password in the JSON body.
  */
-const DATA_PAGE = "/account/data";
-
-/** Relative Location: the browser resolves it against the page's own origin. */
-function backTo(path: string): Response {
-  return new Response(null, {
-    status: 303,
-    headers: { Location: path, "Cache-Control": "no-store" },
-  });
-}
-
-export async function GET(request: Request) {
-  // A link on another site may navigate here (the lax cookie rides along on a
-  // top-level GET). It learns nothing, but it must not push a download of
-  // someone's health-forum history onto their device either.
-  const site = request.headers.get("sec-fetch-site");
-
-  if (site === "cross-site" || site === "same-site") {
-    return backTo(DATA_PAGE);
-  }
-
+export async function POST(request: Request) {
   const token = await getSessionToken();
 
   if (!token) {
-    return backTo(`/login?redirect=${encodeURIComponent(DATA_PAGE)}`);
+    return NextResponse.json(
+      { message: t("errors.unauthenticated") },
+      { status: 401 },
+    );
   }
+
+  const guarded = await guardJson<ExportPayload>(request);
+
+  if (!guarded.ok) {
+    return guarded.response;
+  }
+
+  const password = guarded.value.password;
 
   let upstream: Response;
 
   try {
     upstream = await fetch(apiUrl("/me/export"), {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
         Accept: "application/json",
         "Accept-Language": "mk",
         ...forwardedForHeaders(request),
       },
+      body: JSON.stringify({
+        password: typeof password === "string" ? password : "",
+      }),
       cache: "no-store",
     });
   } catch {
-    return backTo(`${DATA_PAGE}?export=error`);
+    return NextResponse.json(
+      { message: t("account.data.exportError") },
+      { status: 502 },
+    );
   }
 
   if (upstream.status === 401) {
-    return backTo(`/login?redirect=${encodeURIComponent(DATA_PAGE)}`);
+    return NextResponse.json(
+      { message: t("errors.unauthenticated") },
+      { status: 401 },
+    );
   }
 
-  if (!upstream.ok || !upstream.body) {
-    await upstream.body?.cancel().catch(() => undefined);
+  if (!upstream.ok) {
+    const payload = await upstream.json().catch(() => ({
+      message: t("account.data.exportError"),
+    }));
 
-    return backTo(
-      `${DATA_PAGE}?export=${upstream.status === 429 ? "throttled" : "error"}`,
+    return NextResponse.json(payload, { status: upstream.status });
+  }
+
+  if (!upstream.body) {
+    return NextResponse.json(
+      { message: t("account.data.exportError") },
+      { status: 502 },
     );
   }
 

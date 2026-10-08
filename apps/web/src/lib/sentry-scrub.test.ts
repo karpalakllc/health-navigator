@@ -82,6 +82,26 @@ describe("scrubEvent", () => {
     expect((event.request?.data as Record<string, unknown>).rating).toBe(5);
   });
 
+  it("filters Authorization, Cookie and X-Guidance-Token headers", () => {
+    const event = scrubEvent({
+      request: {
+        headers: {
+          Authorization: "Bearer sanctum-token",
+          Cookie: "zdravje_api_token=secret",
+          "X-Guidance-Token": "guidance-secret",
+          Accept: "application/json",
+        },
+      },
+    });
+
+    expect(event.request?.headers?.Authorization).toBe("[Filtered]");
+    expect(event.request?.headers?.Cookie).toBe("[Filtered]");
+    expect(event.request?.headers?.["X-Guidance-Token"]).toBe("[Filtered]");
+    expect(event.request?.headers?.Accept).toBe("application/json");
+    expect(JSON.stringify(event)).not.toContain("sanctum-token");
+    expect(JSON.stringify(event)).not.toContain("guidance-secret");
+  });
+
   it.each([
     ["string", "q=онколог&city=Bitola"],
     ["object", { q: "онколог", specialty: "onkologija" }],
