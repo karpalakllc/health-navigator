@@ -193,17 +193,16 @@ class E2ESeeder extends Seeder
 
     private function user(string $email, string $name, string $role, UserKind $kind): User
     {
-        $user = User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                // W5-U: a fixed username, so seeded members can post at once.
-                'username' => self::seededUsername($email),
-                'password' => self::PASSWORD,
-                'user_kind' => $kind,
-                'email_verified_at' => now(),
-            ],
-        );
+        // user_kind is not fillable; forceFill so Client/Staff is set correctly.
+        $user = User::query()->firstOrNew(['email' => $email]);
+        $user->forceFill([
+            'name' => $name,
+            // W5-U: a fixed username, so seeded members can post at once.
+            'username' => self::seededUsername($email),
+            'password' => self::PASSWORD,
+            'user_kind' => $kind,
+            'email_verified_at' => now(),
+        ])->save();
 
         $user->syncRoles([$role]);
 

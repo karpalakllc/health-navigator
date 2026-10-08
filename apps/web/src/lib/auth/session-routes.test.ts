@@ -123,11 +123,16 @@ describe("logout", () => {
     const response = await logout(
       request("/api/session/logout", { origin: SITE }),
     );
+    const cookie = response.headers.get("set-cookie") ?? "";
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toMatch(
-      new RegExp(`${SESSION_COOKIE}=;.*Max-Age=0`, "i"),
-    );
+    // Same flags as sessionCookieOptions(0) — browsers need matching
+    // Secure/SameSite/HttpOnly/Path to overwrite the live session cookie.
+    expect(cookie).toMatch(new RegExp(`${SESSION_COOKIE}=;.*Max-Age=0`, "i"));
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/SameSite=Lax/i);
+    expect(cookie).toMatch(/Path=\//i);
+    expect(cookie).toMatch(/Secure/i);
   });
 });
 
@@ -186,30 +191,49 @@ describe("avatar upload", () => {
 });
 
 describe("reset password", () => {
-  const resetRequest = () =>
-    request(
+  const resetRequest = async () => {
+    const { encodeResetCookie } = await import("@/lib/auth/reset-token");
+    const cookie = encodeURIComponent(
+      encodeResetCookie({ email: "ana@example.mk", token: "t" }),
+    );
+
+    return request(
       "/api/session/reset-password",
-      { origin: SITE, "content-type": "application/json" },
+      {
+        origin: SITE,
+        "content-type": "application/json",
+        cookie: `${RESET_COOKIE}=${cookie}`,
+      },
       JSON.stringify({
-        email: "ana@example.mk",
-        token: "t",
         password: "new-password-1",
         password_confirmation: "new-password-1",
       }),
     );
+  };
 
   it("clears the spent reset cookie on the form's path when it succeeds", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ message: "ok" }), { status: 200 }),
     );
 
-    const response = await resetPassword(resetRequest());
+    const response = await resetPassword(await resetRequest());
     const cookie = response.headers.get("set-cookie") ?? "";
 
     expect(response.status).toBe(200);
     expect(cookie).toContain(`${RESET_COOKIE}=;`);
     expect(cookie).toContain(`Path=${RESET_FORM_PATH}`);
     expect(cookie).toContain("Max-Age=0");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.test/api/v1/auth/reset-password",
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: "ana@example.mk",
+          token: "t",
+          password: "new-password-1",
+          password_confirmation: "new-password-1",
+        }),
+      }),
+    );
   });
 
   it("keeps the cookie when the API refuses the reset", async () => {
@@ -217,10 +241,26 @@ describe("reset password", () => {
       new Response(JSON.stringify({ message: "invalid" }), { status: 422 }),
     );
 
-    const response = await resetPassword(resetRequest());
+    const response = await resetPassword(await resetRequest());
 
     expect(response.status).toBe(422);
     expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("refuses a reset when the httpOnly cookie is missing", async () => {
+    const response = await resetPassword(
+      request(
+        "/api/session/reset-password",
+        { origin: SITE, "content-type": "application/json" },
+        JSON.stringify({
+          password: "new-password-1",
+          password_confirmation: "new-password-1",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(422);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

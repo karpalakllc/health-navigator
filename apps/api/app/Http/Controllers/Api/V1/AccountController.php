@@ -20,12 +20,24 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AccountController extends Controller
 {
     /**
-     * Streams the JSON document (AccountExport) as an attachment. Rate-limited
+     * Streams the JSON document (AccountExport) as an attachment after the
+     * member re-enters their password (same step-up as delete). Rate-limited
      * per account (api-account-export): it reads every row the member owns.
      */
     public function export(Request $request): StreamedResponse
     {
         $user = $this->user($request);
+
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'max:255'],
+        ]);
+
+        if (! Hash::check($validated['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => [__('api.account.password_incorrect')],
+            ]);
+        }
+
         $export = new AccountExport($user);
 
         return response()->streamDownload(

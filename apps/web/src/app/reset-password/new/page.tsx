@@ -29,7 +29,7 @@ export default async function ResetPasswordPage() {
       title={t("auth.resetPasswordTitle")}
       description={t("auth.resetPasswordDescription")}
     >
-      <ResetPasswordForm email={credentials.email} token={credentials.token} />
+      <ResetPasswordForm email={credentials.email} />
     </AuthPage>
   );
 }

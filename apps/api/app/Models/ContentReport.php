@@ -204,19 +204,25 @@ class ContentReport extends Model
      */
     public function keepContent(User $moderator): void
     {
-        $this->closeOpenReports(ReportStatus::Kept, $moderator);
+        // Same lock as hideContent: concurrent keep/hide must not both close
+        // open reports and mail reporters twice.
+        DB::transaction(function () use ($moderator): void {
+            $this->closeOpenReports(ReportStatus::Kept, $moderator);
+        });
     }
 
     /**
      * Close the open reports and tell their reporters the outcome, once the
-     * decision is committed.
+     * decision is committed. Callers must already be inside a transaction so
+     * lockForUpdate holds until commit.
      */
     private function closeOpenReports(ReportStatus $outcome, User $moderator): void
     {
         $open = self::query()
             ->open()
             ->where('reportable_type', $this->reportable_type)
-            ->where('reportable_id', $this->reportable_id);
+            ->where('reportable_id', $this->reportable_id)
+            ->lockForUpdate();
 
         $reporterIds = (clone $open)->pluck('user_id')->unique()->all();
 

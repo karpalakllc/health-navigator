@@ -17,6 +17,13 @@ import { isSettingsUnavailable } from "@/lib/api/public-settings";
 const FILTERED = "[Filtered]";
 const SENSITIVE_KEYS = ["password", "password_confirmation", "token", "email"];
 
+/** Request headers that must never leave the process (Bearer, cookies, guidance). */
+const SENSITIVE_HEADERS = new Set([
+  "authorization",
+  "cookie",
+  "x-guidance-token",
+]);
+
 function isSensitive(key: string): boolean {
   return SENSITIVE_KEYS.includes(key.toLowerCase());
 }
@@ -77,7 +84,11 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
 
     if (request.headers) {
       for (const key of Object.keys(request.headers)) {
-        if (key.toLowerCase() === "referer") {
+        const lower = key.toLowerCase();
+
+        if (SENSITIVE_HEADERS.has(lower)) {
+          request.headers[key] = FILTERED;
+        } else if (lower === "referer") {
           request.headers[key] = scrubUrl(request.headers[key]);
         }
       }

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getSessionToken, SESSION_COOKIE } from "@/lib/auth/session";
+import {
+  getSessionToken,
+  SESSION_COOKIE,
+  sessionCookieOptions,
+} from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
 import { forwardedForHeaders } from "@/lib/api/client-ip";
 import { rejectCrossSite } from "@/lib/auth/request-guard";
@@ -30,7 +34,9 @@ export async function POST(request: Request) {
   }
 
   const res = NextResponse.json({ data: { message: t("auth.loggedOut") } });
-  res.cookies.set(SESSION_COOKIE, "", { path: "/", maxAge: 0 });
+  // Match the attributes used when the cookie was set — browsers require the
+  // same Secure/SameSite/Path to overwrite (and therefore clear) it.
+  res.cookies.set(SESSION_COOKIE, "", sessionCookieOptions(0));
 
   return res;
 }

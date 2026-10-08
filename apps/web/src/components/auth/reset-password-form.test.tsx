@@ -11,10 +11,8 @@ import {
 } from "../../../test/fetch";
 import { router } from "../../../test/next-navigation";
 
-const TOKEN = "a".repeat(64);
-
 function renderForm() {
-  return render(<ResetPasswordForm email="ana@example.mk" token={TOKEN} />);
+  return render(<ResetPasswordForm email="ana@example.mk" />);
 }
 
 async function submit(password = "novaLozinka123", confirmation = password) {
@@ -30,20 +28,21 @@ async function submit(password = "novaLozinka123", confirmation = password) {
 }
 
 describe("ResetPasswordForm", () => {
-  it("shows the address read-only and never renders the token", () => {
+  it("shows the address read-only and never takes a token prop", () => {
     const { container } = renderForm();
 
     const email = screen.getByLabelText(t("auth.email"));
     expect(email).toHaveValue("ana@example.mk");
     expect(email).toHaveAttribute("readonly");
-    expect(container.innerHTML).not.toContain(TOKEN);
     expect(screen.getByLabelText(t("auth.password"))).toBeRequired();
     expect(
       screen.getByLabelText(t("auth.registerPasswordConfirm")),
     ).toBeRequired();
+    // No hidden token field — the httpOnly cookie is the only place it lives.
+    expect(container.querySelector('input[name="token"]')).toBeNull();
   });
 
-  it("posts the token and address with both passwords", async () => {
+  it("posts only the passwords; the route supplies token and email", async () => {
     const fetch = mockFetch({ status: 200, body: { data: {} } });
     renderForm();
 
@@ -54,8 +53,6 @@ describe("ResetPasswordForm", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(requestBody(fetch)).toEqual({
-      email: "ana@example.mk",
-      token: TOKEN,
       password: "novaLozinka123",
       password_confirmation: "novaLozinka123",
     });

@@ -218,7 +218,8 @@ Route::prefix('v1')->group(function (): void {
 
     // Account data rights and devices (D5, D6).
     Route::middleware('auth:sanctum')->prefix('me')->group(function (): void {
-        Route::get('/export', [AccountController::class, 'export'])->middleware('throttle:api-account-export');
+        // Password step-up (POST body), same confirmation pattern as delete.
+        Route::post('/export', [AccountController::class, 'export'])->middleware('throttle:api-account-export');
         Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:api-account-delete');
         Route::get('/tokens', [TokenController::class, 'index']);
         Route::delete('/tokens', [TokenController::class, 'destroyOthers']);

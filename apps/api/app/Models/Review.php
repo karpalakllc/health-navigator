@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -310,17 +311,39 @@ class Review extends Model
 
     public function approve(User $moderator): void
     {
-        $this->update([
-            'status' => ReviewStatus::Approved,
-            'published_at' => now(),
-            'moderated_by_id' => $moderator->id,
-            'moderated_at' => now(),
-            'rejection_note' => null,
-            'removed_at' => null,
-            'removal_category' => null,
-        ]);
+        $transitioned = false;
 
-        UgcMailer::notifyApproved($this->fresh());
+        DB::transaction(function () use ($moderator, &$transitioned): void {
+            /** @var self|null $locked */
+            $locked = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status === ReviewStatus::Approved) {
+                if ($locked !== null) {
+                    $this->setRawAttributes($locked->getAttributes());
+                    $this->syncOriginal();
+                }
+
+                return;
+            }
+
+            $locked->forceFill([
+                'status' => ReviewStatus::Approved,
+                'published_at' => now(),
+                'moderated_by_id' => $moderator->id,
+                'moderated_at' => now(),
+                'rejection_note' => null,
+                'removed_at' => null,
+                'removal_category' => null,
+            ])->save();
+
+            $transitioned = true;
+            $this->setRawAttributes($locked->fresh()->getAttributes());
+            $this->syncOriginal();
+        });
+
+        if ($transitioned) {
+            UgcMailer::notifyApproved($this->fresh());
+        }
     }
 
     /**
@@ -337,19 +360,41 @@ class Review extends Model
      */
     public function reject(User $moderator, ?string $note = null, bool $afterReport = false, ?RemovalCategory $category = null): void
     {
-        $wasPublished = $this->status === ReviewStatus::Approved;
+        $transitioned = false;
 
-        $this->update([
-            'status' => ReviewStatus::Rejected,
-            'published_at' => $wasPublished ? $this->published_at : null,
-            'moderated_by_id' => $moderator->id,
-            'moderated_at' => now(),
-            'rejection_note' => $note,
-            'removed_at' => $wasPublished ? now() : $this->removed_at,
-            'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $this->removal_category,
-        ]);
+        DB::transaction(function () use ($moderator, $note, $category, &$transitioned): void {
+            /** @var self|null $locked */
+            $locked = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
-        UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
+            if ($locked === null || $locked->status === ReviewStatus::Rejected) {
+                if ($locked !== null) {
+                    $this->setRawAttributes($locked->getAttributes());
+                    $this->syncOriginal();
+                }
+
+                return;
+            }
+
+            $wasPublished = $locked->status === ReviewStatus::Approved;
+
+            $locked->forceFill([
+                'status' => ReviewStatus::Rejected,
+                'published_at' => $wasPublished ? $locked->published_at : null,
+                'moderated_by_id' => $moderator->id,
+                'moderated_at' => now(),
+                'rejection_note' => $note,
+                'removed_at' => $wasPublished ? now() : $locked->removed_at,
+                'removal_category' => $wasPublished ? ($category ?? RemovalCategory::Other) : $locked->removal_category,
+            ])->save();
+
+            $transitioned = true;
+            $this->setRawAttributes($locked->fresh()->getAttributes());
+            $this->syncOriginal();
+        });
+
+        if ($transitioned) {
+            UgcMailer::notifyRejected($this->fresh(), removed: $afterReport);
+        }
     }
 
     /**

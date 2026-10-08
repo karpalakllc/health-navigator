@@ -374,7 +374,9 @@ class ForumController extends Controller
             }
         }
 
-        if (config('scout.driver') === 'meilisearch') {
+        // Match UnifiedSearchCoordinator: skip Meili while the health gate is
+        // down so every search does not pay a failing RPC before SQL fallback.
+        if (MeilisearchGateway::isHealthy()) {
             // Filters go to Meilisearch, not into a ->query() callback: a callback
             // runs after Meilisearch has paginated, so it under-fills pages. The
             // visible() callback is only a guard against stale index entries.

@@ -23,11 +23,16 @@ const RESET_FIELDS: readonly ResetField[] = [
 ];
 
 type ResetPasswordFormProps = {
+  /** Display only — the reset token stays in the httpOnly cookie. */
   email: string;
-  token: string;
 };
 
-export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
+/**
+ * Password fields only. Token and address for the API live in the httpOnly
+ * reset cookie and are read by `/api/session/reset-password` — never passed
+ * into client props or the request body from the browser.
+ */
+export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -67,8 +72,6 @@ export function ResetPasswordForm({ email, token }: ResetPasswordFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
-          token,
           password,
           password_confirmation: passwordConfirmation,
         }),

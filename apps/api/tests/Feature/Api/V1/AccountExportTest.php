@@ -40,11 +40,11 @@ class AccountExportTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function download(User $user): array
+    private function download(User $user, string $password = 'password'): array
     {
         Sanctum::actingAs($user);
 
-        $response = $this->get('/api/v1/me/export')->assertOk();
+        $response = $this->postJson('/api/v1/me/export', ['password' => $password])->assertOk();
 
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
         $this->assertStringContainsString('.json', (string) $response->headers->get('Content-Disposition'));
@@ -252,21 +252,35 @@ class AccountExportTest extends TestCase
         Sanctum::actingAs($member);
 
         for ($i = 0; $i < 5; $i++) {
-            $this->get('/api/v1/me/export')->assertOk();
+            $this->postJson('/api/v1/me/export', ['password' => 'password'])->assertOk();
         }
 
-        $this->getJson('/api/v1/me/export')
+        $this->postJson('/api/v1/me/export', ['password' => 'password'])
             ->assertStatus(429)
             ->assertJsonPath('code', 'account.export_throttled')
             ->assertHeader('Retry-After');
 
         // Another member has their own budget.
         Sanctum::actingAs(User::factory()->create());
-        $this->get('/api/v1/me/export')->assertOk();
+        $this->postJson('/api/v1/me/export', ['password' => 'password'])->assertOk();
     }
 
     public function test_the_export_requires_a_session(): void
     {
-        $this->getJson('/api/v1/me/export')->assertUnauthorized();
+        $this->postJson('/api/v1/me/export', ['password' => 'password'])->assertUnauthorized();
+    }
+
+    public function test_the_export_requires_the_current_password(): void
+    {
+        $member = User::factory()->create();
+        Sanctum::actingAs($member);
+
+        $this->postJson('/api/v1/me/export', ['password' => 'wrong-password'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->postJson('/api/v1/me/export', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
     }
 }

@@ -16,6 +16,7 @@ use App\Models\Review;
 use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\Support\FakeMeilisearchEngine;
@@ -435,6 +436,30 @@ class MeilisearchUnifiedSearchTest extends TestCase
         Queue::assertPushed(
             ReindexTaxonomyMembers::class,
             fn (ReindexTaxonomyMembers $job): bool => $job->taxonomy === Specialty::class && $job->taxonomyId === $specialty->id,
+        );
+    }
+
+    public function test_forum_search_skips_meilisearch_when_health_gate_is_down(): void
+    {
+        $category = ForumCategory::factory()->create(['is_published' => true]);
+        ForumTopic::factory()->create([
+            'forum_category_id' => $category->id,
+            'title' => 'Ana SQL fallback topic',
+        ]);
+
+        \App\Support\MeilisearchGateway::forgetHealthCache();
+        Cache::put('meilisearch.health', false, 300);
+        $searchesBefore = count($this->engine->searches);
+
+        $this->getJson('/api/v1/forum/topics?q=ana')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.title', 'Ana SQL fallback topic');
+
+        $this->assertSame(
+            $searchesBefore,
+            count($this->engine->searches),
+            'Unhealthy Meili must not be called; SQL fallback serves the page.',
         );
     }
 }

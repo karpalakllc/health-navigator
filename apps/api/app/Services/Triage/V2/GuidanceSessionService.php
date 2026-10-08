@@ -134,10 +134,10 @@ final class GuidanceSessionService
     /** @param  array<string, mixed>  $input */
     public function saveDemographics(TriageSession $session, array $input): array
     {
-        $this->ensureOpen($session);
         $demo = Demographics::fromInput($input);
 
-        DB::transaction(function () use ($session, $demo): void {
+        DB::transaction(function () use (&$session, $demo): void {
+            $session = $this->lockOpen($session);
             $this->clearAfter($session, 'demographics');
 
             foreach ($demo->toAnswerRows() as $key => $values) {
@@ -151,7 +151,6 @@ final class GuidanceSessionService
     /** @param  list<string>  $keys */
     public function chooseSymptoms(TriageSession $session, array $keys): array
     {
-        $this->ensureOpen($session);
         $demo = $this->demographics($session);
         $keys = array_values(array_unique($keys));
         $max = (int) config('triage.max_symptoms', 3);
@@ -184,7 +183,8 @@ final class GuidanceSessionService
         // Most urgent symptom first; the visitor's order breaks ties.
         usort($chosen, fn ($a, $b) => [$b[1], $a[2]] <=> [$a[1], $b[2]]);
 
-        DB::transaction(function () use ($session, $chosen): void {
+        DB::transaction(function () use (&$session, $chosen): void {
+            $session = $this->lockOpen($session);
             $this->clearAfter($session, 'demographics');
 
             foreach ($chosen as $position => [$version]) {
@@ -203,7 +203,6 @@ final class GuidanceSessionService
     /** @param  list<string>  $codes */
     public function answerScreen(TriageSession $session, array $codes): array
     {
-        $this->ensureOpen($session);
         $demo = $this->demographics($session);
         $flows = $this->sessionFlows($session);
 
@@ -219,7 +218,8 @@ final class GuidanceSessionService
             }
         }
 
-        DB::transaction(function () use ($session, $codes): void {
+        DB::transaction(function () use (&$session, $codes): void {
+            $session = $this->lockOpen($session);
             $this->clearAfter($session, 'symptoms');
             $this->putAnswer($session, self::SCREEN_KEY, array_values(array_unique($codes)));
         });
@@ -241,7 +241,6 @@ final class GuidanceSessionService
      */
     public function answer(TriageSession $session, string $flowKey, string $nodeId, array $values): array
     {
-        $this->ensureOpen($session);
         $demo = $this->demographics($session);
         $this->ensureScreened($session);
         $flows = $this->sessionFlows($session);
@@ -275,7 +274,8 @@ final class GuidanceSessionService
         $node = $definition['nodes'][$nodeId];
         $stored = $this->normalizer->normalize($node, $values);
 
-        DB::transaction(function () use ($session, $flows, $flow, $walk, $nodeId, $stored): void {
+        DB::transaction(function () use (&$session, $flows, $flow, $walk, $nodeId, $stored): void {
+            $session = $this->lockOpen($session);
             $keep = [];
 
             foreach ($walk->path as $id) {
@@ -309,8 +309,6 @@ final class GuidanceSessionService
     /** The „Потребна ми е итна помош“ shortcut: allowed at any stage of an open session. */
     public function emergencyShortcut(TriageSession $session): array
     {
-        $this->ensureOpen($session);
-
         return $this->finishEmergency($session, ['global:emergency_now'], self::SHORTCUT_OUTCOME);
     }
 
@@ -323,6 +321,7 @@ final class GuidanceSessionService
      */
     public function noMatch(TriageSession $session, ?string $bodyArea): array
     {
+        // Read-only suggestion path: still refuse a completed session.
         $this->ensureOpen($session);
         $demo = $this->demographics($session);
         $available = array_column($this->catalog(), 'key');
@@ -448,7 +447,9 @@ final class GuidanceSessionService
         usort($outcomes, fn ($a, $b) => (int) (bool) ($b['crisis'] ?? false) <=> (int) (bool) ($a['crisis'] ?? false));
         $primary = $outcomes[0];
 
-        DB::transaction(function () use ($session, $flows, $primary, $statOutcome): void {
+        DB::transaction(function () use (&$session, $flows, $primary, $statOutcome): void {
+            $session = $this->lockOpen($session);
+
             $session->update([
                 'emergency_stopped' => true,
                 'outcome_code' => $primary['ref'],
@@ -478,7 +479,22 @@ final class GuidanceSessionService
      */
     private function finishWith(TriageSession $session, array $finished, bool $fallback = false): array
     {
-        DB::transaction(function () use ($session, $finished): void {
+        DB::transaction(function () use (&$session, $finished): void {
+            // GET /sessions/{id} may finish a session after a prior write was
+            // interrupted — lock so two concurrent finishes do not double-count.
+            $locked = TriageSession::query()->whereKey($session->getKey())->lockForUpdate()->first();
+
+            if ($locked === null) {
+                return;
+            }
+
+            if ($locked->isCompleted()) {
+                $session = $locked;
+
+                return;
+            }
+
+            $session = $locked;
             $primary = null;
 
             foreach ($finished as [$flow, $outcomeId]) {
@@ -749,6 +765,23 @@ final class GuidanceSessionService
         if ($session->isCompleted()) {
             throw ValidationException::withMessages(['session' => [__('api.guidance.session_complete')]]);
         }
+    }
+
+    /**
+     * Row-lock an open session inside the caller's transaction so concurrent
+     * answer/emergency/finish requests cannot interleave clears and upserts.
+     */
+    private function lockOpen(TriageSession $session): TriageSession
+    {
+        $locked = TriageSession::query()->whereKey($session->getKey())->lockForUpdate()->first();
+
+        if ($locked === null) {
+            throw ValidationException::withMessages(['session' => [__('api.guidance.session_complete')]]);
+        }
+
+        $this->ensureOpen($locked);
+
+        return $locked;
     }
 
     /**

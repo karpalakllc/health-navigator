@@ -11,7 +11,7 @@ vi.mock("@/lib/auth/session", async (importOriginal) => ({
   getSessionToken: async () => "member-token",
 }));
 
-const { GET: exportData } = await import("@/app/api/account/export/route");
+const { POST: exportData } = await import("@/app/api/account/export/route");
 const { POST: deleteAccount } = await import("@/app/api/account/delete/route");
 const { DELETE: revokeOthers } =
   await import("@/app/api/account/devices/route");
@@ -48,16 +48,25 @@ function upstreamCall(index = 0): { url: string; init: RequestInit } {
   return { url, init };
 }
 
-describe("GET /api/account/export", () => {
-  function get(headers: Record<string, string> = {}): Promise<Response> {
+describe("POST /api/account/export", () => {
+  function post(
+    body: unknown,
+    headers: Record<string, string> = {},
+  ): Promise<Response> {
     return exportData(
       new Request(`${SITE}/api/account/export`, {
-        headers: { "sec-fetch-site": "same-origin", ...headers },
+        method: "POST",
+        headers: {
+          origin: SITE,
+          "content-type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify(body),
       }),
     );
   }
 
-  it("streams the API's JSON as an attachment, token kept server-side", async () => {
+  it("streams the API's JSON as an attachment after password step-up", async () => {
     fetchMock.mockResolvedValue(
       new Response('{"format":"zdravje360.account-export"}', {
         status: 200,
@@ -69,7 +78,7 @@ describe("GET /api/account/export", () => {
       }),
     );
 
-    const response = await get();
+    const response = await post({ password: "secret1long", extra: "x" });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-disposition")).toBe(
@@ -82,39 +91,42 @@ describe("GET /api/account/export", () => {
 
     const { url, init } = upstreamCall();
     expect(url).toBe("https://api.test/api/v1/me/export");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ password: "secret1long" });
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer member-token",
     );
-    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("refuses a download started from another site", async () => {
-    const response = await get({ "sec-fetch-site": "cross-site" });
+  it("relays a wrong password without downloading", async () => {
+    fetchMock.mockResolvedValue(
+      json({ errors: { password: ["Лозинката не е точна."] } }, 422),
+    );
 
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/account/data");
+    const response = await post({ password: "wrong" });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({
+      errors: { password: ["Лозинката не е точна."] },
+    });
+  });
+
+  it("cannot be forced by another site", async () => {
+    const response = await post(
+      { password: "secret1long" },
+      { origin: "https://evil.example" },
+    );
+
+    expect(response.status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [429, "/account/data?export=throttled"],
-    [500, "/account/data?export=error"],
-    [401, "/login?redirect=%2Faccount%2Fdata"],
-  ])("sends the browser back on %i", async (status, location) => {
-    fetchMock.mockResolvedValue(json({ message: "x" }, status));
-
-    const response = await get();
-
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe(location);
-  });
-
-  it("sends the browser back when the API is unreachable", async () => {
+  it("returns 502 when the API is unreachable", async () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
 
-    const response = await get();
+    const response = await post({ password: "secret1long" });
 
-    expect(response.headers.get("location")).toBe("/account/data?export=error");
+    expect(response.status).toBe(502);
   });
 });
 
@@ -146,7 +158,13 @@ describe("POST /api/account/delete", () => {
     expect(url).toBe("https://api.test/api/v1/me");
     expect(init.method).toBe("DELETE");
     expect(JSON.parse(String(init.body))).toEqual({ password: "secret1long" });
-    expect(response.headers.get("set-cookie")).toContain(`${SESSION_COOKIE}=;`);
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain(`${SESSION_COOKIE}=;`);
+    expect(cookie).toMatch(/Max-Age=0/i);
+    // Same flags as set (required to clear a Secure cookie on HTTPS).
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/SameSite=Lax/i);
+    expect(cookie).toMatch(/Secure/i);
   });
 
   it("relays a wrong password and keeps the session", async () => {

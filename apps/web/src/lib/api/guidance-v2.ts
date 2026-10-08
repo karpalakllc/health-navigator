@@ -4,8 +4,11 @@
  * catalogue read lives in lib/api/guidance-flow.ts.
  *
  * Sessions are anonymous: the API issues a secret at creation, kept in this
- * tab's sessionStorage and sent on every later call. Answers are option
- * codes and numbers only — never free text.
+ * tab's sessionStorage and sent on every later call. sessionStorage (not an
+ * httpOnly cookie) is intentional — cookies are shared across tabs and would
+ * collide when two guidance sessions run at once. CSP + Sentry scrubbing of
+ * X-Guidance-Token limit exposure; the token is not an account credential.
+ * Answers are option codes and numbers only — never free text.
  */
 import { apiUrl } from "@/lib/config";
 import { pathSegment } from "@/lib/api/path";
@@ -14,6 +17,9 @@ import {
   GuidanceApiError,
   type GuidanceSessionHandle,
 } from "@/lib/api/guidance";
+
+/** Hung API must not leave the wizard stuck (matches BFF feedback/UX timeouts). */
+const GUIDANCE_TIMEOUT_MS = 15_000;
 
 export type AgeBand =
   | "infant_0_3m"
@@ -248,6 +254,7 @@ export async function startSession(): Promise<{
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ accepted_terms: true }),
+      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
     }),
   );
 
@@ -260,7 +267,12 @@ export async function startSession(): Promise<{
 export async function fetchState(
   session: GuidanceSessionHandle,
 ): Promise<GuidanceState> {
-  return parse(await fetch(sessionUrl(session), { headers: headers(session) }));
+  return parse(
+    await fetch(sessionUrl(session), {
+      headers: headers(session),
+      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
+    }),
+  );
 }
 
 async function put(
@@ -273,6 +285,7 @@ async function put(
       method: "PUT",
       headers: headers(session),
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
     }),
   );
 }
@@ -314,6 +327,7 @@ export async function emergencyShortcut(
     await fetch(sessionUrl(session, "/emergency"), {
       method: "POST",
       headers: headers(session),
+      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
     }),
   );
 }
@@ -327,6 +341,7 @@ export async function noMatch(
       method: "POST",
       headers: headers(session),
       body: JSON.stringify({ body_area: bodyArea }),
+      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
     }),
   );
 }
