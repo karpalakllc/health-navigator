@@ -16,6 +16,10 @@ class ViewImportReviewItem extends ViewRecord
             ImportReviewItemResource::acceptAction(),
             ImportReviewItemResource::keepAction(),
             ImportReviewItemResource::hideAction(),
+            ImportReviewItemResource::trustSiteAction(),
+            ImportReviewItemResource::acceptSuggestionAction(),
+            ImportReviewItemResource::mergeDuplicatesAction(),
+            ImportReviewItemResource::keepNameAction(),
             ImportReviewItemResource::dismissAction(),
         ];
     }

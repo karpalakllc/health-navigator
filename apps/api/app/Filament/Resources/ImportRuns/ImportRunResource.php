@@ -32,9 +32,9 @@ class ImportRunResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownTray;
 
-    protected static ?string $navigationLabel = 'Import runs';
+    protected static ?string $navigationLabel = 'Увози';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
+    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
 
     protected static ?int $navigationSort = 2;
 
@@ -96,7 +96,7 @@ class ImportRunResource extends Resource
                 SelectFilter::make('source')->options(fn (): array => ImportRun::query()->distinct()->orderBy('source')->pluck('source', 'source')->all()),
             ])
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()->label('Преглед'),
                 self::downloadDiffAction(),
             ]);
     }

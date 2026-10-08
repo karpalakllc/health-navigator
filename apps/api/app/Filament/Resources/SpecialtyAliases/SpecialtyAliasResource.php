@@ -39,9 +39,9 @@ class SpecialtyAliasResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLanguage;
 
-    protected static ?string $navigationLabel = 'Specialty aliases';
+    protected static ?string $navigationLabel = 'Алијаси на специјалности';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Data import';
+    protected static string|\UnitEnum|null $navigationGroup = 'Увоз на податоци';
 
     protected static ?int $navigationSort = 3;
 
@@ -111,6 +111,8 @@ class SpecialtyAliasResource extends Resource
                     ->label('Wording')
                     ->searchable(['raw', 'raw_key'])
                     ->sortable()
+                    ->limit(80)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->wrap(),
                 TextColumn::make('specialty.name')
                     ->label('Our specialty')
