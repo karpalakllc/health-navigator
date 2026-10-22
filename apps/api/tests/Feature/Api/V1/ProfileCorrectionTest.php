@@ -249,7 +249,7 @@ class ProfileCorrectionTest extends TestCase
         ]);
         Sanctum::actingAs($member);
 
-        $response = $this->get('/api/v1/me/export')->assertOk();
+        $response = $this->postJson('/api/v1/me/export', ['password' => 'password'])->assertOk();
         $export = json_decode($response->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertCount(1, $export['profile_corrections']);

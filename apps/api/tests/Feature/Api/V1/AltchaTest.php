@@ -116,14 +116,17 @@ class AltchaTest extends TestCase
     public function test_a_solution_returned_faster_than_a_person_fills_a_form_is_refused(): void
     {
         config(['zdravje.altcha.min_fill_seconds' => 2]);
-        Carbon::setTestNow('2026-10-20 10:00:00');
+        // Relative to the real clock: the challenge's 30-minute life is also
+        // checked against it, so a fixed date turns this test into a time bomb.
+        $start = now()->startOfSecond();
+        Carbon::setTestNow($start->copy());
         $payload = $this->solvedAltcha();
 
-        Carbon::setTestNow('2026-10-20 10:00:01');
+        Carbon::setTestNow($start->copy()->addSecond());
         $this->assertSame(AltchaOutcome::TooFast, $this->guard()->verify($payload));
 
         // Refusing it as too fast did not spend it.
-        Carbon::setTestNow('2026-10-20 10:00:02');
+        Carbon::setTestNow($start->copy()->addSeconds(2));
         $this->assertSame(AltchaOutcome::Verified, $this->guard()->verify($payload));
     }
 

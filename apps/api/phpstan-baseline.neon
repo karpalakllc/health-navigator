@@ -301,12 +301,6 @@ parameters:
 			path: app/Filament/Resources/Products/Pages/EditProduct.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email_verified_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Resources/Staff/Pages/CreateStaffUser.php
-
-		-
 			message: '#^Cannot call method revokeApiTokens\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
 			identifier: method.nonObject
 			count: 1

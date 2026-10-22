@@ -147,7 +147,7 @@ mechanism for the Next.js web client and future mobile clients.
   existing tokens are refused (`401`, not deleted) from the next request on,
   including on optional-auth routes, and work again once the suspension is
   lifted. Its content is not touched.
-- `GET /me/export` downloads the caller's own data as one JSON attachment
+- `POST /me/export` (password step-up in the body) downloads the caller's own data as one JSON attachment
   (`format: zdravje360.account-export`, `version: 1`): `profile`, `reviews`,
   `forum_topics`, `forum_posts`, `consents` (forum community-rules acceptance
   per topic, with time), `content_reports` (the caller's own reports: what,
@@ -191,7 +191,7 @@ limiters are layered on top:
 | `api-verification-resend` | verification email resend | 10/min per IP |
 | `api-profile` | `PATCH /me/profile` (username) | 10/hour per user |
 | `api-username-check` | `GET /usernames/availability` | 30/min and 500/day per IP |
-| `api-account-export` | `GET /me/export` | 5/hour per user |
+| `api-account-export` | `POST /me/export` | 5/hour per user |
 | `api-account-delete` | `DELETE /me` (password re-entry) | 5/hour per user |
 | `api-reviews` | review submission | 10/hour, 20/day |
 | `api-forum-topics` | topic creation | 5/day |
@@ -266,7 +266,6 @@ nobody can hold an account locked by merely sending traffic.
 | `GET` | `/me/doctor` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/doctor/facilities` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
 | `GET` | `/me/doctor/reviews` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard` |
-| `GET` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `GET` | `/me/forum/posts` | `auth:sanctum` |
 | `GET` | `/me/forum/topics` | `auth:sanctum` |
 | `GET` | `/me/levels` | `auth:sanctum`, `throttle:60,1,api-me-levels` |
@@ -320,6 +319,7 @@ nobody can hold an account locked by merely sending traffic.
 | `POST` | `/me/avatar` | `auth:sanctum`, `verified` |
 | `POST` | `/me/doctor/avatar` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
 | `POST` | `/me/doctor/change-requests` | `auth:sanctum`, `verified`, `throttle:120,1,api-doctor-dashboard`, `throttle:60,60,api-doctor-dashboard-writes` |
+| `POST` | `/me/export` | `auth:sanctum`, `throttle:api-account-export` |
 | `POST` | `/me/notifications/read` | `auth:sanctum`, `throttle:120,1,api-notifications` |
 | `POST` | `/me/review-reminders` | `auth:sanctum`, `throttle:120,1,api-notifications`, `verified`, `throttle:30,60,api-review-reminders` |
 | `POST` | `/notifications/unsubscribe` | `throttle:30,1,api-unsubscribe` |

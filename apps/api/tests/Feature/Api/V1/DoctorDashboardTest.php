@@ -549,7 +549,7 @@ class DoctorDashboardTest extends TestCase
         $this->as($token)->postJson('/api/v1/me/doctor/change-requests', ['title' => 'прим. д-р'])->assertCreated();
         $this->as($token)->putJson("/api/v1/me/doctor/reviews/{$review->id}/reply", ['body' => 'Благодарам.'])->assertOk();
 
-        $response = $this->as($token)->get('/api/v1/me/export')->assertOk();
+        $response = $this->as($token)->postJson('/api/v1/me/export', ['password' => 'password'])->assertOk();
         $export = json_decode($response->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame('ana-petrovska', $export['managed_doctor']['slug']);

@@ -32,8 +32,12 @@ test("export, sign out a device, delete the account", async ({
   await test.step("download a copy of my data", async () => {
     await page.goto("/account/data");
     const downloading = page.waitForEvent("download");
-    await page
-      .getByRole("link", { name: mk.account.data.exportAction })
+    const exportForm = page.locator("form").filter({
+      has: page.getByRole("button", { name: mk.account.data.exportAction }),
+    });
+    await exportForm.getByLabel(mk.account.data.exportPassword).fill(PASSWORD);
+    await exportForm
+      .getByRole("button", { name: mk.account.data.exportAction })
       .click();
     const download = await downloading;
 

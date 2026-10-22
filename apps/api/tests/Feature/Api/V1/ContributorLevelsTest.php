@@ -383,7 +383,7 @@ class ContributorLevelsTest extends TestCase
         ForumPostHelpfulVotes::add($reply, $member);
 
         Sanctum::actingAs($member);
-        $export = json_decode($this->get('/api/v1/me/export')->assertOk()->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
+        $export = json_decode($this->postJson('/api/v1/me/export', ['password' => 'password'])->assertOk()->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame($reply->id, $export['forum_helpful_votes'][0]['forum_post_id']);
         $this->assertSame(1, $export['contributor_levels']['review_level']);

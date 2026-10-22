@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\Specialty;
 use App\Models\User;
+use App\Support\MeilisearchGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -447,7 +448,7 @@ class MeilisearchUnifiedSearchTest extends TestCase
             'title' => 'Ana SQL fallback topic',
         ]);
 
-        \App\Support\MeilisearchGateway::forgetHealthCache();
+        MeilisearchGateway::forgetHealthCache();
         Cache::put('meilisearch.health', false, 300);
         $searchesBefore = count($this->engine->searches);
 

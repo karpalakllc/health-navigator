@@ -107,7 +107,7 @@ class UrgentCareAdminTest extends TestCase
             ->assertOk()
             ->assertSee('guide:kako-do-uput')
             ->assertSee('75 %')
-            ->assertSee('Застарено: 1')
+            ->assertSee('Outdated: 1')
             ->assertSee('guidance:headache')
             ->assertSee('q-red-flags')
             ->assertSee('50 %');
