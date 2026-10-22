@@ -83,4 +83,22 @@ describe("ProfileContactList", () => {
     expect(links[2]).toHaveTextContent("Отворено до 14:00");
     expect(links[3]).toHaveAttribute("href", "mailto:kontakt@example.test");
   });
+
+  it("leaves out the whole card when there is nothing to contact", () => {
+    const { container } = render(
+      <ProfileContactList
+        info={{
+          ...info,
+          phone: null,
+          email: null,
+          place: null,
+          directionsHref: null,
+          hours: null,
+          hoursAnchor: undefined,
+        }}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

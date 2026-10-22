@@ -67,7 +67,7 @@ test.describe("profile reports", () => {
     `/doctors/${doctor.slug}`,
     `/facilities/${facilitySlug}`,
   ]) {
-    test(`the flag sits in the profile header's title row (${path})`, async ({
+    test(`the flag sits in the profile header's top-right corner (${path})`, async ({
       page,
     }) => {
       await page.goto(path);

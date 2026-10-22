@@ -10,7 +10,10 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { LicenceStatusTag } from "@/components/directory/licence-status";
-import { ProfileHeader } from "@/components/directory/profile-header";
+import {
+  ProfileHeader,
+  ProfileMetaItem,
+} from "@/components/directory/profile-header";
 import { VerificationBadge } from "@/components/directory/verification-badge";
 import { RecordRecentlyViewed } from "@/components/directory/record-recently-viewed";
 import {
@@ -133,15 +136,14 @@ export default async function DoctorDetailPage({
     name: doctor.full_name,
     phone: doctor.phone,
     email: doctor.email,
+    // Without a workplace the city alone is no contact: the header shows it.
     place: workplace
       ? {
           title: workplace.name,
           sub: workplace.city,
           href: facilityPublicPath(workplace.type, workplace.slug),
         }
-      : doctor.city
-        ? { title: doctor.city }
-        : null,
+      : null,
     directionsHref,
     hours: doctor.office_hours,
     hoursAnchor: hasHours ? "hours" : undefined,
@@ -199,6 +201,23 @@ export default async function DoctorDetailPage({
               avatarUrl={doctor.avatar_url}
               name={doctor.full_name}
               subtitle={specialtyLine || undefined}
+              meta={
+                doctor.city || facilityItems.length === 0 ? (
+                  <>
+                    {doctor.city ? (
+                      <ProfileMetaItem icon="map-pin">
+                        {doctor.city}
+                      </ProfileMetaItem>
+                    ) : null}
+                    {/* No workplaces: a muted fact here, not a whole card. */}
+                    {facilityItems.length === 0 ? (
+                      <ProfileMetaItem icon="building">
+                        {t("doctors.noFacilities")}
+                      </ProfileMetaItem>
+                    ) : null}
+                  </>
+                ) : undefined
+              }
               verification={
                 <VerificationBadge
                   verification={doctor.verification}
@@ -313,15 +332,17 @@ export default async function DoctorDetailPage({
               </ProfileSection>
             ) : null}
 
-            <ProfileSection
-              id="doctor-locations"
-              title={t("doctors.facilities")}
-            >
-              <EntityLinkList
-                items={facilityItems}
-                emptyMessage={t("doctors.noFacilities")}
-              />
-            </ProfileSection>
+            {facilityItems.length > 0 ? (
+              <ProfileSection
+                id="doctor-locations"
+                title={t("doctors.facilities")}
+              >
+                <EntityLinkList
+                  items={facilityItems}
+                  emptyMessage={t("doctors.noFacilities")}
+                />
+              </ProfileSection>
+            ) : null}
 
             <ReviewSection
               kind="doctor"

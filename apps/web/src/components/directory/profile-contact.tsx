@@ -51,10 +51,24 @@ function statusRow(info: ContactInfo) {
   return { status, today };
 }
 
-/** Mobile: contact first, as a list of tappable rows. */
+/**
+ * Mobile: contact first, as a list of tappable rows. Nothing at all when
+ * there is no row to show (no empty card).
+ */
 export function ProfileContactList({ info }: { info: ContactInfo }) {
   const tel = telHref(info.phone);
   const { status, today } = statusRow(info);
+
+  if (
+    !(tel && info.phone) &&
+    !info.place &&
+    !status &&
+    !info.email &&
+    !info.website &&
+    !info.fee
+  ) {
+    return null;
+  }
 
   return (
     <ContactList label={t("directory.contact")} className="lg:hidden">

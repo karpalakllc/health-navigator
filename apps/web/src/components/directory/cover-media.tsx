@@ -85,6 +85,7 @@ export function CoverLogo({
   avatarUrl,
   name,
   size = 56,
+  grow = false,
   className,
   loading,
 }: {
@@ -92,6 +93,8 @@ export function CoverLogo({
   avatarUrl: string | null;
   name: string;
   size?: 56 | 80;
+  /** Grow to 112 px from lg up (the profile header). */
+  grow?: boolean;
   className?: string;
   loading?: "lazy" | "eager";
 }) {
@@ -108,8 +111,10 @@ export function CoverLogo({
         shape="square"
         loading={loading}
         imageClassName="bg-white object-contain"
-        fallbackClassName={size === 80 ? "lg:size-28 lg:text-[2.25rem]" : ""}
-        className={size === 80 ? "lg:size-28" : undefined}
+        fallbackClassName={
+          size === 80 || grow ? "lg:size-28 lg:text-[2.25rem]" : ""
+        }
+        className={size === 80 || grow ? "lg:size-28" : undefined}
       />
     </div>
   );

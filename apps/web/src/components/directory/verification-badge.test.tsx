@@ -228,8 +228,8 @@ describe("verification on cards and the profile header", () => {
     ).toBeInTheDocument();
   });
 
-  it("puts the badge in the profile title row, with a slot for the profile's actions", () => {
-    render(
+  it("puts the badge first in the profile chip row, with a slot for the profile's actions", () => {
+    const { container } = render(
       <ProfileHeader
         kind="doctor"
         avatarUrl={null}
@@ -239,16 +239,20 @@ describe("verification on cards and the profile header", () => {
           <VerificationBadge verification={verified} kind="doctor" />
         }
         reportAction={<button type="button">Пријави профил</button>}
+        tags={<span>Прима нови пациенти</span>}
       />,
     );
 
-    const heading = screen.getByRole("heading", {
-      level: 1,
-      name: "д-р Ана Петрова",
-    });
-    const row = heading.parentElement as HTMLElement;
-    expect(row).toContainElement(screen.getByText(t("verification.verified")));
-    const slot = row.querySelector('[data-slot="profile-actions"]');
+    const chips = container.querySelector(
+      '[data-slot="profile-chips"]',
+    ) as HTMLElement;
+    expect(chips).toContainElement(
+      screen.getByText(t("verification.verified")),
+    );
+    expect(chips.firstElementChild).toContainElement(
+      screen.getByText(t("verification.verified")),
+    );
+    const slot = container.querySelector('[data-slot="profile-actions"]');
     expect(slot).toContainElement(
       screen.getByRole("button", { name: "Пријави профил" }),
     );
