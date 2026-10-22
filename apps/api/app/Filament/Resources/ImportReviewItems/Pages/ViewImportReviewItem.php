@@ -20,6 +20,8 @@ class ViewImportReviewItem extends ViewRecord
             ImportReviewItemResource::acceptSuggestionAction(),
             ImportReviewItemResource::mergeDuplicatesAction(),
             ImportReviewItemResource::keepNameAction(),
+            ImportReviewItemResource::linkSuggestedPharmacyAction(),
+            ImportReviewItemResource::linkPharmacyAction(),
             ImportReviewItemResource::dismissAction(),
         ];
     }

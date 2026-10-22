@@ -20,7 +20,7 @@ use Throwable;
  */
 final class ImportRunAnnouncer
 {
-    public const SOURCES = ['fzom', 'komora'];
+    public const SOURCES = ['fzom', 'komora', 'fzom-pharmacies'];
 
     public function announce(ImportRun $run): ?ImportRunFinished
     {

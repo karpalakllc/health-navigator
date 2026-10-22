@@ -3,7 +3,6 @@
 namespace App\Support\Import\Pharmacies;
 
 use App\Enums\ImportReviewKind;
-use App\Models\Facility;
 use App\Models\PharmacyDutyShift;
 use App\Support\Import\ImportContext;
 use Carbon\CarbonImmutable;
@@ -14,17 +13,18 @@ use RuntimeException;
  * Writes one month of ФЗОМ's on-duty schedule (parsed by
  * OnDutyScheduleParser) into pharmacy_duty_shifts, replacing that month.
  *
- * Each row is linked to a directory pharmacy when its name (without „ПЗУ“,
- * „Аптека“, quotes and the town) and town match exactly one. A pharmacy that
- * matches none or several goes to the import review queue once — it is
- * never created: the schedule row still shows on „Каде веднаш“ under the
- * name ФЗОМ printed, just without a profile link. Rows whose date cannot be
- * read go to the queue too.
+ * Each pharmacy of the schedule is linked to a directory pharmacy by
+ * OnDutyLinker (staff's earlier link, then name and town, then name without
+ * the town, then name words + street address). A pharmacy it cannot link
+ * with certainty goes to the import review queue once — with the likely
+ * pharmacy when there is one, for „Link suggested pharmacy“ — and is never
+ * created: the schedule row still shows on „Каде веднаш“ under the name
+ * ФЗОМ printed, just without a profile link. Rows whose date cannot be read
+ * go to the queue too.
  *
- * Exception: while the directory has no published pharmacy in a town, its
- * unmatched pharmacies are only listed in the run report (diff.csv), not
- * queued — with no pharmacy import yet, every one of ФЗОМ's ~330 pharmacies
- * would otherwise land in one person's review queue every month.
+ * Exception: while the directory has no pharmacy at all in a town (drafts
+ * included; import:pharmacies brings ФЗОМ's ~940), its unmatched pharmacies
+ * are only listed in the run report (diff.csv), not queued.
  */
 final class OnDutyPharmacyImporter
 {
@@ -36,8 +36,7 @@ final class OnDutyPharmacyImporter
     public function import(ImportContext $context, array $parsed, ?string $sourceUrl = null): void
     {
         $month = $parsed['month'];
-        $index = $this->pharmacyIndex();
-        $coveredTowns = $this->townsWithPublishedPharmacies();
+        $linker = new OnDutyLinker;
         $now = now();
         $shifts = [];
         $seen = [];
@@ -47,40 +46,24 @@ final class OnDutyPharmacyImporter
         foreach ($parsed['rows'] as $row) {
             $townKey = OnDutyNames::townKey($row['town']);
             $nameKey = OnDutyNames::pharmacyKey($row['name'], $row['town']);
-            $candidates = $index[$townKey][$nameKey] ?? [];
-            $facilityId = count($candidates) === 1 ? $candidates[0] : null;
             $pharmacy = $townKey.'|'.$nameKey;
 
             if (! isset($seen[$pharmacy])) {
-                $seen[$pharmacy] = true;
+                $decision = $linker->decide($townKey, $nameKey, $row['address']);
+                $seen[$pharmacy] = $decision['facility_id'];
                 $context->increment('pharmacies_in_source');
-
-                if ($facilityId !== null) {
-                    $context->increment('pharmacies_matched');
-                } elseif (count($candidates) === 0 && ! isset($coveredTowns[$townKey])) {
-                    $context->increment('pharmacies_unmatched');
-                    $context->increment('pharmacies_unmatched_not_queued');
-                    $context->record('pharmacy', 'unmatched', null, $row['name'].', '.$row['town'], note: 'Not in the directory; no published pharmacy in this town yet, so not queued for review.');
-                } else {
-                    $ambiguous = count($candidates) > 1;
-                    $context->increment($ambiguous ? 'pharmacies_ambiguous' : 'pharmacies_unmatched');
-                    $context->review(
-                        ImportReviewKind::Unmatched,
-                        'on-duty-pharmacy:'.$townKey.':'.$nameKey,
-                        ($ambiguous ? 'Several pharmacies match the on-duty pharmacy ' : 'On-duty pharmacy not in the directory: ').$row['name'].', '.$row['town'],
-                        [
-                            'reason' => $ambiguous ? 'ambiguous_pharmacy' : 'pharmacy_not_in_directory',
-                            'name' => $row['name'],
-                            'town' => $row['town'],
-                            'municipality' => $row['municipality'],
-                            'phone' => $row['phone'],
-                            'candidate_facility_ids' => $candidates,
-                            'source_url' => $sourceUrl,
-                            'hint' => 'Create or rename the pharmacy profile so its name and town match; the next import links it.',
-                        ],
-                    );
-                }
+                $linker->settle($context, [
+                    'town' => $row['town'],
+                    'town_key' => $townKey,
+                    'name' => $row['name'],
+                    'name_key' => $nameKey,
+                    'municipality' => $row['municipality'],
+                    'phone' => $row['phone'],
+                    'address' => $row['address'],
+                ], $decision, $sourceUrl);
             }
+
+            $facilityId = $seen[$pharmacy];
 
             foreach ($row['days'] as $day) {
                 $shifts[] = [
@@ -102,6 +85,8 @@ final class OnDutyPharmacyImporter
                 ];
             }
         }
+
+        $linker->fillPhones($context);
 
         foreach ($parsed['problems'] as $problem) {
             $context->increment('rows_unreadable');
@@ -132,41 +117,5 @@ final class OnDutyPharmacyImporter
         });
 
         $context->record('schedule', 'replace', null, $month, 'shifts', null, (string) count($shifts), (string) $sourceUrl);
-    }
-
-    /**
-     * Town keys with at least one published directory pharmacy.
-     *
-     * @return array<string, true>
-     */
-    private function townsWithPublishedPharmacies(): array
-    {
-        $towns = [];
-
-        Facility::query()->pharmacy()->published()->whereNotNull('city')->pluck('city')
-            ->each(function (string $city) use (&$towns): void {
-                $towns[OnDutyNames::townKey($city)] = true;
-            });
-
-        return $towns;
-    }
-
-    /**
-     * Directory pharmacies (drafts too: a link is internal until published)
-     * by town key and name key.
-     *
-     * @return array<string, array<string, list<int>>>
-     */
-    private function pharmacyIndex(): array
-    {
-        $index = [];
-
-        Facility::query()->pharmacy()->whereNotNull('city')->get(['id', 'name', 'city'])
-            ->each(function (Facility $pharmacy) use (&$index): void {
-                $town = (string) $pharmacy->city;
-                $index[OnDutyNames::townKey($town)][OnDutyNames::pharmacyKey((string) $pharmacy->name, $town)][] = (int) $pharmacy->getKey();
-            });
-
-        return $index;
     }
 }

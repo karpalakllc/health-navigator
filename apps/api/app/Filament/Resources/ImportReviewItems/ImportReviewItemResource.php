@@ -17,6 +17,8 @@ use App\Support\Import\ImportReviewActions;
 use App\Support\Import\Names\DuplicateFinder;
 use App\Support\Import\Names\NameCleanup;
 use App\Support\Import\Names\NameReviewActions;
+use App\Support\Import\Pharmacies\OnDutyLinker;
+use App\Support\Import\Pharmacies\OnDutyPharmacyImporter;
 use App\Support\Verification\Engine\EvidenceLoader;
 use App\Support\Verification\Engine\VerifiedDraftPublisher;
 use BackedEnum;
@@ -24,6 +26,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
@@ -175,6 +178,8 @@ class ImportReviewItemResource extends Resource
                 self::acceptSuggestionAction(),
                 self::mergeDuplicatesAction(),
                 self::keepNameAction(),
+                self::linkSuggestedPharmacyAction(),
+                self::linkPharmacyAction(),
                 self::dismissAction(),
             ])
             ->toolbarActions([
@@ -205,6 +210,28 @@ class ImportReviewItemResource extends Resource
                             $published = app(VerifiedDraftPublisher::class)->publishChunk($ids, self::actor())['published'];
 
                             Notification::make()->title("Published {$published} profiles")->success()->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    BulkAction::make('linkSuggestedPharmacies')
+                        ->label('Link suggested pharmacies')
+                        ->icon('heroicon-o-link')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Link the suggested pharmacies?')
+                        ->modalDescription('For each selected on-duty pharmacy with a suggestion, links every month of its schedule to the suggested pharmacy and remembers the link. Other selected items are left as they are.')
+                        ->modalSubmitActionLabel('Link')
+                        ->visible(fn (): bool => self::canManage())
+                        ->action(function (Collection $records): void {
+                            $linker = app(OnDutyLinker::class);
+                            $linked = 0;
+
+                            foreach ($records as $record) {
+                                if (self::hasPharmacySuggestion($record) && $linker->linkByStaff($record, (int) $record->details['suggested_facility_id'], self::actor())) {
+                                    $linked++;
+                                }
+                            }
+
+                            Notification::make()->title("Linked {$linked} on-duty pharmacies")->success()->send();
                         })
                         ->deselectRecordsAfterCompletion(),
                     BulkAction::make('dismiss')
@@ -377,6 +404,66 @@ class ImportReviewItemResource extends Resource
             ->action(fn (ImportReviewItem $record) => self::open($record) ? app(NameReviewActions::class)->keep($record, self::actor()) : null);
     }
 
+    /**
+     * On-duty schedule (OnDutyLinker): one pharmacy with the same name
+     * words and no address to confirm it.
+     */
+    public static function linkSuggestedPharmacyAction(): Action
+    {
+        return Action::make('linkSuggestedPharmacy')
+            ->label('Link suggested pharmacy')
+            ->icon('heroicon-o-link')
+            ->color('success')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && self::hasPharmacySuggestion($record))
+            ->requiresConfirmation()
+            ->modalDescription(fn (ImportReviewItem $record): string => sprintf('“%s” (%s) is “%s”. Every month of its schedule is linked, and the link is remembered.', $record->details['name'] ?? '?', $record->details['town'] ?? '?', $record->details['suggested_name'] ?? '?'))
+            ->modalSubmitActionLabel('Link')
+            ->action(function (ImportReviewItem $record): void {
+                if (self::open($record) && ! app(OnDutyLinker::class)->linkByStaff($record, (int) $record->details['suggested_facility_id'], self::actor())) {
+                    Notification::make()->title('Not linked: the suggested pharmacy is gone. Pick one with “Link to pharmacy”.')->warning()->send();
+                }
+            });
+    }
+
+    /**
+     * On-duty schedule: staff pick the pharmacy among those of the town.
+     */
+    public static function linkPharmacyAction(): Action
+    {
+        return Action::make('linkPharmacy')
+            ->label('Link to pharmacy')
+            ->icon('heroicon-o-building-storefront')
+            ->visible(fn (ImportReviewItem $record): bool => self::open($record) && self::isOnDutyPharmacy($record))
+            ->schema(fn (ImportReviewItem $record): array => [
+                Select::make('facility_id')
+                    ->label('Pharmacy in '.($record->details['town'] ?? 'this town'))
+                    ->options(fn (): array => app(OnDutyLinker::class)->optionsFor($record))
+                    ->default($record->details['suggested_facility_id'] ?? (($record->details['candidate_facility_ids'] ?? [])[0] ?? null))
+                    ->searchable()
+                    ->required(),
+            ])
+            ->modalDescription('Every month of this on-duty pharmacy\'s schedule is linked to the pharmacy you pick, and the link is remembered for the next schedules.')
+            ->modalSubmitActionLabel('Link')
+            ->action(function (ImportReviewItem $record, array $data): void {
+                if (self::open($record) && ! app(OnDutyLinker::class)->linkByStaff($record, (int) $data['facility_id'], self::actor())) {
+                    Notification::make()->title('Not linked: that pharmacy no longer exists.')->warning()->send();
+                }
+            });
+    }
+
+    private static function isOnDutyPharmacy(ImportReviewItem $record): bool
+    {
+        return $record->source === OnDutyPharmacyImporter::SOURCE
+            && $record->kind === ImportReviewKind::Unmatched
+            && str_starts_with($record->item_key, 'on-duty-pharmacy:');
+    }
+
+    private static function hasPharmacySuggestion(ImportReviewItem $record): bool
+    {
+        return self::isOnDutyPharmacy($record) && $record->status === ImportReviewStatus::Open
+            && is_numeric($record->details['suggested_facility_id'] ?? null);
+    }
+
     public static function dismissAction(): Action
     {
         return Action::make('dismiss')
@@ -503,7 +590,7 @@ class ImportReviewItemResource extends Resource
             return $structured;
         }
 
-        $action = trim((string) ($details['action'] ?? ''));
+        $action = trim((string) ($details['action'] ?? $details['hint'] ?? ''));
 
         return $action !== '' ? $action : self::summary($record);
     }
@@ -587,6 +674,10 @@ class ImportReviewItemResource extends Resource
     {
         return match ($reason) {
             'flagged_source' => 'Flagged source',
+            OnDutyLinker::REASON_SUGGESTED => 'Probable match · link or dismiss',
+            OnDutyLinker::REASON_AMBIGUOUS => 'Several pharmacies match',
+            OnDutyLinker::REASON_MISSING => 'Pharmacy not in the directory',
+            'code_on_other_facility' => 'ФЗО code on a non-pharmacy facility',
             'possible_duplicate' => 'Possible duplicate',
             'name_cleanup' => 'Name cleanup',
             'unmatched', '' => 'Unmatched',

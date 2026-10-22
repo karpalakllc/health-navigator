@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Lekari>
+  <!-- Synthetic. Two pharmacists at one branch (one branch out). -->
+  <Lekar>
+    <ArhivskiBroj>10-1/1</ArhivskiBroj>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000101</DanocenBroj>
+    <ShifraZU>8800101</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА РОСА ВИТА</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ АПТЕКА РОСА ВИТА ТЕСТОВО</RabotnaEdinica>
+    <Dejnost>ФАРМАЦИЈА</Dejnost>
+    <Specijalnosti>ФАРМАЦЕВТ</Specijalnosti>
+    <Adresa>УЛ.МАРШАЛ ТИТО БР.16</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>700001</Faksimil>
+    <Ime>ФАРМАЦИЈА</Ime>
+    <Prezime>ПРВАКОВА</Prezime>
+    <ClenNaTim>СЕСТРА ТИМСКА</ClenNaTim>
+    <ValidenOd>2020-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2026-12-31T00:00:00</ValidenDo>
+  </Lekar>
+  <Lekar>
+    <ArhivskiBroj>10-1/1</ArhivskiBroj>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000101</DanocenBroj>
+    <ShifraZU>8800101</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА РОСА ВИТА</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ АПТЕКА РОСА ВИТА ТЕСТОВО</RabotnaEdinica>
+    <Dejnost>ФАРМАЦИЈА</Dejnost>
+    <Specijalnosti>ФАРМАЦЕВТ</Specijalnosti>
+    <Adresa>УЛ.МАРШАЛ ТИТО БР.16</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>700002</Faksimil>
+    <Ime>ВТОРА</Ime>
+    <Prezime>ФАРМАЦЕВТОВА</Prezime>
+    <ValidenOd>2020-01-01T00:00:00</ValidenOd>
+    <ValidenDo>2027-06-30T00:00:00</ValidenDo>
+  </Lekar>
+  <!-- A chain's branch, named after the legal entity. -->
+  <Lekar>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000202</DanocenBroj>
+    <ShifraZU>8800201</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА МОЈА АПТЕКА</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПРИВАТНА ЗДРАВСТВЕНА УСТАНОВА-АПТЕКА MОЈА АПТЕКА СКОПЈЕ-ПОДРУЖНИЦА ТЕСТОВО 3</RabotnaEdinica>
+    <Dejnost>ФАРМАЦИЈА</Dejnost>
+    <Adresa>БЛАГОЈ ЃОРЕВ 193</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>700003</Faksimil>
+    <Ime>ТРЕТА</Ime>
+    <Prezime>ЛЕКОВА</Prezime>
+    <ValidenDo>2026-12-31T00:00:00</ValidenDo>
+  </Lekar>
+  <!-- Another branch of the chain, in Skopje (municipality in the town). -->
+  <Lekar>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000202</DanocenBroj>
+    <ShifraZU>8800202</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА МОЈА АПТЕКА</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ АПТЕКА MОЈА АПТЕКА СКОПЈЕ ПОДРУЖНИЦА КАРПОШ 2</RabotnaEdinica>
+    <Dejnost>ФАРМАЦИЈА</Dejnost>
+    <Adresa>УЛ. ПАРТИЗАНСКА БР. 5</Adresa>
+    <Mesto>СКОПЈЕ - КАРПОШ</Mesto>
+    <Faksimil>700004</Faksimil>
+    <Ime>ЧЕТВРТА</Ime>
+    <Prezime>ЛЕКОВА</Prezime>
+    <ValidenDo>2026-12-31T00:00:00</ValidenDo>
+  </Lekar>
+  <!-- A pharmacy staff already entered by hand (no code). -->
+  <Lekar>
+    <TipDogovor>Аптеки</TipDogovor>
+    <TipDogovorID>4</TipDogovorID>
+    <DanocenBroj>4000000000303</DanocenBroj>
+    <ShifraZU>8800301</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ АПТЕКА ЗЕГИН ФАРМ</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ АПТЕКА ЗЕГИН ФАРМ ТЕСТОВО</RabotnaEdinica>
+    <Dejnost>ФАРМАЦИЈА</Dejnost>
+    <Adresa>ПЛОШТАД 1</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>700005</Faksimil>
+    <Ime>ПЕТТА</Ime>
+    <Prezime>ЗЕГИНОВА</Prezime>
+    <ValidenDo>2026-12-31T00:00:00</ValidenDo>
+  </Lekar>
+  <!-- Not a pharmacy contract: never read by the pharmacy import. -->
+  <Lekar>
+    <TipDogovor>Општа медицина</TipDogovor>
+    <TipDogovorID>1</TipDogovorID>
+    <DanocenBroj>4000000000909</DanocenBroj>
+    <ShifraZU>8890901</ShifraZU>
+    <ZdravstvenaUstanova>ПЗУ ОРДИНАЦИЈА ТЕСТ</ZdravstvenaUstanova>
+    <RabotnaEdinica>ПЗУ ОРДИНАЦИЈА ТЕСТ</RabotnaEdinica>
+    <Adresa>УЛ. 1</Adresa>
+    <Mesto>ТЕСТОВО</Mesto>
+    <Faksimil>700009</Faksimil>
+    <Ime>ДОКТОР</Ime>
+    <Prezime>ДОКТОРОВ</Prezime>
+  </Lekar>
+</Lekari>
