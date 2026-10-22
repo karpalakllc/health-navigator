@@ -87,7 +87,9 @@ test("export, sign out a device, delete the account", async ({
       }),
     ).toBeFocused();
 
+    // The export form above has a password field with the same label.
     await page
+      .getByRole("form", { name: mk.account.data.deleteConfirmHeading })
       .getByLabel(mk.account.data.deletePassword, { exact: true })
       .fill(PASSWORD);
     await page
