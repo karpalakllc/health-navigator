@@ -16,6 +16,9 @@ use App\Support\Import\Fzom\FzomImporter;
 use App\Support\Import\Fzom\FzomSpecialtyCatalog;
 use App\Support\Import\NameKey;
 use App\Support\Import\Names\FacilityName;
+use App\Support\Import\Pharmacies\PharmacyName;
+use App\Support\Import\Pharmacies\PharmacyRegisterImporter;
+use App\Support\Import\TextCase;
 use App\Support\Import\Website\InstitutionsJsonImporter;
 use App\Support\Licences\Contracts\LicenceCandidate;
 use App\Support\Licences\LicenceSpecialtyMap;
@@ -45,6 +48,12 @@ final class EvidenceLoader
     private readonly CarbonImmutable $today;
 
     private readonly ?CarbonImmutable $fzomCurrentSince;
+
+    /** Like $fzomCurrentSince, for ФЗОМ's pharmacy contracts (import:pharmacies). */
+    private readonly ?CarbonImmutable $pharmaciesCurrentSince;
+
+    /** The pharmacy register was not heard from within import.verification.fzom_max_age_days. */
+    private bool $pharmaciesStale = false;
 
     /** @var array<string, list<object>> sorted name key => rows of the current list */
     private array $listByName = [];
@@ -84,7 +93,8 @@ final class EvidenceLoader
         $this->map = $map ?? new LicenceSpecialtyMap;
         $this->today = CarbonImmutable::today();
         $this->websiteSince = CarbonImmutable::now()->subDays(max(1, (int) config('import.verification.website_max_age_days', 180)));
-        $this->fzomCurrentSince = $this->fzomSnapshotStart();
+        $this->fzomCurrentSince = $this->snapshotStart(FzomImporter::SOURCE, $this->fzomStale);
+        $this->pharmaciesCurrentSince = $this->snapshotStart(PharmacyRegisterImporter::SOURCE, $this->pharmaciesStale);
         $this->loadList();
         $this->loadSuppressions();
         $this->loadSites();
@@ -212,7 +222,7 @@ final class EvidenceLoader
         $records = DB::table('source_records')
             ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)
             ->whereIn('subject_id', $ids)
-            ->whereIn('source', [FzomImporter::SOURCE, InstitutionsJsonImporter::SOURCE])
+            ->whereIn('source', [FzomImporter::SOURCE, InstitutionsJsonImporter::SOURCE, PharmacyRegisterImporter::SOURCE])
             ->orderBy('id')
             ->get(['id', 'source', 'external_key', 'subject_id', 'payload', 'last_seen_at'])
             ->groupBy('subject_id');
@@ -222,16 +232,22 @@ final class EvidenceLoader
         foreach ($facilities as $facility) {
             $id = (int) $facility->getKey();
             $own = $records->get($id, collect());
+            $pharmacy = $facility->type === FacilityType::Pharmacy || $facility->getRawOriginal('type') === FacilityType::Pharmacy->value;
 
             $evidence[$id] = new FacilityEvidence(
                 facilityId: $id,
                 published: (bool) $facility->is_published,
-                pharmacy: $facility->type === FacilityType::Pharmacy || $facility->getRawOriginal('type') === FacilityType::Pharmacy->value,
-                register: $own->where('source', FzomImporter::SOURCE)
-                    ->map(fn (object $record): RegisterFact => $this->registerFact($facility, $record))
-                    ->values()->all(),
+                pharmacy: $pharmacy,
+                register: [
+                    ...$own->where('source', FzomImporter::SOURCE)
+                        ->map(fn (object $record): RegisterFact => $this->registerFact($facility, $record))
+                        ->values()->all(),
+                    ...$own->where('source', PharmacyRegisterImporter::SOURCE)
+                        ->map(fn (object $record): RegisterFact => $this->pharmacyRegisterFact($facility, $record))
+                        ->values()->all(),
+                ],
                 fromWebsite: $own->contains('source', InstitutionsJsonImporter::SOURCE) || $facility->import_source === InstitutionsJsonImporter::SOURCE,
-                registerStale: $this->fzomStale,
+                registerStale: $pharmacy ? $this->pharmaciesStale : $this->fzomStale,
             );
         }
 
@@ -262,6 +278,31 @@ final class EvidenceLoader
                 FacilityName::key((string) ($payload['name'] ?? ''), is_string($payload['town'] ?? null) ? $payload['town'] : null),
             ], true),
             townMatches: self::townKey($facility->city) !== '' && self::townKey($facility->city) === self::townKey(is_string($payload['town'] ?? null) ? $payload['town'] : null),
+        );
+    }
+
+    /**
+     * One branch of ФЗОМ's pharmacy contracts (external key
+     * „pharmacy:<ФЗО code>“) behind a pharmacy profile: the profile carries
+     * the code, the branch's name (raw or as the import shows it) and town.
+     */
+    private function pharmacyRegisterFact(Facility $facility, object $record): RegisterFact
+    {
+        $payload = self::payload($record);
+        $code = preg_match('/^pharmacy:(.+)$/u', (string) $record->external_key, $match) === 1 ? $match[1] : null;
+        $town = is_string($payload['town'] ?? null) ? $payload['town'] : null;
+        $branch = (string) ($payload['branch'] ?? '');
+
+        return new RegisterFact(
+            recordId: (int) $record->id,
+            current: (int) $facility->import_missing_runs === 0 && $this->pharmaciesCurrentSince !== null
+                && CarbonImmutable::parse($record->last_seen_at)->gte($this->pharmaciesCurrentSince),
+            taxNumberMatches: $code !== null && $facility->fzo_code !== null && (string) $facility->fzo_code === $code,
+            nameMatches: in_array(NameKey::sorted((string) $facility->name), [
+                NameKey::sorted($branch),
+                NameKey::sorted(PharmacyName::clean($branch, (string) ($payload['legal_name'] ?? ''), TextCase::place($town))->value),
+            ], true),
+            townMatches: self::townKey($facility->city) !== '' && self::townKey($facility->city) === self::townKey($town),
         );
     }
 
@@ -386,19 +427,20 @@ final class EvidenceLoader
     }
 
     /**
-     * Start of the latest successful complete ФЗОМ apply; records it (or a
-     * later run) listed are current. Without a complete one, the latest
-     * successful apply of any kind (an import that never saw the whole
-     * register still tells what it listed).
+     * Start of the latest successful complete apply of a register source
+     * (ФЗОМ, or ФЗОМ's pharmacy contracts); records it (or a later run)
+     * listed are current. Without a complete one, the latest successful
+     * apply of any kind (an import that never saw the whole register still
+     * tells what it listed).
      *
-     * Null — nothing from ФЗОМ is current — when ФЗОМ has not been heard from
-     * (an apply, or a 304 confirming the snapshot) within
-     * import.verification.fzom_max_age_days: the register is stale.
+     * Null — nothing from the source is current — when it has not been heard
+     * from (an apply, or a 304 confirming the snapshot) within
+     * import.verification.fzom_max_age_days: the register is stale ($stale).
      */
-    private function fzomSnapshotStart(): ?CarbonImmutable
+    private function snapshotStart(string $source, bool &$stale): ?CarbonImmutable
     {
         $runs = ImportRun::query()
-            ->where('source', FzomImporter::SOURCE)
+            ->where('source', $source)
             ->where('dry_run', false)
             ->where('status', ImportRunStatus::Succeeded)
             ->latest('id')
@@ -411,14 +453,14 @@ final class EvidenceLoader
         }
 
         $heard = ImportRun::query()
-            ->where('source', FzomImporter::SOURCE)
+            ->where('source', $source)
             ->where('dry_run', false)
             ->whereIn('status', [ImportRunStatus::Succeeded, ImportRunStatus::NotModified])
             ->max('started_at');
         $maxAge = max(1, (int) config('import.verification.fzom_max_age_days', 45));
 
         if ($heard === null || CarbonImmutable::parse($heard)->lt(CarbonImmutable::now()->subDays($maxAge))) {
-            $this->fzomStale = true;
+            $stale = true;
 
             return null;
         }

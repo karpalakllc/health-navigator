@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Lang;
  */
 enum VerificationBasis: string
 {
-    /** Doctor: ФЗОМ workplace + valid Комора licence + compatible specialty. Facility: the ФЗОМ register with matching tax no., name and town (pharmacies are not in it: staff verify them). */
+    /** Doctor: ФЗОМ workplace + valid Комора licence + compatible specialty. Facility: the ФЗОМ register with matching tax no., name and town; pharmacy: ФЗОМ's pharmacy contracts with matching ФЗО code, name and town. */
     case OfficialRegisters = 'official_registers';
 
     /** Doctor on the institution's website staff page + unique valid Комора licence + compatible specialty. */

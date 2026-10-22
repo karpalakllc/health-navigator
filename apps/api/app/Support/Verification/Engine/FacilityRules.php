@@ -4,10 +4,10 @@ namespace App\Support\Verification\Engine;
 
 /**
  * A facility (or pharmacy) is verified when an official register lists it
- * today with the tax number, name and town the profile shows. The ФЗОМ
- * register is the one imported; pharmacies are not in it (ФЗОМ's pharmacy
- * contracts are deliberately not imported), so they wait for staff or a
- * future register import.
+ * today with the tax number (pharmacies: the branch's ФЗО code), name and
+ * town the profile shows: the ФЗОМ register (import:fzom), or for
+ * pharmacies ФЗОМ's pharmacy contracts (import:pharmacies). A pharmacy in
+ * neither (entered by hand, or without a ФЗОМ contract) waits for staff.
  */
 final class FacilityRules
 {
