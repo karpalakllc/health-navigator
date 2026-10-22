@@ -26,7 +26,8 @@ use App\Support\Import\Names\FacilityName;
  *    („НОВАЛЕК“ → „Аптека Новалек“).
  * 5. FacilityName::clean for the rest (casing, quotes, homoglyphs, spacing,
  *    the town at the end), except that a name left as only a generic word
- *    („Аптека“, „Аптекарска станица“) keeps the town („Аптека Неготино“).
+ *    („Аптека“, „Аптекарска станица“), or that word and a number, keeps
+ *    the town („Аптека Неготино“, „Аптека Кочани 2“).
  */
 final class PharmacyName
 {
@@ -89,6 +90,10 @@ final class PharmacyName
 
         if ($townName !== '' && in_array(mb_strtolower($value, 'UTF-8'), ['аптека', 'аптекарска станица'], true)) {
             $value .= ' '.$townName;
+        } elseif ($townName !== '' && preg_match('/^(аптека|аптекарска станица) (\d+)$/iu', $value, $m) === 1) {
+            // „ПЗУ АПТЕКА 2 КОЧАНИ“: only a generic word and a number are
+            // left. The town goes before the number: „Аптека Кочани 2“.
+            $value = $m[1].' '.$townName.' '.$m[2];
         }
 
         return new CleanedName(mb_substr($value, 0, 255), $cleaned->changes, $cleaned->uncertain);

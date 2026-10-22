@@ -17,6 +17,7 @@ use App\Models\LicenceSpecialtyMapping;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Support\Import\NameKey;
+use App\Support\Import\ProvenanceWriter;
 use App\Support\Licences\SpecialtyKey;
 use App\Support\Verification\Engine\EvidenceLoader;
 use App\Support\Verification\Engine\VerificationEngine;
@@ -472,6 +473,42 @@ class VerificationEngineTest extends TestCase
         $this->assertSame(1, $run->counts['pharmacies_unverified.no_pharmacy_register']);
         // The published one that no longer matches is for staff.
         $this->assertCount(1, $this->uncertain('register_mismatch'));
+    }
+
+    private function registeredPharmacy(string $name, string $registerBranch, string $tax = '4030000000777'): Facility
+    {
+        ImportRun::query()->firstOrCreate(['source' => 'fzom-pharmacies'], [
+            'dry_run' => false, 'status' => ImportRunStatus::Succeeded,
+            'started_at' => now()->subHour(), 'finished_at' => now()->subMinutes(50), 'source_meta' => ['complete' => true],
+        ]);
+        $pharmacy = Facility::factory()->unpublished()->create(['name' => $name, 'city' => 'Неготино', 'type' => FacilityType::Pharmacy]);
+        $pharmacy->forceFill(['tax_number' => $tax, 'fzo_code' => 'P'.$pharmacy->id, 'import_source' => 'fzom-pharmacies'])->saveQuietly();
+        $this->record('fzom-pharmacies', 'pharmacy:P'.$pharmacy->id, FieldProvenance::SUBJECT_FACILITY, $pharmacy->id, [
+            'code' => 'P'.$pharmacy->id, 'tax_number' => '4030000000777', 'legal_name' => 'ПЗУ АПТЕКА ТЕСТ',
+            'branch' => $registerBranch, 'town' => 'Неготино',
+        ]);
+
+        return $pharmacy;
+    }
+
+    public function test_a_staff_locked_pharmacy_name_stays_verified_but_an_unlocked_rename_does_not(): void
+    {
+        $locked = $this->registeredPharmacy('Аптека Хумана Е-М', 'ПЗУ АПТЕКА ХУМАНА Е-М БАЈРАМИ МЕРИТА');
+        $unlocked = $this->registeredPharmacy('Аптека Хумана Е-М', 'ПЗУ АПТЕКА ХУМАНА Е-М БАЈРАМИ МЕРИТА');
+        $otherTax = $this->registeredPharmacy('Аптека Хумана Е-М', 'ПЗУ АПТЕКА ХУМАНА Е-М БАЈРАМИ МЕРИТА', '4030000000999');
+        foreach ([$locked, $otherTax] as $pharmacy) {
+            ProvenanceWriter::setLock($pharmacy, 'name', true, User::factory()->create());
+        }
+
+        $this->adjudicate();
+
+        $this->assertSame(VerificationBasis::OfficialRegisters, $locked->fresh()->verification_basis);
+        $this->assertTrue($locked->fresh()->isVerified());
+        $this->assertTrue($locked->fresh()->verification_reasons['evidence'][0]['name_locked_by_staff']);
+        $this->assertSame('register_mismatch', $this->reasons($unlocked)['reason']);
+        $this->assertFalse($unlocked->fresh()->isVerified());
+        $this->assertSame('register_mismatch', $this->reasons($otherTax)['reason']);
+        $this->assertFalse($otherTax->fresh()->isVerified());
     }
 
     public function test_a_dry_run_writes_nothing(): void

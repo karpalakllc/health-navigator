@@ -227,6 +227,15 @@ final class EvidenceLoader
             ->get(['id', 'source', 'external_key', 'subject_id', 'payload', 'last_seen_at'])
             ->groupBy('subject_id');
 
+        // Pharmacies whose name staff corrected and locked.
+        $nameLocked = DB::table('field_provenance')
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)
+            ->whereIn('subject_id', $ids)
+            ->where('field', 'name')
+            ->where('locked', true)
+            ->pluck('subject_id')
+            ->flip();
+
         $evidence = [];
 
         foreach ($facilities as $facility) {
@@ -243,7 +252,7 @@ final class EvidenceLoader
                         ->map(fn (object $record): RegisterFact => $this->registerFact($facility, $record))
                         ->values()->all(),
                     ...$own->where('source', PharmacyRegisterImporter::SOURCE)
-                        ->map(fn (object $record): RegisterFact => $this->pharmacyRegisterFact($facility, $record))
+                        ->map(fn (object $record): RegisterFact => $this->pharmacyRegisterFact($facility, $record, $nameLocked->has($id)))
                         ->values()->all(),
                 ],
                 fromWebsite: $own->contains('source', InstitutionsJsonImporter::SOURCE) || $facility->import_source === InstitutionsJsonImporter::SOURCE,
@@ -284,9 +293,10 @@ final class EvidenceLoader
     /**
      * One branch of ФЗОМ's pharmacy contracts (external key
      * „pharmacy:<ФЗО code>“) behind a pharmacy profile: the profile carries
-     * the code, the branch's name (raw or as the import shows it) and town.
+     * the code, the branch's name (raw or as the import shows it, or a name
+     * staff locked) and town.
      */
-    private function pharmacyRegisterFact(Facility $facility, object $record): RegisterFact
+    private function pharmacyRegisterFact(Facility $facility, object $record, bool $nameLocked): RegisterFact
     {
         $payload = self::payload($record);
         $code = preg_match('/^pharmacy:(.+)$/u', (string) $record->external_key, $match) === 1 ? $match[1] : null;
@@ -303,6 +313,11 @@ final class EvidenceLoader
                 NameKey::sorted(PharmacyName::clean($branch, (string) ($payload['legal_name'] ?? ''), TextCase::place($town))->value),
             ], true),
             townMatches: self::townKey($facility->city) !== '' && self::townKey($facility->city) === self::townKey($town),
+            // Staff-corrected names („Аптека“ → „Аптека Неготино“) differ
+            // from the register's on purpose; the lock is accepted only
+            // next to the same ФЗО code, tax number and town.
+            nameLockedByStaff: $nameLocked && $facility->tax_number !== null
+                && is_scalar($payload['tax_number'] ?? null) && (string) $facility->tax_number === (string) $payload['tax_number'],
         );
     }
 

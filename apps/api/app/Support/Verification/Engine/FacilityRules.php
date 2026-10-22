@@ -15,7 +15,10 @@ final class FacilityRules
     {
         foreach ($e->register as $record) {
             if ($record->agrees()) {
-                return Verdict::verified(VerificationRule::FacilityRegister, ['source_record_id' => $record->recordId]);
+                return Verdict::verified(VerificationRule::FacilityRegister, [
+                    'source_record_id' => $record->recordId,
+                    ...($record->acceptedByNameLock() ? ['name_locked_by_staff' => true] : []),
+                ]);
             }
         }
 
@@ -27,6 +30,7 @@ final class FacilityRules
                 'tax_number_matches' => $current[0]->taxNumberMatches,
                 'name_matches' => $current[0]->nameMatches,
                 'town_matches' => $current[0]->townMatches,
+                'name_locked_by_staff' => $current[0]->nameLockedByStaff,
             ]),
             $e->register !== [] && $e->registerStale => Verdict::unverified(Reason::STALE_REGISTER, ['source_record_id' => $e->register[0]->recordId]),
             $e->register !== [] => Verdict::unverified(Reason::SOURCE_REMOVED, ['source_record_id' => $e->register[0]->recordId]),
