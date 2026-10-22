@@ -20,7 +20,8 @@ Code: `apps/api/app/Support/Import/**` (import core, ФЗОМ, websites),
 |---|---|---|---|---|
 | ФЗОМ „Шифрарник на лекари“ (two XML files: primary care, specialist/hospital) | `import:fzom` | Doctor first and last name, specialty, institution (name, ФЗО codes, tax number), work unit, address, town; the facsimile number as an **internal** matching key | Pharmacy contracts, nurses' names (`ClenNaTim`), absence reasons and validity statuses (`PricinaOtsustvo`, `*StatusValidnostID`), who substitutes for whom (`RedovnaZamena`, `VZamena*`), people whose every specialty is a non-physician profession, any phone or e-mail of a person | Weekly (Monday 05:30), once enabled |
 | Лекарска комора „Листа на доктори со важечки лиценци“ (a handful of PDFs) | `import:komora-licences` | Name, licensed specialty, licence expiry, licence number (**internal** only: matching and dedup) | Anything not in the list; the number and expiry date are never shown or exported publicly | Monthly (3rd, 06:00), once enabled; the Комора republishes about every four months |
-| ФЗОМ „Распоред на дежурни аптеки“ (monthly .xlsx, fzo.org.mk/dezurni-apteki) | `import:on-duty-pharmacies` | Town, pharmacy name as printed, duty dates, phone **numbers**, the stated hours; linked to a directory pharmacy when name + town match one (else the review queue; nothing is created) | Pharmacists' names some towns write in the phone column | 1st, 15th and 28th of each month, 06:40 (ON by default; docs/urgent-care.md) |
+| ФЗОМ pharmacy contracts (the `TipDogovorID` 4 „Аптеки“ rows of the same primary-care XML) | `import:pharmacies` | Per contract unit (ФЗО code = one pharmacy branch): branch and legal name, tax number, address, town; the ФЗО code as matching key. Then links the on-duty schedule to the pharmacies (§4a) | The pharmacists in those rows (names, facsimiles, team members): never read, never stored | Weekly (Monday 06:10 Skopje), ON by default |
+| ФЗОМ „Распоред на дежурни аптеки“ (monthly .xlsx, fzo.org.mk/dezurni-apteki) | `import:on-duty-pharmacies` | Town, pharmacy name as printed, duty dates, phone **numbers**, the stated hours; linked to a directory pharmacy by `OnDutyLinker` (§4a; else the review queue; nothing is created); a linked pharmacy without a phone gets the schedule's | Pharmacists' names some towns write in the phone column | 1st, 15th and 28th of each month, 06:40 (ON by default; docs/urgent-care.md) |
 | Institutions' own websites (a research slice prepared outside the app) | `import:institutions-json` | Facility contact details, logo, cover photos (each with its source URL); names and specialties of listed physicians and dentists | Photos of people, nurses and other staff | By hand only |
 
 Dentists come from ФЗОМ (and websites) only: there is no public dental licence
@@ -107,6 +108,11 @@ php artisan import:komora-licences --dry-run
 php artisan import:komora-licences            # apply
 php artisan import:komora-licences --file=/path/А-В.pdf --file=/path/Г-Ж.pdf --list-date=01.09.2026 --dry-run
 php artisan import:komora-licences --force    # process the list although no file changed
+
+php artisan import:pharmacies --dry-run
+php artisan import:pharmacies                 # apply
+php artisan import:pharmacies --file=/path/LekariLista_SitePzz.xml --dry-run   # a local ФЗОМ file (or a kept snapshot)
+php artisan import:pharmacies --force         # import although the source answered 304
 
 php artisan import:institutions-json /path/<slice>/institutions.json --dry-run
 php artisan import:institutions-json /path/<slice>/institutions.json
@@ -210,6 +216,119 @@ profile for staff to compare.
 | facilities (institution × town) | 2,623 (298 hospitals, 104 laboratories, the rest clinics/practices) |
 | unmapped specialty wordings | 0 |
 | second run, same files | 0 created, 0 changed (7,144 + 2,623 unchanged) |
+
+## 4a. ФЗОМ pharmacy contracts (`import:pharmacies`)
+
+Source: the rows of ФЗОМ's primary-care XML (`LekariLista_SitePzz.xml`, the
+file `import:fzom` reads; `IMPORT_PHARMACIES_URL` overrides it) whose
+contract type is a pharmacy (`import.pharmacies.contract_types`, `[4]`).
+ФЗОМ lists one row per pharmacist and contract unit; the import folds them
+into **one pharmacy per ФЗО code** (`ShifraZU`): every code has exactly one
+branch name, address and town, so a code is a branch. Chains have one tax
+number for all their branches (Еурофарм 122, Моја Аптека 91, Зегин 76), so
+the tax number is stored but never used to match. The specialist file has
+no pharmacy rows. Code: `App\Support\Import\Pharmacies\{FzomPharmacyReader,
+PharmacyName, PharmacyRegisterImporter, PharmacyImportJob, OnDutyLinker}`.
+
+- **Privacy.** `FzomPharmacyReader` reads only the unit's fields
+  (`TipDogovorID`, `DanocenBroj`, `ShifraZU`, `ZdravstvenaUstanova`,
+  `RabotnaEdinica`, `Adresa`, `Mesto`, `ValidenDo`); the pharmacists' names,
+  facsimiles and team members are skipped unread. The kept snapshot
+  (`imports/snapshots/fzom-pharmacies/…`, minimised, newest three) has one
+  element per branch and no person.
+- **Names** (`PharmacyName`): the branch name, after „ПОДРУЖНИЦА“ /
+  „ОРГАНИЗАЦИОНА ЕДИНИЦА“ / „ОЕ“ / „ПОДР.“ only the branch part (with the
+  chain's name in front when the part lacks it: „… ПОДРУЖНИЦА ПРИЛЕП 5“ →
+  „Моја Аптека Прилеп 5“), the legal form dropped, „Аптека“ in front when no
+  word says it, then the facility name rules of §12 (casing, quotes, the town
+  at the end). „ПРИВАТНА ЗДРАВСТВЕНА УСТАНОВА-АПТЕКА ЗЕГИН ФАРМ СКОПЈЕ-
+  ПОДРУЖНИЦА АПТЕКА ЗЕГИН ФАРМ УНИВЕРЗАЛНА“ → „Аптека Зегин Фарм Универзална“.
+  The raw names stay in the source record. Towns are written like every ФЗОМ
+  town („Скопје - Карпош“), so the city picker and search treat them alike.
+- **Matching** a branch: its source record, then `facilities.fzo_code`,
+  then — pharmacies staff entered by hand, without a code — the same name key
+  (OnDutyNames) in the same town. Several hand-made matches: an *unmatched*
+  item (`ambiguous_pharmacy`), nothing created. A code held by a facility
+  that is not a pharmacy: *unmatched* `code_on_other_facility`. A pharmacy
+  staff deleted is not created again (`pharmacies_deleted_by_staff`).
+- **Writing**: name, city, address, ownership through ProvenanceWriter (§2:
+  locks, conflicts, „changed“ on public profiles); `fzo_code` and
+  `tax_number` set when empty. New pharmacies are hidden drafts with a
+  „new“ item. The verification engine verifies them from this register
+  (`fzom_register`, basis „Регистар на ФЗОМ“; [`verification.md`](verification.md) §3),
+  so **„Објави ги сите верификувани“ publishes them in one step** (or
+  `IMPORT_AUTO_PUBLISH_VERIFIED=true`).
+- **Missing / safety stop**: as for ФЗОМ — a branch absent from
+  `IMPORT_MISSING_AFTER_RUNS` (2) complete runs is a *missing* item (a
+  pharmacy can stay open without a ФЗОМ contract: hide it only if it
+  closed); a file that would miss more than `IMPORT_MAX_MISSING_RATIO` (20 %)
+  stops the apply before writing.
+- **On-duty schedule** (`OnDutyLinker`, also used by
+  `import:on-duty-pharmacies` for each month): after the branches, every
+  month held in `pharmacy_duty_shifts` is linked again, as the on-duty source
+  (its counts are prefixed `duty_` in this run). In one town, the first rule
+  that finds exactly one pharmacy links it: `alias` (staff linked this
+  schedule name before) → `name` (same name key as the profile or the
+  register's branch name; several are told apart by the street address) →
+  `name_without_town` (the town's words dropped wherever they stand) →
+  `name_variant` (spacing, „Фарм“ and glued legal words aside, numbers kept,
+  numbers written out read as digits, a „1“ the register does not write:
+  „ВИАФАРМ 13“ = „Виа Фарм 13“, „ЗЕГИН“ = „Зегин Фарм“, „Магна Фарм 1“ =
+  „Магна Фарм“) → `words_and_address`. Otherwise an *unmatched* item: with a
+  suggestion (`pharmacy_suggested_match`: one pharmacy holds every word, no
+  address to confirm it) staff accept in bulk with **Link suggested
+  pharmacies**; `ambiguous_pharmacy` / `pharmacy_not_in_directory` with
+  **Link to pharmacy** (a picker of the town's pharmacies). Either link is
+  remembered (a source record `alias:<town>|<name>` of the on-duty source)
+  and applied to every month. A linked pharmacy without a phone gets the
+  schedule's number (provenance `on-duty-pharmacies`; two schedule names on
+  one pharmacy with different numbers fill only an empty phone).
+
+Counters: `facilities_in_source`, `facilities_created`, `facilities_matched`,
+`facilities_unchanged`, `facilities_absent`, `pharmacies_ambiguous`,
+`pharmacies_code_on_other_facility`, `pharmacies_deleted_by_staff`,
+`safety_stop_would_trigger`, and `duty_pharmacies_matched_by_<rule>`,
+`duty_pharmacies_suggested`, `duty_pharmacies_ambiguous`,
+`duty_pharmacies_unmatched`, `duty_shifts_relinked`, `duty_shifts_linked_total`,
+`duty_phones_filled`.
+
+The first apply creates every pharmacy at once, so it also sends the
+„large diff“ alert (§10) once; that is expected.
+
+### First run on the real data (2026-10-23, scratch copy of the preview database)
+
+ФЗОМ file of 2026-10-22 (4,880 rows, 2,008 pharmacy rows):
+
+| | |
+|---|---|
+| pharmacies (ФЗО codes) | 940 — 940 created, 0 matched (the directory had no pharmacy), 0 conflicts |
+| legal entities (tax numbers) / towns | 424 / 178 |
+| verified by `import:adjudicate` (`fzom_register`) | 940 of 940 |
+| on-duty pharmacies held (Oct. 2026) | 329 → 286 linked (206 name, 12 name without town, 68 name variant), 43 queued (6 suggested, 1 ambiguous, 36 not in ФЗОМ's list) |
+| on-duty shift-days linked | 916 of 1,116 |
+| phones filled from the schedule | 285 |
+| second run, same file | 940 unchanged, 0 shifts relinked, 0 phones written |
+
+Most of the 36 not in the list are pharmacies the schedule names differently
+from ФЗОМ's contract list (a chain's number missing on one side,
+„… (ЗЕГИН)“) or without a ФЗОМ contract; „Link to pharmacy“ settles each
+for good.
+
+### Other pharmacy registers (2026-10-23 research)
+
+- **Централен регистар на лекови — аптеки** (Ministry of Health / МАЛМЕД,
+  https://lekovi.zdravstvo.gov.mk/pharmacies; malmed.gov.mk links to it):
+  1,205 rows incl. closed ones (59 marked „затворена“/„припоена“), with
+  ЕМБС, ЕДБ and the ФЗО code (935 of ФЗОМ's 940 codes match), about 150
+  pharmacies without a ФЗОМ contract; phone, licence decision and an
+  „active“ flag only in a per-pharmacy dialog (slow: ~1 min per request). No
+  robots.txt, no stated terms of use; a stateful Tapestry grid (session
+  cookie, XHR paging). **Not imported**: needs the owner's decision on terms
+  (it would add the non-ФЗОМ pharmacies and a licence check).
+- data.gov.mk „Регистар на аптеки во РМ“ (Агенција за лекови): CC0, the same
+  columns, but last updated February 2021.
+- Фармацевтска комора: no reachable register (the known domains are parked
+  or down).
 
 ## 5. Лекарска комора licences (`import:komora-licences`)
 
@@ -443,13 +562,14 @@ review items; a doctor's suppression stays (§11).
 `import:adjudicate` (the verification engine, [`verification.md`](verification.md))
 runs daily at 05:50 (always on) and after every successful import apply.
 
-`routes/console.php` registers both source imports. They are **off by
-default**:
+`routes/console.php` registers the source imports. ФЗОМ and Комора are
+**off by default**; the pharmacy contracts and the on-duty schedule are on:
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `IMPORT_FZOM_SCHEDULE` | `false` | Run `import:fzom` weekly, Monday 05:30 |
 | `IMPORT_KOMORA_SCHEDULE` | `false` | Run `import:komora-licences` monthly, on the 3rd at 06:00 |
+| `IMPORT_PHARMACIES_SCHEDULE` | `true` | Run `import:pharmacies` weekly, Monday 06:10 Skopje (`IMPORT_PHARMACIES=false` also stops the command) |
 | `IMPORT_ALERT_EMAIL` | unset → `PLATFORM_ALERT_EMAIL` | Who hears about failed or unusual runs |
 | `IMPORT_LARGE_DIFF_RATIO` | `0.10` | Share of the records seen that a run created, changed or found missing before it counts as a large diff… |
 | `IMPORT_LARGE_DIFF_MIN` | `25` | …and the minimum number of such profiles |
