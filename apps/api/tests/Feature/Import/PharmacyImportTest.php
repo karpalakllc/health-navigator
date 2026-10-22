@@ -159,9 +159,9 @@ class PharmacyImportTest extends TestCase
 
     public function test_it_takes_over_a_pharmacy_staff_entered_and_never_guesses_between_two(): void
     {
-        $handMade = Facility::factory()->pharmacy()->create(['name' => 'ПЗУ Аптека „Зегин Фарм“', 'city' => 'Тестово', 'phone' => '02 111 222']);
-        $twinA = Facility::factory()->pharmacy()->create(['name' => 'Аптека Роса Вита', 'city' => 'Тестово']);
-        $twinB = Facility::factory()->pharmacy()->create(['name' => 'Роса Вита', 'city' => 'Тестово - Центар']);
+        $handMade = Facility::factory()->pharmacy()->create(['name' => 'ПЗУ Аптека „Зегин Фарм“', 'city' => 'Тестово', 'address' => null, 'phone' => '02 111 222']);
+        $twinA = Facility::factory()->pharmacy()->create(['name' => 'Аптека Роса Вита', 'city' => 'Тестово', 'address' => null]);
+        $twinB = Facility::factory()->pharmacy()->create(['name' => 'Роса Вита', 'city' => 'Тестово - Центар', 'address' => null]);
 
         $run = $this->import();
 
@@ -176,6 +176,29 @@ class PharmacyImportTest extends TestCase
         $this->assertNull(Facility::query()->where('fzo_code', '8800101')->first());
         $item = ImportReviewItem::query()->where('item_key', 'fzom-pharmacy:8800101')->firstOrFail();
         $this->assertEqualsCanonicalizing([$twinA->id, $twinB->id], $item->details['candidate_facility_ids']);
+    }
+
+    public function test_a_hand_entered_pharmacy_on_another_street_is_not_taken_for_the_branch(): void
+    {
+        $other = Facility::factory()->pharmacy()->create(['name' => 'ПЗУ Аптека „Зегин Фарм“', 'city' => 'Тестово', 'address' => 'Илинденска 5']);
+
+        $this->import();
+
+        $this->assertNull($other->fresh()->fzo_code);
+        $this->assertNotNull(Facility::query()->where('fzo_code', '8800301')->first());
+        $this->assertNotSame($other->id, Facility::query()->where('fzo_code', '8800301')->value('id'));
+    }
+
+    public function test_the_schedule_phone_never_replaces_or_disputes_a_phone_someone_entered(): void
+    {
+        $handMade = Facility::factory()->pharmacy()->create(['name' => 'ПЗУ Аптека „Зегин Фарм“', 'city' => 'Тестово', 'address' => null, 'phone' => '02 111 222']);
+        $shift = $this->shift('Тестово', 'ПЗУ Аптека „Зегин Фарм“ Тестово', ['phone' => '070 999 888']);
+
+        $this->import();
+
+        $this->assertSame($handMade->id, $shift->fresh()->facility_id);
+        $this->assertSame('02 111 222', $handMade->fresh()->phone);
+        $this->assertFalse(ImportReviewItem::query()->where('kind', ImportReviewKind::Conflict)->where('subject_id', $handMade->id)->where('details->field', 'phone')->exists());
     }
 
     public function test_a_code_held_by_another_kind_of_facility_or_a_deleted_pharmacy_is_not_taken_over(): void

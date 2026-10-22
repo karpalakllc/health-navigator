@@ -443,9 +443,23 @@ final class OnDutyLinker
 
         $provenance = new ProvenanceWriter($context);
 
+        // Phones the schedule itself wrote earlier: the only non-empty ones
+        // it may update. Any other number was entered by someone else and is
+        // left alone — no conflict item either (formats differ too much).
+        $own = FieldProvenance::query()
+            ->where('subject_type', FieldProvenance::SUBJECT_FACILITY)->where('field', 'phone')
+            ->where('source', $context->source)->whereIn('subject_id', array_keys($phones))
+            ->pluck('subject_id')->map(fn ($id): int => (int) $id)->flip()->all();
+
         foreach (Facility::query()->whereKey(array_keys($phones))->get() as $facility) {
             $numbers = array_keys($phones[(int) $facility->getKey()]);
             sort($numbers, SORT_STRING);
+
+            if (trim((string) $facility->phone) !== '' && ! isset($own[(int) $facility->getKey()])) {
+                $context->increment('phones_kept');
+
+                continue;
+            }
 
             if (count($numbers) > 1 && $facility->phone !== null) {
                 $context->increment('phones_skipped_several');

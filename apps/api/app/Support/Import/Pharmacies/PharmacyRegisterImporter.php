@@ -138,7 +138,7 @@ final class PharmacyRegisterImporter
                     $facility ??= $byCode->get($code);
 
                     if ($facility === null) {
-                        $byName = $this->handEnteredPharmacies($name, $town);
+                        $byName = $this->handEnteredPharmacies($name, $town, $address);
 
                         if (count($byName) > 1) {
                             $context->increment('pharmacies_ambiguous');
@@ -224,11 +224,13 @@ final class PharmacyRegisterImporter
 
     /**
      * Pharmacies staff entered (no ФЗО code, not from this import) with the
-     * branch's name key in its town.
+     * branch's name key in its town — and, when both have an address, a
+     * compatible one (a chain's branches share their name; the hand-entered
+     * profile of another street is not this branch).
      *
      * @return list<int>
      */
-    private function handEnteredPharmacies(string $name, ?string $town): array
+    private function handEnteredPharmacies(string $name, ?string $town, ?string $address = null): array
     {
         if ($town === null) {
             return [];
@@ -236,13 +238,19 @@ final class PharmacyRegisterImporter
 
         $townKey = OnDutyNames::townKey($town);
         $key = OnDutyNames::pharmacyKey($name, $town);
+        $branchWords = array_filter(explode(' ', OnDutyLinker::addressKey($address)));
 
         return Facility::query()->pharmacy()
             ->whereNull('fzo_code')
             ->where(fn ($query) => $query->whereNull('import_source')->orWhere('import_source', '!=', self::SOURCE))
             ->whereNotNull('city')
-            ->get(['id', 'name', 'city'])
+            ->get(['id', 'name', 'city', 'address'])
             ->filter(fn (Facility $f): bool => OnDutyNames::townKey((string) $f->city) === $townKey && OnDutyNames::pharmacyKey((string) $f->name, (string) $f->city) === $key)
+            ->filter(function (Facility $f) use ($branchWords): bool {
+                $own = array_filter(explode(' ', OnDutyLinker::addressKey($f->address)));
+
+                return $branchWords === [] || $own === [] || array_diff($branchWords, $own) === [] || array_diff($own, $branchWords) === [];
+            })
             ->map(fn (Facility $f): int => (int) $f->getKey())
             ->values()->all();
     }

@@ -247,7 +247,8 @@ PharmacyName, PharmacyRegisterImporter, PharmacyImportJob, OnDutyLinker}`.
   town („Скопје - Карпош“), so the city picker and search treat them alike.
 - **Matching** a branch: its source record, then `facilities.fzo_code`,
   then — pharmacies staff entered by hand, without a code — the same name key
-  (OnDutyNames) in the same town. Several hand-made matches: an *unmatched*
+  (OnDutyNames) in the same town, at a compatible street address when both
+  have one (a chain's branches share a name). Several hand-made matches: an *unmatched*
   item (`ambiguous_pharmacy`), nothing created. A code held by a facility
   that is not a pharmacy: *unmatched* `code_on_other_facility`. A pharmacy
   staff deleted is not created again (`pharmacies_deleted_by_staff`).
