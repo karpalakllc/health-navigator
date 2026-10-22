@@ -16,6 +16,8 @@ export type PharmaciesFilterValues = {
   q: string;
   city: string;
   verified: string;
+  /** „Само дежурни денес“: "1" or "". */
+  on_duty: string;
 };
 
 /** The pharmacies list: search strip, filter sheet / rail, results. */
@@ -33,6 +35,9 @@ export function PharmaciesDirectory({
     applied.city ? { name: "city", label: applied.city } : null,
     applied.verified
       ? { name: "verified", label: t("verification.filterLabel") }
+      : null,
+    applied.on_duty
+      ? { name: "on_duty", label: t("pharmacies.onDutyFilter") }
       : null,
   ].filter((filter): filter is ActiveFilter => filter !== null);
 
@@ -76,6 +81,15 @@ export function PharmaciesDirectory({
             autoComplete="address-level2"
             onChange={(value) => set("city", value, { debounce: true })}
           />
+          <FilterGroup legend={t("pharmacies.onDutyLegend")}>
+            <SwitchRow
+              name="on_duty"
+              icon="clock"
+              label={t("pharmacies.onDutyFilter")}
+              checked={values.on_duty === "1"}
+              onChange={(checked) => set("on_duty", checked ? "1" : "")}
+            />
+          </FilterGroup>
           <FilterGroup legend={t("verification.filterLegend")}>
             <SwitchRow
               name="verified"

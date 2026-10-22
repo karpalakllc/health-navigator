@@ -701,6 +701,12 @@ export const mk = {
     noProducts: "Нема наведени производи.",
     about: "За аптеката",
     kind: "Аптека",
+    onDutyLegend: "Дежурство",
+    onDutyFilter: "Само дежурни денес",
+    onDutyNone: "Нема дежурна аптека денес според распоредот на ФЗОМ.",
+    onDutyNoneInCity:
+      "Нема дежурна аптека денес во {city} според распоредот на ФЗОМ.",
+    allInCity: "Сите аптеки во {city}",
   },
   products: {
     title: "Производи",
@@ -954,6 +960,7 @@ export const mk = {
     today: "Дежурна денес",
     allDay: "24 часа",
     onCall: "по повик од дежурниот лекарски тим",
+    onCallShort: "по повик",
     source: "Според распоредот на ФЗОМ.",
   },
   guides: {

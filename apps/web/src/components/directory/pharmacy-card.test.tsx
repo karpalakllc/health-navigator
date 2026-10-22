@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import type { PharmacyListItem } from "@/lib/api/types";
 import { t } from "@/i18n/t";
+import { seriousA11yViolations } from "../../../test/axe";
 
 const pharmacy: PharmacyListItem = {
   slug: "eurofarm-skopje",
@@ -83,5 +84,41 @@ describe("PharmacyCard", () => {
     render(<PharmacyCard pharmacy={pharmacy} />);
 
     expect(screen.getByText(t("directory.noReviewsYet"))).toBeInTheDocument();
+  });
+
+  it("says „Дежурна денес“ on ФЗОМ's schedule — 24 часа or по повик — and nothing off duty", async () => {
+    const { container, rerender } = render(
+      <PharmacyCard
+        pharmacy={{
+          ...pharmacy,
+          on_duty_today: {
+            date: "2026-10-07",
+            mode: "all_day",
+            hours_text: null,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("Дежурна денес · 24 часа")).toBeInTheDocument();
+    // The ФЗОМ caveat is the list's, said once — not on every card.
+    expect(container).not.toHaveTextContent(t("urgentCare.pharmaciesSource"));
+    expect(await seriousA11yViolations(container)).toEqual([]);
+
+    rerender(
+      <PharmacyCard
+        pharmacy={{
+          ...pharmacy,
+          on_duty_today: {
+            date: "2026-10-07",
+            mode: "on_call",
+            hours_text: "по телефонски повик од лекарски тим",
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("Дежурна денес · по повик")).toBeInTheDocument();
+
+    rerender(<PharmacyCard pharmacy={{ ...pharmacy, on_duty_today: null }} />);
+    expect(container).not.toHaveTextContent("Дежурна денес");
   });
 });

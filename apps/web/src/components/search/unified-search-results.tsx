@@ -4,6 +4,7 @@ import { DoctorCard } from "@/components/directory/doctor-card";
 import { FacilityCard } from "@/components/directory/facility-card";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import { ProductCard } from "@/components/catalog/product-card";
+import { OnDutySourceNote } from "@/components/urgent-care/on-duty-tag";
 import { CommunityTopicCard } from "@/components/home/community-topic-card";
 import { AdvancedSearchTrigger } from "@/components/search/advanced-search-trigger";
 import {
@@ -97,13 +98,19 @@ export async function UnifiedSearchResults({
       total: pharmacies.meta.total,
       viewAllHref: directorySearchHref("/pharmacies", q, cityParam),
       body: (
-        <ResultsGrid>
-          {pharmacies.data.map((pharmacy) => (
-            <li key={pharmacy.slug}>
-              <PharmacyCard pharmacy={pharmacy} />
-            </li>
-          ))}
-        </ResultsGrid>
+        <>
+          {/* ФЗОМ's caveat once for the group, not on every on-duty card. */}
+          {pharmacies.data.some((pharmacy) => pharmacy.on_duty_today) ? (
+            <OnDutySourceNote className="mb-4" />
+          ) : null}
+          <ResultsGrid>
+            {pharmacies.data.map((pharmacy) => (
+              <li key={pharmacy.slug}>
+                <PharmacyCard pharmacy={pharmacy} />
+              </li>
+            ))}
+          </ResultsGrid>
+        </>
       ),
     },
     {

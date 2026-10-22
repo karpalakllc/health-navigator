@@ -316,6 +316,18 @@ export type PharmacyListItem = {
    */
   phone?: string | null;
   office_hours?: Record<string, string> | unknown[];
+  /** „Дежурна денес“ from ФЗОМ's schedule; null/absent when not on duty. */
+  on_duty_today?: OnDutyToday | null;
+};
+
+/**
+ * A pharmacy's shift on ФЗОМ's on-duty schedule for the duty day (before
+ * 07:00 Skopje time, the previous night's) — list items and the profile.
+ */
+export type OnDutyToday = {
+  date: string;
+  mode: "all_day" | "hours" | "on_call" | "unknown";
+  hours_text: string | null;
 };
 
 export type PharmacyDetail = {
@@ -336,11 +348,7 @@ export type PharmacyDetail = {
   verification?: Verification;
   office_hours: Record<string, string>;
   /** „Дежурна денес“ from ФЗОМ's schedule; null/absent when not on duty. */
-  on_duty_today?: {
-    date: string;
-    mode: "all_day" | "hours" | "on_call" | "unknown";
-    hours_text: string | null;
-  } | null;
+  on_duty_today?: OnDutyToday | null;
   review_summary: ReviewSummary;
 };
 

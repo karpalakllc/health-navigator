@@ -9,6 +9,7 @@ import {
 import { LiveOpenStatusLine } from "@/components/directory/open-status-live";
 import { RatingLine } from "@/components/directory/rating-line";
 import { VerificationBadge } from "@/components/directory/verification-badge";
+import { OnDutyTag } from "@/components/urgent-care/on-duty-tag";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
 import type { PharmacyListItem } from "@/lib/api/types";
@@ -17,8 +18,8 @@ import { t, tFormat } from "@/i18n/t";
 
 /**
  * A pharmacy result (D2a card): cover photo or soft placeholder on top,
- * the logo slot over its corner, then name, place, rating, open status and
- * the two actions.
+ * the logo slot over its corner, then name, „Дежурна денес“ when on ФЗОМ's
+ * schedule, place, rating, open status and the two actions.
  */
 export function PharmacyCard({ pharmacy }: { pharmacy: PharmacyListItem }) {
   const href = `/pharmacies/${pharmacy.slug}`;
@@ -56,6 +57,12 @@ export function PharmacyCard({ pharmacy }: { pharmacy: PharmacyListItem }) {
         <VerificationBadge
           verification={pharmacy.verification}
           kind="pharmacy"
+          className="mt-2 self-start"
+        />
+        {/* „Дежурна денес · 24 часа“; the ФЗОМ source note is the list's, once. */}
+        <OnDutyTag
+          duty={pharmacy.on_duty_today}
+          short
           className="mt-2 self-start"
         />
 

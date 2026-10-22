@@ -398,6 +398,14 @@ nobody can hold an account locked by merely sending traffic.
 - Doctor, facility and pharmacy **list** items (and `/search` sections) carry
   `phone` (string or `null`) and `office_hours` (day-label → hours map, `[]`
   when unset), the same fields as the profiles.
+- Pharmacy list items (`GET /pharmacies`, the `/search` pharmacy section)
+  carry `on_duty_today`, as `GET /pharmacies/{slug}` does: `{date, mode:
+  all_day|hours|on_call|unknown, hours_text}` from ФЗОМ's on-duty schedule
+  for the duty day (Skopje time; before 07:00 the previous day's night), or
+  `null`. `GET /pharmacies` accepts `on_duty=1` („Само дежурни денес“; other
+  non-boolean values are **422**), and with a `city` or `on_duty=1` puts
+  on-duty pharmacies first (all day, hours, on call, then the rest), ahead
+  of `is_featured` and name. See docs/urgent-care.md § On-duty pharmacies.
 - `/doctors?language=<slug>` filters on the doctor's languages. The slug must
   be a published language (`GET /languages`, which lists only languages some
   published doctor speaks, with `doctors_count`); anything else is **422**.

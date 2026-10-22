@@ -276,3 +276,44 @@ describe("UnifiedSearchResults (/search)", () => {
     );
   });
 });
+
+describe("UnifiedSearchResults: on-duty pharmacies", () => {
+  beforeEach(() => {
+    fetchUnifiedSearch.mockReset();
+    api.down = false;
+  });
+
+  it("badges a pharmacy on duty today and states ФЗОМ's caveat once for the group", async () => {
+    const pharmacy = (slug: string, onDuty: boolean) => ({
+      slug,
+      name: `Аптека ${slug}`,
+      city: "Битола",
+      avatar_url: null,
+      review_summary: { count: 0, average_rating: null },
+      on_duty_today: onDuty
+        ? { date: "2026-10-07", mode: "all_day" as const, hours_text: null }
+        : null,
+    });
+    fetchUnifiedSearch.mockResolvedValue(
+      result({
+        pharmacies: {
+          data: [pharmacy("vita", true), pharmacy("bela", false)],
+          meta: { current_page: 1, per_page: 5, total: 2, last_page: 1 },
+        },
+        grand_total: 2,
+      }),
+    );
+
+    await renderResults("аптека");
+
+    const group = screen.getByRole("region", {
+      name: t("search.sectionPharmacies"),
+    });
+    expect(
+      within(group).getByText("Дежурна денес · 24 часа"),
+    ).toBeInTheDocument();
+    expect(
+      within(group).getAllByText(t("urgentCare.pharmaciesSource")),
+    ).toHaveLength(1);
+  });
+});

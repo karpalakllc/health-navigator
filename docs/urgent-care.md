@@ -242,6 +242,20 @@ php artisan import:on-duty-pharmacies --force              # re-import an unchan
   the month is not imported → the placeholder with ФЗОМ's link.
   `GET /pharmacies/{slug}` returns `on_duty_today` → „Дежурна денес · …“ on
   the profile.
+- **In the directory**: `GET /pharmacies` items and the `/search` pharmacy
+  vertical carry the same `on_duty_today` (`{date, mode, hours_text}` or
+  `null`), loaded once per page (`OnDutyPharmacies::forPharmacies`, from
+  `PharmacyListResource`'s collection; no per-card query). With a `city`
+  (and with `on_duty=1`) on-duty pharmacies come first — all day, hours, on
+  call — then the usual featured/name order; `on_duty=1` („Само дежурни
+  денес“ in the filters, shareable as `/pharmacies?on_duty=1`) keeps only
+  them. The cards say „Дежурна денес · 24 часа“ / „· по повик“ / „· <hours>“;
+  „Според распоредот на ФЗОМ — проверете со телефонски повик пред да
+  тргнете.“ shows once above such results, and an empty `on_duty=1` list says
+  „Нема дежурна аптека денес во {city} според распоредот на ФЗОМ.“ The same
+  07:00 turn applies: at 02:00 the cards show the previous evening's night
+  duty. Only linked pharmacies (`facility_id`) get a badge; ФЗОМ rows not in
+  the directory stay on „Каде веднаш“.
 
 Real files, 2026-10-07 (dry runs; October applied on the preview copy):
 

@@ -16,6 +16,8 @@ export type PharmacyListParams = {
   q?: string;
   /** „Само верификувани“: "1" or nothing. */
   verified?: "1";
+  /** „Само дежурни денес“ (ФЗОМ's on-duty schedule): "1" or nothing. */
+  on_duty?: "1";
   page?: number;
   per_page?: number;
 };
@@ -42,7 +44,7 @@ export async function fetchPharmacies(
 ) {
   return apiGetPaginated<PharmacyListItem>(
     `/pharmacies${toQuery(params)}`,
-    options ?? directoryCache(params, { booleans: ["verified"] }),
+    options ?? directoryCache(params, { booleans: ["verified", "on_duty"] }),
   );
 }
 
