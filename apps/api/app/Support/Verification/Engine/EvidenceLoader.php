@@ -316,7 +316,7 @@ final class EvidenceLoader
             // Staff-corrected names („Аптека“ → „Аптека Неготино“) differ
             // from the register's on purpose; the lock is accepted only
             // next to the same ФЗО code, tax number and town.
-            nameLockedByStaff: $nameLocked && $facility->tax_number !== null
+            nameLockedByStaff: $nameLocked && (string) $facility->tax_number !== ''
                 && is_scalar($payload['tax_number'] ?? null) && (string) $facility->tax_number === (string) $payload['tax_number'],
         );
     }
