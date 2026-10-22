@@ -353,6 +353,30 @@ nobody can hold an account locked by merely sending traffic.
   published specialty name) and clinical facilities (name or a published
   department name), on `/search` too; `city` is a separate parameter.
   Minimum query length is 2 characters, matching `SearchQuery::normalize`.
+- **Typo-tolerant fallback** (`FuzzyNameSearch`): when the exact,
+  script-insensitive match finds nothing for a `q` of at least 4 characters,
+  `/search`, `/doctors`, `/facilities` and `/pharmacies` return the rows whose
+  **name** is close instead (trigram similarity of whole words, both scripts —
+  „domenika“ → „Доминика Славкоска“; for doctors also the members of a
+  published specialty whose name is close, „kardolog“ → Кардиологија). Every
+  other filter (published, city, type, specialty…) still applies; rows are
+  ranked by closeness, then the usual order. PostgreSQL uses pg_trgm's
+  `strict_word_similarity` on the existing GIN trigram indexes (threshold 0.4,
+  and only matches within 0.1 of the best); SQLite scores a prefiltered,
+  capped candidate list in PHP with the same measure.
+  - `/search` `data` always carries `fuzzy` (boolean) and `suggestion`
+    (string|null): the matched words of the closest name („Доминика“), to
+    offer as „Дали мислевте“. With Meilisearch, `fuzzy` is also true when its
+    own typo tolerance returned hits none of whose names contains the query
+    but one is close; when Meilisearch finds nothing, the SQL fallback runs.
+    Products and forum topics have no fuzzy match.
+  - The list endpoints add `meta.fuzzy` / `meta.suggestion` only when `q` was
+    eligible and matched nothing exactly (`fuzzy: false, suggestion: null` if
+    nothing was close either).
+- Meilisearch does not transliterate: doctor and facility documents carry
+  `full_name_latin` / `name_latin` (searchable), so Latin queries match
+  Cyrillic names and typo tolerance works in both scripts. Run `php artisan
+  search:reindex --flush` after deploying this change.
 - Doctor, facility and pharmacy lists put `is_featured` items **first**, inside
   the current filters, then apply the chosen sort (`/doctors?sort=name|rating`;
   facilities and pharmacies sort by name); totals and pages are unaffected.
