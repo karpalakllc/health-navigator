@@ -125,4 +125,20 @@ class PharmacyUnlinkTest extends TestCase
         $this->assertSame(OnDutyPharmacyImporter::SOURCE, FieldProvenance::query()->where('subject_id', $empty->id)->where('field', 'phone')->value('source'));
         $this->assertSame('070 000 000', $kept->fresh()->phone);
     }
+
+    public function test_naming_the_same_pharmacy_while_unlinking_does_not_undo_the_rejection(): void
+    {
+        $only = Facility::factory()->pharmacy()->create(['name' => 'Аптека Роса', 'city' => 'Велес']);
+        $shift = $this->shift('Роса', ['facility_id' => $only->id]);
+
+        $result = app(OnDutyLinker::class)->unlinkByStaff($only, $shift->town_key, $shift->name_key, User::factory()->create(), $only->id);
+
+        $this->assertNull($result['relinked_to']);
+        $this->assertNull($shift->fresh()->facility_id);
+        $this->assertSame(1, ImportReviewItem::query()->open()->where('item_key', OnDutyLinker::itemKey($shift->town_key, $shift->name_key))->count());
+
+        // Unlinking twice does not queue a second open item.
+        app(OnDutyLinker::class)->unlinkByStaff($only, $shift->town_key, $shift->name_key, User::factory()->create());
+        $this->assertSame(1, ImportReviewItem::query()->open()->where('item_key', OnDutyLinker::itemKey($shift->town_key, $shift->name_key))->count());
+    }
 }

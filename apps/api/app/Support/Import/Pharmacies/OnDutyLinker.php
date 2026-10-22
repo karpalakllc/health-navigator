@@ -368,6 +368,8 @@ final class OnDutyLinker
      */
     public function unlinkByStaff(Facility $facility, string $townKey, string $nameKey, User $by, ?int $linkTo = null): array
     {
+        // „Link to the same pharmacy“ would undo the rejection at once.
+        $linkTo = $linkTo === (int) $facility->getKey() ? null : $linkTo;
         $shifts = PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey);
         $latest = (clone $shifts)->orderByDesc('month')->orderBy('duty_date')->first();
         $name = (string) ($latest->pharmacy_name ?? $nameKey);
