@@ -28,4 +28,21 @@ describe("filenameFromDisposition", () => {
     expect(filenameFromDisposition(null)).toBe("zdravje360.json");
     expect(filenameFromDisposition("attachment")).toBe("zdravje360.json");
   });
+
+  it("never returns a path or control characters", () => {
+    expect(
+      filenameFromDisposition(
+        "attachment; filename*=UTF-8''..%2F..%2Fevil.json",
+      ),
+    ).toBe("evil.json");
+    expect(
+      filenameFromDisposition('attachment; filename="..\\..\\evil.json"'),
+    ).toBe("evil.json");
+    expect(filenameFromDisposition("attachment; filename*=UTF-8''..%2F")).toBe(
+      "zdravje360.json",
+    );
+    expect(
+      filenameFromDisposition("attachment; filename*=UTF-8''a%0Ab.json"),
+    ).toBe("ab.json");
+  });
 });
