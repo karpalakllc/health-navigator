@@ -285,7 +285,21 @@ PharmacyName, PharmacyRegisterImporter, PharmacyImportJob, OnDutyLinker}`.
   remembered (a source record `alias:<town>|<name>` of the on-duty source)
   and applied to every month. A linked pharmacy without a phone gets the
   schedule's number (provenance `on-duty-pharmacies`; two schedule names on
-  one pharmacy with different numbers fill only an empty phone).
+  one pharmacy with different numbers fill only an empty phone); a staff
+  link (**Link to pharmacy**, **Link suggested pharmacy**) fills an empty
+  phone at once, by the same rule.
+- **Wrong link: Unlink on-duty schedule.** On the pharmacy's edit page in
+  admin (`imports.manage`) **Unlink on-duty schedule** unlinks one schedule
+  name+town from the pharmacy for every month, forgets the staff alias, and
+  stores a persisted „not this pharmacy“ decision (source record
+  `not:<town>|<name>|<facility id>` of the on-duty source) that the linker
+  filters out of every rule on later runs; it is lifted when staff link that
+  pair again. The schedule is then linked to what the rules find among the
+  other pharmacies of the town, or queued in Import review (**Link to
+  pharmacy**); the optional „Link to another pharmacy instead“ field does
+  both steps at once. Recorded in the activity log (`on_duty_unlinked`).
+- A pharmacy name that is only the town after the legal form („ПЗУ АПТЕКА
+  НЕГОТИНО“, town Неготино) keeps it: „Аптека Неготино“.
 
 Counters: `facilities_in_source`, `facilities_created`, `facilities_matched`,
 `facilities_unchanged`, `facilities_absent`, `pharmacies_ambiguous`,

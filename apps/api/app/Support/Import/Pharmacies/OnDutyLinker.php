@@ -7,6 +7,7 @@ use App\Enums\ImportReviewStatus;
 use App\Models\Facility;
 use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
+use App\Models\ImportRun;
 use App\Models\PharmacyDutyShift;
 use App\Models\SourceRecord;
 use App\Models\User;
@@ -44,6 +45,9 @@ use Illuminate\Support\Facades\DB;
  * only once the town has any directory pharmacy (before that, it is in the
  * run report only).
  *
+ * Staff can also say „not this pharmacy“ (unlinkByStaff): that pair of
+ * schedule name and pharmacy is then never linked by rules 2 to 4 again.
+ *
  * A linked pharmacy without a phone gets the schedule's phone number (as the
  * on-duty source, with provenance; a number someone else entered is never
  * overwritten).
@@ -51,6 +55,8 @@ use Illuminate\Support\Facades\DB;
 final class OnDutyLinker
 {
     public const ALIAS_PREFIX = 'alias:';
+
+    public const REJECT_PREFIX = 'not:';
 
     public const REASON_SUGGESTED = 'pharmacy_suggested_match';
 
@@ -73,6 +79,9 @@ final class OnDutyLinker
     /** @var array<string, int>|null "town|name" => facility id */
     private ?array $aliases = null;
 
+    /** @var array<string, array<int, true>> "town|name" => facility ids staff said it is not */
+    private array $rejected = [];
+
     /**
      * @return array{facility_id: int|null, rule: string|null, reason: string|null, candidates: list<int>, suggested: int|null}
      */
@@ -87,7 +96,8 @@ final class OnDutyLinker
             return $result($this->aliases[$townKey.'|'.$nameKey], 'alias');
         }
 
-        $pharmacies = $this->index[$townKey] ?? [];
+        $rejected = $this->rejected[$townKey.'|'.$nameKey] ?? [];
+        $pharmacies = array_values(array_filter($this->index[$townKey] ?? [], fn (array $p): bool => ! isset($rejected[$p['id']])));
 
         if ($pharmacies === []) {
             return $result(null, null, self::REASON_MISSING);
@@ -316,6 +326,9 @@ final class OnDutyLinker
                 'last_seen_at' => now(),
             ])->save();
 
+            SourceRecord::query()->where('source', OnDutyPharmacyImporter::SOURCE)
+                ->where('external_key', self::rejectKey($townKey, $nameKey, (int) $facility->getKey()))->delete();
+
             PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey)
                 ->update(['facility_id' => $facility->getKey(), 'updated_at' => now()]);
 
@@ -323,8 +336,139 @@ final class OnDutyLinker
         });
 
         $this->aliases = null;
+        $this->fillPhoneFromSchedule($facility, $townKey, $nameKey);
 
         return true;
+    }
+
+    /**
+     * The schedule names linked to a pharmacy, for „Unlink on-duty schedule“.
+     *
+     * @return array<string, string> "town_key|name_key" => "Schedule name, town"
+     */
+    public function linkedSchedules(Facility $facility): array
+    {
+        return PharmacyDutyShift::query()->where('facility_id', $facility->getKey())
+            ->select(['town_key', 'name_key', 'pharmacy_name', 'town'])
+            ->distinct()->orderBy('pharmacy_name')->get()
+            ->mapWithKeys(fn (PharmacyDutyShift $s): array => [$s->town_key.'|'.$s->name_key => $s->pharmacy_name.', '.$s->town])
+            ->all();
+    }
+
+    /**
+     * Staff say a schedule pharmacy is NOT this directory pharmacy: every
+     * month's shifts are unlinked, a staff alias is forgotten, and the pair
+     * is remembered as „not this pharmacy“ so the rules never link it
+     * again. The schedule is then linked to what the rules find among the
+     * other pharmacies of the town, or queued for „Link to pharmacy“. With
+     * $linkTo, staff name the right pharmacy at once (remembered as an
+     * alias, like „Link to pharmacy“).
+     *
+     * @return array{shifts: int, relinked_to: int|null}
+     */
+    public function unlinkByStaff(Facility $facility, string $townKey, string $nameKey, User $by, ?int $linkTo = null): array
+    {
+        $shifts = PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey);
+        $latest = (clone $shifts)->orderByDesc('month')->orderBy('duty_date')->first();
+        $name = (string) ($latest->pharmacy_name ?? $nameKey);
+        $town = (string) ($latest->town ?? $townKey);
+        $relinkedTo = null;
+        $count = 0;
+
+        DB::transaction(function () use ($facility, $townKey, $nameKey, $by, $latest, $name, $town, $linkTo, &$relinkedTo, &$count): void {
+            $count = PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey)
+                ->where('facility_id', $facility->getKey())
+                ->update(['facility_id' => null, 'updated_at' => now()]);
+
+            SourceRecord::query()->where('source', OnDutyPharmacyImporter::SOURCE)
+                ->where('external_key', self::aliasKey($townKey, $nameKey))->where('subject_id', $facility->getKey())->delete();
+
+            $payload = ['town_key' => $townKey, 'name_key' => $nameKey, 'name' => $name, 'rejected_by_id' => $by->getKey()];
+            SourceRecord::query()->updateOrCreate(
+                ['source' => OnDutyPharmacyImporter::SOURCE, 'external_key' => self::rejectKey($townKey, $nameKey, (int) $facility->getKey())],
+                [
+                    'subject_type' => FieldProvenance::SUBJECT_FACILITY,
+                    'subject_id' => $facility->getKey(),
+                    'payload' => $payload,
+                    'hash' => hash('sha256', (string) json_encode($payload)),
+                    'first_seen_at' => now(),
+                    'last_seen_at' => now(),
+                ],
+            );
+
+            $this->aliases = null;
+            $this->index = null;
+            $decision = $linkTo !== null
+                ? ['facility_id' => null, 'rule' => null, 'reason' => self::REASON_MISSING, 'candidates' => [], 'suggested' => $linkTo]
+                : $this->decide($townKey, $nameKey, $latest?->address);
+            $relinkedTo = $decision['facility_id'];
+
+            if ($relinkedTo !== null) {
+                PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey)
+                    ->update(['facility_id' => $relinkedTo, 'updated_at' => now()]);
+            } elseif ($this->townHasPharmacies($townKey)) {
+                $suggested = $decision['suggested'] !== null ? Facility::query()->find($decision['suggested'], ['id', 'name', 'address']) : null;
+                ImportReviewItem::raise(OnDutyPharmacyImporter::SOURCE, ImportReviewKind::Unmatched, self::itemKey($townKey, $nameKey), 'On-duty pharmacy not in the directory: '.$name.', '.$town, array_filter([
+                    'reason' => $decision['reason'] ?? self::REASON_MISSING,
+                    'name' => $name,
+                    'town' => $town,
+                    'town_key' => $townKey,
+                    'name_key' => $nameKey,
+                    'municipality' => $latest?->municipality,
+                    'phone' => $latest?->phone,
+                    'address' => $latest?->address,
+                    'candidate_facility_ids' => $decision['candidates'],
+                    'suggested_facility_id' => $decision['suggested'],
+                    'suggested_name' => $suggested !== null ? $suggested->name.($suggested->address !== null ? ', '.$suggested->address : '') : null,
+                    'hint' => 'Staff unlinked this schedule pharmacy from '.$facility->name.'. “Link to pharmacy” picks the right one; “Dismiss” if it is not in the directory.',
+                ], fn ($value): bool => $value !== null && $value !== []));
+            }
+
+            activity('import')
+                ->performedOn($facility)
+                ->causedBy($by)
+                ->event('on_duty_unlinked')
+                ->withProperties(['schedule_name' => $name, 'town' => $town, 'shifts' => $count, 'relinked_to' => $relinkedTo])
+                ->log('on_duty_unlinked');
+        });
+
+        if ($linkTo !== null) {
+            $item = ImportReviewItem::query()->where('source', OnDutyPharmacyImporter::SOURCE)->where('item_key', self::itemKey($townKey, $nameKey))
+                ->where('status', ImportReviewStatus::Open)->latest('id')->first();
+
+            if ($item !== null && $this->linkByStaff($item, $linkTo, $by)) {
+                $relinkedTo = $linkTo;
+            }
+        }
+
+        return ['shifts' => $count, 'relinked_to' => $relinkedTo];
+    }
+
+    /**
+     * An empty phone of a pharmacy staff just linked gets the schedule's
+     * (same rule as the automatic link: never over a number someone else
+     * entered).
+     */
+    private function fillPhoneFromSchedule(Facility $facility, string $townKey, string $nameKey): void
+    {
+        $shifts = PharmacyDutyShift::query()->where('town_key', $townKey)->where('name_key', $nameKey)
+            ->whereNotNull('phone')->where('phone', '!=', '')->orderByDesc('month')->get(['phone', 'import_run_id']);
+        $run = ImportRun::query()->find($shifts->pluck('import_run_id')->filter()->first());
+
+        if ($shifts->isEmpty() || $run === null || trim((string) $facility->fresh()?->phone) !== '') {
+            return;
+        }
+
+        $context = new ImportContext($run, OnDutyPharmacyImporter::SOURCE, false);
+        $saved = $this->phones;
+        $this->phones = [];
+
+        foreach ($shifts->pluck('phone')->map(fn ($p): string => trim((string) $p))->unique() as $phone) {
+            $this->phones[(int) $facility->getKey()][$phone] = true;
+        }
+
+        $this->fillPhones($context);
+        $this->phones = $saved;
     }
 
     /**
@@ -334,7 +478,14 @@ final class OnDutyLinker
      */
     public function optionsFor(ImportReviewItem $item): array
     {
-        $townKey = (string) ($item->details['town_key'] ?? OnDutyNames::townKey((string) ($item->details['town'] ?? '')));
+        return $this->optionsForTown((string) ($item->details['town_key'] ?? OnDutyNames::townKey((string) ($item->details['town'] ?? ''))));
+    }
+
+    /**
+     * @return array<int, string> id => "name, address"
+     */
+    public function optionsForTown(string $townKey): array
+    {
         $this->load();
         $ids = array_column($this->index[$townKey] ?? [], 'id');
 
@@ -346,6 +497,11 @@ final class OnDutyLinker
     public static function itemKey(string $townKey, string $nameKey): string
     {
         return 'on-duty-pharmacy:'.$townKey.':'.$nameKey;
+    }
+
+    public static function rejectKey(string $townKey, string $nameKey, int $facilityId): string
+    {
+        return mb_substr(self::REJECT_PREFIX.$townKey.'|'.$nameKey.'|'.$facilityId, 0, 191);
     }
 
     public static function aliasKey(string $townKey, string $nameKey): string
@@ -498,6 +654,7 @@ final class OnDutyLinker
 
         $this->index = [];
         $this->aliases = [];
+        $this->rejected = [];
 
         $records = SourceRecord::query()->where('source', PharmacyRegisterImporter::SOURCE)->whereNotNull('subject_id')
             ->get(['subject_id', 'payload'])->groupBy('subject_id');
@@ -561,6 +718,14 @@ final class OnDutyLinker
                 }
 
                 $this->aliases[substr($record->external_key, strlen(self::ALIAS_PREFIX))] = (int) $record->subject_id;
+            });
+
+        SourceRecord::query()->where('source', OnDutyPharmacyImporter::SOURCE)->where('external_key', 'like', self::REJECT_PREFIX.'%')
+            ->whereNotNull('subject_id')->get(['external_key', 'subject_id'])
+            ->each(function (SourceRecord $record): void {
+                $pair = substr($record->external_key, strlen(self::REJECT_PREFIX));
+                $pair = substr($pair, 0, (int) strrpos($pair, '|'));
+                $this->rejected[$pair][(int) $record->subject_id] = true;
             });
     }
 }
