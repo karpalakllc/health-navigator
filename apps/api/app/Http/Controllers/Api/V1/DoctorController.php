@@ -8,11 +8,13 @@ use App\Http\Resources\Api\V1\DoctorDetailResource;
 use App\Http\Resources\Api\V1\DoctorListResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
+use App\Support\Search\FuzzyNameSearch;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
 class DoctorController extends Controller
 {
-    public function index(ListDoctorsRequest $request): JsonResponse
+    public function index(ListDoctorsRequest $request, FuzzyNameSearch $fuzzy): JsonResponse
     {
         $validated = $request->validated();
 
@@ -35,10 +37,6 @@ class DoctorController extends Controller
             $query->cityContains($validated['city']);
         }
 
-        if (! empty($validated['q'])) {
-            $query->searchNameOrSpecialty($validated['q']);
-        }
-
         if (! empty($validated['featured'])) {
             $query->featured();
         }
@@ -51,31 +49,59 @@ class DoctorController extends Controller
             $query->where('doctors.reviews_count', '>=', (int) $validated['min_reviews']);
         }
 
-        // Featured profiles lead whatever the visitor filtered to; the chosen
-        // sort then orders each group. A plain boolean key, so it is the
-        // leading column of an index-backed sort, and totals are unaffected.
-        $query->orderByDesc('doctors.is_featured');
+        $q = $validated['q'] ?? null;
+        $perPage = $validated['per_page'] ?? 15;
+        $sort = $validated['sort'] ?? 'name';
+        // Every filter but the name: the base a fuzzy fallback starts from.
+        $base = $query->clone();
 
-        if (($validated['sort'] ?? 'name') === 'rating') {
-            // Unrated doctors hold rating_avg = 0, below any real average (1–5),
-            // so they sort last without an IS NULL key.
-            $query->orderByDesc('doctors.rating_avg');
-            $query->orderBy('doctors.full_name');
-        } else {
-            $query->orderBy('doctors.full_name');
+        if (! empty($q)) {
+            $query->searchNameOrSpecialty($q);
         }
 
-        // Names repeat; the id keeps pages from overlapping or skipping rows.
-        $query->orderBy('doctors.id');
+        $paginator = $this->order($query, $sort)->paginate($perPage)->withQueryString();
+        $meta = [];
 
-        $perPage = $validated['per_page'] ?? 15;
+        // No exact match: names close to the query, under the same filters.
+        if (! empty($q) && $paginator->total() === 0 && FuzzyNameSearch::eligible($q)) {
+            $match = $fuzzy->doctors($base, $q);
+            $meta = ['fuzzy' => $match !== null, 'suggestion' => $match?->suggestion];
 
-        $paginator = $query->paginate($perPage)->withQueryString();
+            if ($match !== null) {
+                $paginator = $this->order(FuzzyNameSearch::applyToDoctors($base, $match), $sort)
+                    ->paginate($perPage)
+                    ->withQueryString();
+            }
+        }
 
         return ApiResponse::paginated(
             $paginator,
             DoctorListResource::collection($paginator),
+            $meta,
         );
+    }
+
+    /**
+     * Featured profiles lead whatever the visitor filtered to; the chosen
+     * sort then orders each group. A plain boolean key, so it is the
+     * leading column of an index-backed sort, and totals are unaffected.
+     * (A fuzzy match orders by closeness first; these break its ties.)
+     *
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    private function order(Builder $query, string $sort): Builder
+    {
+        $query->orderByDesc('doctors.is_featured');
+
+        if ($sort === 'rating') {
+            // Unrated doctors hold rating_avg = 0, below any real average (1–5),
+            // so they sort last without an IS NULL key.
+            $query->orderByDesc('doctors.rating_avg');
+        }
+
+        // Names repeat; the id keeps pages from overlapping or skipping rows.
+        return $query->orderBy('doctors.full_name')->orderBy('doctors.id');
     }
 
     public function show(string $slug): JsonResponse

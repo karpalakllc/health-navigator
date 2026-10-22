@@ -20,9 +20,13 @@ final class ApiResponse
         return response()->json(['data' => $data], $status);
     }
 
+    /**
+     * @param  array<string, mixed>  $meta  extra meta keys (e.g. a fuzzy search's `fuzzy` / `suggestion`)
+     */
     public static function paginated(
         LengthAwarePaginator $paginator,
         AnonymousResourceCollection $data,
+        array $meta = [],
     ): JsonResponse {
         return response()->json([
             'data' => $data,
@@ -31,6 +35,7 @@ final class ApiResponse
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
+                ...$meta,
             ],
         ]);
     }

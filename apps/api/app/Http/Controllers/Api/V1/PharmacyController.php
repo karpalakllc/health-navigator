@@ -12,12 +12,14 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\Search\FuzzyNameSearch;
 use App\Support\UrgentCare\OnDutyPharmacies;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
 class PharmacyController extends Controller
 {
-    public function index(ListPharmaciesRequest $request): JsonResponse
+    public function index(ListPharmaciesRequest $request, FuzzyNameSearch $fuzzy): JsonResponse
     {
         $validated = $request->validated();
 
@@ -33,38 +35,65 @@ class PharmacyController extends Controller
             OnDutyPharmacies::whereOnDuty($query);
         }
 
-        if ($city !== '' || $onDutyOnly) {
-            // In a city, tonight's on-duty pharmacies lead (24 h before on
-            // call), then the usual order.
-            OnDutyPharmacies::orderOnDutyFirst($query);
-        }
-
-        // Featured first within the filters, then by name; the id breaks
-        // ties between equal names so pages never overlap or skip rows.
-        $query->orderByDesc('is_featured')
-            ->orderBy('name')
-            ->orderBy('facilities.id');
-
         if ($city !== '') {
             $query->cityContains($city);
-        }
-
-        if (! empty($validated['q'])) {
-            $query->searchName($validated['q']);
         }
 
         if (! empty($validated['verified'])) {
             $query->verified();
         }
 
+        $q = $validated['q'] ?? null;
         $perPage = $validated['per_page'] ?? 15;
+        // Every filter but the name: the base a fuzzy fallback starts from.
+        $base = $query->clone();
 
-        $paginator = $query->paginate($perPage)->withQueryString();
+        if (! empty($q)) {
+            $query->searchName($q);
+        }
+
+        if ($city !== '' || $onDutyOnly) {
+            // In a city, tonight's on-duty pharmacies lead (24 h before on
+            // call), then the usual order. A fuzzy match keeps closeness first.
+            OnDutyPharmacies::orderOnDutyFirst($query);
+        }
+
+        $paginator = $this->listed($query)->paginate($perPage)->withQueryString();
+        $meta = [];
+
+        // No exact match: names close to the query, under the same filters.
+        if (! empty($q) && $paginator->total() === 0 && FuzzyNameSearch::eligible($q)) {
+            $match = $fuzzy->facilities($base, $q);
+            $meta = ['fuzzy' => $match !== null, 'suggestion' => $match?->suggestion];
+
+            if ($match !== null) {
+                $paginator = $this->listed(FuzzyNameSearch::applyToFacilities($base, $match))
+                    ->paginate($perPage)
+                    ->withQueryString();
+            }
+        }
 
         return ApiResponse::paginated(
             $paginator,
             PharmacyListResource::collection($paginator),
+            $meta,
         );
+    }
+
+    /**
+     * Featured first within the filters, then by name; the id breaks ties
+     * between equal names so pages never overlap or skip rows. (A fuzzy
+     * match orders by closeness first; these break its ties.)
+     *
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    private function listed(Builder $query): Builder
+    {
+        return $query
+            ->orderByDesc('is_featured')
+            ->orderBy('name')
+            ->orderBy('facilities.id');
     }
 
     public function show(string $slug): JsonResponse

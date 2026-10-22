@@ -12,12 +12,19 @@ use App\Models\Facility;
 use App\Models\ForumTopic;
 use App\Models\Product;
 use App\Models\SiteSetting;
+use App\Support\Search\FuzzyMatch;
+use App\Support\Search\FuzzyNameSearch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 final class UnifiedSearch
 {
+    public function __construct(
+        private readonly FuzzyNameSearch $fuzzy,
+    ) {}
+
     public const DEFAULT_PER_VERTICAL = 5;
 
     public const MAX_PER_VERTICAL = 10;
@@ -77,9 +84,92 @@ final class UnifiedSearch
     }
 
     /**
+     * The exact search found nothing: the same verticals, matched by name
+     * similarity instead (FuzzyNameSearch), with the same published scopes,
+     * city filter and page size. Products and forum topics have no fuzzy
+     * match and stay empty. Null when nothing is close either.
+     *
+     * @return array{
+     *     doctors: array{data: mixed, meta: array<string, int>},
+     *     facilities: array{data: mixed, meta: array<string, int>},
+     *     pharmacies: array{data: mixed, meta: array<string, int>},
+     *     products: array{data: mixed, meta: array<string, int>},
+     *     forum_topics: array{data: mixed, meta: array<string, int>},
+     *     grand_total: int,
+     *     suggestion: string|null
+     * }|null
+     */
+    public function fuzzySearch(string $q, ?string $city, int $perPage): ?array
+    {
+        $q = trim($q);
+        $city = $city !== null && trim($city) !== '' ? trim($city) : null;
+
+        if (! FuzzyNameSearch::eligible($q)) {
+            return null;
+        }
+
+        $perPage = min(max(1, $perPage), self::MAX_PER_VERTICAL);
+
+        $doctorMatch = $this->fuzzy->doctors($this->doctorsQuery($city), $q);
+        $facilityMatch = $this->fuzzy->facilities($this->facilitiesQuery($city), $q);
+        $pharmacyMatch = SiteSetting::current()->public_pharmacies
+            ? $this->fuzzy->facilities($this->pharmaciesQuery($city), $q)
+            : null;
+
+        if ($doctorMatch === null && $facilityMatch === null && $pharmacyMatch === null) {
+            return null;
+        }
+
+        // One correction across the page: every directory is cut at the
+        // overall best match minus the window, not only at its own best.
+        $cutoff = max($doctorMatch->bestScore ?? 0.0, $facilityMatch->bestScore ?? 0.0, $pharmacyMatch->bestScore ?? 0.0)
+            - FuzzyNameSearch::WINDOW;
+        $doctorMatch = $doctorMatch?->above($cutoff);
+        $facilityMatch = $facilityMatch?->above($cutoff);
+        $pharmacyMatch = $pharmacyMatch?->above($cutoff);
+
+        $doctors = $doctorMatch !== null
+            ? $this->orderDoctors(FuzzyNameSearch::applyToDoctors($this->doctorsQuery($city), $doctorMatch))->paginate($perPage)
+            : $this->emptyPaginator($perPage);
+        $facilities = $facilityMatch !== null
+            ? $this->orderFacilities(FuzzyNameSearch::applyToFacilities($this->facilitiesQuery($city), $facilityMatch))->paginate($perPage)
+            : $this->emptyPaginator($perPage);
+        $pharmacies = $pharmacyMatch !== null
+            ? $this->orderFacilities(FuzzyNameSearch::applyToFacilities($this->pharmaciesQuery($city), $pharmacyMatch))->paginate($perPage)
+            : $this->emptyPaginator($perPage);
+        $empty = $this->emptyPaginator($perPage);
+
+        return [
+            'doctors' => $this->section($doctors, DoctorListResource::class),
+            'facilities' => $this->section($facilities, FacilityListResource::class),
+            'pharmacies' => $this->section($pharmacies, PharmacyListResource::class),
+            'products' => $this->section($empty, ProductListResource::class),
+            'forum_topics' => $this->section($empty, ForumTopicSearchResource::class),
+            'grand_total' => $doctors->total() + $facilities->total() + $pharmacies->total(),
+            'suggestion' => FuzzyMatch::bestSuggestion($doctorMatch, $facilityMatch, $pharmacyMatch),
+        ];
+    }
+
+    /**
      * @return LengthAwarePaginator<Doctor>
      */
     private function searchDoctors(?string $q, ?string $city, int $perPage): LengthAwarePaginator
+    {
+        $query = $this->doctorsQuery($city);
+
+        if ($q !== null && $q !== '') {
+            $query->searchNameOrSpecialty($q);
+        }
+
+        return $this->orderDoctors($query)->paginate($perPage);
+    }
+
+    /**
+     * Published doctors in the city, with what DoctorListResource renders.
+     *
+     * @return Builder<Doctor>
+     */
+    private function doctorsQuery(?string $city): Builder
     {
         $query = Doctor::query()
             ->published()
@@ -88,20 +178,24 @@ final class UnifiedSearch
                 // DoctorListResource reads the primary facility; without this it
                 // lazy-loads once per doctor, unpublished facilities included.
                 'facilities' => fn ($relation) => $relation->where('facilities.is_published', true),
-            ])
-            // Featured first, as in the directory lists (DoctorController).
-            ->orderByDesc('is_featured')
-            ->orderBy('full_name');
+            ]);
 
         if ($city !== null && $city !== '') {
             $query->cityContains($city);
         }
 
-        if ($q !== null && $q !== '') {
-            $query->searchNameOrSpecialty($q);
-        }
+        return $query;
+    }
 
-        return $query->paginate($perPage);
+    /**
+     * Featured first, as in the directory lists (DoctorController).
+     *
+     * @param  Builder<Doctor>  $query
+     * @return Builder<Doctor>
+     */
+    private function orderDoctors(Builder $query): Builder
+    {
+        return $query->orderByDesc('is_featured')->orderBy('full_name');
     }
 
     /**
@@ -109,21 +203,13 @@ final class UnifiedSearch
      */
     private function searchFacilities(?string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Facility::query()
-            ->published()
-            ->clinical()
-            ->orderByDesc('is_featured')
-            ->orderBy('name');
-
-        if ($city !== null && $city !== '') {
-            $query->cityContains($city);
-        }
+        $query = $this->facilitiesQuery($city);
 
         if ($q !== null && $q !== '') {
             $query->searchNameOrDepartment($q);
         }
 
-        return $query->paginate($perPage);
+        return $this->orderFacilities($query)->paginate($perPage);
     }
 
     /**
@@ -131,21 +217,50 @@ final class UnifiedSearch
      */
     private function searchPharmacies(?string $q, ?string $city, int $perPage): LengthAwarePaginator
     {
-        $query = Facility::query()
-            ->published()
-            ->pharmacy()
-            ->orderByDesc('is_featured')
-            ->orderBy('name');
-
-        if ($city !== null && $city !== '') {
-            $query->cityContains($city);
-        }
+        $query = $this->pharmaciesQuery($city);
 
         if ($q !== null && $q !== '') {
             $query->searchName($q);
         }
 
-        return $query->paginate($perPage);
+        return $this->orderFacilities($query)->paginate($perPage);
+    }
+
+    /**
+     * @return Builder<Facility>
+     */
+    private function facilitiesQuery(?string $city): Builder
+    {
+        $query = Facility::query()->published()->clinical();
+
+        if ($city !== null && $city !== '') {
+            $query->cityContains($city);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return Builder<Facility>
+     */
+    private function pharmaciesQuery(?string $city): Builder
+    {
+        $query = Facility::query()->published()->pharmacy();
+
+        if ($city !== null && $city !== '') {
+            $query->cityContains($city);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<Facility>  $query
+     * @return Builder<Facility>
+     */
+    private function orderFacilities(Builder $query): Builder
+    {
+        return $query->orderByDesc('is_featured')->orderBy('name');
     }
 
     /**
