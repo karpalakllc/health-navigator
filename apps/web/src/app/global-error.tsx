@@ -55,8 +55,11 @@ const CSS = `
  */
 export default function GlobalError({
   error,
+  retry,
 }: {
   error: Error & { digest?: string };
+  // Refetches the server payload and re-renders the root layout.
+  retry: () => void;
 }) {
   useEffect(() => {
     reportException(error);
@@ -87,10 +90,7 @@ export default function GlobalError({
             <div className="ge-actions">
               <button
                 type="button"
-                // Next's retry prop is a no-op refetch here: this boundary sits
-                // above the router context, so retry() only resets and
-                // re-renders the same failed payload. A full reload refetches.
-                onClick={() => window.location.reload()}
+                onClick={retry}
                 className="ge-btn ge-primary"
               >
                 {t("errors.retry")}
