@@ -76,7 +76,11 @@ final class UnifiedSearchCoordinator
      */
     private function searchVerticals(?string $q, ?string $city, int $perPage): array
     {
-        if (MeilisearchGateway::isHealthy()) {
+        // City-only browse has no relevance to rank: the SQL listing (featured,
+        // then name) is the right order and avoids an empty-query index scan.
+        $cityOnly = ($q === null || trim($q) === '') && $city !== null && trim($city) !== '';
+
+        if (! $cityOnly && MeilisearchGateway::isHealthy()) {
             try {
                 return $this->meilisearch->search($q, $city, $perPage);
             } catch (Throwable $exception) {

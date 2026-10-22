@@ -62,7 +62,7 @@ function containsElement(node: unknown, type: unknown): boolean {
   return false;
 }
 
-async function renderResults(q: string, city?: string) {
+async function renderResults(q: string | undefined, city?: string) {
   const element = await UnifiedSearchResults({ q, city });
   return render(<SearchDialogProvider>{element}</SearchDialogProvider>);
 }
@@ -135,6 +135,59 @@ describe("UnifiedSearchResults (/search)", () => {
       .getByRole("list")
       .className.split(/\s+/);
     expect(chips).toEqual(expect.arrayContaining(["py-2.5", "-my-2.5"]));
+  });
+
+  it("lists a whole city without a query, larger pages, no forum or products", async () => {
+    fetchUnifiedSearch.mockResolvedValue(
+      result({
+        doctors: {
+          data: [
+            {
+              slug: "ana",
+              full_name: "д-р Ана Петровска",
+              title: null,
+              subspecialty: null,
+              city: "Скопје",
+              avatar_url: null,
+              years_experience: null,
+              accepts_new_patients: true,
+              is_featured: false,
+              is_sponsored: false,
+              primary_specialty: null,
+              primary_facility: null,
+              review_summary: { count: 0, average_rating: null },
+            },
+          ],
+          meta: { current_page: 1, per_page: 10, total: 1, last_page: 1 },
+        },
+        grand_total: 1,
+      }),
+    );
+
+    await renderResults(undefined, "Скопје");
+
+    expect(fetchUnifiedSearch).toHaveBeenCalledWith({
+      q: undefined,
+      city: "Скопје",
+      per_page: 10,
+    });
+    expect(
+      screen.getByRole("region", { name: t("search.sectionDoctors") }),
+    ).toBeInTheDocument();
+    // „Види ги сите“ carries only the city.
+    expect(
+      screen.getByRole("link", {
+        name: `${t("search.viewAllInSection")}: ${t("search.sectionDoctors")}`,
+      }),
+    ).toHaveAttribute("href", `/doctors?city=${encodeURIComponent("Скопје")}`);
+    // Removing the city chip leaves the hub, not an empty search.
+    expect(
+      screen.getByRole("link", {
+        name: tFormat("ui.removeFilter", {
+          label: tFormat("search.cityFilter", { city: "Скопје" }),
+        }),
+      }),
+    ).toHaveAttribute("href", "/search");
   });
 
   it("offers matching specialties as shortcuts into the doctor list, same city", async () => {

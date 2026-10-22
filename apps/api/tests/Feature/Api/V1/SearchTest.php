@@ -100,4 +100,48 @@ class SearchTest extends TestCase
                 ->assertJsonPath('data.facilities.data.0.slug', 'city-hospital');
         }
     }
+
+    public function test_city_only_search_lists_everything_in_that_city(): void
+    {
+        Doctor::factory()->create(['slug' => 'sk-doc-b', 'full_name' => 'Борис Скопски', 'city' => 'Скопје']);
+        Doctor::factory()->create(['slug' => 'sk-doc-a', 'full_name' => 'Ана Скопска', 'city' => 'Скопје']);
+        Doctor::factory()->create(['slug' => 'bt-doc', 'full_name' => 'Битолски Лекар', 'city' => 'Битола']);
+        Facility::factory()->create(['slug' => 'sk-clinic', 'name' => 'Клиника Скопје', 'type' => FacilityType::Clinic, 'city' => 'Скопје']);
+        Facility::factory()->create(['slug' => 'sk-pharmacy', 'name' => 'Аптека Скопје', 'type' => FacilityType::Pharmacy, 'city' => 'Скопје']);
+        Facility::factory()->create(['slug' => 'bt-pharmacy', 'name' => 'Аптека Битола', 'type' => FacilityType::Pharmacy, 'city' => 'Битола']);
+        Product::factory()->create(['slug' => 'any-product', 'name' => 'Продукт']);
+        ForumTopic::factory()->create(['title' => 'Тема']);
+
+        $this->getJson('/api/v1/search?city='.urlencode('Скопје'))
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 2)
+            ->assertJsonPath('data.doctors.data.0.slug', 'sk-doc-a')
+            ->assertJsonPath('data.doctors.data.1.slug', 'sk-doc-b')
+            ->assertJsonPath('data.facilities.data.0.slug', 'sk-clinic')
+            ->assertJsonPath('data.pharmacies.data.0.slug', 'sk-pharmacy')
+            ->assertJsonPath('data.products.meta.total', 0)
+            ->assertJsonPath('data.forum_topics.meta.total', 0)
+            ->assertJsonPath('data.grand_total', 4);
+    }
+
+    public function test_city_with_one_character_query_behaves_as_city_only(): void
+    {
+        Doctor::factory()->create(['slug' => 'sk-doc', 'city' => 'Скопје']);
+
+        $this->getJson('/api/v1/search?q=a&city='.urlencode('Скопје'))
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 1);
+    }
+
+    public function test_short_query_without_city_still_returns_nothing(): void
+    {
+        Doctor::factory()->create(['full_name' => 'Ana Test']);
+
+        $this->getJson('/api/v1/search?q=a')
+            ->assertOk()
+            ->assertJsonPath('data.grand_total', 0);
+        $this->getJson('/api/v1/search?city=')
+            ->assertOk()
+            ->assertJsonPath('data.grand_total', 0);
+    }
 }

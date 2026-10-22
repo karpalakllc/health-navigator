@@ -48,7 +48,7 @@ export async function SearchEmptyState({
   q,
   city,
 }: {
-  q: string;
+  q?: string;
   city?: string;
 }) {
   const sections = await enabledDirectorySections();
@@ -56,7 +56,11 @@ export async function SearchEmptyState({
   return (
     <StateCard
       icon="search"
-      title={tFormat("search.emptyTitle", { q })}
+      title={
+        q
+          ? tFormat("search.emptyTitle", { q })
+          : tFormat("search.emptyTitleCity", { city: city ?? "" })
+      }
       body={t("search.emptyBody")}
     >
       <ul className="mt-6 flex flex-wrap gap-2">
@@ -73,7 +77,7 @@ export async function SearchEmptyState({
 }
 
 /** The search API failed: an ink (never red) message and a retry link. */
-export function SearchErrorState({ q, city }: { q: string; city?: string }) {
+export function SearchErrorState({ q, city }: { q?: string; city?: string }) {
   return (
     <div role="alert">
       <StateCard

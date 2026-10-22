@@ -34,9 +34,17 @@ final class UnifiedSearch
      */
     public function search(?string $q, ?string $city, int $perPage): array
     {
-        if ($q === null || $q === '') {
+        $q = $q === '' ? null : $q;
+        $city = $city !== null && trim($city) !== '' ? trim($city) : null;
+
+        if ($q === null && $city === null) {
             return $this->emptyResult();
         }
+
+        // City-only browse: everything that has a city, ordered by the
+        // directory defaults (featured, then name). Products and forum topics
+        // have no city, so they are skipped rather than dumped unfiltered.
+        $cityOnly = $q === null;
 
         $perPage = min(max(1, $perPage), self::MAX_PER_VERTICAL);
 
@@ -47,10 +55,10 @@ final class UnifiedSearch
         $pharmacies = $settings->public_pharmacies
             ? $this->searchPharmacies($q, $city, $perPage)
             : $this->emptyPaginator();
-        $products = $settings->public_products
+        $products = $settings->public_products && ! $cityOnly
             ? $this->searchProducts($q, $perPage)
             : $this->emptyPaginator();
-        $forumTopics = $settings->public_forum
+        $forumTopics = $settings->public_forum && ! $cityOnly
             ? $this->searchForumTopics($q, $perPage)
             : $this->emptyPaginator();
 

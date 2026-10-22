@@ -19,7 +19,8 @@ import { specialtyIcon } from "@/lib/specialty-icons";
 import { t, tCount, tFormat } from "@/i18n/t";
 
 type UnifiedSearchResultsProps = {
-  q: string;
+  /** Absent for a city-only browse (everything in that city). */
+  q?: string;
   city?: string;
 };
 
@@ -48,7 +49,8 @@ export async function UnifiedSearchResults({
     result = await fetchUnifiedSearch({
       q,
       city: cityParam,
-      per_page: 5,
+      // City-only browse has no relevance cut-off: show a fuller page.
+      per_page: q ? 5 : 10,
     });
   } catch {
     return <SearchErrorState q={q} city={cityParam} />;
@@ -108,7 +110,7 @@ export async function UnifiedSearchResults({
       id: "search-forum",
       title: t("search.sectionForum"),
       total: forum_topics.meta.total,
-      viewAllHref: `/forum?q=${encodeURIComponent(q)}`,
+      viewAllHref: q ? `/forum?q=${encodeURIComponent(q)}` : "/forum",
       body: (
         <ul className="grid gap-3 lg:grid-cols-2 lg:gap-4">
           {forum_topics.data.map((topic) => (

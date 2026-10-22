@@ -42,11 +42,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const cityTrim = params.city?.trim();
   const city = cityTrim || undefined;
 
-  if (qNormalized) {
+  // A chosen city is enough on its own: it lists everything in that city.
+  if (qNormalized || city) {
     return (
       <SearchLayout
         eyebrow={t("search.directoryBadge")}
-        title={tFormat("search.resultsFor", { q: qRaw.trim() })}
+        title={
+          qNormalized
+            ? tFormat("search.resultsFor", { q: qRaw.trim() })
+            : tFormat("search.resultsInCity", { city: city ?? "" })
+        }
         form={<SearchQueryForm q={qRaw} city={params.city} />}
       >
         <UnifiedSearchResults q={qNormalized} city={city} />
