@@ -54,6 +54,10 @@ class UsernameChangeTest extends TestCase
 
     public function test_a_member_changes_their_username_once_in_90_days(): void
     {
+        // The response timestamp and the assertion's now() must fall in the
+        // same second, or the test fails once in a while.
+        $this->freezeSecond();
+
         $member = $this->member();
         Sanctum::actingAs($member);
 
