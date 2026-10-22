@@ -152,8 +152,11 @@ return [
             // it only re-checks visibility. Push changes with `php artisan
             // search:reindex`. Keyed by model so the index name (SCOUT_PREFIX
             // included) comes from the model's searchableAs(), as for its data.
+            // The *_latin attributes carry a Latin transliteration: Meilisearch
+            // does not transliterate, and its typo tolerance then works on a
+            // Latin query („domenika“ → Dominika → Доминика) as on Cyrillic.
             Doctor::class => [
-                'searchableAttributes' => ['full_name', 'title', 'subspecialty', 'city', 'specialty_names', 'specialty_names_latin'],
+                'searchableAttributes' => ['full_name', 'full_name_latin', 'title', 'subspecialty', 'city', 'specialty_names', 'specialty_names_latin'],
                 'filterableAttributes' => ['city'],
                 // Unified search sorts on it. Meilisearch's default ranking
                 // rules apply `sort` after words/typo/proximity/attribute, so
@@ -161,7 +164,7 @@ return [
                 'sortableAttributes' => ['is_featured'],
             ],
             Facility::class => [
-                'searchableAttributes' => ['name', 'city', 'description', 'type', 'department_names', 'department_names_latin'],
+                'searchableAttributes' => ['name', 'name_latin', 'city', 'description', 'type', 'department_names', 'department_names_latin'],
                 'filterableAttributes' => ['city', 'type'],
                 'sortableAttributes' => ['is_featured'],
             ],

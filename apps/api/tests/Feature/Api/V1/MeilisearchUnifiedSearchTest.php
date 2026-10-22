@@ -463,4 +463,56 @@ class MeilisearchUnifiedSearchTest extends TestCase
             'Unhealthy Meili must not be called; SQL fallback serves the page.',
         );
     }
+
+    public function test_latin_queries_find_cyrillic_names_through_the_latin_attributes(): void
+    {
+        Doctor::factory()->create(['slug' => 'dominika', 'full_name' => 'Доминика Славкоска']);
+        Facility::factory()->create(['slug' => 'sistina', 'name' => 'Аџибадем Систина', 'type' => FacilityType::Hospital]);
+
+        // Meilisearch does not transliterate: without full_name_latin /
+        // name_latin a Latin query found nothing on this path.
+        $this->assertContains('full_name_latin', config('scout.meilisearch.index-settings.'.Doctor::class.'.searchableAttributes'));
+        $this->assertContains('name_latin', config('scout.meilisearch.index-settings.'.Facility::class.'.searchableAttributes'));
+
+        $this->getJson('/api/v1/search?q=dominika')
+            ->assertOk()
+            ->assertJsonPath('data.doctors.meta.total', 1)
+            ->assertJsonPath('data.doctors.data.0.slug', 'dominika')
+            ->assertJsonPath('data.fuzzy', false)
+            ->assertJsonPath('data.suggestion', null);
+
+        $this->getJson('/api/v1/search?q=sistina')
+            ->assertOk()
+            ->assertJsonPath('data.facilities.data.0.slug', 'sistina')
+            ->assertJsonPath('data.fuzzy', false);
+    }
+
+    public function test_typo_tolerant_hits_are_marked_fuzzy_with_a_suggestion(): void
+    {
+        $doctor = Doctor::factory()->create(['slug' => 'dominika', 'full_name' => 'Доминика Славкоска']);
+
+        // The fake index matches substrings only; stand in for Meilisearch's
+        // typo tolerance by making the stored document match the typo.
+        $index = $doctor->indexableAs();
+        $this->engine->indexes[$index][$doctor->getScoutKey()]['subspecialty'] = 'domenika';
+
+        $this->getJson('/api/v1/search?q=domenika')
+            ->assertOk()
+            ->assertJsonPath('data.doctors.data.0.slug', 'dominika')
+            ->assertJsonPath('data.fuzzy', true)
+            ->assertJsonPath('data.suggestion', 'Доминика');
+    }
+
+    public function test_when_meilisearch_finds_nothing_the_sql_fuzzy_fallback_answers(): void
+    {
+        Doctor::factory()->create(['slug' => 'dominika', 'full_name' => 'Доминика Славкоска']);
+
+        $this->getJson('/api/v1/search?q=domenika')
+            ->assertOk()
+            ->assertJsonPath('data.fuzzy', true)
+            ->assertJsonPath('data.suggestion', 'Доминика')
+            ->assertJsonPath('data.doctors.data.0.slug', 'dominika');
+
+        $this->assertNotSame([], $this->engine->lastSearch('doctors'), 'Meilisearch is asked first.');
+    }
 }

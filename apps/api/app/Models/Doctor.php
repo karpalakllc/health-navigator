@@ -383,6 +383,9 @@ class Doctor extends Model
             'id' => $this->id,
             'slug' => $this->slug,
             'full_name' => $this->full_name,
+            // Meilisearch does not transliterate: "dominika" must find
+            // "Доминика" as the SQL path (ScriptInsensitiveSearch) does.
+            'full_name_latin' => MacedonianSearchVariants::cyrillicToLatin((string) $this->full_name),
             'title' => $this->title,
             'subspecialty' => $this->subspecialty,
             'city' => $this->city,

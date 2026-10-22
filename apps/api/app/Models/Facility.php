@@ -346,6 +346,8 @@ class Facility extends Model
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
+            // See Doctor::toSearchableArray(): Latin queries match too.
+            'name_latin' => MacedonianSearchVariants::cyrillicToLatin((string) $this->name),
             'type' => $this->type?->value,
             'city' => $this->city,
             'description' => $this->description,
