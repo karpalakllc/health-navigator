@@ -11,8 +11,10 @@ export function emptyStateHint(hasFilters: boolean, directory: Directory) {
     return t("common.emptyTryFilters");
   }
 
+  // Inline rather than in mk.ts: a production build replaces NODE_ENV and
+  // drops this branch, so the set-up text never reaches the client bundle.
   if (process.env.NODE_ENV === "development") {
-    return t("common.demoDataHint");
+    return "Ако листите се празни без филтри: уверете се дека API работи (на пр. http://127.0.0.1:8000/api/v1/health), дека NEXT_PUBLIC_API_URL во apps/web/.env.local одговара на тој сервер, и извршете од apps/api: php artisan migrate:fresh --seed. Ако APP_ENV не е local, додајте SEED_LOCAL_DEMO=true во apps/api/.env.";
   }
 
   return t(`common.emptyNoneYet.${directory}`);

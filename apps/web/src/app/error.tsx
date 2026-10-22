@@ -1,8 +1,7 @@
 "use client";
 
 import { reportException } from "@/lib/sentry-client";
-import { useRouter } from "next/navigation";
-import { startTransition, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusPanel } from "@/components/system/status-panel";
 import { t } from "@/i18n/t";
@@ -10,13 +9,13 @@ import { isSettingsUnavailable } from "@/lib/api/public-settings";
 
 export default function Error({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  // Next's retry refetches the server payload, then resets the boundary
+  // (reset() alone re-renders the same failed payload).
+  retry: () => void;
 }) {
-  const router = useRouter();
-
   useEffect(() => {
     // Without this the boundary swallows the error: nothing else reports
     // render failures that reach it. The exception is a settings outage: it
@@ -28,15 +27,6 @@ export default function Error({
     }
     console.error(error);
   }, [error]);
-
-  // reset() alone re-renders with the same failed RSC payload, so the button
-  // looked dead; refresh() refetches it first.
-  const retry = () => {
-    startTransition(() => {
-      router.refresh();
-      reset();
-    });
-  };
 
   return (
     <>
