@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { t } from "@/i18n/t";
+import { filenameFromDisposition } from "@/lib/download-filename";
 
 /**
  * Account data export with password step-up (same confirmation pattern as
@@ -49,9 +50,9 @@ export function AccountExport() {
 
       if (response.ok) {
         const blob = await response.blob();
-        const disposition = response.headers.get("content-disposition") ?? "";
-        const match = /filename="([^"]+)"/i.exec(disposition);
-        const filename = match?.[1] ?? "zdravje360.json";
+        const filename = filenameFromDisposition(
+          response.headers.get("content-disposition"),
+        );
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
