@@ -16,6 +16,10 @@ export type PaginatedEnvelope<T> = {
     aspects?: ReviewAspectSummary[];
     /** Review lists only: 12-month trend, or null below 5 reviews. */
     trend?: ReviewTrendPeriod[] | null;
+    /** Directory lists with `q`: nothing matched exactly, these are close names. */
+    fuzzy?: boolean;
+    /** Directory lists with `q`: the corrected query, or null. */
+    suggestion?: string | null;
   };
 };
 
@@ -119,6 +123,10 @@ export type UnifiedSearchResult = {
   /** Specialties whose name matches: shortcuts to /doctors?specialty=. */
   specialties?: Array<Pick<Specialty, "slug" | "name" | "doctors_count">>;
   grand_total: number;
+  /** True when nothing matched exactly and these are names close to `q`. */
+  fuzzy?: boolean;
+  /** The corrected query for „Дали мислевте“ (e.g. „Доминика“), or null. */
+  suggestion?: string | null;
 };
 
 /**

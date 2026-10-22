@@ -4,6 +4,10 @@ import { FacilitiesDirectory } from "@/components/directory/facilities-directory
 import { FacilityCard } from "@/components/directory/facility-card";
 import { Pagination } from "@/components/directory/pagination";
 import { ResultsGrid } from "@/components/directory/results-grid";
+import {
+  FuzzySearchNotice,
+  suggestionListHref,
+} from "@/components/search/fuzzy-search-notice";
 import { fetchDepartments } from "@/lib/api/departments";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
@@ -76,13 +80,30 @@ export default async function FacilitiesPage({
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />
       ) : (
-        <ResultsGrid>
-          {facilities.data.map((facility) => (
-            <li key={facility.slug}>
-              <FacilityCard facility={facility} />
-            </li>
-          ))}
-        </ResultsGrid>
+        <>
+          {facilities.meta.fuzzy && applied.q ? (
+            <FuzzySearchNotice
+              q={applied.q}
+              suggestion={facilities.meta.suggestion}
+              suggestionHref={
+                facilities.meta.suggestion
+                  ? suggestionListHref(
+                      "/facilities",
+                      applied,
+                      facilities.meta.suggestion,
+                    )
+                  : undefined
+              }
+            />
+          ) : null}
+          <ResultsGrid>
+            {facilities.data.map((facility) => (
+              <li key={facility.slug}>
+                <FacilityCard facility={facility} />
+              </li>
+            ))}
+          </ResultsGrid>
+        </>
       )}
 
       {facilities.data.length > 0 ? (

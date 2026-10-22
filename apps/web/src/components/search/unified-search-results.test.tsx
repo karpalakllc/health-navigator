@@ -7,7 +7,7 @@ import {
 } from "@/components/search/search-states";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { SearchDialogProvider } from "@/components/layout/search-dialog-context";
-import type { UnifiedSearchResult } from "@/lib/api/types";
+import type { DoctorListItem, UnifiedSearchResult } from "@/lib/api/types";
 import { publicSettingsDefaults } from "@/lib/api/public-settings";
 import { t, tFormat } from "@/i18n/t";
 
@@ -67,10 +67,82 @@ async function renderResults(q: string | undefined, city?: string) {
   return render(<SearchDialogProvider>{element}</SearchDialogProvider>);
 }
 
+const dominika: DoctorListItem = {
+  slug: "dominika-slavkoska",
+  full_name: "Доминика Славкоска",
+  title: null,
+  subspecialty: null,
+  city: "Скопје",
+  avatar_url: null,
+  years_experience: null,
+  accepts_new_patients: true,
+  is_featured: false,
+  is_sponsored: false,
+  primary_specialty: null,
+  specialties: [],
+  primary_facility: null,
+  review_summary: { count: 0, average_rating: null },
+};
+
 describe("UnifiedSearchResults (/search)", () => {
   beforeEach(() => {
     fetchUnifiedSearch.mockReset();
     api.down = false;
+  });
+
+  it("says fuzzy results are approximate and offers „Дали мислевте“", async () => {
+    fetchUnifiedSearch.mockResolvedValue(
+      result({
+        doctors: {
+          data: [dominika],
+          meta: { current_page: 1, per_page: 5, total: 1, last_page: 1 },
+        },
+        grand_total: 1,
+        fuzzy: true,
+        suggestion: "Доминика",
+      }),
+    );
+
+    await renderResults("domenika", "Скопје");
+
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent(
+      tFormat("search.fuzzyNoExact", { q: "domenika" }),
+    );
+    expect(notice).toHaveTextContent(`${t("search.didYouMean")} Доминика?`);
+    // The suggestion re-runs the search with the corrected query, same city.
+    expect(
+      within(notice).getByRole("link", { name: "Доминика" }),
+    ).toHaveAttribute(
+      "href",
+      `/search?q=${encodeURIComponent("Доминика")}&city=${encodeURIComponent("Скопје")}`,
+    );
+    expect(
+      screen.getAllByRole("link", { name: /Доминика Славкоска/ }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("shows no fuzzy notice for exact results", async () => {
+    fetchUnifiedSearch.mockResolvedValue(
+      result({
+        doctors: {
+          data: [dominika],
+          meta: { current_page: 1, per_page: 5, total: 1, last_page: 1 },
+        },
+        grand_total: 1,
+        fuzzy: false,
+        suggestion: null,
+      }),
+    );
+
+    await renderResults("dominika");
+
+    expect(
+      screen.queryByText(tFormat("search.fuzzyNoExact", { q: "dominika" })),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("search.didYouMean"), { exact: false }),
+    ).toBeNull();
   });
 
   it("groups hits by vertical with a jump chip, a count and „Види ги сите“", async () => {

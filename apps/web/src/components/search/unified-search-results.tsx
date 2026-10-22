@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/catalog/product-card";
 import { OnDutySourceNote } from "@/components/urgent-care/on-duty-tag";
 import { CommunityTopicCard } from "@/components/home/community-topic-card";
 import { AdvancedSearchTrigger } from "@/components/search/advanced-search-trigger";
+import { FuzzySearchNotice } from "@/components/search/fuzzy-search-notice";
 import {
   SearchEmptyState,
   SearchErrorState,
@@ -145,9 +146,23 @@ export async function UnifiedSearchResults({
     },
   ].filter((section) => section.total > 0);
 
+  // Nothing matched exactly: these are close names („domenika“ → Доминика).
+  const fuzzy = Boolean(q && result.fuzzy && sections.length > 0);
+
   return (
     <div className="flex flex-col gap-10 lg:gap-14">
       <div className="flex flex-col gap-4">
+        {fuzzy && q ? (
+          <FuzzySearchNotice
+            q={q}
+            suggestion={result.suggestion}
+            suggestionHref={
+              result.suggestion
+                ? directorySearchHref("/search", result.suggestion, cityParam)
+                : undefined
+            }
+          />
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           {sections.length > 0 ? (
             <p className="type-body font-semibold text-ink">

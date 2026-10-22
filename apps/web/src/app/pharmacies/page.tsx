@@ -4,6 +4,10 @@ import { Pagination } from "@/components/directory/pagination";
 import { PharmaciesDirectory } from "@/components/directory/pharmacies-directory";
 import { PharmacyCard } from "@/components/directory/pharmacy-card";
 import { ResultsGrid } from "@/components/directory/results-grid";
+import {
+  FuzzySearchNotice,
+  suggestionListHref,
+} from "@/components/search/fuzzy-search-notice";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { OnDutySourceNote } from "@/components/urgent-care/on-duty-tag";
 import { fetchPharmacies } from "@/lib/api/pharmacies";
@@ -108,6 +112,21 @@ export default async function PharmaciesPage({
         />
       ) : (
         <>
+          {pharmacies.meta.fuzzy && applied.q ? (
+            <FuzzySearchNotice
+              q={applied.q}
+              suggestion={pharmacies.meta.suggestion}
+              suggestionHref={
+                pharmacies.meta.suggestion
+                  ? suggestionListHref(
+                      "/pharmacies",
+                      applied,
+                      pharmacies.meta.suggestion,
+                    )
+                  : undefined
+              }
+            />
+          ) : null}
           {showOnDutyNote ? <OnDutySourceNote className="mb-4" /> : null}
           <ResultsGrid>
             {pharmacies.data.map((pharmacy) => (

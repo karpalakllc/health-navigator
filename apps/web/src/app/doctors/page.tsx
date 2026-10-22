@@ -4,6 +4,10 @@ import { DoctorsDirectory } from "@/components/directory/doctors-directory";
 import { EmptyState } from "@/components/directory/empty-state";
 import { Pagination } from "@/components/directory/pagination";
 import { ResultsGrid } from "@/components/directory/results-grid";
+import {
+  FuzzySearchNotice,
+  suggestionListHref,
+} from "@/components/search/fuzzy-search-notice";
 import { fetchDoctors } from "@/lib/api/doctors";
 import { fetchLanguages, knownLanguage } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
@@ -90,13 +94,30 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />
       ) : (
-        <ResultsGrid>
-          {doctors.data.map((doctor) => (
-            <li key={doctor.slug}>
-              <DoctorCard doctor={doctor} />
-            </li>
-          ))}
-        </ResultsGrid>
+        <>
+          {doctors.meta.fuzzy && applied.q ? (
+            <FuzzySearchNotice
+              q={applied.q}
+              suggestion={doctors.meta.suggestion}
+              suggestionHref={
+                doctors.meta.suggestion
+                  ? suggestionListHref(
+                      "/doctors",
+                      applied,
+                      doctors.meta.suggestion,
+                    )
+                  : undefined
+              }
+            />
+          ) : null}
+          <ResultsGrid>
+            {doctors.data.map((doctor) => (
+              <li key={doctor.slug}>
+                <DoctorCard doctor={doctor} />
+              </li>
+            ))}
+          </ResultsGrid>
+        </>
       )}
 
       {doctors.data.length > 0 ? (

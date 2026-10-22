@@ -399,6 +399,9 @@ export const mk = {
       "Не успеавме да ги вчитаме резултатите. Обидете се повторно за неколку минути.",
     retry: "Обиди се повторно",
     hubDirectories: "Пребарајте во еден директориум",
+    // Typo-tolerant fallback: the API matched names that are close.
+    fuzzyNoExact: "Нема точни резултати за „{q}“. Слични резултати:",
+    didYouMean: "Дали мислевте:",
   },
   filters: {
     specialty: "Специјалност",
