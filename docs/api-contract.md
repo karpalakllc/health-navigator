@@ -354,7 +354,7 @@ nobody can hold an account locked by merely sending traffic.
   department name), on `/search` too; `city` is a separate parameter.
   Minimum query length is 2 characters, matching `SearchQuery::normalize`.
 - **Typo-tolerant fallback** (`FuzzyNameSearch`): when the exact,
-  script-insensitive match finds nothing for a `q` of at least 4 characters,
+  script-insensitive match finds nothing for a `q` of 4 to 64 characters,
   `/search`, `/doctors`, `/facilities` and `/pharmacies` return the rows whose
   **name** is close instead (trigram similarity of whole words, both scripts —
   „domenika“ → „Доминика Славкоска“; for doctors also the members of a
