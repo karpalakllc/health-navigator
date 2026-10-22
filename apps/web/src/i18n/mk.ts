@@ -231,6 +231,13 @@ export const mk = {
     clearFilters: "Исчисти филтри",
     demoDataHint:
       "Ако листите се празни без филтри: уверете се дека API работи (на пр. http://127.0.0.1:8000/api/v1/health), дека NEXT_PUBLIC_API_URL во apps/web/.env.local одговара на тој сервер, и извршете од apps/api: php artisan migrate:fresh --seed. Ако APP_ENV не е local, додајте SEED_LOCAL_DEMO=true во apps/api/.env.",
+    emptyTryFilters: "Обидете се со друг град или отстранете некој филтер.",
+    emptyNoneYet: {
+      doctors: "Сè уште нема внесени лекари.",
+      pharmacies: "Сè уште нема внесени аптеки.",
+      facilities: "Сè уште нема внесени установи.",
+      products: "Сè уште нема внесени производи.",
+    },
     ratingOutOf: "/ 5",
   },
   // Shared primitives (src/components/ui).

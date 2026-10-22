@@ -9,6 +9,7 @@ import { fetchLanguages, knownLanguage } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import { emptyStateHint } from "@/lib/empty-state-hint";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 type DoctorsPageProps = {
@@ -84,7 +85,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       {doctors.data.length === 0 ? (
         <EmptyState
           title={t("doctors.empty")}
-          description={!hasFilters ? t("common.demoDataHint") : undefined}
+          description={emptyStateHint(hasFilters, "doctors")}
           clearHref={hasFilters ? "/doctors" : undefined}
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />

@@ -11,6 +11,7 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import { emptyStateHint } from "@/lib/empty-state-hint";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 type ProductsPageProps = {
@@ -71,7 +72,7 @@ export default async function ProductsPage({
       {products.data.length === 0 ? (
         <EmptyState
           title={t("products.empty")}
-          description={!hasFilters ? t("common.demoDataHint") : undefined}
+          description={emptyStateHint(hasFilters, "products")}
           clearHref={hasFilters ? "/products" : undefined}
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />

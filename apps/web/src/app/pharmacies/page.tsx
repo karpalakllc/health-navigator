@@ -10,6 +10,7 @@ import { fetchPublicSettings } from "@/lib/api/settings";
 import { isModuleOn } from "@/lib/api/public-settings";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import { emptyStateHint } from "@/lib/empty-state-hint";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 type PharmaciesPageProps = {
@@ -70,7 +71,7 @@ export default async function PharmaciesPage({
       {pharmacies.data.length === 0 ? (
         <EmptyState
           title={t("pharmacies.empty")}
-          description={!hasFilters ? t("common.demoDataHint") : undefined}
+          description={emptyStateHint(hasFilters, "pharmacies")}
           clearHref={hasFilters ? "/pharmacies" : undefined}
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />

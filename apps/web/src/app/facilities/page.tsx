@@ -8,6 +8,7 @@ import { fetchDepartments } from "@/lib/api/departments";
 import { fetchFacilities } from "@/lib/api/facilities";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
 import { t } from "@/i18n/t";
+import { emptyStateHint } from "@/lib/empty-state-hint";
 import { parseListPage } from "@/lib/api/directory-cache-policy";
 
 type FacilitiesPageProps = {
@@ -70,7 +71,7 @@ export default async function FacilitiesPage({
       {facilities.data.length === 0 ? (
         <EmptyState
           title={t("facilities.empty")}
-          description={!hasFilters ? t("common.demoDataHint") : undefined}
+          description={emptyStateHint(hasFilters, "facilities")}
           clearHref={hasFilters ? "/facilities" : undefined}
           clearLabel={hasFilters ? t("common.clearFilters") : undefined}
         />
