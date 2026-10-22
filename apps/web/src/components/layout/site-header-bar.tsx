@@ -41,12 +41,14 @@ function placeholderUser(): AuthUser {
  * Header rows.
  *  - Mobile (<lg, 60px): logo · menu button (opens the drawer with every
  *    section, search and the account / sign-in).
- *  - Desktop (lg+): row 1 (80px) logo · search pill · account or „Најава“;
- *    row 2 (52px) the section links.
+ *  - Desktop home (lg+): one 72px row, logo · section links · search icon ·
+ *    account or „Најава“. The hero has the page's search, so no pill.
+ *  - Desktop inner pages (lg+): row 1 (64px) logo · search pill · account or
+ *    „Најава“; row 2 (44px) the section links.
  * No emergency pill: this is a directory, not a hospital. 194/112 live in the
  * symptom-guidance flow and as one quiet line in the footer. Exactly one <nav>
- * (row 2) sits in the banner landmark; the bottom tab bar is a separate
- * landmark outside it.
+ * sits in the banner landmark; the bottom tab bar is a separate landmark
+ * outside it.
  */
 export function SiteHeaderBar({
   isLoggedIn,
@@ -63,10 +65,26 @@ export function SiteHeaderBar({
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const pathname = usePathname();
   const accountUser = isLoggedIn ? (user ?? placeholderUser()) : null;
+  const isHome = pathname === "/";
+  const nav = (
+    <SiteNav
+      modules={modules}
+      className={
+        isHome ? "hidden h-full lg:block" : "mx-auto w-full max-w-[1240px] px-6"
+      }
+    />
+  );
 
   return (
     <>
-      <div className="mx-auto flex h-[60px] w-full max-w-[1240px] items-center justify-between gap-3 px-5 lg:grid lg:h-20 lg:grid-cols-[1fr_minmax(0,600px)_1fr] lg:gap-6 lg:px-6">
+      <div
+        className={cn(
+          "mx-auto flex h-[60px] w-full max-w-[1240px] items-center justify-between gap-3 px-5 lg:px-6",
+          isHome
+            ? "lg:h-[72px] lg:gap-10"
+            : "lg:grid lg:h-16 lg:grid-cols-[1fr_minmax(0,600px)_1fr] lg:gap-6",
+        )}
+      >
         <Link
           href="/"
           className="flex min-h-12 min-w-0 shrink items-center rounded-lg no-underline"
@@ -75,23 +93,29 @@ export function SiteHeaderBar({
           <span className="sr-only">, {t("nav.homeLink")}</span>
         </Link>
 
+        {isHome ? (
+          nav
+        ) : (
+          <div data-header-search="" className="hidden lg:block">
+            <HeaderSearch />
+          </div>
+        )}
+
         <div
-          data-header-search=""
           className={cn(
-            "hidden lg:block",
-            // Home: the hero has the same search, so the pill steps aside
-            // until the hero search scrolls away (HeroSearchWatcher sets
-            // <html data-hero-search>). Opacity and visibility only: the
-            // header keeps its size, and while hidden it is out of the tab
-            // order — the hero search is right there on screen.
-            pathname === "/" &&
-              "invisible opacity-0 motion-safe:transition-[opacity,visibility] motion-safe:duration-[var(--duration-base)] [html[data-hero-search=hidden]_&]:visible [html[data-hero-search=hidden]_&]:opacity-100",
+            "flex shrink-0 items-center gap-2 lg:justify-end lg:gap-3",
+            isHome && "lg:ml-auto",
           )}
         >
-          <HeaderSearch />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2 lg:justify-end lg:gap-3">
+          {isHome ? (
+            <IconButton
+              href="/search"
+              icon="search"
+              label={t("nav.searchSubmit")}
+              size={44}
+              className="hidden lg:inline-flex"
+            />
+          ) : null}
           {accountUser ? (
             <div className="hidden lg:block">
               <HeaderAccountMenu user={accountUser} />
@@ -117,12 +141,7 @@ export function SiteHeaderBar({
         </div>
       </div>
 
-      <div className="hidden border-t border-transparent lg:block">
-        <SiteNav
-          modules={modules}
-          className="mx-auto w-full max-w-[1240px] px-6"
-        />
-      </div>
+      {isHome ? null : <div className="hidden h-11 lg:block">{nav}</div>}
 
       <MobileNavDrawer
         open={mobileOpen}

@@ -30,6 +30,11 @@ type SiteNavProps = {
   layout?: "horizontal" | "vertical";
   /** Switched-off modules are left out rather than linking to a dead end. */
   modules: ModuleFlags;
+  /**
+   * Horizontal only: the links fill the height of their container (a 44px
+   * band under the search row, or the whole single home row) so the active
+   * bar sits on the container's bottom edge.
+   */
   /** Accessible name of the <nav> landmark. */
   label?: string;
 };
@@ -39,7 +44,7 @@ export function isActivePath(pathname: string, href: string): boolean {
 }
 
 /**
- * Section links. Horizontal (desktop header row 2): Geologica 17/500 ink, the
+ * Section links. Horizontal (desktop header): Geologica 17/500 ink, the
  * active link 600 with a 3px ink underline. Vertical (mobile drawer): 56px
  * rows with an icon in a sand circle.
  */
@@ -61,7 +66,7 @@ export function SiteNav({
       <ul
         className={cn(
           "m-0 flex list-none p-0",
-          vertical ? "flex-col" : "items-stretch gap-7",
+          vertical ? "flex-col" : "h-full items-stretch gap-7",
         )}
       >
         {links.map((link) => {
@@ -79,7 +84,7 @@ export function SiteNav({
                   "relative flex items-center text-ink no-underline",
                   vertical
                     ? "min-h-14 w-full gap-3 rounded-2xl px-2 text-[1.0625rem] transition-colors hover:bg-sand"
-                    : "h-[52px] text-[1.0625rem] leading-[1.375rem] hover:text-black",
+                    : "h-full min-h-11 text-[1.0625rem] leading-[1.375rem] hover:text-black",
                   // Desktop: a hairline grows under the hovered section;
                   // the current one keeps its ink bar.
                   !vertical &&

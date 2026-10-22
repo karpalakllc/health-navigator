@@ -103,7 +103,7 @@
 @media (width >= 64rem) {
   :root {
     --gutter: 1.5rem;
-    --header-h: 8.3125rem; /* 80px row + 52px nav row + 1px rule */
+    --header-h: 6.8125rem; /* inner pages: 64px row + 44px nav row + 1px rule (home: one 72px row) */
     --tabbar-space: 0px;
   }
 }

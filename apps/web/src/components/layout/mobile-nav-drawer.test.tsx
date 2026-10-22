@@ -134,7 +134,7 @@ describe("Header bar", () => {
   });
 
   it("has a labelled GET search form to /search", () => {
-    setPathname("/");
+    setPathname("/doctors");
     render(<SiteHeaderBar isLoggedIn={false} modules={modules} />);
 
     const form = screen.getByRole("search");
@@ -148,5 +148,44 @@ describe("Header bar", () => {
     expect(
       within(form).getByRole("button", { name: t("nav.searchSubmit") }),
     ).toHaveAttribute("type", "submit");
+  });
+
+  it("puts logo, section links and sign-in on one row on the home page", async () => {
+    setPathname("/");
+    const { container } = render(
+      <SiteHeaderBar isLoggedIn={false} modules={modules} />,
+    );
+
+    // The hero owns the page's search: no pill, a search link instead.
+    expect(screen.queryByRole("search")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: t("nav.searchSubmit") }),
+    ).toHaveAttribute("href", "/search");
+
+    const nav = screen.getByRole("navigation", { name: t("nav.sections") });
+    const row = nav.parentElement as HTMLElement;
+    expect(row.className).toContain("lg:h-[72px]");
+    expect(row).toContainElement(
+      screen.getByRole("link", { name: t("nav.login") }),
+    );
+    // Exactly one row: the logo and the links share a container.
+    expect(container.querySelectorAll("nav")).toHaveLength(1);
+    expect(row).toContainElement(
+      screen.getByRole("link", { name: new RegExp(t("nav.homeLink")) }),
+    );
+    expect(await seriousA11yViolations(document.body)).toEqual([]);
+  });
+
+  it("keeps the search pill and a slim 44px link row on inner pages", async () => {
+    setPathname("/doctors");
+    render(<SiteHeaderBar isLoggedIn={false} modules={modules} />);
+
+    expect(screen.getByRole("search")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: t("nav.searchSubmit") }),
+    ).toBeNull();
+    const nav = screen.getByRole("navigation", { name: t("nav.sections") });
+    expect(nav.parentElement?.className).toContain("h-11");
+    expect(await seriousA11yViolations(document.body)).toEqual([]);
   });
 });
