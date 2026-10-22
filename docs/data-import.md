@@ -272,12 +272,14 @@ PharmacyName, PharmacyRegisterImporter, PharmacyImportJob, OnDutyLinker}`.
   schedule name before) → `name` (same name key as the profile or the
   register's branch name; several are told apart by the street address) →
   `name_without_town` (the town's words dropped wherever they stand) →
-  `name_variant` (spacing, „Фарм“ and glued legal words aside, numbers kept,
-  numbers written out read as digits, a „1“ the register does not write:
-  „ВИАФАРМ 13“ = „Виа Фарм 13“, „ЗЕГИН“ = „Зегин Фарм“, „Магна Фарм 1“ =
-  „Магна Фарм“) → `words_and_address`. Otherwise an *unmatched* item: with a
-  suggestion (`pharmacy_suggested_match`: one pharmacy holds every word, no
-  address to confirm it) staff accept in bulk with **Link suggested
+  `words_and_address` (every word in the profile's name and the same street).
+  Otherwise an *unmatched* item: with a suggestion
+  (`pharmacy_suggested_match`: one pharmacy holds every word with no address
+  to confirm it, or is a spelling **variant** — spacing, „Фарм“ and glued
+  legal words aside, numbers kept, numbers written out read as digits, a „1“
+  the register does not write: „ВИАФАРМ 13“ = „Виа Фарм 13“, „ЗЕГИН“ =
+  „Зегин Фарм“, „Магна Фарм 1“ = „Магна Фарм“ — variants are never linked
+  automatically, a wrong on-duty pharmacy is a health risk) staff accept in bulk with **Link suggested
   pharmacies**; `ambiguous_pharmacy` / `pharmacy_not_in_directory` with
   **Link to pharmacy** (a picker of the town's pharmacies). Either link is
   remembered (a source record `alias:<town>|<name>` of the on-duty source)
@@ -305,9 +307,9 @@ The first apply creates every pharmacy at once, so it also sends the
 | pharmacies (ФЗО codes) | 940 — 940 created, 0 matched (the directory had no pharmacy), 0 conflicts |
 | legal entities (tax numbers) / towns | 424 / 178 |
 | verified by `import:adjudicate` (`fzom_register`) | 940 of 940 |
-| on-duty pharmacies held (Oct. 2026) | 329 → 286 linked (206 name, 12 name without town, 68 name variant), 43 queued (6 suggested, 1 ambiguous, 36 not in ФЗОМ's list) |
-| on-duty shift-days linked | 916 of 1,116 |
-| phones filled from the schedule | 285 |
+| on-duty pharmacies held (Oct. 2026) | 329 → 218 linked automatically (206 name, 12 name without town); the 68 that matched by name variant are now suggestions for staff, so 111 queued (74 suggested, 1 ambiguous, 36 not in ФЗОМ's list). Measured before that change: 286 linked |
+| on-duty shift-days linked | 916 of 1,116 (before name variants became suggestions) |
+| phones filled from the schedule | 285 (before that change; fewer now) |
 | second run, same file | 940 unchanged, 0 shifts relinked, 0 phones written |
 
 Most of the 36 not in the list are pharmacies the schedule names differently

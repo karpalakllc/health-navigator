@@ -32,15 +32,14 @@ use Illuminate\Support\Facades\DB;
  * 3. `name_without_town` — the same once every word of the town is dropped
  *    wherever it stands („Моја Аптека Велес 3“ and „Моја Аптека 3 Велес“),
  *    numbers kept;
- * 4. `name_variant` — the same once spacing, „Фарм“ and glued legal words
- *    are set aside, numbers kept („ВИАФАРМ 13“ = „Виа Фарм 13“, „ЗЕГИН“ =
- *    „Зегин Фарм“);
- * 5. `words_and_address` — every word of the schedule name is in the
+ * 4. `words_and_address` — every word of the schedule name is in the
  *    profile's name and the street address is the same.
  *
- * Otherwise nothing is linked. A single pharmacy whose name holds every
- * word of the schedule's (numbers equal), but without an address to
- * confirm it, is only suggested: a review item staff accept in bulk
+ * Otherwise nothing is linked. A single pharmacy that is the same once
+ * spacing, „Фарм“ and glued legal words are set aside („ВИАФАРМ 13“ = „Виа
+ * Фарм 13“, „ЗЕГИН“ = „Зегин Фарм“, „Магна Фарм 1“ = „Магна Фарм“), or whose
+ * name holds every word of the schedule's (numbers equal), but without an
+ * address to confirm it, is only suggested: a review item staff accept in bulk
  * („Link suggested pharmacy“). Several, or none, are queued as well — none
  * only once the town has any directory pharmacy (before that, it is in the
  * run report only).
@@ -125,8 +124,9 @@ final class OnDutyLinker
         $compact = self::compactKey($nameKey, $townWords);
         $byCompact = $compact !== '' ? array_values(array_filter($pharmacies, fn (array $p): bool => isset($p['compact'][$compact]))) : [];
 
+        // A spelling variant is only ever a suggestion: staff confirm it.
         if (count($byCompact) === 1) {
-            return $result($byCompact[0]['id'], 'name_variant');
+            return $result(null, null, self::REASON_SUGGESTED, [$byCompact[0]['id']], $byCompact[0]['id']);
         }
 
         // „Магна Фарм 1“ is the register's „Магна Фарм“ when no „… 1“ exists.
@@ -135,7 +135,7 @@ final class OnDutyLinker
             $byFirst = array_values(array_filter($pharmacies, fn (array $p): bool => isset($p['compact'][$first])));
 
             if (count($byFirst) === 1) {
-                return $result($byFirst[0]['id'], 'name_variant');
+                return $result(null, null, self::REASON_SUGGESTED, [$byFirst[0]['id']], $byFirst[0]['id']);
             }
         }
 

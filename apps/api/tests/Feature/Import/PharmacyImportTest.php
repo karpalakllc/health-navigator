@@ -233,14 +233,17 @@ class PharmacyImportTest extends TestCase
         $this->assertSame(OnDutyPharmacyImporter::SOURCE, FieldProvenance::query()->where('subject_id', $rosa->id)->where('field', 'phone')->value('source'));
         $this->assertSame($this->pharmacy('8800201')->id, $byLooseName->fresh()->facility_id);
         $this->assertSame($this->pharmacy('8800202')->id, $skopje->fresh()->facility_id);
-        $this->assertSame($this->pharmacy('8800301')->id, $variant->fresh()->facility_id);
+        // A spelling variant is only suggested, never auto-linked.
+        $this->assertNull($variant->fresh()->facility_id);
         $this->assertNull($suggested->fresh()->facility_id);
         $this->assertNull($unknown->fresh()->facility_id);
-        $this->assertSame(4, $run->count('duty_pharmacies_matched'));
-        $this->assertSame(1, $run->count('duty_pharmacies_matched_by_name_variant'));
-        $this->assertSame(1, $run->count('duty_pharmacies_suggested'));
+        $this->assertSame(3, $run->count('duty_pharmacies_matched'));
+        $this->assertSame(0, $run->count('duty_pharmacies_matched_by_name_variant'));
+        $this->assertSame(2, $run->count('duty_pharmacies_suggested'));
 
-        $item = ImportReviewItem::query()->open()->where('source', OnDutyPharmacyImporter::SOURCE)->where('details->reason', OnDutyLinker::REASON_SUGGESTED)->firstOrFail();
+        $item = ImportReviewItem::query()->open()->where('source', OnDutyPharmacyImporter::SOURCE)->where('details->reason', OnDutyLinker::REASON_SUGGESTED)->where('details->name', 'Роса')->firstOrFail();
+        $variantItem = ImportReviewItem::query()->open()->where('details->reason', OnDutyLinker::REASON_SUGGESTED)->where('details->name', 'ЗЕГИН1')->firstOrFail();
+        $this->assertSame($this->pharmacy('8800301')->id, $variantItem->details['suggested_facility_id']);
         $this->assertSame($this->pharmacy('8800101')->id, $item->details['suggested_facility_id']);
         $this->assertTrue(ImportReviewItem::query()->open()->where('details->reason', OnDutyLinker::REASON_MISSING)->where('details->name', 'Непозната')->exists());
 

@@ -212,9 +212,9 @@ php artisan import:on-duty-pharmacies --force              # re-import an unchan
 - **Writing** (`OnDutyPharmacyImporter`): the month is replaced as a whole,
   one row per pharmacy and day (`pharmacy_duty_shifts`). Each pharmacy is
   linked by `OnDutyLinker` — staff's earlier link, the name without
-  „ПЗУ“/„Аптека“/quotes/the town, the name without the town's words, a name
-  variant („ВИАФАРМ 13“ = „Виа Фарм 13“), or name words + street address,
-  each only when exactly one directory pharmacy of the town fits
+  „ПЗУ“/„Аптека“/quotes/the town, the name without the town's words, or name words + street address,
+  each only when exactly one directory pharmacy of the town fits; a name
+  variant („ВИАФАРМ 13“ = „Виа Фарм 13“) is only suggested to staff
   ([`data-import.md`](data-import.md) §4a). The directory's pharmacies come
   from `import:pharmacies` (ФЗОМ's pharmacy contracts), which also re-links
   every month held after each run. **Nothing is created**: an unmatched,
@@ -254,9 +254,10 @@ Real files, 2026-10-07 (dry runs; October applied on the preview copy):
 
 32 towns, every day covered in October. Before the pharmacy import none of
 the 329 pharmacies linked to a profile (the directory held no pharmacies).
-With `import:pharmacies` on a copy of the real data (2026-10-23), 286 of the
-329 link automatically (916 of 1,116 shift-days) and 43 go to the review
-queue (6 with a suggestion); see [`data-import.md`](data-import.md) §4a.
+With `import:pharmacies` on a copy of the real data (2026-10-23), 218 of the
+329 link automatically and 111 go to the review queue (74 with a suggestion,
+including 68 name variants staff confirm; before variants became suggestions
+the rehearsal linked 286, 916 of 1,116 shift-days); see [`data-import.md`](data-import.md) §4a.
 
 ## 3. API
 
