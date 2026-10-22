@@ -80,18 +80,12 @@ describe("one search bar at a time on the home page", () => {
       </>,
     );
 
-    // Hidden from the first paint (no flash), without changing its size:
-    // invisible + transparent, not display:none.
-    expect(classes(headerSlot())).toEqual(
-      expect.arrayContaining([
-        "invisible",
-        "opacity-0",
-        "[html[data-hero-search=hidden]_&]:visible",
-        "[html[data-hero-search=hidden]_&]:opacity-100",
-        // The fade only runs when motion is allowed.
-        "motion-safe:transition-[opacity,visibility]",
-      ]),
-    );
+    // The compact home header has no pill: the hero holds the page's search
+    // and the header offers a plain link to /search instead.
+    expect(headerSlot()).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Пребарај" }).getAttribute("href"),
+    ).toBe("/search");
 
     // The watcher observes the hero form and mirrors it onto <html>.
     expect(observed).toEqual([document.getElementById(HERO_SEARCH_FORM_ID)]);
