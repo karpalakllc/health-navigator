@@ -78,6 +78,9 @@ class PlatformUserSeeder extends Seeder
 
         // Demo staff arrive with two-factor already on, so the panel opens
         // straight to the code prompt instead of the set-up page.
+        // Local owners who skip 2FA: set STAFF_MFA_LOCAL_EXEMPT_EMAILS (APP_ENV=local
+        // only). Clearing the secret without that list means the next reseed
+        // re-enrols DEMO_*_TOTP_SECRET and Filament prompts again.
         $this->ensureDemoAuthenticator($admin, self::DEMO_ADMIN_TOTP_SECRET);
         $this->ensureDemoAuthenticator($moderator, self::DEMO_MODERATOR_TOTP_SECRET);
     }
