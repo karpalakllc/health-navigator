@@ -82,6 +82,22 @@ final class ImportContext
     }
 
     /**
+     * Takes over the counts (prefixed) and diff lines of a context that ran
+     * another source's step inside this run (import:pharmacies re-linking
+     * the on-duty schedule as the on-duty source).
+     */
+    public function absorb(self $other, string $prefix = ''): void
+    {
+        foreach ($other->counts() as $key => $count) {
+            $this->increment($prefix.$key, $count);
+        }
+
+        foreach ($other->diff() as $line) {
+            $this->diff[] = $line;
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $details
      */
     public function review(ImportReviewKind $kind, string $itemKey, string $title, array $details = [], ?Model $subject = null): void

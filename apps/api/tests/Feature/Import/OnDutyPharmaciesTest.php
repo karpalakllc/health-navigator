@@ -184,7 +184,7 @@ class OnDutyPharmaciesTest extends TestCase
 
         // Unmatched pharmacies in a town the directory covers and the unreadable
         // row go to the review queue; nothing is created. Дебар and Велес have
-        // no published pharmacy yet: their rows are in the run report only.
+        // no directory pharmacy yet: their rows are in the run report only.
         $this->assertSame(2, Facility::query()->pharmacy()->count());
         $items = ImportReviewItem::query()->where('source', 'on-duty-pharmacies')->where('kind', ImportReviewKind::Unmatched)->get();
         $this->assertSame(['ПЗУ Аптека Непозната'], $items->where('details.reason', 'pharmacy_not_in_directory')->pluck('details.name')->sort()->values()->all());
@@ -197,9 +197,11 @@ class OnDutyPharmaciesTest extends TestCase
         $this->assertCount(1, Storage::disk('local')->files('imports/on-duty-pharmacies'));
     }
 
-    public function test_while_a_town_has_no_published_pharmacy_its_unmatched_ones_are_reported_not_queued(): void
+    public function test_while_a_town_has_no_directory_pharmacy_its_unmatched_ones_are_reported_not_queued(): void
     {
-        // Битола: one published pharmacy. Дебар: a draft only. Велес, Скопје: none.
+        // Битола: one published pharmacy. Дебар: a draft only (a draft counts:
+        // import:pharmacies brings ФЗОМ's pharmacies as drafts). Велес,
+        // Скопје: none.
         Facility::factory()->pharmacy()->create(['name' => 'Роса Вита', 'city' => 'Битола']);
         Facility::factory()->pharmacy()->unpublished()->create(['name' => 'Друга', 'city' => 'Дебар']);
         $this->fakeSource();
@@ -209,14 +211,14 @@ class OnDutyPharmaciesTest extends TestCase
         $run = ImportRun::query()->where('source', 'on-duty-pharmacies')->latest('id')->firstOrFail();
         $queued = ImportReviewItem::query()->where('source', 'on-duty-pharmacies')->get()
             ->where('details.reason', 'pharmacy_not_in_directory')->pluck('details.name')->values()->all();
-        $this->assertSame(['ПЗУ Аптека Непозната'], $queued);
+        $this->assertSame(['ПЗУ Аптека Непозната', 'ЗЕГИН'], $queued);
         $this->assertSame(4, $run->count('pharmacies_unmatched'));
-        $this->assertSame(3, $run->count('pharmacies_unmatched_not_queued'));
+        $this->assertSame(2, $run->count('pharmacies_unmatched_not_queued'));
 
-        // The run report lists every unmatched pharmacy, queued or not.
+        // The run report lists the unmatched pharmacies that were not queued.
         $this->assertNotNull($run->diff_path);
         $report = (string) Storage::disk('local')->get($run->diff_path);
-        foreach (['ЕУРОФАРМ - ТАФТАЛИЏЕ, Скопје', 'ЗЕГИН, Дебар', 'Магна Фарм 1, Велес'] as $label) {
+        foreach (['ЕУРОФАРМ - ТАФТАЛИЏЕ, Скопје', 'Магна Фарм 1, Велес'] as $label) {
             $this->assertStringContainsString($label, $report);
         }
         $this->assertStringContainsString('unmatched', $report);

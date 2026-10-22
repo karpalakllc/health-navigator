@@ -83,6 +83,7 @@ class ImportAlerter
             'fzom' => 'ФЗОМ — Шифрарник на лекари',
             'komora' => 'Лекарска комора — листа на важечки лиценци',
             'on-duty-pharmacies' => 'ФЗОМ — распоред на дежурни аптеки',
+            'fzom-pharmacies', 'pharmacies' => 'ФЗОМ — аптеки со договор',
             default => $source,
         };
     }

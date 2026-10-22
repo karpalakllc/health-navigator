@@ -82,6 +82,23 @@ return [
     ],
 
     /*
+    | ФЗОМ's pharmacy contracts (import:pharmacies, docs/data-import.md §4a):
+    | the rows of the same „Шифрарник на лекари“ XML whose contract type is
+    | a pharmacy (TipDogovorID in contract_types). One directory pharmacy per
+    | contract unit (ShifraZU = one branch, with its own name, address and
+    | town). Only those rows' institution fields are read and kept; the
+    | pharmacists named in them never are. ON by default: new pharmacies are
+    | hidden drafts until staff publish them, like every import.
+    */
+    'pharmacies' => [
+        'enabled' => filter_var(env('IMPORT_PHARMACIES', true), FILTER_VALIDATE_BOOLEAN),
+        'files' => [
+            'pzz' => env('IMPORT_PHARMACIES_URL', env('IMPORT_FZOM_PZZ_URL', 'https://arhiva.fzo.org.mk/XML/LekariLista_SitePzz.xml')),
+        ],
+        'contract_types' => [4],
+    ],
+
+    /*
     | ФЗОМ's monthly „Распоред на дежурни аптеки“ (.xlsx), linked from
     | page_url (import:on-duty-pharmacies, docs/urgent-care.md). Owner
     | approved the import on 2026-10-07, so it is ON unless switched off.

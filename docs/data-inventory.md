@@ -77,6 +77,11 @@ memo §2.1.1):
   as an internal key.
 - **Лекарска комора list of valid licences** (PDF): name, licensed specialty,
   licence expiry and number, to verify the licence; the number is internal.
+- **ФЗОМ pharmacy contracts** (the „Аптеки“ rows of the same XML,
+  `import:pharmacies`): per pharmacy branch only the institution's data —
+  branch and legal name, tax number, ФЗО code, address, town. The
+  pharmacists named in those rows are never read or stored. The on-duty
+  schedule's phone column gives the pharmacy's phone number (numbers only).
 
 Never imported: pharmacists, nurses' names (`ClenNaTim`), absence reasons
 (`PricinaOtsustvo` / `StatusValidnostID`), substitution links
@@ -102,6 +107,7 @@ from an import stay hidden until staff publish them.
 | `licence_specialty_mappings` | No personal data: Комора / ФЗОМ specialty wording → group; `reviewed_by_id` (staff), `notes` | Whether a licence's specialty fits a doctor | Indefinite (configuration) | Panel `licences.manage` (Licence specialty mapping) |
 | `komora_licences` | One row per licence number on the Лекарска комора list: `licence_number` (internal), `full_name`, `name_key`, `specialty`, `valid_until`, the list date and page, first / last seen, `missing_since`, matching `outcome`, `doctor_id`, `candidate_doctor_ids` | Staging of the licence list: what matching decided, licences that expired or left the list | **Only the current list plus what is still attached.** A licence absent from a complete list is marked `missing_since`; if it is still absent from the next complete list and attached to no profile, `import:komora-licences` deletes it. A row still attached to a profile stays as the review signal until staff deal with the profile. Partial or partly unreadable lists never mark or delete anything | Panel `licences.manage` (Licences (Комора)). Never public |
 | `komora_licence_downloads` | No personal data in the row: list file URL, label, status, ETag / Last-Modified, SHA-256, size, list date, `storage_path`. The raw PDF it points to holds the whole published list (names, specialties, licence numbers) | Conditional requests; audit of what was downloaded | Raw files: the newest three downloads only (`KOMORA_KEEP_SNAPSHOTS`), on the private disk; older files are deleted and the row's `storage_path` cleared. Rows: indefinite (metadata only) | Server operators only |
+| ФЗОМ pharmacy snapshots (private import disk, `imports/snapshots/fzom-pharmacies/…`) | No personal data: one element per pharmacy branch with contract type, tax number, ФЗО code, legal and branch name, address, town, latest contract end. The pharmacists of the original rows are never written. `source_meta` keeps the original's sha256 and size | Audit of what a run read; conditional GET | As the ФЗОМ snapshots: newest three runs, dry runs none | Server operators only |
 | ФЗОМ snapshots (private import disk, `imports/snapshots/fzom/…`) | The two published XML files **minimised** before they are written: only the elements the import reads (contract type, institution, work unit, activity, specialty wording, address, town, facsimile, name, contract dates). Never stored: nurses' names, absence reasons / status, substitutions, pharmacy rows. The run's `source_meta` keeps the original's sha256 and size | Audit of what a run read; conditional GET | The newest three runs, failed runs included, dry runs none (`IMPORT_SNAPSHOT_RETENTION`, pruned at the end of every run); a pre-minimisation folder is deleted on the next run; never in git or public storage | Server operators only |
 
 ## 2. Data in the browser

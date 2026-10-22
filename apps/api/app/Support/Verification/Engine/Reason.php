@@ -80,8 +80,8 @@ final class Reason
         self::NO_LICENCE => 'Website only, no licence on the Комора list for this name',
         self::FZOM_NO_LICENCE => 'In ФЗОМ, no licence on the Комора list for this name (may be published unverified)',
         self::NO_IMPORT_EVIDENCE => 'Entered by hand, no source evidence (staff verify it)',
-        self::REGISTER_MISMATCH => 'Facility name, town or tax number differs from the ФЗОМ register',
+        self::REGISTER_MISMATCH => 'Facility name, town or tax number (pharmacy: ФЗО code) differs from the ФЗОМ register',
         self::NOT_IN_REGISTER => 'Facility only known from its website, not in the ФЗОМ register',
-        self::NO_PHARMACY_REGISTER => 'Pharmacy: no official pharmacy register is imported yet',
+        self::NO_PHARMACY_REGISTER => 'Pharmacy not in ФЗОМ\'s pharmacy contracts (entered by hand, or no ФЗОМ contract): staff verify it',
     ];
 }

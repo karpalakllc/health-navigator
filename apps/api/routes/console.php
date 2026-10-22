@@ -122,6 +122,17 @@ Schedule::command(ImportSchedule::command('komora'))
     ->when(fn (): bool => ImportSchedule::shouldRun('komora'))
     ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora', ImportSchedule::command('komora')));
 
+// ФЗОМ pharmacy contracts (import:pharmacies, docs/data-import.md §4a):
+// weekly, after the doctor register, from the same XML (a conditional GET).
+// ON by default; new pharmacies stay hidden drafts until staff publish.
+Schedule::command(ImportSchedule::command('pharmacies'))
+    ->weeklyOn(1, '06:10')
+    ->timezone('Europe/Skopje')
+    ->onOneServer()
+    ->withoutOverlapping(60)
+    ->when(fn (): bool => ImportSchedule::shouldRun('pharmacies'))
+    ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('pharmacies', ImportSchedule::command('pharmacies')));
+
 // ФЗОМ on-duty pharmacies (docs/urgent-care.md): on the 1st (this month), a
 // mid-month retry on the 15th (ФЗОМ has published as late as the 7th), and
 // on the 28th (next month's file usually appears in the last days). ON by

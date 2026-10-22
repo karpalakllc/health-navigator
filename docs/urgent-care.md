@@ -210,19 +210,25 @@ php artisan import:on-duty-pharmacies --force              # re-import an unchan
   phone column are kept (some towns add the pharmacist's name). Towns: „СКОПЈЕ-
   КАРПОШ“ → Скопје + municipality Карпош; „М.БРОД“ → Македонски Брод.
 - **Writing** (`OnDutyPharmacyImporter`): the month is replaced as a whole,
-  one row per pharmacy and day (`pharmacy_duty_shifts`). A pharmacy is
-  linked when its name without „ПЗУ“/„Аптека“/quotes/the town matches exactly
-  one directory pharmacy in that town. **Nothing is created**: an unmatched
-  or ambiguous pharmacy goes to the import review queue once (kind
-  Unmatched, `on-duty-pharmacy:<town>:<name>`), and its rows still show on
+  one row per pharmacy and day (`pharmacy_duty_shifts`). Each pharmacy is
+  linked by `OnDutyLinker` — staff's earlier link, the name without
+  „ПЗУ“/„Аптека“/quotes/the town, the name without the town's words, or name words + street address,
+  each only when exactly one directory pharmacy of the town fits; a name
+  variant („ВИАФАРМ 13“ = „Виа Фарм 13“) is only suggested to staff
+  ([`data-import.md`](data-import.md) §4a). The directory's pharmacies come
+  from `import:pharmacies` (ФЗОМ's pharmacy contracts), which also re-links
+  every month held after each run. **Nothing is created**: an unmatched,
+  ambiguous or only probable pharmacy goes to the import review queue once
+  (kind Unmatched, `on-duty-pharmacy:<town>:<name>`; a probable one with
+  „Link suggested pharmacy“, also in bulk), and its rows still show on
   „Каде веднаш“ under ФЗОМ's name, without a profile link. **While the
-  directory has no published pharmacy in a town** (today: none anywhere),
-  that town's unmatched pharmacies are not queued — the owner works alone
-  and 329 items a month would bury the queue — but listed in the run's
-  report (`diff.csv`, action `unmatched`; counters `pharmacies_unmatched`,
-  `pharmacies_unmatched_not_queued`) (integration decision 2026-10-07). A row whose date
-  cannot be read goes to the queue too and is not guessed. A file with no
-  readable rows fails and replaces nothing.
+  directory has no pharmacy at all in a town** (drafts count), that town's
+  unmatched pharmacies are not queued but listed in the run's report
+  (`diff.csv`, action `unmatched`; counters `pharmacies_unmatched`,
+  `pharmacies_unmatched_not_queued`). A linked pharmacy without a phone
+  gets the schedule's number. A row whose date cannot be read goes to the
+  queue too and is not guessed. A file with no readable rows fails and
+  replaces nothing.
 - **Schedule**: `40 6 1,15,28 * *` Skopje time — the 1st, a mid-month retry
   on the 15th (ФЗОМ published October's file on the 7th), and the 28th
   (next month's file usually appears in the last days). ON by default:
@@ -246,11 +252,12 @@ Real files, 2026-10-07 (dry runs; October applied on the preview copy):
 | 2026-08 | 505 | 1116 | 17 → 0 |
 | 2026-01 | 503 | 1115 | 31 → 1: Куманово, a date cell with the year 2206 (a typo in ФЗОМ's file), queued for staff |
 
-32 towns, every day covered in October. **Matching: 0 of 329 pharmacies**
-link to a profile, because the directory holds no pharmacies yet (the
-pharmacy import is a separate, future source); since integration none of
-them is queued (no published pharmacy in any town), all 329 are in the run
-report. The schedule still shows them by ФЗОМ's name.
+32 towns, every day covered in October. Before the pharmacy import none of
+the 329 pharmacies linked to a profile (the directory held no pharmacies).
+With `import:pharmacies` on a copy of the real data (2026-10-23), 218 of the
+329 link automatically and 111 go to the review queue (74 with a suggestion,
+including 68 name variants staff confirm; before variants became suggestions
+the rehearsal linked 286, 916 of 1,116 shift-days); see [`data-import.md`](data-import.md) §4a.
 
 ## 3. API
 
