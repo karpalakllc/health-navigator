@@ -55,10 +55,8 @@ const CSS = `
  */
 export default function GlobalError({
   error,
-  retry,
 }: {
   error: Error & { digest?: string };
-  retry: () => void;
 }) {
   useEffect(() => {
     reportException(error);
@@ -89,7 +87,9 @@ export default function GlobalError({
             <div className="ge-actions">
               <button
                 type="button"
-                onClick={retry}
+                // No router here (the layout that provides it failed): a full
+                // reload is the only retry that refetches everything.
+                onClick={() => window.location.reload()}
                 className="ge-btn ge-primary"
               >
                 {t("errors.retry")}

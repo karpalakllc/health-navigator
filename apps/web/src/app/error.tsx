@@ -1,7 +1,8 @@
 "use client";
 
 import { reportException } from "@/lib/sentry-client";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { startTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusPanel } from "@/components/system/status-panel";
 import { t } from "@/i18n/t";
@@ -14,6 +15,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // Without this the boundary swallows the error: nothing else reports
     // render failures that reach it. The exception is a settings outage: it
@@ -26,6 +29,15 @@ export default function Error({
     console.error(error);
   }, [error]);
 
+  // reset() alone re-renders with the same failed RSC payload, so the button
+  // looked dead; refresh() refetches it first.
+  const retry = () => {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  };
+
   return (
     <>
       {/* React hoists this into <head>. The status is already 200 once the
@@ -37,7 +49,7 @@ export default function Error({
         title={t("errors.title")}
         description={t("errors.description")}
       >
-        <Button type="button" leadingIcon="rotate-ccw" onClick={reset}>
+        <Button type="button" leadingIcon="rotate-ccw" onClick={retry}>
           {t("errors.retry")}
         </Button>
         <Button href="/" variant="secondary" leadingIcon="home">
