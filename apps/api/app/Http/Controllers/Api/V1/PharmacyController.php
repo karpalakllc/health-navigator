@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Facility;
 use App\Support\PharmacyCatalog;
 use App\Support\ScriptInsensitiveSearch;
+use App\Support\UrgentCare\OnDutyPharmacies;
 use Illuminate\Http\JsonResponse;
 
 class PharmacyController extends Controller
@@ -22,15 +23,30 @@ class PharmacyController extends Controller
 
         $query = Facility::query()
             ->published()
-            ->pharmacy()
-            // Featured first within the filters, then by name; the id breaks
-            // ties between equal names so pages never overlap or skip rows.
-            ->orderByDesc('is_featured')
+            ->pharmacy();
+
+        $city = trim((string) ($validated['city'] ?? ''));
+        $onDutyOnly = ! empty($validated['on_duty']);
+
+        if ($onDutyOnly) {
+            // „Само дежурни денес“: on ФЗОМ's schedule for the duty day.
+            OnDutyPharmacies::whereOnDuty($query);
+        }
+
+        if ($city !== '' || $onDutyOnly) {
+            // In a city, tonight's on-duty pharmacies lead (24 h before on
+            // call), then the usual order.
+            OnDutyPharmacies::orderOnDutyFirst($query);
+        }
+
+        // Featured first within the filters, then by name; the id breaks
+        // ties between equal names so pages never overlap or skip rows.
+        $query->orderByDesc('is_featured')
             ->orderBy('name')
             ->orderBy('facilities.id');
 
-        if (! empty($validated['city'])) {
-            $query->cityContains($validated['city']);
+        if ($city !== '') {
+            $query->cityContains($city);
         }
 
         if (! empty($validated['q'])) {

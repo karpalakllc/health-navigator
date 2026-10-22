@@ -24,6 +24,8 @@ class ListPharmaciesRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:255'],
             // „Само верификувани“.
             'verified' => ['nullable', 'boolean'],
+            // „Само дежурни денес“: on ФЗОМ's on-duty schedule today.
+            'on_duty' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
