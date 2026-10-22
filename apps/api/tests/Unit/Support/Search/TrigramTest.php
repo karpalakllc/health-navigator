@@ -50,5 +50,8 @@ class TrigramTest extends TestCase
         $this->assertFalse(FuzzyNameSearch::eligible('dom'));
         $this->assertFalse(FuzzyNameSearch::eligible('12345'));
         $this->assertFalse(FuzzyNameSearch::eligible(null));
+        // A sentence is not a misspelt name: bounded work.
+        $this->assertTrue(FuzzyNameSearch::eligible(str_repeat('a', FuzzyNameSearch::MAX_LENGTH)));
+        $this->assertFalse(FuzzyNameSearch::eligible(str_repeat('a', FuzzyNameSearch::MAX_LENGTH + 1)));
     }
 }

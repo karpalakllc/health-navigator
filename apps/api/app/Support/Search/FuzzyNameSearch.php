@@ -38,6 +38,9 @@ final class FuzzyNameSearch
     /** Shorter queries have too few trigrams to tell a typo from another name. */
     public const MIN_LENGTH = 4;
 
+    /** Longer queries are sentences, not misspelt names: no fuzzy work for them. */
+    public const MAX_LENGTH = 64;
+
     public const THRESHOLD = 0.4;
 
     /** Specialties also match on word stems („kardiolog“), so need a little more. */
@@ -62,7 +65,7 @@ final class FuzzyNameSearch
 
         $q = trim($q);
 
-        return mb_strlen($q) >= self::MIN_LENGTH && preg_match('/\p{L}/u', $q) === 1;
+        return mb_strlen($q) >= self::MIN_LENGTH && mb_strlen($q) <= self::MAX_LENGTH && preg_match('/\p{L}/u', $q) === 1;
     }
 
     /**

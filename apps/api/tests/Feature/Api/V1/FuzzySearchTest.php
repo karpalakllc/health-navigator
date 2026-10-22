@@ -200,4 +200,53 @@ class FuzzySearchTest extends TestCase
             ->assertJsonPath('meta.suggestion', 'Зегин')
             ->assertJsonPath('data.0.slug', 'apteka');
     }
+
+    public function test_list_filters_and_publishing_apply_to_fuzzy_facility_and_pharmacy_lists(): void
+    {
+        Facility::factory()->create(['slug' => 'ok', 'name' => 'ПЗУ Аџибадем Систина', 'type' => FacilityType::Hospital, 'city' => 'Скопје']);
+        Facility::factory()->create(['slug' => 'other-type', 'name' => 'ПЗУ Аџибадем Систина', 'type' => FacilityType::Clinic, 'city' => 'Скопје']);
+        Facility::factory()->create(['slug' => 'other-city', 'name' => 'ПЗУ Аџибадем Систина', 'type' => FacilityType::Hospital, 'city' => 'Битола']);
+        Facility::factory()->unpublished()->create(['slug' => 'hidden', 'name' => 'ПЗУ Аџибадем Систина', 'type' => FacilityType::Hospital, 'city' => 'Скопје']);
+        Facility::factory()->create(['slug' => 'ph-ok', 'name' => 'Аптека Зегин', 'type' => FacilityType::Pharmacy, 'city' => 'Скопје']);
+        Facility::factory()->unpublished()->create(['slug' => 'ph-hidden', 'name' => 'Аптека Зегин', 'type' => FacilityType::Pharmacy, 'city' => 'Скопје']);
+        SiteSetting::current()->update(['public_pharmacies' => true]);
+
+        $response = $this->getJson('/api/v1/facilities?q=sistna&type=hospital&city=Skopje')
+            ->assertOk()
+            ->assertJsonPath('meta.fuzzy', true);
+        $this->assertSame(['ok'], array_column($response->json('data'), 'slug'));
+
+        $response = $this->getJson('/api/v1/pharmacies?q=zegim&city=Skopje')
+            ->assertOk()
+            ->assertJsonPath('meta.fuzzy', true);
+        $this->assertSame(['ph-ok'], array_column($response->json('data'), 'slug'));
+
+        // The pharmacy list never returns clinical facilities, nor the reverse.
+        $this->getJson('/api/v1/pharmacies?q=sistna')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/facilities?q=zegim')->assertOk()->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_a_close_hospital_match_hides_weaker_doctor_matches_across_directories(): void
+    {
+        // „sisstina“: 0.7 similar to the hospital, 0.4 (over the threshold,
+        // but not within 0.1 of the best) to Сина Петрова.
+        Facility::factory()->create(['slug' => 'hospital', 'name' => 'ПЗУ Систина', 'type' => FacilityType::Hospital]);
+        Doctor::factory()->create(['slug' => 'sina', 'full_name' => 'Сина Петрова']);
+
+        $this->getJson('/api/v1/search?q=sisstina')
+            ->assertOk()
+            ->assertJsonPath('data.fuzzy', true)
+            ->assertJsonPath('data.facilities.meta.total', 1)
+            ->assertJsonPath('data.doctors.meta.total', 0);
+    }
+
+    public function test_overlong_queries_skip_the_fuzzy_fallback(): void
+    {
+        Doctor::factory()->create(['full_name' => 'Доминика Славкоска']);
+
+        $this->getJson('/api/v1/search?q='.urlencode('domenika '.str_repeat('x', 80)))
+            ->assertOk()
+            ->assertJsonPath('data.fuzzy', false)
+            ->assertJsonPath('data.grand_total', 0);
+    }
 }
