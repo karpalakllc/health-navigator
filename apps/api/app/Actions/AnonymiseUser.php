@@ -9,6 +9,7 @@ use App\Models\ContentReport;
 use App\Models\ContributorLevel;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\ForumTopicSubscription;
 use App\Models\MemberNotification;
 use App\Models\NotificationPreference;
 use App\Models\ProfileCorrection;
@@ -146,6 +147,7 @@ final class AnonymiseUser
             MemberNotification::query()->where('user_id', $locked->getKey())->delete();
             NotificationPreference::query()->where('user_id', $locked->getKey())->delete();
             ReviewReminder::query()->where('user_id', $locked->getKey())->delete();
+            ForumTopicSubscription::query()->where('user_id', $locked->getKey())->delete();
             // The panel's bell (staff accounts): Laravel's notifications table.
             $locked->notifications()->delete();
 

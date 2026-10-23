@@ -63,6 +63,9 @@ class ManageSiteSettings extends Page implements HasSchemas
             'forum_rules_body' => $settings->forum_rules_body,
             'forum_topics_require_moderation' => $settings->forum_topics_require_moderation,
             'forum_posts_require_moderation' => $settings->forum_posts_require_moderation,
+            'forum_follow_enabled' => $settings->forumFeatureOn('forum_follow_enabled'),
+            'forum_accepted_answers_enabled' => $settings->forumFeatureOn('forum_accepted_answers_enabled'),
+            'forum_profile_cards_enabled' => $settings->forumFeatureOn('forum_profile_cards_enabled'),
             'doctor_replies_require_moderation' => (bool) ($settings->doctor_replies_require_moderation ?? true),
             'reviews_prompt_on_profile' => (bool) $settings->reviews_prompt_on_profile,
             'reviews_prompt_after_search' => (bool) $settings->reviews_prompt_after_search,
@@ -148,6 +151,15 @@ class ManageSiteSettings extends Page implements HasSchemas
                         Toggle::make('forum_posts_require_moderation')
                             ->label('Require admin approval for new replies')
                             ->helperText('When off, member replies publish immediately. Forum moderators always publish immediately.'),
+                        Toggle::make('forum_follow_enabled')
+                            ->label('Members can follow topics')
+                            ->helperText('Followers get a notification (and an e-mail, if their settings allow) when a new reply is published. Authors follow their own topics and the topics they reply to.'),
+                        Toggle::make('forum_accepted_answers_enabled')
+                            ->label('„Најкорисен одговор“ (accepted answer)')
+                            ->helperText('The topic author or a moderator can mark one published reply as the most helpful; it is shown at the top of the thread.'),
+                        Toggle::make('forum_profile_cards_enabled')
+                            ->label('Profile cards for pasted links')
+                            ->helperText('A link to a published doctor, facility or pharmacy profile in a post is shown as a small card under it (up to 3 per post).'),
                     ]),
                 Section::make('Doctor accounts')
                     ->schema([

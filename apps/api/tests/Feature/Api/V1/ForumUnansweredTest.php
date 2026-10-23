@@ -179,7 +179,7 @@ class ForumUnansweredTest extends TestCase
         $item = $this->getJson('/api/v1/forum/topics/unanswered')->json('data.0');
 
         $this->assertEqualsCanonicalizing(
-            ['slug', 'title', 'excerpt', 'author_name', 'replies_count', 'last_post_at', 'published_at', 'category'],
+            ['slug', 'title', 'excerpt', 'author_name', 'replies_count', 'has_accepted_answer', 'last_post_at', 'published_at', 'category'],
             array_keys($item),
         );
     }

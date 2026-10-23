@@ -69,6 +69,7 @@ return [
     ],
 
     'forum' => [
+        'accepted_answer_invalid' => 'Only a published reply by someone else can be marked as the most helpful answer.',
         'topic_locked' => 'This topic is locked and does not accept new replies.',
         'tag_invalid' => 'Each keyword needs 2–40 letters or digits and cannot be only a number.',
         'helpful_own' => 'You cannot mark your own reply as helpful.',

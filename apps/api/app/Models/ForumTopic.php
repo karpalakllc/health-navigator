@@ -65,6 +65,7 @@ class ForumTopic extends Model
             'published_at' => 'datetime',
             'moderated_at' => 'datetime',
             'community_rules_accepted_at' => 'datetime',
+            'accepted_post_id' => 'integer',
             'removed_at' => 'datetime',
             'removal_category' => RemovalCategory::class,
         ];
@@ -140,6 +141,16 @@ class ForumTopic extends Model
         // The index entry carries the keywords; syncing the pivot saves no
         // topic column, so Scout would not notice on its own.
         $this->searchable();
+    }
+
+    /**
+     * Followers („Следи ја темата“).
+     *
+     * @return HasMany<ForumTopicSubscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ForumTopicSubscription::class);
     }
 
     /**

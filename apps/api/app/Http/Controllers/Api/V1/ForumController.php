@@ -20,8 +20,13 @@ use App\Http\Responses\ApiResponse;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\ForumTopicSubscription;
+use App\Models\SiteSetting;
+use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Support\Forum\ForumContentModeration;
+use App\Support\Forum\ForumProfileLinks;
+use App\Support\Forum\ForumReplyNotifications;
 use App\Support\Forum\RelatedForumTopics;
 use App\Support\ForumAuthorCounts;
 use App\Support\ForumPostHelpfulVotes;
@@ -32,8 +37,10 @@ use App\Support\UgcMailer;
 use App\Support\UniqueSlug;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -180,13 +187,21 @@ class ForumController extends Controller
         // Shared keywords first, then the same category (docs/seo.md).
         $related = RelatedForumTopics::forTopic($topicModel);
 
+        $extras = $this->topicExtras($request, $topicModel, $paginator->getCollection()->all());
+
         return response()->json([
             'data' => [
-                'topic' => (new ForumTopicDetailResource($topicModel))->resolve($request),
+                'topic' => [
+                    ...(new ForumTopicDetailResource($topicModel))->resolve($request),
+                    ...$extras['topic'],
+                ],
                 'posts' => $paginator->getCollection()
                     ->map(fn (ForumPost $post): array => $post->isRemoved()
                         ? RemovedContentResource::make($post)->resolve($request)
-                        : ForumPostResource::make($post)->resolve($request))
+                        : [
+                            ...ForumPostResource::make($post)->resolve($request),
+                            ...($extras['posts'][(int) $post->getKey()] ?? []),
+                        ])
                     ->values()
                     ->all(),
                 'related_topics' => ForumTopicSearchResource::collection($related)->resolve(),
@@ -198,6 +213,85 @@ class ForumController extends Controller
                 'last_page' => $paginator->lastPage(),
             ],
         ]);
+    }
+
+    /**
+     * Forum upgrades on the thread (docs/forum.md), each only while its admin
+     * switch is on: profile cards for pasted links, „Најкорисен одговор“, and
+     * the viewer's follow state. A follower opening the topic reads its
+     * „нов одговор“ notification.
+     *
+     * @param  list<ForumPost>  $posts
+     * @return array{topic: array<string, mixed>, posts: array<int, array<string, mixed>>}
+     */
+    private function topicExtras(Request $request, ForumTopic $topic, array $posts): array
+    {
+        $settings = SiteSetting::current();
+        $bodies = ['topic' => (string) $topic->body];
+
+        foreach ($posts as $post) {
+            if (! $post->isRemoved()) {
+                $bodies['post-'.$post->getKey()] = (string) $post->body;
+            }
+        }
+
+        $cards = ForumProfileLinks::forBodies($bodies);
+        $acceptedOn = $settings->forumFeatureOn('forum_accepted_answers_enabled');
+        $acceptedId = $acceptedOn ? $topic->accepted_post_id : null;
+        $accepted = $acceptedId === null ? null : $topic->posts()
+            ->approved()
+            ->whereKey($acceptedId)
+            ->with('user')
+            ->first();
+
+        $topicExtras = [
+            'profile_cards' => $cards['topic'],
+            'accepted_answer' => $accepted === null ? null : [
+                'id' => (int) $accepted->getKey(),
+                'excerpt' => Str::limit(trim((string) $accepted->body), 280),
+                'author_name' => $accepted->user->publicName(),
+                'path' => ForumReplyNotifications::postPath($topic, $accepted),
+            ],
+        ];
+
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            $viewer = [];
+
+            if ($settings->forumFeatureOn('forum_follow_enabled')) {
+                $viewer['is_following'] = ForumTopicSubscription::isFollowing($user, $topic);
+                ForumReplyNotifications::markTopicRead($user, $topic);
+            }
+
+            if (ForumTopicEngagementController::canAccept($user, $topic)) {
+                $viewer['can_accept'] = true;
+            }
+
+            $base = (new ForumTopicDetailResource($topic))->resolve($request)['viewer'] ?? [];
+            $topicExtras['viewer'] = [...$base, ...$viewer];
+        }
+
+        $postExtras = [];
+
+        foreach ($posts as $post) {
+            if (! $post->isRemoved()) {
+                $postExtras[(int) $post->getKey()] = [
+                    'profile_cards' => $cards['post-'.$post->getKey()] ?? [],
+                    'is_accepted' => $accepted !== null && (int) $accepted->getKey() === (int) $post->getKey(),
+                ];
+            }
+        }
+
+        return ['topic' => $topicExtras, 'posts' => $postExtras];
+    }
+
+    /** Authors follow their own topics and the ones they reply to. */
+    private function autoFollow(User $user, ForumTopic $topic): void
+    {
+        if (SiteSetting::current()->forumFeatureOn('forum_follow_enabled')) {
+            ForumTopicSubscription::follow($user, $topic);
+        }
     }
 
     public function storeTopic(string $category, StoreForumTopicRequest $request): JsonResponse
@@ -229,6 +323,7 @@ class ForumController extends Controller
 
         // The author's suggestions, unconfirmed until staff save them.
         $topic->syncTags($request->validated('tags') ?? [], confirmed: false);
+        $this->autoFollow($user, $topic);
 
         if (ForumContentModeration::shouldNotifyAuthor($status)) {
             UgcMailer::notifySubmitted($topic);
@@ -265,6 +360,8 @@ class ForumController extends Controller
 
         $user = $request->user();
         $status = ForumContentModeration::initialPostStatus($user);
+        // Before the reply exists, so the follow is in place when it publishes.
+        $this->autoFollow($user, $topicModel);
 
         $post = ForumPost::query()->create([
             'forum_topic_id' => $topicModel->id,

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\FeedbackController;
 use App\Http\Controllers\Api\V1\ForumController;
 use App\Http\Controllers\Api\V1\ForumPostHelpfulController;
 use App\Http\Controllers\Api\V1\ForumTagController;
+use App\Http\Controllers\Api\V1\ForumTopicEngagementController;
 use App\Http\Controllers\Api\V1\ForumUnansweredController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeHighlightsController;
@@ -181,6 +182,14 @@ Route::prefix('v1')->group(function (): void {
         // the toolbar, because the toolbar is driven by the policy.
         Route::patch('/forum/categories/{category}/topics/{topic}/moderation', [ForumController::class, 'updateTopicModeration'])
             ->middleware(['module:forum']);
+        // „Следи ја темата“ and „Најкорисен одговор“ (docs/forum.md).
+        Route::middleware(['module:forum', 'verified', 'throttle:60,1,api-forum-engagement'])->group(function (): void {
+            Route::get('/me/forum/following', [ForumTopicEngagementController::class, 'following']);
+            Route::put('/forum/categories/{category}/topics/{topic}/follow', [ForumTopicEngagementController::class, 'follow']);
+            Route::delete('/forum/categories/{category}/topics/{topic}/follow', [ForumTopicEngagementController::class, 'unfollow']);
+            Route::put('/forum/categories/{category}/topics/{topic}/accepted-answer', [ForumTopicEngagementController::class, 'accept']);
+            Route::delete('/forum/categories/{category}/topics/{topic}/accepted-answer', [ForumTopicEngagementController::class, 'clear']);
+        });
         Route::post('/doctors/{slug}/reviews', [ReviewController::class, 'storeForDoctor'])
             ->middleware(['can:create,'.Review::class, 'verified', 'throttle:api-reviews']);
         Route::post('/facilities/{slug}/reviews', [ReviewController::class, 'storeForFacility'])

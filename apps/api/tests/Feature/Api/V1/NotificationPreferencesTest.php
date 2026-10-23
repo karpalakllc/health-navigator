@@ -38,7 +38,7 @@ class NotificationPreferencesTest extends TestCase
             ->assertOk()
             ->assertExactJson(['data' => [
                 'email_enabled' => true,
-                'types' => ['moderation' => true, 'review_reply' => true, 'review_helpful' => true, 'impact_digest' => false],
+                'types' => ['moderation' => true, 'review_reply' => true, 'review_helpful' => true, 'forum_reply' => true, 'impact_digest' => false],
                 'digest_invited_at' => null,
             ]]);
     }

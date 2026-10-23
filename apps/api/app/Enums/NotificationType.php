@@ -33,6 +33,14 @@ enum NotificationType: string
     /** „Потсети ме за 2 недели“: one e-mail per request. */
     case ReviewReminder = 'review_reminder';
 
+    /**
+     * A new published reply in a forum topic the member follows (their own
+     * topics and the ones they replied to are followed automatically).
+     * Unread lines for the same topic collapse into one, and only that first
+     * line is e-mailed.
+     */
+    case ForumReply = 'forum_reply';
+
     /** In-app only: the one-time invitation to the monthly digest. */
     case DigestInvite = 'digest_invite';
 
@@ -43,7 +51,7 @@ enum NotificationType: string
      */
     public static function preferenceTypes(): array
     {
-        return [self::Moderation, self::ReviewReply, self::ReviewHelpful, self::ImpactDigest];
+        return [self::Moderation, self::ReviewReply, self::ReviewHelpful, self::ForumReply, self::ImpactDigest];
     }
 
     public function isPreference(): bool

@@ -46,6 +46,21 @@ class SiteSetting extends Model
         'reviews_prompt_after_search',
         'reviews_share_link',
         'reviews_mobile_sticky_cta',
+        'forum_follow_enabled',
+        'forum_accepted_answers_enabled',
+        'forum_profile_cards_enabled',
+    ];
+
+    /**
+     * Forum upgrade switches (docs/forum.md): sent to the web as plain
+     * booleans; each hides its feature completely when off.
+     *
+     * @var list<string>
+     */
+    public const FORUM_FEATURE_FLAGS = [
+        'forum_follow_enabled',
+        'forum_accepted_answers_enabled',
+        'forum_profile_cards_enabled',
     ];
 
     /**
@@ -79,6 +94,9 @@ class SiteSetting extends Model
             'reviews_prompt_after_search' => 'boolean',
             'reviews_share_link' => 'boolean',
             'reviews_mobile_sticky_cta' => 'boolean',
+            'forum_follow_enabled' => 'boolean',
+            'forum_accepted_answers_enabled' => 'boolean',
+            'forum_profile_cards_enabled' => 'boolean',
         ];
     }
 
@@ -173,6 +191,9 @@ class SiteSetting extends Model
             'reviews_prompt_after_search' => true,
             'reviews_share_link' => true,
             'reviews_mobile_sticky_cta' => true,
+            'forum_follow_enabled' => true,
+            'forum_accepted_answers_enabled' => true,
+            'forum_profile_cards_enabled' => true,
         ];
 
         $testingDefaults = [
@@ -201,7 +222,17 @@ class SiteSetting extends Model
             'reviews_prompt_after_search' => (bool) $this->reviews_prompt_after_search,
             'reviews_share_link' => (bool) $this->reviews_share_link,
             'reviews_mobile_sticky_cta' => (bool) $this->reviews_mobile_sticky_cta,
+            // A row cached before the columns existed reads null: on.
+            'forum_follow_enabled' => $this->forumFeatureOn('forum_follow_enabled'),
+            'forum_accepted_answers_enabled' => $this->forumFeatureOn('forum_accepted_answers_enabled'),
+            'forum_profile_cards_enabled' => $this->forumFeatureOn('forum_profile_cards_enabled'),
         ];
+    }
+
+    /** One of FORUM_FEATURE_FLAGS; null (no value yet) counts as on. */
+    public function forumFeatureOn(string $flag): bool
+    {
+        return (bool) ($this->getAttribute($flag) ?? true);
     }
 
     /**

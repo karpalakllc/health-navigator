@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ForumContentStatus;
 use App\Enums\RemovalCategory;
 use App\Models\Concerns\ModeratesForumContent;
+use App\Support\Forum\ForumReplyNotifications;
 use Database\Factories\ForumPostFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -46,6 +47,18 @@ class ForumPost extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // A reply taken down or refused is no longer anyone's answer.
+        static::updated(function (ForumPost $post): void {
+            if ($post->wasChanged('status') && $post->status !== ForumContentStatus::Approved) {
+                ForumTopic::query()
+                    ->where('accepted_post_id', $post->getKey())
+                    ->update(['accepted_post_id' => null]);
+            }
+        });
+    }
+
     /** Published once, then taken down: shown in its thread as a placeholder only. */
     public function isRemoved(): bool
     {
@@ -63,6 +76,8 @@ class ForumPost extends Model
 
         if ($topic !== null && $topic->status === ForumContentStatus::Approved) {
             $topic->recordApprovedReply();
+            // Followers hear about it on either publication path.
+            ForumReplyNotifications::replyPublished($this);
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\ForumTopic;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,6 +23,9 @@ class ForumTopicSearchResource extends JsonResource
             'excerpt' => $this->excerpt(),
             'author_name' => $this->user->publicName(),
             'replies_count' => $this->replies_count,
+            // „Најкорисен одговор“ is marked (docs/forum.md).
+            'has_accepted_answer' => $this->accepted_post_id !== null
+                && SiteSetting::current()->forumFeatureOn('forum_accepted_answers_enabled'),
             'last_post_at' => $this->last_post_at?->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),
             'category' => [

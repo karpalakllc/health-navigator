@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property bool $moderation
  * @property bool $review_reply
  * @property bool $review_helpful
+ * @property bool $forum_reply
  * @property bool $impact_digest
  * @property Carbon|null $digest_invited_at
  * @property string|null $impact_digest_month the last month (YYYY-MM) the digest was handled for
@@ -33,6 +34,7 @@ class NotificationPreference extends Model
         'moderation',
         'review_reply',
         'review_helpful',
+        'forum_reply',
         'impact_digest',
         'digest_invited_at',
     ];
@@ -44,6 +46,7 @@ class NotificationPreference extends Model
             'moderation' => 'boolean',
             'review_reply' => 'boolean',
             'review_helpful' => 'boolean',
+            'forum_reply' => 'boolean',
             'impact_digest' => 'boolean',
             'digest_invited_at' => 'datetime',
         ];

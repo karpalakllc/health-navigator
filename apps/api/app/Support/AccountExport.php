@@ -13,6 +13,7 @@ use App\Models\DoctorClaimRequest;
 use App\Models\Facility;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Models\ForumTopicSubscription;
 use App\Models\MemberNotification;
 use App\Models\NotificationPreference;
 use App\Models\PanelNotification;
@@ -111,6 +112,12 @@ final class AccountExport
         // the member asked for (who, which profile, when — nothing else).
         echo $this->member('notification_preferences', NotificationPreference::for($this->user)->toPayload()).',';
         $this->writeList('notifications', MemberNotification::query()->where('user_id', $this->user->getKey()), fn (MemberNotification $row): array => $row->toPayload());
+        echo ',';
+        // „Следи ја темата“: which topics, since when.
+        $this->writeList('forum_followed_topics', ForumTopicSubscription::query()->where('user_id', $this->user->getKey())->with('topic'), fn (ForumTopicSubscription $row): array => [
+            'topic' => $row->topic?->title,
+            'since' => $row->created_at?->toIso8601String(),
+        ]);
         echo ',';
         $this->writeList('review_reminders', ReviewReminder::query()->where('user_id', $this->user->getKey())->with('reviewable'), fn (ReviewReminder $reminder): array => [
             'about' => ProfileRef::for($reminder->reviewable),
