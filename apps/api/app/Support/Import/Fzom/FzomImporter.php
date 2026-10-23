@@ -205,12 +205,15 @@ final class FzomImporter
      */
     private function resolveDoctors(ImportContext $context, array $doctors, SpecialtyResolver $resolver): array
     {
+        $licensed = $this->licensedAssociateCodes();
+
         foreach ($doctors as $facsimile => $doctor) {
             $ids = [];
             $excluded = [];
             $unmapped = [];
 
-            if (FzomAssociates::isAssociateFacsimile((string) $facsimile)) {
+            // A Комора licence overrides the code: a licensed profile stays a doctor.
+            if (FzomAssociates::isAssociateFacsimile((string) $facsimile) && ! isset($licensed[(string) $facsimile])) {
                 // Their own wordings only: no contract-type fallback, no
                 // work-unit activity (describes the unit, not the person).
                 foreach ($doctor['contracts'] as $contract) {
@@ -744,6 +747,26 @@ final class FzomImporter
         }
 
         $context->increment($subjectType === FieldProvenance::SUBJECT_DOCTOR ? 'doctors_absent' : 'facilities_absent', count($absent));
+    }
+
+    /**
+     * Facsimiles on an associate code whose profile holds a Комора licence:
+     * a physician whatever the code, so the associate rule does not apply.
+     *
+     * @return array<string, true>
+     */
+    private function licensedAssociateCodes(): array
+    {
+        $found = [];
+
+        Doctor::withTrashed()->whereNotNull('licence_number')->whereNotNull('fzo_facsimile')->pluck('fzo_facsimile')
+            ->each(function ($facsimile) use (&$found): void {
+                if (FzomAssociates::isAssociateFacsimile((string) $facsimile)) {
+                    $found[(string) $facsimile] = true;
+                }
+            });
+
+        return $found;
     }
 
     /**

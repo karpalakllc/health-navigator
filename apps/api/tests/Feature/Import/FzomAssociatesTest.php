@@ -124,6 +124,24 @@ class FzomAssociatesTest extends TestCase
         $this->assertSame(0, Doctor::query()->where('import_missing_runs', '>', 0)->count());
     }
 
+    public function test_a_licensed_profile_on_an_associate_code_stays_a_doctor_and_is_never_missing(): void
+    {
+        config(['import.fzom.associate_facsimile_prefixes' => []]);
+        $this->import();
+        config(['import.fzom.associate_facsimile_prefixes' => ['8']]);
+        $licensed = Doctor::query()->where('fzo_facsimile', '800002')->firstOrFail();
+        $licensed->forceFill(['licence_number' => '12600'])->save();
+
+        $this->import();
+        $this->import();
+        $run = $this->import();
+
+        $this->assertSame(2, $run->count('people_excluded_associate'), '800001 and 800003 (genetics is open to non-physicians); 800002 holds a licence, 800004 is the physician-specialty exception.');
+        $this->assertSame(0, $run->count('doctors_absent'));
+        $this->assertSame(0, ImportReviewItem::query()->where('kind', ImportReviewKind::Missing)->count());
+        $this->assertSame(0, $licensed->refresh()->import_missing_runs);
+    }
+
     public function test_the_exclude_command_closes_review_items_only_on_plain_associate_profiles(): void
     {
         config(['import.fzom.associate_facsimile_prefixes' => []]);
