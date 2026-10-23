@@ -40,7 +40,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -248,7 +247,7 @@ class ForumController extends Controller
             'profile_cards' => $cards['topic'],
             'accepted_answer' => $accepted === null ? null : [
                 'id' => (int) $accepted->getKey(),
-                'excerpt' => Str::limit(trim((string) $accepted->body), 280),
+                'excerpt' => ForumReplyNotifications::excerpt((string) $accepted->body, 280),
                 'author_name' => $accepted->user->publicName(),
                 'path' => ForumReplyNotifications::postPath($topic, $accepted),
             ],

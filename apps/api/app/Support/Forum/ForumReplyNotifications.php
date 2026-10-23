@@ -44,7 +44,7 @@ final class ForumReplyNotifications
         }
 
         $path = self::postPath($topic, $post);
-        $excerpt = Str::limit(trim((string) $post->body), 300);
+        $excerpt = self::excerpt((string) $post->body, 300);
 
         ForumTopicSubscription::query()
             ->where('forum_topic_id', $topic->getKey())
@@ -60,6 +60,18 @@ final class ForumReplyNotifications
                     }
                 }
             });
+    }
+
+    /**
+     * A post's own words for an excerpt: the lines it quotes („> …“, what
+     * „Цитирај“ inserts) are left out.
+     */
+    public static function excerpt(string $body, int $limit): string
+    {
+        $own = preg_replace('/^[ \t]*>.*$/mu', '', $body) ?? $body;
+        $own = trim(preg_replace("/\n{3,}/", "\n\n", $own) ?? $own);
+
+        return Str::limit($own !== '' ? $own : trim($body), $limit);
     }
 
     /** The follower opened the topic: its unread reply line is read. */

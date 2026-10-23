@@ -220,7 +220,7 @@ class ForumUpgradesTest extends TestCase
         $post = ForumPost::factory()->create([
             'forum_topic_id' => $this->topic->id,
             'user_id' => $helper->id,
-            'body' => 'Околу 30 ml на килограм тежина е добар ориентир.',
+            'body' => "> Колку вода?\n\nОколу 30 ml на килограм тежина е добар ориентир.",
         ]);
 
         Sanctum::actingAs($this->opener);
@@ -231,6 +231,8 @@ class ForumUpgradesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.topic.accepted_answer.id', $post->id)
             ->assertJsonPath('data.topic.accepted_answer.author_name', 'pomosnik')
+            // The reply's own words, without what it quotes.
+            ->assertJsonPath('data.topic.accepted_answer.excerpt', 'Околу 30 ml на килограм тежина е добар ориентир.')
             ->assertJsonPath('data.topic.accepted_answer.path', '/forum/general/water#post-'.$post->id)
             ->assertJsonPath('data.posts.0.is_accepted', true);
 
