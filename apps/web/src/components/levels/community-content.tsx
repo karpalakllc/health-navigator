@@ -44,10 +44,6 @@ export function CommunityContent({ boards }: { boards: Leaderboards | null }) {
           {t("levels.heroTitle")}
         </h1>
         <p className="measure type-reading text-ink">{t("levels.heroBody")}</p>
-        <p className="measure flex items-start gap-2 type-body text-ink">
-          <Icon name="shield-check" size={24} className="mt-0.5 shrink-0" />
-          <span>{t("levels.heroNoPrizes")}</span>
-        </p>
       </section>
 
       {boards === null ? (
