@@ -10,9 +10,10 @@ import { cn } from "@/lib/cn";
  *
  * It steps aside once the site footer scrolls into view, so it never covers
  * the footer's last lines. A spacer keeps the page's own end clear of it.
- * `hideWhileVisible` names one more element it steps aside for (e.g. the
- * review form its only button leads to, which would otherwise sit under a
- * second copy of itself).
+ * `hideWhileVisible` names more elements it steps aside for while any of them
+ * is on screen (e.g. the review form its only button leads to, and the inline
+ * „Напишете рецензија“ — either would otherwise sit under a second copy of
+ * the same action).
  */
 export function StickyActionBar({
   label,
@@ -24,27 +25,45 @@ export function StickyActionBar({
   label: string;
   children: ReactNode;
   className?: string;
-  /** The id of an element whose appearance on screen hides the bar too. */
-  hideWhileVisible?: string;
+  /** Ids of elements whose appearance on screen hides the bar too. */
+  hideWhileVisible?: string | readonly string[];
 }) {
   const [footerVisible, setFooterVisible] = useState(false);
   const [targetVisible, setTargetVisible] = useState(false);
+  // A stable dependency for the effect, whether one id or a fresh array.
+  const targetIds = (
+    typeof hideWhileVisible === "string"
+      ? [hideWhileVisible]
+      : (hideWhileVisible ?? [])
+  ).join(" ");
 
   useEffect(() => {
-    const target = hideWhileVisible
-      ? document.getElementById(hideWhileVisible)
-      : null;
-    if (!target || typeof IntersectionObserver === "undefined") {
+    const targets = targetIds
+      .split(" ")
+      .filter(Boolean)
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (targets.length === 0 || typeof IntersectionObserver === "undefined") {
       return;
     }
 
-    const observer = new IntersectionObserver(([entry]) =>
-      setTargetVisible(entry.isIntersecting),
-    );
-    observer.observe(target);
+    const onScreen = new Set<Element>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          onScreen.add(entry.target);
+        } else {
+          onScreen.delete(entry.target);
+        }
+      }
+      setTargetVisible(onScreen.size > 0);
+    });
+    for (const target of targets) {
+      observer.observe(target);
+    }
 
     return () => observer.disconnect();
-  }, [hideWhileVisible]);
+  }, [targetIds]);
 
   const hidden = footerVisible || targetVisible;
 

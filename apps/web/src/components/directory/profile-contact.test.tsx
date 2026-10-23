@@ -1,10 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ProfileCallBar,
   ProfileContactList,
   type ContactInfo,
 } from "@/components/directory/profile-contact";
+import { REVIEW_CTA_ID } from "@/components/reviews/review-paths";
+import { ReviewSummaryBlock } from "@/components/reviews/review-summary";
 import { t } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
 
@@ -25,6 +27,10 @@ const info: ContactInfo = {
   hoursAnchor: "hours",
   now,
 };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("ProfileCallBar", () => {
   it("adds „Напишете рецензија“ beside the call when asked, with directions as a named icon", async () => {
@@ -68,6 +74,53 @@ describe("ProfileCallBar", () => {
     expect(
       screen.getByRole("link", { name: t("reviews.write") }),
     ).toBeInTheDocument();
+  });
+
+  it("hides the lone sticky review action while the inline „Напишете рецензија“ is on screen", () => {
+    type Callback = (
+      entries: Array<{ isIntersecting: boolean; target: Element }>,
+    ) => void;
+    const observed = new Map<Element, Callback>();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private callback: Callback) {}
+        observe(element: Element) {
+          observed.set(element, this.callback);
+        }
+        disconnect() {}
+      },
+    );
+    render(
+      <>
+        <ReviewSummaryBlock
+          summary={{ count: 0, average_rating: null }}
+          kind="doctor"
+          slug="ana"
+        />
+        <ProfileCallBar
+          info={{ ...info, phone: null, directionsHref: null }}
+          reviewHref="/doctors/ana#napishi-recenzija"
+        />
+      </>,
+    );
+    const bar = screen.getByRole("region", {
+      name: t("reviewGrowth.stickyLabel"),
+    });
+    const inline = document.getElementById(REVIEW_CTA_ID)!;
+    expect(
+      within(inline).getByRole("link", { name: t("reviews.write") }),
+    ).toBeInTheDocument();
+
+    expect(bar).not.toHaveAttribute("data-hidden");
+    act(() =>
+      observed.get(inline)?.([{ isIntersecting: true, target: inline }]),
+    );
+    expect(bar).toHaveAttribute("data-hidden", "true");
+    act(() =>
+      observed.get(inline)?.([{ isIntersecting: false, target: inline }]),
+    );
+    expect(bar).not.toHaveAttribute("data-hidden");
   });
 
   it("has no review action unless asked", () => {

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
+import { clearReviewDraft } from "@/lib/review-growth";
 import { t } from "@/i18n/t";
 
 const PROTECTED_PREFIXES = ["/account"];
@@ -37,6 +38,9 @@ export function LogoutButton({
         return;
       }
 
+      // A review draft kept across sign-in (localStorage) must not greet the
+      // next person on a shared browser.
+      clearReviewDraft();
       onLoggedOut?.();
 
       if (isProtectedPath(pathname)) {

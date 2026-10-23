@@ -8,7 +8,10 @@ import {
   ContactRow,
   MapPlaceholder,
 } from "@/components/directory/profile-parts";
-import { REVIEW_ANCHOR } from "@/components/reviews/review-paths";
+import {
+  REVIEW_ANCHOR,
+  REVIEW_CTA_ID,
+} from "@/components/reviews/review-paths";
 import { Button, IconButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
@@ -298,10 +301,12 @@ export function ProfileCallBar({
       label={
         reviewHref ? t("reviewGrowth.stickyLabel") : t("directory.quickContact")
       }
-      // Alone, the review action steps aside while the form it leads to is
-      // on screen.
+      // Alone, the review action steps aside while the form it leads to, or
+      // the inline „Напишете рецензија“, is on screen: one CTA at a time.
       hideWhileVisible={
-        reviewHref && !tel && !info.directionsHref ? REVIEW_ANCHOR : undefined
+        reviewHref && !tel && !info.directionsHref
+          ? [REVIEW_ANCHOR, REVIEW_CTA_ID]
+          : undefined
       }
     >
       {tel ? (

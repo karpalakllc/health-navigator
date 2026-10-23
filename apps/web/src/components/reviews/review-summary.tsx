@@ -1,6 +1,7 @@
 import { formatAverage } from "@/components/directory/rating-line";
 import {
   REVIEW_ANCHOR,
+  REVIEW_CTA_ID,
   reviewsBasePath,
 } from "@/components/reviews/review-paths";
 import { Button } from "@/components/ui/button";
@@ -98,7 +99,10 @@ export function ReviewSummaryBlock({
   const basePath = kind && slug ? reviewsBasePath(kind, slug) : null;
   const cta =
     basePath && canWrite ? (
-      <div className="flex flex-col gap-3 lg:w-64 lg:shrink-0">
+      <div
+        id={REVIEW_CTA_ID}
+        className="flex flex-col gap-3 lg:w-64 lg:shrink-0"
+      >
         <Button
           // The full path, not a bare "#review-form": on a page already
           // opened at #reviews, next/link appended it ("#reviews#review-form").

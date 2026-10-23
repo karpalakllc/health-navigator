@@ -11,7 +11,7 @@ nothing flashes).
 | `reviews_prompt_on_profile` | on | The W8-B card „Дали сте биле кај …?“ on doctor, facility and pharmacy profiles (after 15 s or 30 % scroll, below the fold, once per profile per device). |
 | `reviews_prompt_after_search` | on | Back on the doctor list or `/search` after opening a doctor from them: „Сте биле кај {name}? Споделете го вашето искуство“. |
 | `reviews_share_link` | on | „Препорачајте рецензија“ on doctor profiles (Web Share API, copy fallback, manual-copy field as last resort). |
-| `reviews_mobile_sticky_cta` | on | „Напишете рецензија“ in the bottom bar of doctor profiles with no published review (phones only). |
+| `reviews_mobile_sticky_cta` | on | „Напишете рецензија“ in the bottom bar of doctor profiles with no published review (phones only). Alone (no phone, no directions) it steps aside while the inline „Напишете рецензија“ or the form is on screen — one CTA at a time. |
 
 When the settings cannot be read the web treats all four as off.
 
@@ -40,7 +40,8 @@ Now:
 1. The form is open to everyone (`#napishi-recenzija`). Signed out, its last
    step reads „Најава“ and the button „Продолжете кон најава“.
 2. Sending signed out keeps rating, aspects and comment as a **draft** in
-   localStorage (one draft, 24 h, deleted when sent) and goes to
+   localStorage (one draft, 24 h, deleted when sent or on „Одјава“, so the next
+   person on a shared browser never sees it) and goes to
    `/login?redirect=/doctors/{slug}#napishi-recenzija`. „Регистрирај се“ and
    the post-registration „Најави се“ carry the same redirect; after the e-mail
    check, `/verify-email` offers „Продолжете ја рецензијата за {name}“.
