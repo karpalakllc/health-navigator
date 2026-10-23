@@ -9,7 +9,6 @@ import {
   answerQuestion,
   answerScreen,
   chooseSymptoms,
-  emergencyShortcut,
   fetchState,
   noMatch,
   saveDemographics,
@@ -73,7 +72,7 @@ describe("guidance session calls", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: "Not found." }), { status: 404 }),
     );
-    const stale = await emergencyShortcut(handle).catch((e: unknown) => e);
+    const stale = await fetchState(handle).catch((e: unknown) => e);
     expect(stale).toBeInstanceOf(GuidanceApiError);
     expect(stale).toMatchObject({ status: 404, message: "Not found." });
     expect(isStaleGuidanceSession(stale)).toBe(true);
@@ -131,12 +130,10 @@ describe("guidance session calls", () => {
     await answerScreen(session, []);
     respond(state);
     await answerQuestion(session, "general", "concern", ["general"]);
-    respond(state);
-    await emergencyShortcut(session);
     respond({ suggested: ["general"] });
     await noMatch(session, null);
 
-    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
 
     for (const [url, init] of fetchMock.mock.calls) {
       expect(String(url)).toContain("/api/v1/triage/v2/sessions/s1");

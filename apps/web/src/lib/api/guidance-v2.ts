@@ -321,18 +321,6 @@ export function answerQuestion(
   return put(session, "/answer", { flow, node, values });
 }
 
-export async function emergencyShortcut(
-  session: GuidanceSessionHandle,
-): Promise<GuidanceState> {
-  return parse(
-    await fetch(sessionUrl(session, "/emergency"), {
-      method: "POST",
-      headers: headers(session),
-      signal: AbortSignal.timeout(GUIDANCE_TIMEOUT_MS),
-    }),
-  );
-}
-
 export async function noMatch(
   session: GuidanceSessionHandle,
   bodyArea: BodyArea | null,

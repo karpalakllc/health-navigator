@@ -336,11 +336,7 @@ function EmergencyOutcome({
   urgentCareHref: string | null;
 }) {
   const body =
-    reason === "shortcut"
-      ? t("guidance.emergencyShortcutBody")
-      : reason === "fallback"
-        ? t("guidance.fallbackNote")
-        : outcome.summary;
+    reason === "fallback" ? t("guidance.fallbackNote") : outcome.summary;
   const extra = outcome.call.filter(
     (line) => line.number !== "194" && line.number !== "112",
   );

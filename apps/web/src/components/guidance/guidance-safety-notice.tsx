@@ -4,8 +4,9 @@ import { t } from "@/i18n/t";
 
 /*
  * „Не е дијагноза“. The full note sits on the unavailable state and the
- * results (the intro stays calm; its consent checkbox is the pre-start gate); `compact` is the one-line 194/112 reminder every step carries
- * (docs/triage-safety.md, „Every step“), with both numbers as tel: links.
+ * results; `compact` is the one-line 194/112 safety-netting under a result's
+ * „watch for“ list. The intro and the steps carry neither (owner decision
+ * 2026-10-23; the intro's consent checkbox is the pre-start gate).
  */
 export function GuidanceSafetyNotice({
   compact = false,

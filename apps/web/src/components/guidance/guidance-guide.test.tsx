@@ -183,7 +183,7 @@ const q2: GuidanceState = {
 } as GuidanceState;
 const result = (
   outcome: GuidanceOutcomeV2,
-  reason: "answers" | "red_flag" | "shortcut" = "answers",
+  reason: "answers" | "red_flag" = "answers",
 ): GuidanceState => ({
   session_id: S,
   stage: "result",
