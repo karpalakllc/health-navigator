@@ -40,6 +40,14 @@ test.describe("first reviews on a phone", () => {
     await expect(sticky).toBeVisible();
     const box = await sticky.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(48);
+    // All of it on screen, label not cut (call and directions are icons).
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(PHONE.width);
+    expect(
+      await sticky.evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
+    await expect(
+      bar.getByRole("link", { name: mk.directory.call }),
+    ).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("01-profile-390.png") });
 
     await sticky.tap();

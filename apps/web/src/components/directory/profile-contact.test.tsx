@@ -41,15 +41,16 @@ describe("ProfileCallBar", () => {
     expect(
       within(bar).getByRole("link", { name: t("reviews.write") }),
     ).toHaveAttribute("href", "/doctors/ana#napishi-recenzija");
-    expect(
-      within(bar).getByRole("link", { name: t("directory.call") }),
-    ).toHaveAttribute("href", "tel:023124567");
+    const call = within(bar).getByRole("link", { name: t("directory.call") });
+    expect(call).toHaveAttribute("href", "tel:023124567");
     const directions = within(bar).getByRole("link", {
       name: t("directory.directions"),
     });
-    // Icon-only so three fit a phone: the name comes from aria-label.
-    expect(directions).toHaveAttribute("aria-label", t("directory.directions"));
-    expect(directions).toHaveTextContent("");
+    // Icon-only so three fit a phone: the names come from aria-label.
+    for (const link of [call, directions]) {
+      expect(link).toHaveTextContent("");
+    }
+    expect(directions).toHaveAttribute("target", "_blank");
     // Phones only, like the call bar itself.
     expect(bar.className).toContain("lg:hidden");
     expect(await seriousA11yViolations(container)).toEqual([]);

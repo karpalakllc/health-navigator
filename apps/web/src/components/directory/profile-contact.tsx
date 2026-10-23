@@ -278,8 +278,8 @@ export function ProfileCallBar({
   info: ContactInfo;
   /**
    * „Напишете рецензија“ beside the call (doctor profiles without a
-   * published review, when the admin switch is on). With it, „Насоки“
-   * shrinks to an icon so the three fit a 360 px phone.
+   * published review, when the admin switch is on). With it, „Јави се“ and
+   * „Насоки“ shrink to named icons so the three fit a 360 px phone.
    */
   reviewHref?: string;
 }) {
@@ -289,7 +289,9 @@ export function ProfileCallBar({
     return null;
   }
 
-  const compactDirections = Boolean(reviewHref && tel);
+  // With the review action, call and directions shrink to named round
+  // icons so all three fit a 360 px phone.
+  const compact = Boolean(reviewHref);
 
   return (
     <StickyActionBar
@@ -303,18 +305,28 @@ export function ProfileCallBar({
       }
     >
       {tel ? (
-        <Button
-          href={tel}
-          size="lg"
-          leadingIcon="phone"
-          variant={reviewHref ? "soft" : "primary"}
-          className={reviewHref ? "flex-1 px-4" : "flex-[1.2]"}
-        >
-          {t("directory.call")}
-        </Button>
+        compact ? (
+          <IconButton
+            href={tel}
+            icon="phone"
+            label={t("directory.call")}
+            variant="soft"
+            size={56}
+            className="shrink-0"
+          />
+        ) : (
+          <Button
+            href={tel}
+            size="lg"
+            leadingIcon="phone"
+            className="flex-[1.2]"
+          >
+            {t("directory.call")}
+          </Button>
+        )
       ) : null}
       {info.directionsHref ? (
-        compactDirections ? (
+        compact ? (
           <IconButton
             href={info.directionsHref}
             icon="navigation"
@@ -344,7 +356,7 @@ export function ProfileCallBar({
           href={reviewHref}
           size="lg"
           leadingIcon="star"
-          className="flex-[1.6] px-4"
+          className="min-w-0 flex-1 px-4"
           data-track="sticky-review-cta"
         >
           {t("reviews.write")}
