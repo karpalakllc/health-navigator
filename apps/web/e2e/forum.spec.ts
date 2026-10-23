@@ -44,7 +44,10 @@ test.describe("forum", () => {
 
     // The author lands on "Мој форум", where the topic shows as pending.
     await expect(page).toHaveURL(/\/account\/forum$/);
-    const mine = page.getByRole("listitem").filter({ hasText: title });
+    const mine = page
+      .getByRole("region", { name: mk.account.topicsHeading, exact: true })
+      .getByRole("listitem")
+      .filter({ hasText: title });
     await expect(mine).toBeVisible();
     await expect(mine.getByText(mk.account.statusPending)).toBeVisible();
 

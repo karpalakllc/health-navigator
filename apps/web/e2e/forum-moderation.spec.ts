@@ -106,7 +106,12 @@ test.describe("forum moderation", () => {
 
     // 5. The author's own list shows it as published.
     await page.reload();
-    const mine = page.getByRole("listitem").filter({ hasText: title });
+    // „Мои теми“ — the author also follows it, so it is listed under
+    // „Теми што ги следите“ too.
+    const mine = page
+      .getByRole("region", { name: mk.account.topicsHeading, exact: true })
+      .getByRole("listitem")
+      .filter({ hasText: title });
     await expect(mine).toBeVisible();
     await expect(mine.getByText(mk.account.statusPending)).toHaveCount(0);
   });
