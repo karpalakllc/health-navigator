@@ -466,6 +466,77 @@ Provenance source `website`, with the page URL per field.
   image is never imported again. Use it for any takedown request.
 - Photos of people are out of scope (not collected).
 
+## 6a. Website facilities that duplicate a register facility (`import:facility-duplicates`)
+
+The website import creates a hidden draft when it cannot match the
+register's spelling (abbreviations „Универ. Клин. за Инфек. Болес.“,
+another address of the same campus, a brand or Latin name: „Saradent“,
+„Duo Dent“). Doctors listed only there have no visible workplace. Code:
+`apps/api/app/Support/Import/Facilities/**`.
+
+**Matcher** (`FacilityDuplicateMatcher`, deterministic, never writes):
+every website-only facility (created by the website import, no ФЗОМ or
+pharmacy record) is compared with every register facility of its town (or
+a town its name or address names), and by phone and website host with all
+of them. Names lose the legal form, function words, titles and the town;
+Latin words are transliterated, English clinic words translated; the part
+before a dash, quoted and bracketed names are variants; abbreviations with
+a dot, other endings and glued words are the same word. Signals: **name**
+(every distinctive word of the shorter name in the longer, or glued equal,
+or the register's generic name „Клиничка болница“ inside the website's),
+**address** (street + house number; the two addresses of the Clinical
+Centre „Мајка Тереза“, Водњанска 17 / Мајка Тереза 17, count as one),
+**phone**, **website host**.
+
+| Confidence | When |
+|---|---|
+| high | two of name / address / phone / host agree (or host or phone in the same town, or the same name on the same street), and no other register facility fits as well (also high, or the same name at the same address) |
+| medium | one of them (a strong name in the same town, a phone, a host), or the address with part of the name; or a high one with a rival |
+| low | part of the name, or the address alone |
+
+**Merge** (`FacilityMerger`, one transaction, used by the command and the
+admin): the doctors' workplace links move (department and source kept; a
+doctor already linked keeps one link, primary if either was; a doctor
+whose `facilities` are locked keeps the old link and is counted); the
+website images (`facility_media`) and departments move; phone, e-mail,
+website, logo, cover, description, office hours and map position are
+copied **only where the register facility has none and the field is not
+locked**, with their website provenance; the website's source records
+point at the register facility and its staff-page entries are re-keyed
+(`worker:<register id>:…`, a duplicate entry folded), so the next import of
+the site updates the register facility and the verification engine reads
+the staff page for it; a „Trust this website“ decision moves too. The draft
+is **soft-deleted** with `merged_into_id` (restorable), its open items
+closed („merged“), and the merge logged (**Facility merge**, on both
+facilities). Merging again does nothing (`already_merged`). Refused: a
+source that is not website-only, a website-only target, pharmacies, a
+source with reviews or correction requests. An import record that still
+names a merged draft follows `merged_into_id`.
+
+**Admin.** Facility edit page of a website-only draft: **Merge into register
+facility…** (suggestions first, or search any register facility). Import
+review, items „Same facility? …“ (source `website`, reason
+`facility_duplicate`): **Merge into suggested facility**, **Merge into
+register facility…**, bulk **Merge suggested facilities**; **Dismiss**
+keeps them apart (and stays dismissed while the proposal is the same).
+
+```sh
+php artisan import:facility-duplicates --json=plan.json                # dry run: reads only, counts + plan
+php artisan import:facility-duplicates --apply --by=staff@example.org  # merge the high ones, queue the rest
+php artisan import:facility-duplicates --apply --review-only --by=…    # queue every proposal, merge nothing
+php artisan import:adjudicate && php artisan urgent-care:derive       # then re-read staff pages and departments
+```
+
+A high-confidence entry is checked again when applied: if the matcher no
+longer proposes the same facility with high confidence, it is queued
+instead. Run it after each website import.
+
+**Real data, 2026-10-23 (dry run on the preview database):** 170
+website-only facilities → 54 high, 54 medium, 24 low, 38 without a
+candidate. The high ones move 815 workplace links; of the 310 published
+doctors with no visible workplace, 174 get one (262 if the medium ones are
+merged too).
+
 ## 7. Specialty wording: aliases and the licence mapping
 
 Two tables translate the sources' specialty wording. They answer different

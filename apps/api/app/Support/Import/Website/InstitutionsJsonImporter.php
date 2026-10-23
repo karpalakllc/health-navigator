@@ -172,6 +172,15 @@ final class InstitutionsJsonImporter
         $this->seenKeys[] = $key;
         $facility = $sourceRecord?->subject_id !== null ? Facility::withTrashed()->find($sourceRecord->subject_id) : null;
 
+        // Merged into a register facility (FacilityMerger repoints the
+        // records; this covers one that still names the old draft): the
+        // site describes the facility that stayed.
+        $facility = $facility !== null ? $this->followMerges($facility) : null;
+
+        if ($facility !== null && (int) $stored['record']->subject_id !== (int) $facility->getKey()) {
+            $stored['record']->forceFill(['subject_id' => $facility->getKey()])->save();
+        }
+
         if ($facility !== null && $stored['unchanged']) {
             $context->increment('facilities_unchanged');
 
@@ -236,6 +245,25 @@ final class InstitutionsJsonImporter
             $context->review(ImportReviewKind::New, 'facility:'.$facility->getKey(), $label, ['source' => self::SOURCE, 'source_url' => $sourceUrl], $facility);
         } else {
             $context->increment('facilities_matched');
+        }
+
+        return $facility;
+    }
+
+    /**
+     * The facility a merged draft now lives on (a chain of merges at most
+     * a few long; a loop or a deleted end returns the last one found).
+     */
+    private function followMerges(Facility $facility): Facility
+    {
+        for ($hops = 0; $hops < 5 && $facility->trashed() && $facility->getAttribute('merged_into_id') !== null; $hops++) {
+            $next = Facility::withTrashed()->find($facility->getAttribute('merged_into_id'));
+
+            if ($next === null) {
+                break;
+            }
+
+            $facility = $next;
         }
 
         return $facility;

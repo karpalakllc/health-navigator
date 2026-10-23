@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -133,6 +134,7 @@ class Facility extends Model
             'published_at' => 'datetime',
             'import_last_seen_at' => 'datetime',
             'import_missing_runs' => 'integer',
+            'merged_into_id' => 'integer',
         ];
     }
 
@@ -154,6 +156,17 @@ class Facility extends Model
         return $this->belongsToMany(Doctor::class)
             ->withPivot(['is_primary'])
             ->withTimestamps();
+    }
+
+    /**
+     * The register facility a website duplicate was merged into
+     * (FacilityMerger); the duplicate itself is soft-deleted.
+     *
+     * @return BelongsTo<Facility, $this>
+     */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class, 'merged_into_id')->withTrashed();
     }
 
     /**

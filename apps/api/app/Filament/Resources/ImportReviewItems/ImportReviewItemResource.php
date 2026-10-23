@@ -9,10 +9,12 @@ use App\Filament\Resources\Facilities\FacilityResource;
 use App\Filament\Resources\ImportReviewItems\Pages\ListImportReviewItems;
 use App\Filament\Resources\ImportReviewItems\Pages\ViewImportReviewItem;
 use App\Filament\Resources\ImportReviewItems\Widgets\BulkPublishProgress;
+use App\Filament\Support\FacilityMergeActions;
 use App\Models\Doctor;
 use App\Models\ImportReviewItem;
 use App\Models\User;
 use App\Support\Import\BulkPublish;
+use App\Support\Import\Facilities\FacilityDuplicatePlanner;
 use App\Support\Import\ImportReviewActions;
 use App\Support\Import\Names\DuplicateFinder;
 use App\Support\Import\Names\NameCleanup;
@@ -180,6 +182,8 @@ class ImportReviewItemResource extends Resource
                 self::keepNameAction(),
                 self::linkSuggestedPharmacyAction(),
                 self::linkPharmacyAction(),
+                FacilityMergeActions::mergeSuggested(),
+                FacilityMergeActions::mergeChosen(),
                 self::dismissAction(),
             ])
             ->toolbarActions([
@@ -234,6 +238,7 @@ class ImportReviewItemResource extends Resource
                             Notification::make()->title("Linked {$linked} on-duty pharmacies")->success()->send();
                         })
                         ->deselectRecordsAfterCompletion(),
+                    FacilityMergeActions::bulkMergeSuggested(),
                     BulkAction::make('dismiss')
                         ->label('Dismiss selected')
                         ->icon('heroicon-o-x-mark')
@@ -679,6 +684,7 @@ class ImportReviewItemResource extends Resource
             OnDutyLinker::REASON_MISSING => 'Pharmacy not in the directory',
             'code_on_other_facility' => 'ФЗО code on a non-pharmacy facility',
             'possible_duplicate' => 'Possible duplicate',
+            FacilityDuplicatePlanner::REASON => 'Same facility as a register one? Merge, or dismiss',
             'name_cleanup' => 'Name cleanup',
             'unmatched', '' => 'Unmatched',
             default => str_replace('_', ' ', $reason),
