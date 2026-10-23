@@ -84,7 +84,17 @@ class ForumStarterSeeder extends Seeder
         $author = User::query()->where('email', $email)->first();
 
         if ($author !== null) {
+            // A member who happens to own this address must not become the
+            // voice of the team.
+            if ($author->user_kind !== UserKind::Staff) {
+                throw new RuntimeException("ForumStarterSeeder: {$email} belongs to a non-staff account. Set FORUM_STARTER_AUTHOR_EMAIL to a different address.");
+            }
+
             return $author;
+        }
+
+        if (app()->isProduction() && str_ends_with($email, '.test')) {
+            $this->command->warn("ForumStarterSeeder: the author address {$email} is the local placeholder. Set FORUM_STARTER_AUTHOR_EMAIL to an address the team controls.");
         }
 
         if (UsernameValidator::isTaken($username)) {

@@ -176,6 +176,22 @@ class ForumStarterSeederTest extends TestCase
         $this->seed(ForumStarterSeeder::class);
     }
 
+    public function test_it_refuses_to_post_as_a_non_staff_account_holding_the_author_address(): void
+    {
+        $member = new User;
+        $member->forceFill([
+            'name' => 'Member',
+            'username' => 'Некој_Член',
+            'email' => config('zdravje.seed.forum_author.email'),
+            'password' => 'secret-password',
+            'user_kind' => UserKind::Client,
+        ])->save();
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->seed(ForumStarterSeeder::class);
+    }
+
     public function test_no_text_carries_emergency_numbers_disclaimers_or_advice_formulas(): void
     {
         $banned = [
