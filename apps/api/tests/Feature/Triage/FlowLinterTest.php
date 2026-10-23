@@ -123,6 +123,36 @@ class FlowLinterTest extends TestCase
             'a key that is not the file name' => [function (&$f) {
                 $f['key'] = 'another-key';
             }, 'must equal the file name'],
+            'a self-harm red flag to the plain emergency outcome' => [function (&$f) {
+                $f['red_flags'][0]['label'] = 'Мисли за самоповредување';
+            }, 'a self-harm red flag must lead to the crisis outcome'],
+            'a self-harm question whose answers lead on' => [function (&$f) {
+                $f['nodes']['q_fever']['text'] = 'Дали имате мисли да се повредите?';
+            }, 'a question about self-harm must send its answers to the crisis outcome first'],
+            'a self-harm option routed to a doctor first' => [function (&$f) {
+                $f['nodes']['q_fever'] = ['type' => 'question', 'kind' => 'single', 'text' => 'Што ве мачи?', 'options' => [
+                    ['value' => 'fever', 'label' => 'Температура'],
+                    ['value' => 'thoughts', 'label' => 'Мисли за самоубиство'],
+                ], 'next' => [
+                    ['when' => ['answer' => 'q_fever', 'eq' => 'thoughts'], 'goto' => 'o_gp_soon'],
+                    ['goto' => 'q_pain'],
+                ]];
+                $f['nodes']['q_pain']['next'][3]['when'] = ['answer' => 'q_fever', 'eq' => 'fever'];
+            }, 'a self-harm answer must lead to the crisis outcome before any non-emergency branch'],
+            'a go-now outcome that is not an emergency department' => [function (&$f) {
+                $f['outcomes']['o_same_day']['level'] = 'emergency_department_now';
+                $f['outcomes']['o_same_day']['watch_for'][0] = 'Ако не можете безбедно да стигнете, повикајте 194.';
+            }, 'an emergency_department_now outcome sends the visitor to an emergency department'],
+            'a go-now outcome that never says when to call 194' => [function (&$f) {
+                $f['outcomes']['o_same_day']['level'] = 'emergency_department_now';
+                $f['outcomes']['o_same_day']['care']['setting'] = 'emergency_department';
+                $f['outcomes']['o_same_day']['watch_for'] = ['Ако се влоши, веднаш одете во болница.'];
+            }, 'an emergency_department_now outcome says when to call 194 instead'],
+            'a go-now outcome with call links' => [function (&$f) {
+                $f['outcomes']['o_same_day']['level'] = 'emergency_department_now';
+                $f['outcomes']['o_same_day']['care']['setting'] = 'emergency_department';
+                $f['outcomes']['o_same_day']['call'] = [['number' => '194', 'label' => 'Итна помош']];
+            }, 'only emergency_now outcomes carry call links'],
         ];
     }
 
@@ -315,6 +345,28 @@ class FlowLinterTest extends TestCase
         $this->assertStringContainsString('allows "unknown" but no branch routes it explicitly', $warnings);
         $this->assertStringContainsString('is not on the list of public sources', $warnings);
         $this->assertStringContainsString('repeats a global red flag', $warnings);
+    }
+
+    public function test_a_self_harm_question_answered_by_the_crisis_outcome_first_passes(): void
+    {
+        $flow = self::example();
+        $flow['nodes']['q_fever']['text'] = 'Дали имате мисли да се повредите?';
+        $flow['nodes']['q_fever']['next'] = [
+            ['when' => ['answer' => 'q_fever', 'in' => ['yes', 'unsure']], 'goto' => 'global:crisis'],
+            ['goto' => 'q_pain'],
+        ];
+
+        $this->assertSame([], $this->lint($flow)->errors);
+    }
+
+    public function test_a_well_formed_go_now_outcome_passes(): void
+    {
+        $flow = self::example();
+        $flow['outcomes']['o_same_day']['level'] = 'emergency_department_now';
+        $flow['outcomes']['o_same_day']['care']['setting'] = 'emergency_department';
+        $flow['outcomes']['o_same_day']['watch_for'] = ['Ако не можете безбедно да стигнете, веднаш повикајте 194.'];
+
+        $this->assertSame([], $this->lint($flow)->errors);
     }
 
     public function test_the_global_screen_must_define_emergency_and_crisis_outcomes(): void

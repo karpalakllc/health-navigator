@@ -21,7 +21,7 @@ class TriageContentFilesTest extends TestCase
 
     private const AGE_BANDS = ['infant_0_3m', 'infant_3_12m', 'child_1_4', 'child_5_12', 'teen_13_17', 'adult_18_64', 'older_65_plus'];
 
-    private const LEVELS = ['emergency_now', 'urgent_same_day', 'see_doctor_24_48h', 'see_gp_this_week', 'pharmacy_advice', 'self_care_with_safety_net'];
+    private const LEVELS = ['emergency_now', 'emergency_department_now', 'urgent_same_day', 'see_doctor_24_48h', 'see_gp_this_week', 'pharmacy_advice', 'self_care_with_safety_net'];
 
     private const SETTINGS = ['emergency_department', 'on_call', 'gp', 'specialist', 'gynecology', 'pediatrics', 'dentist', 'pharmacy', 'mental_health', 'self_care'];
 

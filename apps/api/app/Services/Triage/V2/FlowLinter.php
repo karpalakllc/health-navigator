@@ -37,6 +37,13 @@ final class FlowLinter
     /** Letters of other Cyrillic alphabets: the copy must be Macedonian. */
     private const FOREIGN_CYRILLIC = '/[йщъыьэюяёЙЩЪЫЬЭЮЯЁ]/u';
 
+    /**
+     * Wording that asks about self-harm or suicide (lower-case substrings). A
+     * red flag, question or option that uses it must lead to the crisis
+     * outcome, as the global self_harm red flag does (docs/triage-flows.md §13).
+     */
+    public const SELF_HARM_STEMS = ['самоповред', 'самоубиств', 'одземете живот', 'не сте живи', 'да се повредите', 'се повредите себе'];
+
     /** Claims docs/triage-safety.md bans from outcome copy (warned, a human decides). */
     private const BANNED_WORDING = ['дијагноз', 'сигурно', 'дефинитивно', 'рецепт', 'доза'];
 
@@ -242,11 +249,165 @@ final class FlowLinter
         $this->lintPopulations($bands, $flow['populations'] ?? []);
 
         if ($graphLinted) {
+            $this->lintSelfHarmRouting($redFlags, $nodes);
+        }
+
+        if ($graphLinted) {
             $this->lintDemographicReasons($this->flow);
             (new DemographicAppropriateness)->lintFlow($this->flow, $this->report);
         }
 
         return $this->report;
+    }
+
+    /**
+     * Self-harm or suicidal thoughts always reach the crisis outcome, never a
+     * lower level (docs/triage-safety.md, mental-health crisis). A red flag
+     * worded so must lead to it; a question worded so must send every answer
+     * to it first — its first branch goes to the crisis outcome and only the
+     * default (the „no“ answer) may lead on; an option worded so must have a
+     * branch to it that no other non-emergency branch precedes.
+     *
+     * @param  list<mixed>  $redFlags
+     * @param  array<string, mixed>  $nodes
+     */
+    private function lintSelfHarmRouting(array $redFlags, array $nodes): void
+    {
+        foreach ($redFlags as $index => $flag) {
+            if (is_array($flag) && $this->mentionsSelfHarm($flag['label'] ?? null) && ! $this->isCrisis($flag['outcome'] ?? 'global:emergency_now')) {
+                $this->report->error("red_flags[{$index}].outcome", 'a self-harm red flag must lead to the crisis outcome');
+            }
+        }
+
+        foreach ($nodes as $id => $node) {
+            if (! is_array($node) || ($node['type'] ?? null) !== 'question') {
+                continue;
+            }
+
+            $branches = is_array($node['next'] ?? null) ? $node['next'] : [['goto' => $node['next'] ?? null]];
+
+            if ($this->mentionsSelfHarm($node['text'] ?? null)) {
+                $first = $branches[0] ?? [];
+                $leadsOn = count($branches) > 1 && is_array($first) && isset($first['when']) && $this->isCrisis($first['goto'] ?? null)
+                    && $this->conditionMentions($first['when'], (string) $id, null);
+
+                if (! $leadsOn) {
+                    $this->report->error("nodes.{$id}.next", 'a question about self-harm must send its answers to the crisis outcome first (first branch → global:crisis)');
+                }
+            }
+
+            foreach ((array) ($node['options'] ?? []) as $option) {
+                if (! is_array($option) || ! $this->mentionsSelfHarm($option['label'] ?? null)) {
+                    continue;
+                }
+
+                $value = (string) ($option['value'] ?? '');
+                $ok = false;
+
+                foreach ($branches as $branch) {
+                    $goto = is_array($branch) ? ($branch['goto'] ?? null) : null;
+
+                    if ($this->isCrisis($goto) && isset($branch['when']) && $this->conditionMentions($branch['when'], (string) $id, $value)) {
+                        $ok = true;
+
+                        break;
+                    }
+
+                    if (! $this->isEmergencyTarget($goto)) {
+                        break;
+                    }
+                }
+
+                if (! $ok) {
+                    $this->report->error("nodes.{$id}.options.{$value}", 'a self-harm answer must lead to the crisis outcome before any non-emergency branch');
+                }
+            }
+        }
+    }
+
+    private function mentionsSelfHarm(mixed $text): bool
+    {
+        if (! is_string($text)) {
+            return false;
+        }
+
+        $lower = mb_strtolower($text);
+
+        foreach (self::SELF_HARM_STEMS as $stem) {
+            if (str_contains($lower, $stem)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isCrisis(mixed $ref): bool
+    {
+        if (! is_string($ref)) {
+            return false;
+        }
+
+        $outcome = str_starts_with($ref, 'global:')
+            ? $this->global->outcome(substr($ref, 7))
+            : ($this->flow['outcomes'][$ref] ?? null);
+
+        return is_array($outcome) && ($outcome['crisis'] ?? false) === true;
+    }
+
+    private function isEmergencyTarget(mixed $ref): bool
+    {
+        if (! is_string($ref)) {
+            return false;
+        }
+
+        $outcome = str_starts_with($ref, 'global:')
+            ? $this->global->outcome(substr($ref, 7))
+            : ($this->flow['outcomes'][$ref] ?? null);
+
+        return is_array($outcome) && ($outcome['level'] ?? null) === TriageOutcomeLevel::EmergencyNow->value;
+    }
+
+    /** Whether a condition compares this node's answer (to $value, when given). */
+    private function conditionMentions(mixed $condition, string $node, ?string $value): bool
+    {
+        if (! is_array($condition)) {
+            return false;
+        }
+
+        foreach (['all', 'any'] as $combinator) {
+            if (isset($condition[$combinator]) && is_array($condition[$combinator])) {
+                foreach ($condition[$combinator] as $part) {
+                    if ($this->conditionMentions($part, $node, $value)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        if (($condition['answer'] ?? null) !== $node) {
+            return false;
+        }
+
+        if ($value === null) {
+            return true;
+        }
+
+        foreach (['eq', 'includes'] as $op) {
+            if (($condition[$op] ?? null) === $value) {
+                return true;
+            }
+        }
+
+        foreach (['in', 'includes_any', 'includes_all'] as $op) {
+            if (is_array($condition[$op] ?? null) && in_array($value, $condition[$op], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -961,6 +1122,19 @@ final class FlowLinter
 
         if (! $this->isListOf($care['facility_types'] ?? [], self::FACILITY_TYPES)) {
             $this->report->error("{$where}.care.facility_types", 'must be a list of: '.implode(', ', self::FACILITY_TYPES));
+        }
+
+        if ($level === TriageOutcomeLevel::EmergencyDepartmentNow) {
+            if (is_array($care) && ($care['setting'] ?? null) !== 'emergency_department') {
+                $this->report->error("{$where}.care.setting", 'an emergency_department_now outcome sends the visitor to an emergency department (setting "emergency_department")');
+            }
+
+            $lines = array_merge((array) ($outcome['do_now'] ?? []), (array) ($outcome['watch_for'] ?? []));
+            $mentions194 = array_filter($lines, fn ($line) => is_string($line) && str_contains($line, '194'));
+
+            if ($mentions194 === []) {
+                $this->report->error("{$where}.do_now", 'an emergency_department_now outcome says when to call 194 instead (e.g. „Ако не можете безбедно да стигнете …, повикајте 194.“)');
+            }
         }
 
         foreach ((array) ($outcome['sources'] ?? []) as $source) {

@@ -10,6 +10,8 @@ namespace App\Enums;
 enum TriageOutcomeLevel: string
 {
     case EmergencyNow = 'emergency_now';
+    /** Go to an emergency department now, without waiting (194 if the visitor cannot get there safely). */
+    case EmergencyDepartmentNow = 'emergency_department_now';
     case UrgentSameDay = 'urgent_same_day';
     case SeeDoctor24To48h = 'see_doctor_24_48h';
     case SeeGpThisWeek = 'see_gp_this_week';
@@ -20,7 +22,8 @@ enum TriageOutcomeLevel: string
     public function rank(): int
     {
         return match ($this) {
-            self::EmergencyNow => 6,
+            self::EmergencyNow => 7,
+            self::EmergencyDepartmentNow => 6,
             self::UrgentSameDay => 5,
             self::SeeDoctor24To48h => 4,
             self::SeeGpThisWeek => 3,

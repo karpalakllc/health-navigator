@@ -244,6 +244,7 @@ Use only simple counts or public-domain validated scores; cite them in `sources`
 | `level` | Public meaning | Required |
 |---|---|---|
 | `emergency_now` | Call 194 (or 112) now | `call` with 194 and 112 (§8.3); `do_now` = what to do while waiting |
+| `emergency_department_now` | Go to an emergency department now, without waiting (someone else drives) | `care.setting` `emergency_department`; `watch_for`; a `do_now`/`watch_for` line saying when to call 194 instead; no `call` (added 2026-10-23) |
 | `urgent_same_day` | Today: emergency department / дежурна служба / итна амбуланта | `watch_for` |
 | `see_doctor_24_48h` | See a doctor within 1–2 days | `watch_for` |
 | `see_gp_this_week` | Appointment with your матичен лекар this week | `watch_for` |
@@ -252,6 +253,15 @@ Use only simple counts or public-domain validated scores; cite them in `sources`
 
 With several symptoms the session's result is the most urgent of all flow outcomes;
 an `emergency_now` outcome in any flow stops the remaining flows.
+
+`emergency_department_now` is for „go now, take yourself“: the situation needs a
+hospital assessment within the hour (e.g. fever during chemotherapy, NICE NG151)
+but not an ambulance, and „уште денес“ (`urgent_same_day`) would allow hours of
+delay. It does not stop the remaining flows and cannot be a red-flag outcome
+(red flags stay 194). The web shows it on the „дежурна служба / итна“ rung of
+the care ladder with the label „Веднаш — итно одделение во болница“, links the
+emergency departments first and adds „Ако не можете безбедно да стигнете таму,
+повикајте 194“ with a tap-to-call link.
 Every `watch_for` item is a safety-net sentence: „Ако … , веднаш …“.
 
 `"crisis": true` (only with `emergency_now`) marks a mental-health crisis outcome: shown
@@ -286,6 +296,15 @@ with crisis wording; must still carry 194/112. Never route self-harm to any othe
 
 Rendered as `tel:` links. Required on every `emergency_now` outcome and must include
 `194` and `112`; crisis outcomes may add verified crisis lines after them.
+
+Lines on `global:crisis` since 2026-10-23 (after 194 and 112), each checked on the
+operator's own site; none is claimed to be a suicide line:
+
+| Number | Label | Source |
+|---|---|---|
+| +389 72 271 048 | Црвен крст — психосоцијална поддршка, Скопје | https://ckrm.org.mk/mentalno-zdravje-i-psihosotsijalna-poddrshka/ (also lists Кочани and Штип lines; no hours stated) |
+| +389 70 390 632 | Ало Бушавко — линија за деца и млади | https://alobushavko.mk (for children, teenagers, parents and school staff) |
+| 15 315 | Национална СОС линија за семејно насилство (24/7) | https://krizencentar.org.mk („Надеж“: „достапна 24 часа секој ден во неделата“) |
 
 ## 9. Special populations
 
@@ -358,6 +377,15 @@ without source, or `when` using anything but `demo`; red-flag outcome not `emerg
 nor explained; unknown specialty key; missing sources; non-Macedonian Cyrillic letters;
 a numeric comparator on a non-numeric question or an option value the question does not
 offer; **demographic appropriateness** (below).
+**Self-harm routing (error, 2026-10-23).** Wording that asks about self-harm or
+suicide (`FlowLinter::SELF_HARM_STEMS`: „самоповред“, „самоубиств“, „одземете
+живот“, „не сте живи“, „да се повредите“, „се повредите себе“) must lead to the
+crisis outcome: a red flag so worded leads to `global:crisis` (or a flow-local
+crisis outcome); a question so worded has `global:crisis` as its first branch
+(only the default — the „no“ answer — may lead on); an option so worded has a
+branch to the crisis outcome that no non-emergency branch precedes.
+**Go-now outcomes (error).** `emergency_department_now` needs setting
+`emergency_department`, `watch_for`, a line mentioning 194, and no `call`.
 Warnings: duplicate global red-flag label; `pregnant` without `unsure`; `allow_unknown`
 without an `unknown` branch; source domain outside the public list; banned wording
 („дијагноза“ as a claim, „сигурно“, „дефинитивно“, „рецепт“, „доза“) in outcomes.
