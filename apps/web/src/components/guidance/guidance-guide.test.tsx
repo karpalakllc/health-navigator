@@ -259,8 +259,7 @@ async function toQuestion(user: ReturnType<typeof userEvent.setup>) {
 describe("GuidanceGuide emergency path", () => {
   it("shows the 194/112 tel links at once, before the API answers", async () => {
     api.emergencyShortcut.mockReturnValue(new Promise(() => {}));
-    const user = userEvent.setup();
-    render(<GuidanceGuide catalog={catalog} />);
+    const user = await start();
 
     await user.click(
       screen.getByRole("button", { name: t("guidance.emergencyNow") }),
@@ -276,10 +275,9 @@ describe("GuidanceGuide emergency path", () => {
     expect(l112).toHaveAttribute("href", "tel:112");
   });
 
-  it("keeps the call links when no session can be started", async () => {
-    api.startSession.mockRejectedValue(new TypeError("Failed to fetch"));
-    const user = userEvent.setup();
-    render(<GuidanceGuide catalog={catalog} />);
+  it("keeps the call links when the emergency cannot be recorded", async () => {
+    const user = await start();
+    api.emergencyShortcut.mockRejectedValue(new TypeError("Failed to fetch"));
 
     await user.click(
       screen.getByRole("button", { name: t("guidance.emergencyNow") }),
@@ -436,21 +434,29 @@ describe("GuidanceGuide emergency path", () => {
 });
 
 describe("GuidanceGuide intro", () => {
-  it("states the emergency message once: the 194/112 line and the urgent-help button, no reminder card", () => {
+  it("is calm: title, lead, anonymity and the consent — no urgent-help button, 194/112 line or disclaimer box", () => {
     render(<GuidanceGuide catalog={catalog} />);
 
     expect(
-      document.querySelectorAll("[data-guidance-compact-emergency]"),
-    ).toHaveLength(1);
-    expect(
-      screen.getAllByRole("button", { name: t("guidance.emergencyNow") }),
-    ).toHaveLength(1);
-    expect(document.querySelector("#guidance-red-flags-reminder")).toBeNull();
-    expect(screen.queryByText(t("guidance.emergencyDelay"))).toBeNull();
-    expect(
-      screen.getByText(t("guidance.notDiagnosisBody")),
+      screen.getByRole("heading", { level: 1, name: t("guidance.title") }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "194" })).toHaveLength(1);
+    expect(screen.getByText(t("guidance.description"))).toBeInTheDocument();
+    expect(screen.getByText(t("guidance.introAnonymous"))).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: t("guidance.acceptLabel") }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: t("guidance.emergencyNow") }),
+    ).toBeNull();
+    expect(
+      document.querySelector("[data-guidance-compact-emergency]"),
+    ).toBeNull();
+    expect(screen.queryByRole("link", { name: "194" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "112" })).toBeNull();
+    expect(screen.queryByText(t("guidance.notDiagnosisBody"))).toBeNull();
+    expect(screen.queryByText(t("guidance.emergencyDelay"))).toBeNull();
+    expect(screen.queryByText(/Не е медицински совет\./)).toBeNull();
   });
 });
 
@@ -768,17 +774,19 @@ describe("GuidanceGuide next steps", () => {
 });
 
 describe("GuidanceGuide local draft preview", () => {
-  it("shows a persistent calm banner only when the catalogue is a preview", async () => {
+  it("shows the draft flows without any draft pill or banner", async () => {
     const user = await start({ ...catalog, preview: true });
-    expect(screen.getByText(t("guidance.previewBanner"))).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
 
     await toSymptoms(user);
-    expect(screen.getByText(t("guidance.previewBanner"))).toBeInTheDocument();
-  });
-
-  it("shows no banner for the public catalogue", async () => {
-    await start();
-    expect(screen.queryByText(t("guidance.previewBanner"))).toBeNull();
+    expect(
+      screen.getByRole("checkbox", { name: "Главоболка" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
   });
 });
 

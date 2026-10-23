@@ -26,7 +26,6 @@ export default async function FirstAidIndexPage() {
   return (
     <FirstAidIndex
       guides={preview ? FIRST_AID_GUIDES : publishedFirstAidGuides()}
-      preview={preview}
     />
   );
 }

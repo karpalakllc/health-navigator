@@ -46,7 +46,7 @@ describe("/prva-pomos/[slug]", () => {
     );
   });
 
-  it("shows staff the draft with the preview banner and no structured data", async () => {
+  it("shows staff the draft without a draft label and with no structured data", async () => {
     viewerCanPreviewFirstAid.mockResolvedValue(true);
 
     const { container } = render(
@@ -56,9 +56,10 @@ describe("/prva-pomos/[slug]", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: /Оживување/ }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      FIRST_AID_COPY.previewBanner,
-    );
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
     expect(
       container.querySelector('script[type="application/ld+json"]'),
     ).toBeNull();

@@ -471,10 +471,9 @@ export default function DesignSystemPage() {
       <Section id="ds-notice" title="Notice & SectionHeader">
         <div className="grid gap-4 lg:grid-cols-3">
           <Notice>Цените се информативни; проверете со установата.</Notice>
-          <Notice tone="safety">
-            Форумот е за искуства и поддршка, не за медицински совет. Итно?
-            Јавете се на <NoticeTelLink number="194" /> или{" "}
-            <NoticeTelLink number="112" />.
+          <Notice tone="safety" title="Важно — не е дијагноза">
+            Резултат од насоките за симптоми. При медицинска итност повикајте{" "}
+            <NoticeTelLink number="194" /> или <NoticeTelLink number="112" />.
           </Notice>
           <Notice tone="success" title="Испратено">
             Одговорите ги проверува модератор пред да станат видливи.

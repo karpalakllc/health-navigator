@@ -9,7 +9,6 @@ import {
   forumPageClass,
 } from "@/components/forum/forum-layout";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ForumViewChips } from "@/components/forum/forum-view-chips";
 import {
   ForumTopicList,
@@ -141,7 +140,6 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       <ForumColumns
         main={
           <>
-            <ForumSafetyNotice />
             <ForumHubSearch
               defaultQuery={searchQuery}
               defaultCategory={categoryFilter}

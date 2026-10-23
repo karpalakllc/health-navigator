@@ -130,15 +130,16 @@ describe("FirstAidGuideArticle", () => {
     },
   );
 
-  it("marks a draft in staff preview and cites its sources with the access date", () => {
+  it("shows a draft in staff preview with no draft label and cites its sources with the access date", () => {
     render(<FirstAidGuideArticle guide={guide("truenje")} preview />);
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      FIRST_AID_COPY.previewBanner,
-    );
+    expect(screen.queryByRole("status")).toBeNull();
     expect(
-      screen.getAllByText(FIRST_AID_COPY.reviewDraft).length,
-    ).toBeGreaterThan(0);
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
+    expect(
+      screen.queryByText(new RegExp(FIRST_AID_COPY.reviewDone)),
+    ).toBeNull();
     const sources = screen
       .getByRole("heading", { name: FIRST_AID_COPY.sources })
       .closest("section")!;
@@ -152,7 +153,9 @@ describe("FirstAidGuideArticle", () => {
     render(<FirstAidGuideArticle guide={published("truenje")} />);
 
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.queryByText(FIRST_AID_COPY.reviewDraft)).toBeNull();
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
     expect(
       screen.getByText(new RegExp(FIRST_AID_COPY.reviewDone)),
     ).toBeInTheDocument();
@@ -169,10 +172,8 @@ describe("FirstAidGuideArticle", () => {
 });
 
 describe("FirstAidIndex", () => {
-  it("groups every guide by situation for staff, with draft labels", async () => {
-    const { container } = render(
-      <FirstAidIndex guides={FIRST_AID_GUIDES} preview />,
-    );
+  it("groups every guide by situation for staff, without draft labels", async () => {
+    const { container } = render(<FirstAidIndex guides={FIRST_AID_GUIDES} />);
 
     expect(
       screen
@@ -186,21 +187,20 @@ describe("FirstAidIndex", () => {
         }),
       ).toHaveAttribute("href", `/prva-pomos/${item.slug}`);
     }
-    expect(screen.getAllByText(FIRST_AID_COPY.reviewDraft)).toHaveLength(
-      FIRST_AID_GUIDES.length,
-    );
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
-  it("shows the public a calm holding note and the calls while nothing is published", async () => {
+  it("shows the public a calm holding note, no 194/112 banner or disclaimer, while nothing is published", async () => {
     const { container } = render(<FirstAidIndex guides={[]} />);
 
     expect(screen.getByText(FIRST_AID_COPY.emptyIndex)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
-    expect(screen.getByRole("link", { name: /194/ })).toHaveAttribute(
-      "href",
-      "tel:194",
-    );
+    expect(screen.queryByRole("link", { name: /194/ })).toBeNull();
+    expect(screen.queryByText(FIRST_AID_COPY.disclaimer)).toBeNull();
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 
@@ -211,7 +211,9 @@ describe("FirstAidIndex", () => {
     expect(
       screen.getByRole("link", { name: /Изгореници/ }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(FIRST_AID_COPY.reviewDraft)).toBeNull();
+    expect(
+      screen.queryByText(/Нацрт|Преглед за тимот|Преглед на нацрти/),
+    ).toBeNull();
   });
 });
 

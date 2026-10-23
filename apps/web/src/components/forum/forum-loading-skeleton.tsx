@@ -43,7 +43,7 @@ function TwoColumns({
   );
 }
 
-/** Forum home: title, actions, safety note, search, topic rows. */
+/** Forum home: title, actions, search, topic rows. */
 export function ForumListPageSkeleton() {
   return (
     <div className={cn(shell, "gap-6")}>
@@ -54,7 +54,6 @@ export function ForumListPageSkeleton() {
         aside
         main={
           <>
-            <Skeleton className="h-20 w-full rounded-card" />
             <Skeleton className="h-36 w-full rounded-card" />
             <RowsCard rows={5} />
           </>
@@ -87,7 +86,7 @@ export function ForumCategoryPageSkeleton() {
   );
 }
 
-/** Thread: back pill, title, safety note, posts. */
+/** Thread: back pill, title, meta, posts. */
 export function ForumTopicPageSkeleton() {
   return (
     <div className={cn(shell, "gap-6")}>

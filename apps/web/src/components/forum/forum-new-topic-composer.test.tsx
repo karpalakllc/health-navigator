@@ -122,17 +122,11 @@ describe("ForumNewTopicComposer", () => {
     expect(label).toHaveTextContent("194 или 112");
   });
 
-  it("shows the forum safety note with 194/112 before the form", () => {
+  it("shows no 194/112 banner before the form (calm UI)", () => {
     renderComposer();
 
-    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
-      "href",
-      "tel:194",
-    );
-    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
-      "href",
-      "tel:112",
-    );
+    expect(screen.queryByRole("link", { name: "194" })).toBeNull();
+    expect(screen.queryByText(/Итно\?/)).toBeNull();
   });
 
   it("keeps submit disabled until the consent is ticked", async () => {

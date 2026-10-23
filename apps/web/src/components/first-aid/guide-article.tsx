@@ -8,7 +8,6 @@ import { FirstAidIllustration } from "@/components/first-aid/illustrations";
 import { PrintButton } from "@/components/first-aid/print-button";
 import { BackLink } from "@/components/ui/back-link";
 import { Icon } from "@/components/ui/icons";
-import { Tag } from "@/components/ui/tag";
 import { FIRST_AID_COPY as COPY } from "@/content/first-aid/copy";
 import {
   FIRST_AID_ANCHORS as ANCHORS,
@@ -148,7 +147,7 @@ export function FirstAidGuideArticle({
   preview = false,
 }: {
   guide: FirstAidGuide;
-  /** Staff preview of a draft: shows the banner. */
+  /** Staff preview of a draft: related drafts are linked too (no label). */
   preview?: boolean;
 }) {
   const isPublic = isFirstAidGuidePublic(guide);
@@ -168,14 +167,6 @@ export function FirstAidGuideArticle({
     >
       <div className="flex flex-col gap-5 print:hidden">
         <BackLink href={FIRST_AID_BASE} label={COPY.backToIndex} />
-        {preview && !isPublic ? (
-          <p
-            role="status"
-            className={`rounded-[20px] border-2 border-dashed border-ink bg-sand p-4 font-semibold text-ink ${TEXT}`}
-          >
-            {COPY.previewBanner}
-          </p>
-        ) : null}
       </div>
 
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
@@ -183,11 +174,6 @@ export function FirstAidGuideArticle({
           <p className="type-label text-ink-2">{COPY.title}</p>
           <h1 className="type-h1 text-ink">{guide.title}</h1>
           <p className={`${TEXT} font-reading text-ink`}>{guide.summary}</p>
-          {!isPublic ? (
-            <Tag tone="outline" className="self-start">
-              {COPY.reviewDraft}
-            </Tag>
-          ) : null}
         </div>
         <FirstAidIllustration
           id={guide.illustration}
@@ -321,7 +307,7 @@ export function FirstAidGuideArticle({
           <p className={`${TEXT} text-ink-2`}>
             {isPublic && guide.review.reviewedOn
               ? `${COPY.reviewDone}: ${formatMkDate(guide.review.reviewedOn)}${guide.review.reviewer ? ` (${guide.review.reviewer})` : ""}. `
-              : `${COPY.reviewDraft}. `}
+              : null}
             {COPY.updated}: {formatMkDate(guide.updated)}.
           </p>
         </Section>

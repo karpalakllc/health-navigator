@@ -1,30 +1,23 @@
 import Link from "next/link";
-import { FirstAidCallLinks } from "@/components/first-aid/call-links";
 import { FirstAidIllustration } from "@/components/first-aid/illustrations";
 import { Icon } from "@/components/ui/icons";
-import { Tag } from "@/components/ui/tag";
 import { FIRST_AID_COPY as COPY } from "@/content/first-aid/copy";
-import {
-  FIRST_AID_BASE,
-  FIRST_AID_GROUPS,
-  isFirstAidGuidePublic,
-} from "@/content/first-aid";
+import { FIRST_AID_BASE, FIRST_AID_GROUPS } from "@/content/first-aid";
 import type { FirstAidGuide } from "@/content/first-aid/types";
 
 const TEXT =
   "text-[1.125rem] leading-7 lg:text-[1.1875rem] lg:leading-[1.875rem]";
 
 /**
- * „Прва помош“ index: the 194/112 calls first, then the guides grouped by
- * situation. `guides` is what the viewer may see — published ones for the
- * public, every guide for staff in preview.
+ * „Прва помош“ index: a calm lead, then the guides grouped by situation (each
+ * guide carries its own „Прво повикајте 194“ / when to call). `guides` is what
+ * the viewer may see — published ones for the public, every guide for staff in
+ * preview, with no draft labels either way.
  */
 export function FirstAidIndex({
   guides,
-  preview = false,
 }: {
   guides: readonly FirstAidGuide[];
-  preview?: boolean;
 }) {
   const groups = FIRST_AID_GROUPS.map((group) => ({
     ...group,
@@ -39,15 +32,6 @@ export function FirstAidIndex({
       <div className="flex flex-col gap-5">
         <h1 className="type-h1 text-ink">{COPY.title}</h1>
         <p className={`measure font-reading text-ink ${TEXT}`}>{COPY.intro}</p>
-        <FirstAidCallLinks />
-        {preview ? (
-          <p
-            role="status"
-            className={`rounded-[20px] border-2 border-dashed border-ink bg-sand p-4 font-semibold text-ink ${TEXT}`}
-          >
-            {COPY.previewIndexBanner}
-          </p>
-        ) : null}
       </div>
 
       {groups.length === 0 ? (
@@ -82,14 +66,6 @@ export function FirstAidIndex({
                       <span className="font-reading text-[1.125rem] leading-7 text-ink-2">
                         {guide.summary}
                       </span>
-                      {!isFirstAidGuidePublic(guide) ? (
-                        <Tag
-                          tone="outline"
-                          className="mt-1 h-auto max-w-full self-start whitespace-normal py-1"
-                        >
-                          {COPY.reviewDraft}
-                        </Tag>
-                      ) : null}
                     </span>
                     <Icon
                       name="chevron-right"
@@ -103,8 +79,6 @@ export function FirstAidIndex({
           </section>
         ))
       )}
-
-      <p className={`measure text-ink-2 ${TEXT}`}>{COPY.disclaimer}</p>
     </div>
   );
 }

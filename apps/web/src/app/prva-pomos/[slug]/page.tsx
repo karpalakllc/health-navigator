@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * One guide. Public once published and clinician-reviewed; until then a
- * plain 404 for everyone but staff, who get the draft with a preview banner.
+ * plain 404 for everyone but staff, who see the draft (no draft label).
  */
 export default async function FirstAidGuidePage({ params }: Props) {
   const { slug } = await params;

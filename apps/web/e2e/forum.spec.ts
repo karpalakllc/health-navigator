@@ -8,6 +8,22 @@ import { attemptUser, forum, uniqueSuffix } from "./support/fixtures";
  * members need moderation, replies publish immediately.
  */
 test.describe("forum", () => {
+  test("the forum home has no 194/112 banner or disclaimer", async ({
+    page,
+  }) => {
+    await page.goto("/forum");
+    await expect(
+      page.getByRole("heading", { level: 1, name: mk.forum.title }),
+    ).toBeVisible();
+    await expect(page.getByText(mk.forum.description)).toBeVisible();
+
+    await expect(page.locator("main a[href='tel:194']")).toHaveCount(0);
+    await expect(page.getByText(/не за медицински совет/)).toHaveCount(0);
+    await expect(page.getByText(/Не заменува професионална нега/)).toHaveCount(
+      0,
+    );
+  });
+
   test("a member's new topic waits for moderation and stays off the public list", async ({
     page,
     browser,

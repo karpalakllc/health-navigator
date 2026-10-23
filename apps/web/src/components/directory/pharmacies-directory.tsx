@@ -54,11 +54,7 @@ export function PharmaciesDirectory({
         placeholder: t("pharmacies.namePlaceholder"),
       }}
       activeFilters={activeFilters}
-      aboutData={[
-        t("pharmacies.trustPricesInfo"),
-        t("pharmacies.trustModeratedInfo"),
-        t("home.trustLocal"),
-      ]}
+      aboutData={[t("pharmacies.trustPricesInfo"), t("home.trustLocal")]}
       renderFields={({ values, set }, place) => (
         <>
           {place === "rail" ? (

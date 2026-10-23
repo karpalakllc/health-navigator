@@ -105,6 +105,9 @@ Do **not** use in user-facing or outcome copy:
 1. **Pre-start:** User must confirm understanding that content is informational, not medical advice, and not for delaying emergency care.
 2. **Every step:** Compact emergency line (194 / 112, both `tel:` links) visible.
 3. **Emergency shortcut:** “I need emergency help now” available during the flow → terminal emergency screen.
+   Items 2–3 apply from the first question step on: the intro (hero) stays calm — title, lead, anonymity and the
+   pre-start consent, no red button, 194/112 line or extra disclaimer box (owner decision 2026-10-23). The local
+   draft preview (`TRIAGE_PREVIEW_DRAFTS`) shows no visible pill.
 4. **Red flags:** Any selected red flag **short-circuits**; user must not return to the normal questionnaire without starting a new session.
 5. **Results:** Repeat non-diagnostic framing; no disease-specific titles in v1.
 

@@ -1,7 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ForumPostCard } from "@/components/forum/forum-post-card";
-import { ForumSafetyNotice } from "@/components/forum/forum-safety-notice";
 import { ModerationStatusTag } from "@/components/account/moderation-status-tag";
 import { ForumTopicList } from "@/components/forum/forum-topic-row";
 import type { ForumAuthor, ForumPost } from "@/lib/api/forum";
@@ -29,30 +28,6 @@ function post(
     published_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
   };
 }
-
-describe("ForumSafetyNotice", () => {
-  it("says support, not advice, with 194 and 112 as tel: links", () => {
-    render(<ForumSafetyNotice />);
-
-    expect(screen.getByText(/не за медицински совет/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "194" })).toHaveAttribute(
-      "href",
-      "tel:194",
-    );
-    expect(screen.getByRole("link", { name: "112" })).toHaveAttribute(
-      "href",
-      "tel:112",
-    );
-  });
-
-  it("is never an emergency-red surface", () => {
-    const { container } = render(<ForumSafetyNotice />);
-
-    const markup = container.innerHTML;
-    expect(markup).not.toMatch(/emergency|destructive|bg-red|text-red/);
-    expect(container.firstElementChild).toHaveClass("bg-chip-tint");
-  });
-});
 
 describe("ForumTopicList", () => {
   const topics = [

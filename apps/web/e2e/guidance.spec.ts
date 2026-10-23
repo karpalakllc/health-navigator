@@ -36,6 +36,23 @@ async function toScreen(page: Page) {
 }
 
 test.describe("symptom guidance", () => {
+  test("the intro is calm: no urgent-help button, 194/112 line or draft pill", async ({
+    page,
+  }) => {
+    await page.goto("/guidance");
+    await expect(
+      page.getByRole("heading", { level: 1, name: mk.guidance.title }),
+    ).toBeVisible();
+    await expect(page.getByText(mk.guidance.introAnonymous)).toBeVisible();
+
+    await expect(
+      page.getByRole("button", { name: mk.guidance.emergencyNow }),
+    ).toHaveCount(0);
+    await expect(page.locator("main a[href='tel:194']")).toHaveCount(0);
+    await expect(page.getByText(/Не е медицински совет\./)).toHaveCount(0);
+    await expect(page.getByText(/Преглед на нацрти/)).toHaveCount(0);
+  });
+
   test("a red-flag answer goes straight to the emergency screen", async ({
     page,
   }) => {

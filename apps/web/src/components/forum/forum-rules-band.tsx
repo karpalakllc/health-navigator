@@ -31,7 +31,6 @@ export function forumRules(settings?: RulesSettings): string[] {
         t("forum.rulesRespect"),
         t("forum.rulesNoDiagnosis"),
         t("forum.rulesModeration"),
-        t("forum.rulesEmergency"),
       ];
 }
 

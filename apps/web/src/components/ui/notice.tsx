@@ -3,7 +3,7 @@ import { Icon, type IconName } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 
 /*
- * Inline notes. None of them is red: the forum/guidance safety note is the
+ * Inline notes. None of them is red: the guidance safety note is the
  * soft chip-tint surface with ink text, and its 194/112 are bold ink tel:
  * links (use <NoticeTelLink>), so it never competes with the red 194/112 calls
  * of the guidance emergency view.
@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 const TONES = {
   /** General information, e.g. „Цените се информативни…“. */
   info: { box: "bg-sand", icon: "info" },
-  /** Safety: „Форумот е за искуства… Итно? 194 или 112.“ */
+  /** Safety: the guidance „Важно — не е дијагноза“ note on results. */
   safety: { box: "bg-chip-tint", icon: "info" },
   /** Confirmation („Рецензијата е испратена…“). */
   success: { box: "bg-care-tint", icon: "check" },

@@ -34,10 +34,11 @@ goes through the normal review/merge.
 While unpublished:
 
 - the public gets a **404** on `/prva-pomos/{slug}`; the index shows a calm
-  holding note with the 194/112 calls and is `noindex`;
+  holding note (no 194/112 buttons or disclaimer in the index chrome — each
+  guide carries its own „Прво повикајте 194“ / when to call) and is `noindex`;
 - **staff** (API account role `admin` or `moderator`, signed in on the web) see
-  every guide with a dashed „Преглед за тимот“ banner and the draft label —
-  this is the staff preview; pages are `noindex`, no JSON-LD;
+  every guide — this is the staff preview; no banner or draft label is shown
+  (owner decision 2026-10-23); pages are `noindex`, no JSON-LD;
 - nothing is linked: no footer link, no sitemap entry, `firstAidHref()` returns
   `null`, related-guide links to drafts are hidden from the public.
 

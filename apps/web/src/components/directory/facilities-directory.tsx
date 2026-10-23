@@ -89,11 +89,7 @@ export function FacilitiesDirectory({
           label: t("verification.filterLabel"),
         },
       ]}
-      aboutData={[
-        t("facilities.trustRatingsInfo"),
-        t("facilities.trustModeratedInfo"),
-        t("home.trustLocal"),
-      ]}
+      aboutData={[t("facilities.trustRatingsInfo"), t("home.trustLocal")]}
       renderFields={({ values, set }, place) => (
         <>
           {place === "rail" ? (

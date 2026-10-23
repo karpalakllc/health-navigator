@@ -43,7 +43,6 @@ import {
   type GuidanceNode,
   type GuidanceState,
 } from "@/lib/api/guidance-v2";
-import { cn } from "@/lib/cn";
 import { recordFunnelStep } from "@/lib/feedback";
 import { funnelStepsFor } from "@/lib/guidance/next-steps";
 import {
@@ -75,7 +74,8 @@ type QuestionState = Extract<GuidanceState, { stage: "question" }>;
  * Symptom guidance v2: intro → who → symptoms (search / body map, up to 3) →
  * one red-flag screen → questions, most urgent symptom first → one result.
  *
- * The urgent-help button and the compact 194/112 line are on every step; any
+ * The urgent-help button and the compact 194/112 line are on every step after
+ * the intro (the intro stays calm: title, lead, anonymity, the consent); any
  * path to an emergency shows the tap-to-call links at once, before and
  * regardless of the API (docs/triage-safety.md).
  */
@@ -585,25 +585,14 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
 
   // ------------------------------------------------------------- render
 
-  const pageTitle = (
-    <>
-      {catalog.preview ? (
-        <p
-          role="note"
-          className="rounded-card bg-sand px-4 py-3 type-body font-semibold text-ink"
-        >
-          {t("guidance.previewBanner")}
-        </p>
-      ) : null}
-      {phase === "intro" ? (
-        <h1 ref={headingRef} tabIndex={-1} className="type-h1 text-ink">
-          {t("guidance.title")}
-        </h1>
-      ) : (
-        <h1 className="sr-only">{t("guidance.title")}</h1>
-      )}
-    </>
-  );
+  const pageTitle =
+    phase === "intro" ? (
+      <h1 ref={headingRef} tabIndex={-1} className="type-h1 text-ink">
+        {t("guidance.title")}
+      </h1>
+    ) : (
+      <h1 className="sr-only">{t("guidance.title")}</h1>
+    );
 
   if (phase === "intro") {
     return (
@@ -626,16 +615,6 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
             {t("guidance.introAnonymous")}
           </p>
         </section>
-
-        <div className="flex flex-col items-start gap-3">
-          <EmergencyShortcutButton
-            onEmergency={handleEmergencyNow}
-            className="w-full lg:w-auto"
-          />
-          <GuidanceSafetyNotice compact />
-        </div>
-
-        <GuidanceSafetyNotice withoutEmergencyLine />
 
         <div className="flex flex-col gap-3">
           <Card padding="md">
@@ -889,35 +868,24 @@ function StepTopBar({
       >
         {t("common.back")}
       </Button>
-      <EmergencyShortcutButton onEmergency={onEmergency} size="md" />
+      <EmergencyShortcutButton onEmergency={onEmergency} />
     </div>
   );
 }
 
 /**
- * „Потребна ми е итна помош“, in the emergency treatment, on the intro and on
- * every step. Never disabled — not even while an answer is saving; the
- * generation guard keeps that late answer from replacing the emergency screen.
+ * „Потребна ми е итна помош“, in the emergency treatment, on every step of the
+ * flow (not on the intro: the owner keeps the hero calm). Never disabled — not
+ * even while an answer is saving; the generation guard keeps that late answer
+ * from replacing the emergency screen.
  */
-function EmergencyShortcutButton({
-  onEmergency,
-  size = "lg",
-  className,
-}: {
-  onEmergency: () => void;
-  size?: "md" | "lg";
-  className?: string;
-}) {
+function EmergencyShortcutButton({ onEmergency }: { onEmergency: () => void }) {
   return (
     <Button
-      size={size}
+      size="md"
       leadingIcon="alert-triangle"
       onClick={onEmergency}
-      className={cn(
-        "border-2 border-ink bg-emergency text-white hover:bg-emergency-hover",
-        size === "md" && "px-4",
-        className,
-      )}
+      className="border-2 border-ink bg-emergency px-4 text-white hover:bg-emergency-hover"
     >
       {t("guidance.emergencyNow")}
     </Button>
