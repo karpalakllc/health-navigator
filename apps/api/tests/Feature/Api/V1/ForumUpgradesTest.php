@@ -344,4 +344,17 @@ class ForumUpgradesTest extends TestCase
 
         $this->getJson($this->url())->assertJsonPath('data.topic.profile_cards', []);
     }
+
+    public function test_markdown_links_and_images_in_a_reply_stay_out_of_the_follower_email(): void
+    {
+        $html = (new ForumReplyMail(
+            recipientName: 'Ана',
+            topicTitle: 'Тема',
+            replyExcerpt: 'Кликни ![x](https://evil.example/p.png) [тука](https://evil.example)',
+            actionUrl: 'https://ci.invalid/forum/a/b',
+        ))->render();
+
+        $this->assertStringNotContainsString('<img src="https://evil.example', $html);
+        $this->assertStringNotContainsString('href="https://evil.example', $html);
+    }
 }

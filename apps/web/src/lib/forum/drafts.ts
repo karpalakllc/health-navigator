@@ -143,3 +143,14 @@ export function clearDraft(
 ): void {
   saveDraft(scope, {}, storage, now);
 }
+
+/** Every unsent forum text on this device (sign-out on a shared browser). */
+export function clearAllDrafts(
+  storage: StorageLike | null = defaultStorage(),
+): void {
+  try {
+    storage?.removeItem(DRAFTS_KEY);
+  } catch {
+    // Blocked storage: nothing was kept.
+  }
+}

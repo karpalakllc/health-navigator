@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icons";
+import { clearAllDrafts } from "@/lib/forum/drafts";
+import { clearSeenTopics } from "@/lib/forum/seen-topics";
 import { clearReviewDraft } from "@/lib/review-growth";
 import { t } from "@/i18n/t";
 
@@ -41,6 +43,9 @@ export function LogoutButton({
       // A review draft kept across sign-in (localStorage) must not greet the
       // next person on a shared browser.
       clearReviewDraft();
+      // Likewise unsent forum text and the „Ново“ reading marks.
+      clearAllDrafts();
+      clearSeenTopics();
       onLoggedOut?.();
 
       if (isProtectedPath(pathname)) {

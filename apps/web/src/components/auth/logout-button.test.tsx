@@ -55,6 +55,22 @@ describe("LogoutButton", () => {
     expect(router.refresh).toHaveBeenCalled();
   });
 
+  it("clears unsent forum drafts and reading marks once signed out", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+    window.localStorage.setItem("z360:forum-drafts:v1", "{}");
+    window.localStorage.setItem("z360:forum-seen:v1", "{}");
+    const user = userEvent.setup();
+    render(<LogoutButton />);
+
+    await user.click(screen.getByRole("button", { name: t("nav.logout") }));
+
+    expect(window.localStorage.getItem("z360:forum-drafts:v1")).toBeNull();
+    expect(window.localStorage.getItem("z360:forum-seen:v1")).toBeNull();
+  });
+
   it("keeps the draft when the sign-out fails (still signed in)", async () => {
     vi.stubGlobal(
       "fetch",

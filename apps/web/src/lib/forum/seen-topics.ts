@@ -136,3 +136,14 @@ export function markTopicSeen(
     // Not kept: nothing is marked new next time.
   }
 }
+
+/** Forgets which topics this browser opened (sign-out on a shared browser). */
+export function clearSeenTopics(
+  storage: StorageLike | null = defaultStorage(),
+): void {
+  try {
+    storage?.removeItem(SEEN_TOPICS_KEY);
+  } catch {
+    // Blocked storage: nothing was kept.
+  }
+}
