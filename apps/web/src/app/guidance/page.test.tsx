@@ -43,7 +43,7 @@ describe("/guidance", () => {
     expect(screen.getByText(t("guidance.introAnonymous"))).toBeInTheDocument();
 
     expect(
-      screen.queryByRole("button", { name: t("guidance.emergencyNow") }),
+      screen.queryByRole("button", { name: "Потребна ми е итна помош" }),
     ).toBeNull();
     expect(screen.queryByText(/Итно\? Повикајте/)).toBeNull();
     expect(screen.queryByRole("link", { name: "194" })).toBeNull();

@@ -61,10 +61,6 @@ export default function GuidesIndex() {
           </Link>
         </li>
       </ul>
-
-      <p className="measure type-meta text-ink-2">
-        {t("guides.informational")}
-      </p>
     </div>
   );
 }

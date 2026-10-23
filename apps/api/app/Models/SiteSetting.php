@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Cache;
 
 class SiteSetting extends Model
 {
-    public const DEFAULT_FOOTER_EMERGENCY = 'При медицинска итност повикајте 194 или 112 веднаш.';
+    /**
+     * The footer's 194/112 line used to default to this. Since 2026-10-23 it is
+     * empty by default (owner: no generic emergency copy); kept only so the
+     * migration can clear rows that still hold this untouched default.
+     */
+    public const LEGACY_FOOTER_EMERGENCY = 'При медицинска итност повикајте 194 или 112 веднаш.';
 
     public const DEFAULT_FOOTER_DISCLAIMER = 'Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоките за симптоми се само информативни.';
 
@@ -156,7 +161,7 @@ class SiteSetting extends Model
             'public_products' => false,
             'public_pharmacies' => false,
             'public_forum' => true,
-            'footer_emergency_text' => self::DEFAULT_FOOTER_EMERGENCY,
+            'footer_emergency_text' => null,
             'footer_disclaimer_text' => self::DEFAULT_FOOTER_DISCLAIMER,
             'copyright_name' => 'Zdravje360',
             'profile_avatar_min_messages' => 10,
@@ -209,7 +214,8 @@ class SiteSetting extends Model
             'placeholder_doctor_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_doctor_path)),
             'placeholder_facility_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_facility_path)),
             'placeholder_pharmacy_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_pharmacy_path)),
-            'footer_emergency_text' => $this->footer_emergency_text ?: self::DEFAULT_FOOTER_EMERGENCY,
+            // Optional: empty unless the admin writes a line (then the web shows it).
+            'footer_emergency_text' => trim((string) $this->footer_emergency_text),
             'footer_disclaimer_text' => $this->footer_disclaimer_text ?: self::DEFAULT_FOOTER_DISCLAIMER,
             'copyright_name' => $this->copyright_name ?: 'Zdravje360',
             'profile_avatar_min_messages' => $this->profile_avatar_min_messages ?? 10,

@@ -149,6 +149,16 @@ describe("FirstAidGuideArticle", () => {
     expect(sources).toHaveTextContent("пристапено 7 октомври 2026");
   });
 
+  it("ends a guide with no generic disclaimer block", () => {
+    render(<FirstAidGuideArticle guide={published("truenje")} />);
+
+    expect(screen.queryByText(/не замена за обука/)).toBeNull();
+    // The guide's own call content stays.
+    expect(screen.getAllByRole("link", { name: /194/ }).length).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("shows the clinician sign-off, not the draft label, once published", () => {
     render(<FirstAidGuideArticle guide={published("truenje")} />);
 
@@ -200,7 +210,7 @@ describe("FirstAidIndex", () => {
     expect(screen.getByText(FIRST_AID_COPY.emptyIndex)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
     expect(screen.queryByRole("link", { name: /194/ })).toBeNull();
-    expect(screen.queryByText(FIRST_AID_COPY.disclaimer)).toBeNull();
+    expect(screen.queryByText(/не замена за обука/)).toBeNull();
     expect(await seriousA11yViolations(container)).toEqual([]);
   });
 

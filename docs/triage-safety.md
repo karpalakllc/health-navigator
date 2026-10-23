@@ -103,11 +103,14 @@ Do **not** use in user-facing or outcome copy:
 ## Mandatory disclaimers and gates
 
 1. **Pre-start:** User must confirm understanding that content is informational, not medical advice, and not for delaying emergency care.
-2. **Every step:** Compact emergency line (194 / 112, both `tel:` links) visible.
-3. **Emergency shortcut:** “I need emergency help now” available during the flow → terminal emergency screen.
-   Items 2–3 apply from the first question step on: the intro (hero) stays calm — title, lead, anonymity and the
-   pre-start consent, no red button, 194/112 line or extra disclaimer box (owner decision 2026-10-23). The local
-   draft preview (`TRIAGE_PREVIEW_DRAFTS`) shows no visible pill.
+2. **No standing emergency line** (owner decision 2026-10-23, replacing „compact 194/112 line on every step“):
+   neither the intro nor the steps carry a generic „Итно? 194 / 112“ line — someone in danger does not use a
+   symptom website. 194/112 (`tel:` links) appear where the content calls for them: the red-flag emergency
+   screen, emergency and crisis outcomes, outcome safety-netting, and the catalogue-load-failure fallback.
+3. **No emergency shortcut button** (owner decision 2026-10-23, replacing „I need emergency help now“ on every
+   step): the emergency path is content-driven — a ticked red flag (item 4) goes to the terminal emergency
+   screen at once, before and regardless of the API. The intro stays calm (title, lead, anonymity, the
+   pre-start consent); the local draft preview (`TRIAGE_PREVIEW_DRAFTS`) shows no visible pill.
 4. **Red flags:** Any selected red flag **short-circuits**; user must not return to the normal questionnaire without starting a new session.
 5. **Results:** Repeat non-diagnostic framing; no disease-specific titles in v1.
 

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EmergencyCard } from "@/components/guidance/emergency-card";
 import { GuidanceResult } from "@/components/guidance/guidance-result";
-import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import {
   DemographicsStep,
   EMPTY_DEMOGRAPHICS,
@@ -32,7 +31,6 @@ import {
   answerQuestion,
   answerScreen,
   chooseSymptoms,
-  emergencyShortcut,
   fetchState,
   noMatch,
   saveDemographics,
@@ -74,10 +72,11 @@ type QuestionState = Extract<GuidanceState, { stage: "question" }>;
  * Symptom guidance v2: intro → who → symptoms (search / body map, up to 3) →
  * one red-flag screen → questions, most urgent symptom first → one result.
  *
- * The urgent-help button and the compact 194/112 line are on every step after
- * the intro (the intro stays calm: title, lead, anonymity, the consent); any
- * path to an emergency shows the tap-to-call links at once, before and
- * regardless of the API (docs/triage-safety.md).
+ * No generic emergency chrome (owner decision 2026-10-23): no urgent-help
+ * button or standing 194/112 line on the intro or the steps. Emergencies are
+ * content-driven — a ticked red flag shows the tap-to-call links at once,
+ * before and regardless of the API, and emergency outcomes carry them
+ * (docs/triage-safety.md).
  */
 export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -103,7 +102,6 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emergencySaving, setEmergencySaving] = useState(false);
-  const [emergencyFromShortcut, setEmergencyFromShortcut] = useState(false);
   // The self-harm flag was ticked: until the API answers (or if it fails) the
   // interim card uses the crisis wording, not the generic emergency one.
   const [emergencyIsCrisis, setEmergencyIsCrisis] = useState(false);
@@ -302,12 +300,6 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
     }
   }
 
-  async function handleEmergencyNow() {
-    setEmergencyFromShortcut(true);
-    setEmergencyIsCrisis(false);
-    await enterEmergency(emergencyShortcut);
-  }
-
   // ------------------------------------------------------------- stepping
 
   /**
@@ -464,7 +456,6 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
 
   async function handleScreen() {
     if (ticked.length > 0) {
-      setEmergencyFromShortcut(false);
       setEmergencyIsCrisis(ticked.includes(SELF_HARM_FLAG));
       await enterEmergency((current) => answerScreen(current, ticked));
 
@@ -578,7 +569,6 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
     setError(null);
     setLoading(false);
     setEmergencySaving(false);
-    setEmergencyFromShortcut(false);
     setFinishedAt(null);
     setPhase("intro");
   }
@@ -656,9 +646,7 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
           body={
             emergencyIsCrisis
               ? t("guidance.emergencyCrisisBody")
-              : emergencyFromShortcut
-                ? t("guidance.emergencyShortcutBody")
-                : t("guidance.emergencyDelay")
+              : t("guidance.emergencyDelay")
           }
           headingRef={headingRef}
         >
@@ -807,14 +795,9 @@ export function GuidanceGuide({ catalog, pharmaciesOn = false }: Props) {
   return (
     <div data-guidance-step className="flex flex-col gap-6">
       {pageTitle}
-      <StepTopBar
-        onBack={handleBack}
-        backDisabled={loading}
-        onEmergency={handleEmergencyNow}
-      />
+      <StepTopBar onBack={handleBack} backDisabled={loading} />
       {body}
       {error ? <FormError>{error}</FormError> : null}
-      <GuidanceSafetyNotice compact />
       <StickyContinue>
         <Button
           size="lg"
@@ -847,15 +830,13 @@ function StickyContinue({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Back (top left) and the emergency shortcut, on every step. */
+/** Back (top left), on every step. */
 function StepTopBar({
   onBack,
   backDisabled,
-  onEmergency,
 }: {
   onBack: () => void;
   backDisabled: boolean;
-  onEmergency: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -868,26 +849,6 @@ function StepTopBar({
       >
         {t("common.back")}
       </Button>
-      <EmergencyShortcutButton onEmergency={onEmergency} />
     </div>
-  );
-}
-
-/**
- * „Потребна ми е итна помош“, in the emergency treatment, on every step of the
- * flow (not on the intro: the owner keeps the hero calm). Never disabled — not
- * even while an answer is saving; the generation guard keeps that late answer
- * from replacing the emergency screen.
- */
-function EmergencyShortcutButton({ onEmergency }: { onEmergency: () => void }) {
-  return (
-    <Button
-      size="md"
-      leadingIcon="alert-triangle"
-      onClick={onEmergency}
-      className="border-2 border-ink bg-emergency px-4 text-white hover:bg-emergency-hover"
-    >
-      {t("guidance.emergencyNow")}
-    </Button>
   );
 }

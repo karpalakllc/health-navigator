@@ -97,7 +97,8 @@ class ManageSiteSettings extends Page implements HasSchemas
                 Section::make('Footer copy')
                     ->schema([
                         Textarea::make('footer_emergency_text')
-                            ->label('Emergency strip')
+                            ->label('Emergency line (optional)')
+                            ->helperText('Empty by default: the footer then shows no emergency line.')
                             ->rows(2)
                             ->columnSpanFull(),
                         Textarea::make('footer_disclaimer_text')

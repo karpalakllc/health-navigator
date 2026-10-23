@@ -296,7 +296,6 @@ export function FirstAidGuideArticle({
       ) : null}
 
       <footer className="flex flex-col gap-6 border-t border-line pt-8">
-        <p className={`${TEXT} text-ink`}>{COPY.disclaimer}</p>
         <div className="flex flex-col gap-3 print:hidden">
           <p className={`${TEXT} text-ink-2`}>{COPY.printHint}</p>
           <PrintButton />

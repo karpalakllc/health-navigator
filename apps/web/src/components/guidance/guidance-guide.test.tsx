@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidanceGuide } from "@/components/guidance/guidance-guide";
@@ -18,7 +18,6 @@ const api = vi.hoisted(() => ({
   chooseSymptoms: vi.fn(),
   answerScreen: vi.fn(),
   answerQuestion: vi.fn(),
-  emergencyShortcut: vi.fn(),
   noMatch: vi.fn(),
 }));
 
@@ -212,7 +211,6 @@ beforeEach(() => {
   api.saveDemographics.mockResolvedValue(symptomsState);
   api.chooseSymptoms.mockResolvedValue(screenState);
   api.answerScreen.mockResolvedValue(q1);
-  api.emergencyShortcut.mockResolvedValue(result(emergencyOutcome, "shortcut"));
 });
 
 function callLinks() {
@@ -243,6 +241,22 @@ async function toSymptoms(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole("heading", { name: t("guidance.symptomsTitle") });
 }
 
+async function toRedFlag(
+  user: ReturnType<typeof userEvent.setup>,
+  flag: string,
+) {
+  await toSymptoms(user);
+  await user.click(screen.getByRole("checkbox", { name: "Главоболка" }));
+  await user.click(
+    screen.getByRole("button", { name: t("guidance.continue") }),
+  );
+  await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
+  await user.click(screen.getByRole("checkbox", { name: flag }));
+  await user.click(
+    screen.getByRole("button", { name: t("guidance.continue") }),
+  );
+}
+
 async function toQuestion(user: ReturnType<typeof userEvent.setup>) {
   await toSymptoms(user);
   await user.click(screen.getByRole("checkbox", { name: "Главоболка" }));
@@ -257,13 +271,10 @@ async function toQuestion(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("GuidanceGuide emergency path", () => {
-  it("shows the 194/112 tel links at once, before the API answers", async () => {
-    api.emergencyShortcut.mockReturnValue(new Promise(() => {}));
+  it("shows the 194/112 tel links at once after a red flag, before the API answers", async () => {
+    api.answerScreen.mockReturnValue(new Promise(() => {}));
     const user = await start();
-
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
-    );
+    await toRedFlag(user, "Силна болка во градите");
 
     expect(
       await screen.findByRole("heading", {
@@ -273,34 +284,6 @@ describe("GuidanceGuide emergency path", () => {
     const [l194, l112] = callLinks();
     expect(l194).toHaveAttribute("href", "tel:194");
     expect(l112).toHaveAttribute("href", "tel:112");
-  });
-
-  it("keeps the call links when the emergency cannot be recorded", async () => {
-    const user = await start();
-    api.emergencyShortcut.mockRejectedValue(new TypeError("Failed to fetch"));
-
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
-    );
-
-    expect(await screen.findByText("Failed to fetch")).toBeInTheDocument();
-    expect(callLinks()).toHaveLength(2);
-  });
-
-  it("ends in the emergency outcome with neutral copy after the urgent-help button", async () => {
-    const user = await start();
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: emergencyOutcome.title }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(t("guidance.emergencyShortcutBody")),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(emergencyOutcome.summary)).toBeNull();
-    expect(callLinks()).toHaveLength(2);
   });
 
   it("goes straight to the emergency screen when a red flag is ticked", async () => {
@@ -396,40 +379,8 @@ describe("GuidanceGuide emergency path", () => {
         name: t("guidance.emergencyInterimTitle"),
       }),
     ).toBeInTheDocument();
-  });
-
-  it("keeps the emergency screen when an earlier answer lands after the shortcut", async () => {
-    let finishScreen: (s: GuidanceState) => void = () => {};
-    api.answerScreen.mockReturnValue(
-      new Promise((resolve) => (finishScreen = resolve)),
-    );
-    const user = await start();
-    await toSymptoms(user);
-    await user.click(screen.getByRole("checkbox", { name: "Главоболка" }));
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.continue") }),
-    );
-    await screen.findByRole("heading", { name: t("guidance.safetyCheck") });
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.continue") }),
-    );
-
-    // Saving: the urgent-help button stays enabled.
-    const urgent = screen.getByRole("button", {
-      name: t("guidance.emergencyNow"),
-    });
-    expect(urgent).toBeEnabled();
-    await user.click(urgent);
-    await screen.findByRole("heading", { name: emergencyOutcome.title });
-
-    await act(async () => finishScreen(q1));
-
-    expect(
-      screen.queryByRole("heading", { name: "Колку дена ве боли главата?" }),
-    ).toBeNull();
-    expect(
-      screen.getByRole("heading", { name: emergencyOutcome.title }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Failed to fetch")).toBeInTheDocument();
+    expect(callLinks()).toHaveLength(2);
   });
 });
 
@@ -447,7 +398,7 @@ describe("GuidanceGuide intro", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.queryByRole("button", { name: t("guidance.emergencyNow") }),
+      screen.queryByRole("button", { name: "Потребна ми е итна помош" }),
     ).toBeNull();
     expect(
       document.querySelector("[data-guidance-compact-emergency]"),
@@ -461,23 +412,16 @@ describe("GuidanceGuide intro", () => {
 });
 
 describe("GuidanceGuide steps", () => {
-  it("carries the compact 194/112 tel line and the urgent-help button on every step", async () => {
+  it("carries no urgent-help button or standing 194/112 line on the steps", async () => {
     const user = await start();
     const check = () => {
-      const line = document.querySelector(
-        "[data-guidance-compact-emergency]",
-      ) as HTMLElement;
-      expect(within(line).getByRole("link", { name: "194" })).toHaveAttribute(
-        "href",
-        "tel:194",
-      );
-      expect(within(line).getByRole("link", { name: "112" })).toHaveAttribute(
-        "href",
-        "tel:112",
-      );
       expect(
-        screen.getByRole("button", { name: t("guidance.emergencyNow") }),
-      ).toBeInTheDocument();
+        document.querySelector("[data-guidance-compact-emergency]"),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Потребна ми е итна помош" }),
+      ).toBeNull();
+      expect(screen.queryByRole("link", { name: "194" })).toBeNull();
     };
 
     check();
@@ -647,10 +591,9 @@ describe("GuidanceGuide next steps", () => {
 
   it("sends an emergency to „Каде веднаш“ emergency departments and asks if it helped", async () => {
     window.sessionStorage.setItem("guidance_city", "Битола");
+    api.answerScreen.mockResolvedValue(result(emergencyOutcome, "red_flag"));
     const user = await start();
-    await user.click(
-      screen.getByRole("button", { name: t("guidance.emergencyNow") }),
-    );
+    await toRedFlag(user, "Силна болка во градите");
 
     expect(
       await screen.findByRole("link", {

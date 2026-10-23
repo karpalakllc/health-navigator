@@ -18,11 +18,16 @@ const linkClass =
   "inline-flex min-h-12 items-center text-[1.0625rem] leading-[1.375rem] text-ink no-underline hover:underline hover:decoration-coral hover:decoration-2 hover:underline-offset-4 lg:min-h-10";
 
 /**
- * The admin's 194/112 sentence with each emergency number as a tap-to-call
- * link inside it: same quiet line, underlined like any inline text link, no
- * buttons. Other text (and any other number) stays as written.
+ * The admin's optional footer line (empty by default: nothing is rendered),
+ * with any 194/112 in it as a tap-to-call link: same quiet line, underlined
+ * like any inline text link, no buttons. Other text (and any other number)
+ * stays as written.
  */
-export function EmergencyLine({ text }: { text: string }) {
+export function EmergencyLine({ text }: { text: string | null | undefined }) {
+  if (!text?.trim()) {
+    return null;
+  }
+
   return (
     <p>
       {text.split(/(?<!\d)(194|112)(?!\d)/).map((part, index) =>
@@ -58,9 +63,9 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
 /**
  * Sand footer with 28px top corners. Mobile: logo, a 2-column link grid
  * (48px rows), then the bottom lines. Desktop: a 12-column grid (5 brand +
- * 3 link columns) and a ruled bottom line. The bottom line carries the site's
- * only standing safety copy: ONE quiet 194/112 sentence and ONE disclaimer
- * (both admin-editable settings), in ink-2 — no red box, no repeats. The sand
+ * 3 link columns) and a ruled bottom line. The bottom line carries the
+ * admin-editable footer copy in ink-2 — no red box, no repeats; the optional
+ * emergency line is empty (not rendered) by default. The sand
  * runs down behind the mobile tab bar (bottom padding = --tabbar-space).
  */
 export function SiteFooterContent({ settings }: { settings: PublicSettings }) {

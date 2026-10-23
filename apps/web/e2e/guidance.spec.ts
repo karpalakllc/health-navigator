@@ -46,7 +46,7 @@ test.describe("symptom guidance", () => {
     await expect(page.getByText(mk.guidance.introAnonymous)).toBeVisible();
 
     await expect(
-      page.getByRole("button", { name: mk.guidance.emergencyNow }),
+      page.getByRole("button", { name: "Потребна ми е итна помош" }),
     ).toHaveCount(0);
     await expect(page.locator("main a[href='tel:194']")).toHaveCount(0);
     await expect(page.getByText(/Не е медицински совет\./)).toHaveCount(0);
@@ -107,15 +107,14 @@ test.describe("symptom guidance", () => {
     ).toHaveCount(0);
   });
 
-  test("the urgent-help button works on every step", async ({ page }) => {
+  test("the steps carry no urgent-help button or standing 194/112 line", async ({
+    page,
+  }) => {
     await toScreen(page);
-    await page.getByRole("button", { name: mk.guidance.emergencyNow }).click();
 
     await expect(
-      page.getByRole("link", { name: mk.guidance.call194 }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(mk.guidance.emergencyShortcutBody),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Потребна ми е итна помош" }),
+    ).toHaveCount(0);
+    await expect(page.locator("main a[href='tel:194']")).toHaveCount(0);
   });
 });

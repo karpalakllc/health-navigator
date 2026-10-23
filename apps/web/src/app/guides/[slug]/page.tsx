@@ -5,7 +5,6 @@ import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { HelpfulFeedback } from "@/components/feedback/helpful-feedback";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Card } from "@/components/ui/card";
-import { Notice } from "@/components/ui/notice";
 import { GUIDES, guideBySlug } from "@/content/guides/guides";
 import { pageMetadata } from "@/lib/metadata";
 import { absoluteUrl } from "@/lib/site-url";
@@ -84,8 +83,6 @@ export default async function GuidePage({ params }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-10">
         <div className="flex min-w-0 flex-col gap-6">
-          <Notice tone="info">{t("guides.informational")}</Notice>
-
           <Card as="article" aria-label={guide.title} className="lg:p-12">
             <div className={PROSE}>{guide.body()}</div>
           </Card>
