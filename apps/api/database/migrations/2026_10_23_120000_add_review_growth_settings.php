@@ -11,27 +11,25 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    /** @var list<string> */
-    private const COLUMNS = [
-        'reviews_prompt_on_profile',
-        'reviews_prompt_after_search',
-        'reviews_share_link',
-        'reviews_mobile_sticky_cta',
-    ];
-
     public function up(): void
     {
         Schema::table('site_settings', function (Blueprint $table) {
-            foreach (self::COLUMNS as $column) {
-                $table->boolean($column)->default(true);
-            }
+            $table->boolean('reviews_prompt_on_profile')->default(true);
+            $table->boolean('reviews_prompt_after_search')->default(true);
+            $table->boolean('reviews_share_link')->default(true);
+            $table->boolean('reviews_mobile_sticky_cta')->default(true);
         });
     }
 
     public function down(): void
     {
         Schema::table('site_settings', function (Blueprint $table) {
-            $table->dropColumn(self::COLUMNS);
+            $table->dropColumn([
+                'reviews_prompt_on_profile',
+                'reviews_prompt_after_search',
+                'reviews_share_link',
+                'reviews_mobile_sticky_cta',
+            ]);
         });
     }
 };
