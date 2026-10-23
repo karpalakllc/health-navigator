@@ -285,6 +285,11 @@ final class FacilityImagesImporter
     {
         $host = mb_strtolower((string) parse_url($url, PHP_URL_HOST));
 
+        // A Google Sites page is a small clinic's own website.
+        if ($host === 'sites.google.com') {
+            return false;
+        }
+
         foreach (self::SOCIAL_HOSTS as $social) {
             if ($host === $social || str_ends_with($host, '.'.$social)) {
                 return true;
