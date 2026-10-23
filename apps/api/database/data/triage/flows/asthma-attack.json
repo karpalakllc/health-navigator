@@ -223,8 +223,16 @@
         },
         {
           "when": {
-            "answer": "q_response",
-            "eq": "short"
+            "any": [
+              {
+                "answer": "q_response",
+                "eq": "short"
+              },
+              {
+                "answer": "q_peak",
+                "eq": "lt_50"
+              }
+            ]
           },
           "goto": "o_urgent_1"
         },

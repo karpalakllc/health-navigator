@@ -63,11 +63,11 @@
         { "value": "over_week", "label": "Повеќе од една недела" }
       ],
       "next": [
-        { "when": { "answer": "severity", "eq": "very_severe" }, "goto": "ed_now" },
         { "when": { "all": [
             { "demo": "age_band", "eq": "infant_0_3m" },
-            { "answer": "severity", "eq": "severe" }
+            { "answer": "severity", "in": ["severe", "very_severe"] }
           ] }, "goto": "ed_now_infant" },
+        { "when": { "answer": "severity", "eq": "very_severe" }, "goto": "ed_now" },
         { "when": { "demo": "age_band", "eq": "infant_0_3m" }, "goto": "same_day" },
         { "when": { "all": [
             { "answer": "severity", "eq": "severe" },

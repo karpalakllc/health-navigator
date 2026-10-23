@@ -302,7 +302,10 @@
         {
           "when": {
             "answer": "q_fever",
-            "eq": "yes"
+            "in": [
+              "yes",
+              "unsure"
+            ]
           },
           "goto": "o_urgent_fever"
         },

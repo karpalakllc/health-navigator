@@ -152,21 +152,6 @@
           "when": {
             "all": [
               {
-                "answer": "q_symptoms",
-                "includes": "sob_mild"
-              },
-              {
-                "answer": "q_symptoms",
-                "includes": "fever_high"
-              }
-            ]
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
                 "demo": "conditions",
                 "includes": "immunosuppressed"
               },
@@ -177,6 +162,21 @@
             ]
           },
           "goto": "o_ed_immuno"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_symptoms",
+                "includes": "sob_mild"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "fever_high"
+              }
+            ]
+          },
+          "goto": "o_urgent_1"
         },
         {
           "when": {
