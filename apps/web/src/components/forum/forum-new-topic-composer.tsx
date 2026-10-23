@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { formatCharCounter } from "@/components/forum/char-counter";
 import { ForumRulesCard } from "@/components/forum/forum-rules-band";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,12 @@ import { Tag } from "@/components/ui/tag";
 import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import type { ForumCategory } from "@/lib/api/forum";
 import type { PublicSettings } from "@/lib/api/settings";
+import {
+  clearDraft,
+  loadDraft,
+  saveDraft,
+  type ForumDraft,
+} from "@/lib/forum/drafts";
 import { focusField, lengthError } from "@/lib/form-validation";
 import { parseTagInput, type TagInputResult } from "@/lib/forum-tags";
 import { t } from "@/i18n/t";
@@ -22,6 +28,9 @@ const PREVIEW_ID = "forum-topic-preview";
 const TITLE_ID = "forum-topic-title";
 const BODY_ID = "forum-topic-body";
 const TAGS_ID = "forum-topic-tags";
+/** Device-only unsent topic (lib/forum/drafts). */
+const DRAFT_SCOPE = "topic:new";
+const noopSubscribe = () => () => {};
 /** API limits (StoreForumTopicRequest). */
 const TITLE_MIN_LENGTH = 5;
 const TITLE_MAX_LENGTH = 255;
@@ -65,8 +74,54 @@ export function ForumNewTopicComposer({
       ? defaultCategorySlug
       : (categories[0]?.slug ?? ""),
   );
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  // An unsent topic from an earlier visit, read after hydration; each field
+  // shows it until the member edits that field.
+  const storedJson = useSyncExternalStore(
+    noopSubscribe,
+    () => JSON.stringify(loadDraft(DRAFT_SCOPE) ?? {}),
+    () => "{}",
+  );
+  const stored = useMemo(
+    () => JSON.parse(storedJson) as ForumDraft,
+    [storedJson],
+  );
+  const [titleTyped, setTitleTyped] = useState<string | null>(null);
+  const [bodyTyped, setBodyTyped] = useState<string | null>(null);
+  const [tagsTyped, setTagsTyped] = useState<string | null>(null);
+  const title = titleTyped ?? stored.title ?? "";
+  const body = bodyTyped ?? stored.body ?? "";
+  const tagsInput = tagsTyped ?? stored.tags ?? "";
+  const draftRestored =
+    titleTyped === null &&
+    bodyTyped === null &&
+    tagsTyped === null &&
+    Boolean(stored.title || stored.body || stored.tags);
+
+  function remember(fields: Partial<ForumDraft>) {
+    saveDraft(DRAFT_SCOPE, { title, body, tags: tagsInput, ...fields });
+  }
+
+  function setTitle(value: string) {
+    setTitleTyped(value);
+    remember({ title: value });
+  }
+
+  function setBody(value: string) {
+    setBodyTyped(value);
+    remember({ body: value });
+  }
+
+  function setTagsInput(value: string) {
+    setTagsTyped(value);
+    remember({ tags: value });
+  }
+
+  function discardDraft() {
+    clearDraft(DRAFT_SCOPE);
+    setTitleTyped("");
+    setBodyTyped("");
+    setTagsTyped("");
+  }
   // One consent covering the rules, "no diagnosis" and "call 194/112";
   // the API records when it was given (forum_topics.community_rules_accepted_at).
   const [accepted, setAccepted] = useState(false);
@@ -76,7 +131,6 @@ export function ForumNewTopicComposer({
   const [pending, setPending] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [bodyError, setBodyError] = useState<string | null>(null);
-  const [tagsInput, setTagsInput] = useState("");
   const [tagsError, setTagsError] = useState<string | null>(null);
 
   const canSubmit = accepted;
@@ -135,6 +189,7 @@ export function ForumNewTopicComposer({
         return;
       }
 
+      clearDraft(DRAFT_SCOPE);
       router.push("/account/forum");
       router.refresh();
     } catch {
@@ -168,6 +223,18 @@ export function ForumNewTopicComposer({
           onSubmit={handleSubmit}
           className="flex flex-col gap-6"
         >
+          {draftRestored ? (
+            <p className="flex flex-wrap items-center gap-x-3 type-meta text-ink-2">
+              <span>{t("forum.draftRestored")}</span>
+              <button
+                type="button"
+                className="link-underline min-h-11 font-semibold text-ink"
+                onClick={discardDraft}
+              >
+                {t("forum.draftDiscard")}
+              </button>
+            </p>
+          ) : null}
           <Select
             label={t("forum.category")}
             value={categorySlug}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ForumNewActivityTag } from "@/components/forum/forum-seen-markers";
 import { Tag } from "@/components/ui/tag";
 import { formatForumLastActivity } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -16,6 +17,8 @@ export type ForumTopicRowData = {
   lastActivityAt: string | null;
   isPinned?: boolean;
   isLocked?: boolean;
+  /** „Најкорисен одговор“ is marked. */
+  hasAcceptedAnswer?: boolean;
   /**
    * „Прашања без одговор“: an „Одговори“ button to the topic's reply box
    * (forumAnswerHref) in place of the reply count.
@@ -83,10 +86,15 @@ export function ForumTopicRow({
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {topic.isPinned || topic.isLocked ? (
+        {topic.isPinned || topic.isLocked || topic.hasAcceptedAnswer ? (
           <div className="flex flex-wrap gap-2">
             {topic.isPinned ? <Tag tone="ink">{t("forum.pinned")}</Tag> : null}
             {topic.isLocked ? <Tag>{t("forum.locked")}</Tag> : null}
+            {topic.hasAcceptedAnswer ? (
+              <Tag tone="care" icon="award">
+                {t("forum.hasAcceptedAnswer")}
+              </Tag>
+            ) : null}
           </div>
         ) : null}
         <Heading className="line-clamp-2 font-ui text-[1.1875rem] leading-[1.625rem] font-semibold text-ink">
@@ -98,6 +106,12 @@ export function ForumTopicRow({
           </Link>
         </Heading>
         <p className="type-meta text-ink-2">
+          {/* Device-only: opened here before and active since. */}
+          <ForumNewActivityTag
+            path={topic.href}
+            lastActivityAt={topic.lastActivityAt}
+            className="mr-2 align-middle"
+          />
           {meta.map((part, index) => (
             <Fragment key={index}>
               {index > 0 ? <span aria-hidden="true"> · </span> : null}

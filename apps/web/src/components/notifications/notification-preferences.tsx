@@ -29,6 +29,10 @@ const LABELS: Record<
     label: "notifications.types.review_helpful",
     hint: "notifications.types.review_helpfulHint",
   },
+  forum_reply: {
+    label: "notifications.types.forum_reply",
+    hint: "notifications.types.forum_replyHint",
+  },
   impact_digest: {
     label: "notifications.types.impact_digest",
     hint: "notifications.types.impact_digestHint",

@@ -14,6 +14,7 @@ const ICONS: Record<string, IconName> = {
   moderation: "check",
   review_reply: "reply",
   review_helpful: "heart",
+  forum_reply: "message-circle",
   review_reminder: "clock",
   impact_digest: "activity",
   digest_invite: "mail",

@@ -146,6 +146,20 @@ export function notificationLine(item: MemberNotification): NotificationLine {
           }
         : FALLBACK;
     }
+    case "forum_reply": {
+      const title = str(data.title);
+      const count = num(data.count) ?? 1;
+
+      return title
+        ? {
+            text:
+              count > 1
+                ? tFormat("notifications.item.forumReplies", { title, count })
+                : tFormat("notifications.item.forumReply", { title }),
+            href: safePath(data.path),
+          }
+        : FALLBACK;
+    }
     case "review_reminder": {
       const ref = profile(data);
 

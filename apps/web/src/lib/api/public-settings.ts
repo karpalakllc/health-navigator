@@ -29,6 +29,10 @@ export type PublicSettings = {
   reviews_prompt_after_search: boolean;
   reviews_share_link: boolean;
   reviews_mobile_sticky_cta: boolean;
+  /** Forum upgrade switches (docs/forum.md). */
+  forum_follow_enabled: boolean;
+  forum_accepted_answers_enabled: boolean;
+  forum_profile_cards_enabled: boolean;
   /**
    * Web-side only, never sent by the API: true when /settings/public could not
    * be read and these values are the fallback. A module that reads as off is
@@ -63,6 +67,9 @@ export const publicSettingsDefaults: PublicSettings = {
   reviews_prompt_after_search: true,
   reviews_share_link: true,
   reviews_mobile_sticky_cta: true,
+  forum_follow_enabled: true,
+  forum_accepted_answers_enabled: true,
+  forum_profile_cards_enabled: true,
   degraded: false,
 };
 
@@ -87,6 +94,9 @@ export const publicSettingsUnavailable: PublicSettings = {
   reviews_prompt_after_search: false,
   reviews_share_link: false,
   reviews_mobile_sticky_cta: false,
+  forum_follow_enabled: false,
+  forum_accepted_answers_enabled: false,
+  forum_profile_cards_enabled: false,
 };
 
 export type PublicSettingsOutcome =

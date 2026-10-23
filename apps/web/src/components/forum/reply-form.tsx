@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/field";
@@ -10,6 +10,11 @@ import { Icon } from "@/components/ui/icons";
 import { Monogram } from "@/components/ui/user-avatar";
 import { formatCharCounter } from "@/components/forum/char-counter";
 import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
+import {
+  FORUM_QUOTE_EVENT,
+  type ForumQuoteDetail,
+} from "@/components/forum/forum-quote-button";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/forum/drafts";
 import { focusField, lengthError } from "@/lib/form-validation";
 import { t } from "@/i18n/t";
 
@@ -17,6 +22,8 @@ import { t } from "@/i18n/t";
 export const REPLY_MAX_LENGTH = 10000;
 const REPLY_MIN_LENGTH = 10;
 const REPLY_BODY_ID = "forum-reply-body";
+
+const noopSubscribe = () => () => {};
 
 /** Anchor the thread's „Одговори“ actions jump to. */
 export const REPLY_FORM_ID = "forum-reply";
@@ -36,7 +43,17 @@ export function ReplyForm({
 }) {
   const router = useRouter();
   const previewId = useId();
-  const [body, setBody] = useState("");
+  const draftScope = `reply:/forum/${categorySlug}/${topicSlug}`;
+  // An unsent reply from an earlier visit (device-only, lib/forum/drafts);
+  // read after hydration, so the server markup never depends on it.
+  const storedBody = useSyncExternalStore(
+    noopSubscribe,
+    () => loadDraft(draftScope)?.body ?? "",
+    () => "",
+  );
+  // null until the member types: until then the stored draft shows.
+  const [typed, setTyped] = useState<string | null>(null);
+  const body = typed ?? storedBody;
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Which confirmation to show: the API publishes at once for moderators and
@@ -44,6 +61,41 @@ export function ReplyForm({
   const [success, setSuccess] = useState<"pending" | "approved" | null>(null);
   const [pending, setPending] = useState(false);
   const [bodyError, setBodyError] = useState<string | null>(null);
+
+  function updateBody(next: string) {
+    setTyped(next);
+    saveDraft(draftScope, { body: next });
+  }
+
+  // „Цитирај“ on a post: the quote goes at the end, the caret after it.
+  useEffect(() => {
+    function onQuote(event: Event) {
+      const detail = (event as CustomEvent<ForumQuoteDetail>).detail;
+
+      if (!detail?.text) {
+        return;
+      }
+
+      const current = body;
+      const next = `${current.trim() ? `${current.trimEnd()}\n\n` : ""}${detail.text}`;
+      setTyped(next);
+      saveDraft(draftScope, { body: next });
+
+      const field = document.getElementById(REPLY_BODY_ID);
+      if (field instanceof HTMLTextAreaElement) {
+        field.scrollIntoView?.({ block: "center" });
+        field.focus();
+        // After React has written the new value.
+        requestAnimationFrame(() => {
+          field.setSelectionRange(field.value.length, field.value.length);
+        });
+      }
+    }
+
+    window.addEventListener(FORUM_QUOTE_EVENT, onQuote);
+
+    return () => window.removeEventListener(FORUM_QUOTE_EVENT, onQuote);
+  }, [body, draftScope]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -80,7 +132,8 @@ export function ReplyForm({
       }
 
       setSuccess(payload.data?.status === "approved" ? "approved" : "pending");
-      setBody("");
+      clearDraft(draftScope);
+      setTyped("");
       setPreview(false);
       router.refresh();
     } catch {
@@ -128,7 +181,7 @@ export function ReplyForm({
           error={bodyError ?? undefined}
           value={body}
           onChange={(e) => {
-            setBody(e.target.value);
+            updateBody(e.target.value);
             if (bodyError && !lengthError(e.target.value, REPLY_MIN_LENGTH)) {
               setBodyError(null);
             }
@@ -138,6 +191,21 @@ export function ReplyForm({
           maxLength={REPLY_MAX_LENGTH}
           counter={formatCharCounter(body.length, REPLY_MAX_LENGTH)}
         />
+        {typed === null && storedBody ? (
+          <p className="flex flex-wrap items-center gap-x-3 type-meta text-ink-2">
+            <span>{t("forum.draftRestored")}</span>
+            <button
+              type="button"
+              className="link-underline min-h-11 font-semibold text-ink"
+              onClick={() => {
+                clearDraft(draftScope);
+                setTyped("");
+              }}
+            >
+              {t("forum.draftDiscard")}
+            </button>
+          </p>
+        ) : null}
         {preview ? (
           <div id={previewId} className="rounded-card bg-sand p-4 lg:p-5">
             <p className="type-label text-ink">{t("forum.showPreview")}</p>

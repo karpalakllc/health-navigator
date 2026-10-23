@@ -10,7 +10,13 @@ import {
   ForumActivitySection,
 } from "@/components/forum/forum-activity-list";
 import { getSessionToken } from "@/lib/auth/session";
-import { fetchMyForumPosts, fetchMyForumTopics } from "@/lib/api/forum";
+import { ForumTopicList } from "@/components/forum/forum-topic-row";
+import {
+  fetchMyFollowedTopics,
+  fetchMyForumPosts,
+  fetchMyForumTopics,
+} from "@/lib/api/forum";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { ApiRequestError } from "@/lib/api/server";
 import { formatForumLastActivity, formatForumReplyCount } from "@/lib/format";
 import { t } from "@/i18n/t";
@@ -21,7 +27,11 @@ export const metadata = pageMetadata(t("account.forumActivity"), undefined, {
 });
 
 type AccountForumPageProps = {
-  searchParams: Promise<{ topics_page?: string; posts_page?: string }>;
+  searchParams: Promise<{
+    topics_page?: string;
+    posts_page?: string;
+    following_page?: string;
+  }>;
 };
 
 export default async function AccountForumPage({
@@ -36,6 +46,9 @@ export default async function AccountForumPage({
   const params = await searchParams;
   const topicsPage = params.topics_page ? Number(params.topics_page) : 1;
   const postsPage = params.posts_page ? Number(params.posts_page) : 1;
+  const followingPage = params.following_page
+    ? Number(params.following_page)
+    : 1;
 
   let topics;
   let posts;
@@ -52,6 +65,14 @@ export default async function AccountForumPage({
 
     throw error;
   }
+
+  // „Теми што ги следите“: an extra; the page works without it.
+  const settings = await fetchPublicSettings();
+  const following = settings.forum_follow_enabled
+    ? await fetchMyFollowedTopics(
+        Number.isFinite(followingPage) ? followingPage : 1,
+      ).catch(() => null)
+    : null;
 
   return (
     <AccountPage>
@@ -152,6 +173,44 @@ export default async function AccountForumPage({
             ))
           )}
         </ForumActivitySection>
+
+        {following ? (
+          <section
+            id="my-forum-following"
+            aria-labelledby="my-forum-following-heading"
+            className="flex flex-col gap-3"
+          >
+            <h2 id="my-forum-following-heading" className="type-h2 text-ink">
+              {t("forum.followedTitle")}
+            </h2>
+            <p className="type-body text-ink-2">{t("forum.followedLead")}</p>
+            {following.data.length === 0 ? (
+              <p className="type-body text-ink-2">{t("forum.followedEmpty")}</p>
+            ) : (
+              <ForumTopicList
+                label={t("forum.followedTitle")}
+                topics={following.data.map((topic) => ({
+                  href: `/forum/${topic.category.slug}/${topic.slug}`,
+                  title: topic.title,
+                  categoryName: topic.category.name,
+                  authorName: topic.author_name,
+                  repliesCount: topic.replies_count,
+                  lastActivityAt: topic.last_post_at ?? topic.published_at,
+                  hasAcceptedAnswer: topic.has_accepted_answer === true,
+                }))}
+              />
+            )}
+            <Pagination
+              basePath="/account/forum"
+              currentPage={following.meta.current_page}
+              lastPage={following.meta.last_page}
+              total={following.meta.total}
+              searchParams={{}}
+              pageParam="following_page"
+              label={`${t("forum.followedTitle")}: ${t("pagination.label")}`}
+            />
+          </section>
+        ) : null}
       </AccountLayout>
     </AccountPage>
   );

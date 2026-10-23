@@ -140,6 +140,7 @@ export default async function CategoryTopicsPage({
           repliesCount: topic.replies_count,
           lastActivityAt: topic.last_post_at ?? topic.published_at,
           isPinned: topic.is_pinned,
+          hasAcceptedAnswer: topic.has_accepted_answer === true,
           isLocked: topic.is_locked,
         })),
         meta: list.meta,

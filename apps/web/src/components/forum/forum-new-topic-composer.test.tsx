@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ForumNewTopicComposer } from "@/components/forum/forum-new-topic-composer";
 import type { ForumCategory } from "@/lib/api/forum";
 import { t, type MessageKey } from "@/i18n/t";
@@ -66,6 +66,11 @@ function consentBox() {
 async function consentAll(user: ReturnType<typeof userEvent.setup>) {
   await user.click(consentBox());
 }
+
+// Unsent text is kept on the device (lib/forum/drafts): start every test clean.
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 describe("ForumNewTopicComposer", () => {
   it("asks a member with a temporary name to choose one before writing", () => {

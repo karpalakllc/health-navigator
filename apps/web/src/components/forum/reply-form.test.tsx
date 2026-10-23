@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ReplyForm } from "@/components/forum/reply-form";
 import { t, type MessageKey } from "@/i18n/t";
 import { seriousA11yViolations } from "../../../test/axe";
@@ -29,6 +29,11 @@ async function reply(body = BODY) {
     screen.getByRole("button", { name: t("forum.replySubmit") }),
   );
 }
+
+// Unsent text is kept on the device (lib/forum/drafts): start every test clean.
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 describe("ReplyForm", () => {
   it("asks a member with a temporary name to choose one instead of replying", () => {

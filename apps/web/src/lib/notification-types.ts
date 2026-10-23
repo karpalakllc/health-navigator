@@ -14,6 +14,7 @@ export type MemberNotificationType =
   | "moderation"
   | "review_reply"
   | "review_helpful"
+  | "forum_reply"
   | "impact_digest"
   | "review_reminder"
   | "digest_invite";
@@ -41,6 +42,7 @@ export const PREFERENCE_TYPES = [
   "moderation",
   "review_reply",
   "review_helpful",
+  "forum_reply",
   "impact_digest",
 ] as const;
 

@@ -2,7 +2,15 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/directory/breadcrumbs";
 import { Pagination } from "@/components/directory/pagination";
 import { ForumColumns, forumPageClass } from "@/components/forum/forum-layout";
+import { ForumAcceptButton } from "@/components/forum/forum-accept-button";
+import { ForumAcceptedAnswerCard } from "@/components/forum/forum-accepted-answer";
+import { ForumFollowButton } from "@/components/forum/forum-follow-button";
 import { ForumPostCard } from "@/components/forum/forum-post-card";
+import { ForumQuoteButton } from "@/components/forum/forum-quote-button";
+import {
+  ForumNewReplyTag,
+  ForumTopicVisit,
+} from "@/components/forum/forum-seen-markers";
 import { ForumTopicModerationToolbar } from "@/components/forum/forum-topic-moderation-toolbar";
 import { ForumTopicSidebar } from "@/components/forum/forum-topic-sidebar";
 import { REPLY_FORM_ID, ReplyForm } from "@/components/forum/reply-form";
@@ -127,19 +135,43 @@ export default async function TopicDetailPage({
     author_name: topic.author_name,
     author: topic.author,
     published_at: topic.published_at,
+    profile_cards: topic.profile_cards,
   };
 
   const isLoggedIn = Boolean(token);
   const canReply = !topic.is_locked && isLoggedIn;
+  // Quoting needs a reply form on the page and a member who may post.
+  const canQuote = canReply && session?.user?.must_choose_username !== true;
+  const canAccept =
+    settings.forum_accepted_answers_enabled &&
+    topic.viewer?.can_accept === true;
+  const acceptedAnswer = settings.forum_accepted_answers_enabled
+    ? (topic.accepted_answer ?? null)
+    : null;
+  const showFollow =
+    settings.forum_follow_enabled &&
+    isLoggedIn &&
+    typeof topic.viewer?.is_following === "boolean";
   const topicActions = (
     <div className="flex w-full flex-wrap items-center justify-between gap-2">
-      {canReply ? (
-        <Button href={`#${REPLY_FORM_ID}`} variant="soft" leadingIcon="reply">
-          {t("forum.replyToTopic")}
-        </Button>
-      ) : (
-        <span />
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {canReply ? (
+          <Button href={`#${REPLY_FORM_ID}`} variant="soft" leadingIcon="reply">
+            {t("forum.replyToTopic")}
+          </Button>
+        ) : null}
+        {showFollow ? (
+          <ForumFollowButton
+            categorySlug={categorySlug}
+            topicSlug={topicSlug}
+            following={topic.viewer?.is_following === true}
+            returnTo={redirectPath}
+          />
+        ) : null}
+        {canQuote ? (
+          <ForumQuoteButton authorName={topic.author.name} body={topic.body} />
+        ) : null}
+      </div>
       {/* Not on one's own topic: the API refuses it. */}
       {topic.viewer?.is_own ? null : (
         <ReportButton
@@ -229,12 +261,20 @@ export default async function TopicDetailPage({
               />
             ) : null}
 
+            <ForumTopicVisit
+              path={redirectPath}
+              lastActivityAt={topic.last_post_at ?? topic.published_at}
+            />
             <ForumPostCard
               post={originalPost}
               isOriginalPost
               isTopicAuthor
               actions={topicActions}
             />
+
+            {acceptedAnswer ? (
+              <ForumAcceptedAnswerCard answer={acceptedAnswer} />
+            ) : null}
 
             <section
               aria-labelledby="forum-replies-heading"
@@ -260,21 +300,53 @@ export default async function TopicDetailPage({
                         <ForumPostCard
                           post={post}
                           isTopicAuthor={post.is_topic_author === true}
+                          isAccepted={
+                            acceptedAnswer !== null && post.is_accepted === true
+                          }
+                          headerTags={
+                            <ForumNewReplyTag
+                              topicPath={redirectPath}
+                              publishedAt={post.published_at}
+                            />
+                          }
                           actions={
-                            post.viewer?.is_own ? undefined : (
-                              <div className="flex w-full flex-wrap items-start justify-between gap-2">
-                                <ForumReplyHelpfulButton
-                                  postId={post.id}
-                                  count={post.helpful_count ?? 0}
-                                  voted={
-                                    post.viewer?.has_voted_helpful ?? false
-                                  }
-                                  isLoggedIn={isLoggedIn}
-                                  mustChooseUsername={
-                                    session?.user?.must_choose_username === true
-                                  }
-                                  returnTo={redirectPath}
-                                />
+                            <div className="flex w-full flex-wrap items-start justify-between gap-2">
+                              <div className="flex flex-wrap items-start gap-2">
+                                {post.viewer?.is_own ? null : (
+                                  <ForumReplyHelpfulButton
+                                    postId={post.id}
+                                    count={post.helpful_count ?? 0}
+                                    voted={
+                                      post.viewer?.has_voted_helpful ?? false
+                                    }
+                                    isLoggedIn={isLoggedIn}
+                                    mustChooseUsername={
+                                      session?.user?.must_choose_username ===
+                                      true
+                                    }
+                                    returnTo={redirectPath}
+                                  />
+                                )}
+                                {canQuote ? (
+                                  <ForumQuoteButton
+                                    authorName={post.author.name}
+                                    body={post.body}
+                                  />
+                                ) : null}
+                                {canAccept &&
+                                post.is_topic_author !== true &&
+                                // Only the marked reply, or any while none is.
+                                (acceptedAnswer === null ||
+                                  post.is_accepted === true) ? (
+                                  <ForumAcceptButton
+                                    categorySlug={categorySlug}
+                                    topicSlug={topicSlug}
+                                    postId={post.id}
+                                    accepted={post.is_accepted === true}
+                                  />
+                                ) : null}
+                              </div>
+                              {post.viewer?.is_own ? null : (
                                 <ReportButton
                                   target={{ kind: "forum_post", id: post.id }}
                                   label={tFormat("reports.actionPost", {
@@ -283,8 +355,8 @@ export default async function TopicDetailPage({
                                   isLoggedIn={isLoggedIn}
                                   returnTo={redirectPath}
                                 />
-                              </div>
-                            )
+                              )}
+                            </div>
                           }
                         />
                       </li>

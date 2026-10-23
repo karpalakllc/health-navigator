@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<string, MessageKey> = {
   moderation: "notifications.types.moderation",
   review_reply: "notifications.types.review_reply",
   review_helpful: "notifications.types.review_helpful",
+  forum_reply: "notifications.types.forum_reply",
   impact_digest: "notifications.types.impact_digest",
   review_reminder: "notifications.unsubscribe.review_reminder",
 };

@@ -61,6 +61,7 @@ function toRow(topic: ForumTopicSearchItem): ForumTopicRowData {
     authorName: topic.author_name,
     repliesCount: topic.replies_count,
     lastActivityAt: topic.last_post_at ?? topic.published_at,
+    hasAcceptedAnswer: topic.has_accepted_answer === true,
   };
 }
 

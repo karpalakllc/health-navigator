@@ -30,12 +30,32 @@ export type ForumCategory = {
   topics_count?: number;
 };
 
+/** A pasted Zdravje360 profile link, resolved by the API (docs/forum.md). */
+export type ForumProfileCard = {
+  kind: "doctor" | "facility" | "pharmacy";
+  slug: string;
+  name: string;
+  path: string;
+  subtitle: string | null;
+  city: string | null;
+};
+
+/** „Најкорисен одговор“ as the thread shows it at the top. */
+export type ForumAcceptedAnswer = {
+  id: number;
+  excerpt: string;
+  author_name: string;
+  /** The reply's page and anchor („/forum/c/t?page=2#post-9“). */
+  path: string;
+};
+
 export type ForumTopicListItem = {
   slug: string;
   title: string;
   excerpt?: string;
   author_name: string;
   replies_count: number;
+  has_accepted_answer?: boolean;
   last_post_at: string | null;
   is_pinned: boolean;
   is_locked: boolean;
@@ -68,8 +88,19 @@ export type ForumTopicDetail = {
   is_locked: boolean;
   is_pinned: boolean;
   published_at: string | null;
-  /** Signed-in requests only. can_moderate is present only when true. */
-  viewer?: { is_own?: boolean; can_moderate?: boolean };
+  /** Profile cards for links in the opening post. */
+  profile_cards?: ForumProfileCard[];
+  accepted_answer?: ForumAcceptedAnswer | null;
+  /**
+   * Signed-in requests only. can_moderate / can_accept are present only when
+   * true; is_following only while following is switched on.
+   */
+  viewer?: {
+    is_own?: boolean;
+    can_moderate?: boolean;
+    can_accept?: boolean;
+    is_following?: boolean;
+  };
 };
 
 export type ForumPost = {
@@ -84,6 +115,9 @@ export type ForumPost = {
   helpful_count?: number;
   /** Signed-in requests only: the viewer wrote this reply / marked it „Корисно“. */
   viewer?: { is_own: boolean; has_voted_helpful?: boolean };
+  profile_cards?: ForumProfileCard[];
+  /** Marked „Најкорисен одговор“. */
+  is_accepted?: boolean;
 };
 
 export type ForumTopicPage = {
@@ -101,6 +135,7 @@ export type ForumTopicSearchItem = {
   excerpt?: string;
   author_name: string;
   replies_count: number;
+  has_accepted_answer?: boolean;
   last_post_at: string | null;
   published_at: string | null;
   category: { slug: string; name: string };
@@ -337,4 +372,11 @@ export async function fetchMyForumTopics(page = 1) {
 
 export async function fetchMyForumPosts(page = 1) {
   return apiGetPaginatedServer<MyForumPost>(`/me/forum/posts?page=${page}`);
+}
+
+/** „Теми што ги следите“ (GET /me/forum/following). */
+export async function fetchMyFollowedTopics(page = 1) {
+  return apiGetPaginatedServer<ForumTopicSearchItem>(
+    `/me/forum/following?page=${page}`,
+  );
 }

@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ForumPostBody } from "@/components/forum/forum-post-body";
+import { ForumProfileCards } from "@/components/forum/forum-profile-cards";
 import { ContributorLevel } from "@/components/levels/contributor-level";
 import { Card } from "@/components/ui/card";
 import { Tag, VerifiedTag } from "@/components/ui/tag";
@@ -22,6 +24,10 @@ type ForumPostCardProps = {
   isTopicAuthor?: boolean;
   /** Post actions (e.g. „Одговори“), rendered under the body. */
   actions?: ReactNode;
+  /** Marked „Најкорисен одговор“. */
+  isAccepted?: boolean;
+  /** Extra header tags (the device-only „Ново“ marker). */
+  headerTags?: ReactNode;
 };
 
 function resolveAuthor(post: ForumPost): ForumAuthor {
@@ -60,6 +66,8 @@ export function ForumPostCard({
   isOriginalPost = false,
   isTopicAuthor = false,
   actions,
+  isAccepted = false,
+  headerTags,
 }: ForumPostCardProps) {
   const author = resolveAuthor(post);
   const staff = staffLabel(author);
@@ -74,6 +82,7 @@ export function ForumPostCard({
       className={cn(
         "flex flex-col gap-4 p-5 lg:px-8 lg:py-7",
         staff && "border border-care",
+        isAccepted && "border-2 border-care",
       )}
     >
       <header className="flex items-start gap-3">
@@ -89,6 +98,12 @@ export function ForumPostCard({
             {isTopicAuthor ? <Tag>{t("forum.authorBadge")}</Tag> : null}
             <ContributorLevel ladder="forum" level={author.level} />
             {staff ? <VerifiedTag>{staff}</VerifiedTag> : null}
+            {isAccepted ? (
+              <Tag tone="care" icon="award">
+                {t("forum.acceptedAnswer")}
+              </Tag>
+            ) : null}
+            {headerTags}
           </div>
           {stats ? <p className="type-meta text-ink-2">{stats}</p> : null}
           {post.published_at ? (
@@ -103,9 +118,8 @@ export function ForumPostCard({
           ) : null}
         </div>
       </header>
-      <div className="measure whitespace-pre-wrap break-words type-reading text-ink">
-        {post.body}
-      </div>
+      <ForumPostBody body={post.body} />
+      <ForumProfileCards cards={post.profile_cards} />
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </Card>
   );
