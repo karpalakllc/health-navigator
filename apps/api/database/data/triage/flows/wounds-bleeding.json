@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "wounds-bleeding",
   "title": "Рани, посекотини и крварење",
-  "summary_en": "Cuts, wounds, bites and nosebleeds (all ages). Uncontrolled bleeding, spurting, deep wounds to chest/abdomen/neck, amputation → 194. Gaping wounds, embedded objects, animal/human bites, numbness, poor tetanus status → same day. Small clean cuts → self-care.",
-  "notes_en": "NHS cuts/grazes, bites, tetanus, rabies, nosebleed. Rabies: animal bites go same day (MK has rabies risk in wildlife; post-exposure decisions are for the clinician). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Cuts, wounds, bites and nosebleeds (all ages). Uncontrolled bleeding, spurting, deep wounds to chest/abdomen/neck, amputation, shock signs, tetanus signs → 194. Infected wound with high fever/shivers/very unwell, nosebleed ≥15 min or with swallowed blood/dizziness or after a head injury → emergency department now. Gaping wounds, embedded objects, bites, numbness, infected wounds, dirty wound with uncertain tetanus, nosebleed under 12 months → same day. Small clean cuts → self-care.",
+  "notes_en": "NHS cuts/grazes, bites, tetanus, rabies, nosebleed, cellulitis. Rabies: animal bites go same day (MK has rabies risk in wildlife; post-exposure decisions are for the clinician). 2026-10-23 safety fixes: infected wound → same day (with fever/shivers/very unwell → ED now); dirty wound + uncertain tetanus → same day; tetanus-signs red flag; nosebleed A&E criteria (≥15 min, swallowing blood, dizziness, head injury) → ED now; nosebleed <12 months → same day, <2 years → paediatrician; embedded-object pressure advice; nosebleed skips the wound questions. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -54,6 +54,12 @@
       "label": "Повредениот е блед, ладен, збунет или се онесвестува",
       "outcome": "o_emergency",
       "source": "nhs-cuts"
+    },
+    {
+      "code": "tetanus_signs",
+      "label": "По рана: стегната вилица, тешко голтање или болни грчеви во мускулите",
+      "outcome": "o_emergency",
+      "source": "nhs-tetanus"
     }
   ],
   "entry": "i_pressure",
@@ -61,7 +67,7 @@
     "i_pressure": {
       "type": "info",
       "title": "Прва помош",
-      "text": "Притиснете ја раната силно со чиста крпа или газа и кренете го повредениот дел над нивото на срцето. Притискајте без прекин најмалку 10 минути.",
+      "text": "Притиснете ја раната силно со чиста крпа или газа и кренете го повредениот дел над нивото на срцето. Притискајте без прекин најмалку 10 минути. Ако нешто е заглавено во раната, не вадете го и не притискајте врз него — притискајте околу него.",
       "next": "q_kind"
     },
     "q_kind": {
@@ -90,7 +96,18 @@
           "label": "Крварење од носот"
         }
       ],
-      "next": "q_features"
+      "next": [
+        {
+          "when": {
+            "answer": "q_kind",
+            "eq": "nosebleed"
+          },
+          "goto": "q_nose_duration"
+        },
+        {
+          "goto": "q_features"
+        }
+      ]
     },
     "q_features": {
       "type": "question",
@@ -122,94 +139,16 @@
           "label": "По неколку дена: црвенило што се шири, гној или температура"
         },
         {
+          "value": "infected_unwell",
+          "label": "Раната е инфицирана, а имате висока температура, ве тресе или се чувствувате многу лошо"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
         }
       ],
-      "next": [
-        {
-          "when": {
-            "answer": "q_kind",
-            "in": [
-              "cut",
-              "animal_bite",
-              "human_bite",
-              "puncture"
-            ]
-          },
-          "goto": "q_tetanus"
-        },
-        {
-          "when": {
-            "answer": "q_kind",
-            "eq": "nosebleed"
-          },
-          "goto": "q_nose_duration"
-        },
-        {
-          "when": {
-            "answer": "q_kind",
-            "eq": "nosebleed"
-          },
-          "goto": "q_nose_extra"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_kind",
-                "eq": "animal_bite"
-              },
-              {
-                "answer": "q_kind",
-                "eq": "human_bite"
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_features",
-                "includes": "gaping"
-              },
-              {
-                "answer": "q_features",
-                "includes": "embedded"
-              },
-              {
-                "answer": "q_features",
-                "includes": "numb_weak"
-              },
-              {
-                "answer": "q_features",
-                "includes": "face_hand"
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "answer": "q_features",
-            "includes": "infected"
-          },
-          "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "answer": "q_features",
-            "includes": "dirty"
-          },
-          "goto": "o_doc48_2"
-        },
-        {
-          "goto": "o_self"
-        }
-      ]
+      "next": "q_tetanus"
     },
     "q_tetanus": {
       "type": "question",
@@ -232,17 +171,10 @@
       "next": [
         {
           "when": {
-            "answer": "q_kind",
-            "eq": "nosebleed"
+            "answer": "q_features",
+            "includes": "infected_unwell"
           },
-          "goto": "q_nose_duration"
-        },
-        {
-          "when": {
-            "answer": "q_kind",
-            "eq": "nosebleed"
-          },
-          "goto": "q_nose_extra"
+          "goto": "o_ed_infected"
         },
         {
           "when": {
@@ -287,7 +219,25 @@
             "answer": "q_features",
             "includes": "infected"
           },
-          "goto": "o_doc48_1"
+          "goto": "o_urgent_infected"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_features",
+                "includes": "dirty"
+              },
+              {
+                "answer": "q_tetanus",
+                "in": [
+                  "gt_10y",
+                  "dont_know"
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_tetanus"
         },
         {
           "when": {
@@ -319,97 +269,15 @@
       "text": "Колку долго крвави носот и покрај притисокот?",
       "options": [
         {
-          "value": "lt_20",
-          "label": "Помалку од 20 минути"
+          "value": "lt_15",
+          "label": "Помалку од 15 минути"
         },
         {
-          "value": "gt_20",
-          "label": "Повеќе од 20 минути"
+          "value": "ge_15",
+          "label": "15 минути или подолго"
         }
       ],
-      "next": [
-        {
-          "when": {
-            "answer": "q_kind",
-            "eq": "nosebleed"
-          },
-          "goto": "q_nose_extra"
-        },
-        {
-          "when": {
-            "answer": "q_nose_duration",
-            "eq": "gt_20"
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_kind",
-                "eq": "animal_bite"
-              },
-              {
-                "answer": "q_kind",
-                "eq": "human_bite"
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_features",
-                "includes": "gaping"
-              },
-              {
-                "answer": "q_features",
-                "includes": "embedded"
-              },
-              {
-                "answer": "q_features",
-                "includes": "numb_weak"
-              },
-              {
-                "answer": "q_features",
-                "includes": "face_hand"
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "answer": "q_features",
-            "includes": "infected"
-          },
-          "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_tetanus",
-                "eq": "gt_10y"
-              },
-              {
-                "answer": "q_tetanus",
-                "eq": "dont_know"
-              },
-              {
-                "answer": "q_features",
-                "includes": "dirty"
-              }
-            ]
-          },
-          "goto": "o_doc48_2"
-        },
-        {
-          "goto": "o_self"
-        }
-      ]
+      "next": "q_nose_extra"
     },
     "q_nose_extra": {
       "type": "question",
@@ -429,6 +297,14 @@
           "label": "Крварењето почна по удар во главата"
         },
         {
+          "value": "swallow_blood",
+          "label": "Голтате многу крв или повраќате крв"
+        },
+        {
+          "value": "dizzy",
+          "label": "Вртоглавица, слабост или многу бледило"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
@@ -437,81 +313,42 @@
       "next": [
         {
           "when": {
-            "answer": "q_nose_duration",
-            "eq": "gt_20"
+            "any": [
+              {
+                "answer": "q_nose_duration",
+                "eq": "ge_15"
+              },
+              {
+                "answer": "q_nose_extra",
+                "includes_any": [
+                  "swallow_blood",
+                  "dizzy"
+                ]
+              }
+            ]
           },
-          "goto": "o_urgent_1"
+          "goto": "o_ed_nose"
         },
         {
           "when": {
             "answer": "q_nose_extra",
             "includes": "injury"
           },
-          "goto": "o_urgent_2"
+          "goto": "o_ed_nose_injury"
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_kind",
-                "eq": "animal_bite"
-              },
-              {
-                "answer": "q_kind",
-                "eq": "human_bite"
-              }
-            ]
+            "demo": "age_months",
+            "lt": 12
           },
-          "goto": "o_urgent_3"
+          "goto": "o_urgent_nose_infant"
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_features",
-                "includes": "gaping"
-              },
-              {
-                "answer": "q_features",
-                "includes": "embedded"
-              },
-              {
-                "answer": "q_features",
-                "includes": "numb_weak"
-              },
-              {
-                "answer": "q_features",
-                "includes": "face_hand"
-              }
-            ]
+            "demo": "age_months",
+            "lt": 24
           },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "answer": "q_features",
-            "includes": "infected"
-          },
-          "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_tetanus",
-                "eq": "gt_10y"
-              },
-              {
-                "answer": "q_tetanus",
-                "eq": "dont_know"
-              },
-              {
-                "answer": "q_features",
-                "includes": "dirty"
-              }
-            ]
-          },
-          "goto": "o_doc48_2"
+          "goto": "o_gp_nose_young"
         },
         {
           "when": {
@@ -529,76 +366,12 @@
           "goto": "o_gp_1"
         },
         {
-          "goto": "o_self"
+          "goto": "o_self_nose"
         }
       ]
     }
   },
   "outcomes": {
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Раната или каснувањето треба да се прегледа истиот ден.",
-      "reasons": [
-        "Крварење од носот подолго од 20 минути и покрај притисок бара преглед денес."
-      ],
-      "do_now": [
-        "Притиснете ја раната и покријте ја со чиста газа.",
-        "Јавете се во итна амбуланта, хируршка амбуланта или ургентен центар."
-      ],
-      "watch_for": [
-        "Ако крварењето не престанува по 10 минути силен притисок, веднаш повикајте 194 или 112.",
-        "Ако повредениот стане блед, ладен или збунет, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "emergency_department",
-        "specialties": [
-          "urgentna-medicina",
-          "opsta-hirurgija",
-          "plasticna-hirurgija",
-          "infektologija"
-        ],
-        "facility_types": [
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-cuts",
-        "nhs-bites"
-      ]
-    },
-    "o_urgent_2": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Раната или каснувањето треба да се прегледа истиот ден.",
-      "reasons": [
-        "Крварење од носот по удар во главата треба да се провери денес."
-      ],
-      "do_now": [
-        "Притиснете ја раната и покријте ја со чиста газа.",
-        "Јавете се во итна амбуланта, хируршка амбуланта или ургентен центар."
-      ],
-      "watch_for": [
-        "Ако крварењето не престанува по 10 минути силен притисок, веднаш повикајте 194 или 112.",
-        "Ако повредениот стане блед, ладен или збунет, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "emergency_department",
-        "specialties": [
-          "urgentna-medicina",
-          "opsta-hirurgija",
-          "plasticna-hirurgija",
-          "infektologija"
-        ],
-        "facility_types": [
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-cuts",
-        "nhs-bites"
-      ]
-    },
     "o_urgent_3": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
@@ -663,35 +436,6 @@
         "nhs-bites"
       ]
     },
-    "o_doc48_1": {
-      "level": "see_doctor_24_48h",
-      "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Лекарот треба да ја погледне раната или да ја провери заштитата од тетанус.",
-      "reasons": [
-        "Знаците на инфекција треба да ги процени лекар."
-      ],
-      "do_now": [
-        "Чувајте ја раната чиста и покриена.",
-        "Закажете кај избраниот лекар."
-      ],
-      "watch_for": [
-        "Ако се појави висока температура, црвена линија што се шири од раната или силна болка, веднаш повикајте 194 или 112.",
-        "Ако не можете да стигнете до избраниот лекар, јавете се во дежурна служба."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-tetanus"
-      ]
-    },
     "o_doc48_2": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
@@ -732,7 +476,8 @@
         "При крварење: седнете наведнати напред и стиснете го мекиот дел од носот 10–15 минути."
       ],
       "watch_for": [
-        "Ако крварењето трае повеќе од 20 минути и покрај притисок, веднаш повикајте 194 или 112."
+        "Ако крварењето трае 15 минути или подолго и покрај притисок, веднаш одете во итно одделение.",
+        "Ако крварењето е многу обилно или се чувствувате слаби, веднаш повикајте 194 или 112."
       ],
       "care": {
         "setting": "gp",
@@ -757,8 +502,7 @@
         "Малите, чисти посекотини обично заздравуваат сами."
       ],
       "do_now": [
-        "Измијте ја раната со чиста вода, исушете и покријте со фластер.",
-        "При крварење од носот: седнете наведнати напред и стиснете го мекиот дел од носот 10–15 минути."
+        "Измијте ја раната со чиста вода, исушете и покријте со фластер."
       ],
       "watch_for": [
         "Ако крварењето не престанува по 10 минути силен притисок, веднаш повикајте 194 или 112.",
@@ -773,8 +517,7 @@
         "facility_types": []
       },
       "sources": [
-        "nhs-cuts",
-        "nhs-nosebleed"
+        "nhs-cuts"
       ]
     },
     "o_emergency": {
@@ -814,15 +557,248 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_ed_nose": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Крварењето од носот треба веднаш да се прегледа во итно одделение.",
+      "reasons": [
+        "Крварење од носот 15 минути или подолго и покрај притисок, голтање многу крв или вртоглавица треба веднаш да се прегледа."
+      ],
+      "do_now": [
+        "Седнете наведнати напред и продолжете да го стискате мекиот дел од носот.",
+        "Одете веднаш во најблиското итно одделение (ургентен центар); нека ве однесе некој друг."
+      ],
+      "watch_for": [
+        "Ако крварењето е многу обилно, повредениот стане блед, ладен или збунет, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-nosebleed"
+      ]
+    },
+    "o_ed_nose_injury": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Крварењето од носот по удар во главата треба веднаш да се прегледа.",
+      "reasons": [
+        "Крварење од носот по удар во главата треба веднаш да се провери."
+      ],
+      "do_now": [
+        "Седнете наведнати напред и продолжете да го стискате мекиот дел од носот.",
+        "Одете веднаш во најблиското итно одделение (ургентен центар); нека ве однесе некој друг."
+      ],
+      "watch_for": [
+        "Ако крварењето е многу обилно, повредениот стане блед, ладен или збунет, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "otorinolaringologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-nosebleed"
+      ]
+    },
+    "o_urgent_nose_infant": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Крварење од носот кај бебе треба да го прегледа лекар истиот ден.",
+      "reasons": [
+        "Кај бебиња крварењето од носот е ретко и треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Држете го бебето исправено, малку наведнато напред, и нежно стиснете го мекиот дел од носот.",
+        "Јавете се кај педијатар или во дежурна служба уште денес."
+      ],
+      "watch_for": [
+        "Ако крварењето не престанува по 10–15 минути притисок, или бебето е бледо, млитаво или поспано, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-nosebleed"
+      ]
+    },
+    "o_gp_nose_young": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Крварење од носот кај мало дете вреди да го погледне лекар.",
+      "reasons": [
+        "Кај деца помали од 2 години крварењето од носот треба да го процени лекар."
+      ],
+      "do_now": [
+        "При крварење: седнете го детето наведнато напред и нежно стиснете го мекиот дел од носот 10–15 минути.",
+        "Закажете кај педијатарот."
+      ],
+      "watch_for": [
+        "Ако крварењето трае 15 минути или подолго и покрај притисок, веднаш одете во итно одделение.",
+        "Ако детето стане бледо, млитаво или поспано, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-nosebleed"
+      ]
+    },
+    "o_self_nose": {
+      "level": "self_care_with_safety_net",
+      "title": "Најверојатно може да се следи дома",
+      "summary": "Повеќето крварења од нос престануваат сами со правилен притисок.",
+      "reasons": [
+        "Крварењето е кратко и нема знаци што бараат преглед."
+      ],
+      "do_now": [
+        "При крварење: седнете наведнати напред и стиснете го мекиот дел од носот 10–15 минути.",
+        "Неколку часа избегнувајте дување и чепкање на носот."
+      ],
+      "watch_for": [
+        "Ако крварењето трае 15 минути или подолго и покрај притисок, веднаш одете во итно одделение.",
+        "Ако крварењето е многу обилно или се чувствувате слаби, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-nosebleed"
+      ]
+    },
+    "o_urgent_infected": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците на инфекција на рана треба да ги прегледа лекар истиот ден.",
+      "reasons": [
+        "Црвенило што се шири, гној или температура по рана може да значат инфекција на кожата што бара лекување денес."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес.",
+        "Чувајте ја раната чиста и покриена.",
+        "Ако можете, обележете ги рабовите на црвенилото со пенкало за да видите дали се шири."
+      ],
+      "watch_for": [
+        "Ако се појави висока температура, тресење, збунетост или црвенилото брзо се шири, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija",
+          "opsta-hirurgija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
+    },
+    "o_ed_infected": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Инфицирана рана со висока температура, тресење или чувство на тешка болест може да значи дека инфекцијата се шири.",
+      "reasons": [
+        "Знаците на инфекција на раната се придружени со висока температура, тресење или чувство дека сте многу лошо."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар).",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, многу брзо дишење, многу бледа кожа со дамки, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "opsta-hirurgija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis",
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_tetanus": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Валкана рана без сигурна заштита од тетанус треба да се прегледа истиот ден.",
+      "reasons": [
+        "Кај валкана рана, ако не сте сигурни дека сте заштитени од тетанус, можеби ви треба вакцина или друга заштита што е најдобро да се даде веднаш."
+      ],
+      "do_now": [
+        "Измијте ја раната со многу чиста вода.",
+        "Јавете се кај избраниот лекар, во дежурна служба или хируршка амбуланта уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави стегната вилица, тешко голтање или грчеви во мускулите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "opsta-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-tetanus"
+      ]
     }
   },
   "populations": {
-    "infant_0_3m": "Same first aid; any wound needing more than a plaster in an infant is covered by the same-day rules. Clinician to confirm.",
+    "infant_0_3m": "Referenced: a nosebleed under 12 months → same day (paediatric); wounds follow the same rules as older children (any wound needing more than a plaster is same day). Clinician to confirm.",
     "infant_3_12m": "As infant_0_3m.",
-    "child": "Same thresholds as adults in NHS public guidance.",
+    "child": "Referenced: nosebleed in a child under 2 → paediatrician; otherwise same thresholds as adults in NHS public guidance.",
     "older_adult": "Referenced via anticoagulant option in nosebleed; skin tears in older adults follow the same rules.",
     "pregnancy": "No pregnancy-specific threshold; tetanus vaccination in pregnancy is a clinician decision.",
-    "chronic": "Diabetes/immunosuppression raise infection risk; infected wounds go to 24–48h regardless."
+    "chronic": "Diabetes/immunosuppression raise infection risk; infected wounds go to same day for everyone (with fever, shivers or feeling very unwell → emergency department now)."
   },
   "sources": [
     {
@@ -854,6 +830,18 @@
       "title": "NHS (Велика Британија) — Nosebleed",
       "url": "https://www.nhs.uk/conditions/nosebleed/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-cellulitis",
+      "title": "NHS — Cellulitis",
+      "url": "https://www.nhs.uk/conditions/cellulitis/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-sepsis",
+      "title": "NHS — Sepsis",
+      "url": "https://www.nhs.uk/conditions/sepsis/",
+      "accessed": "2026-10-23"
     }
   ]
 }

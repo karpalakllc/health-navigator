@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "diarrhoea-vomiting-adult",
   "title": "Пролив или повраќање кај возрасни",
-  "summary_en": "Adult D&V. Vomiting blood, black stools, severe abdominal pain, confusion, no urine 12h+, stiff neck → emergency/same day. Unable to keep fluids >24h, bloody diarrhoea, risk groups, pregnancy → same day/48h. >7 days diarrhoea or >2 days vomiting → GP.",
-  "notes_en": "NHS diarrhoea and vomiting: >2 days vomiting / >7 days diarrhoea → GP; dehydration and blood → urgent. 'Sick day' medication note is generic (no drug instructions). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult D&V. Vomiting blood, black stools, severe abdominal pain, confusion, stiff neck, green vomit / distension, sepsis skin signs → 194. No urine 12h+, unable to keep fluids, vomiting ≥2 days, bloody diarrhoea, diabetes with vomiting, risk groups or pregnancy with dehydration → same day. Dizziness on standing, medicines, travel/fever, diarrhoea >7 days → 1–2 days.",
+  "notes_en": "NHS diarrhoea and vomiting: cannot keep fluids down, bloody diarrhoea, vomiting >2 days, diarrhoea >7 days → urgent GP/111; green vomit, blue/grey/blotchy skin → 999. 2026-10-23 safety fixes: diabetes + vomiting → same day (DKA risk), new q_vomit question, two 999 red flags, no_fluids alone and bloody diarrhoea → same day, >7 days → 1–2 days. 'Sick day' medication note is generic (no drug instructions). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -53,6 +53,18 @@
       "label": "Вкочанет врат, осетливост на светлина или осип што не бледнее",
       "outcome": "o_emergency",
       "source": "nhs-meningitis"
+    },
+    {
+      "code": "green_vomit_bloated",
+      "label": "Повраќате зелена течност, или стомакот е многу надуен и не испуштате гасови",
+      "source": "nhs-dv",
+      "outcome": "o_emergency"
+    },
+    {
+      "code": "sepsis_skin",
+      "label": "Кожата е многу бледа, сива, синкава или со дамки, или дишете многу брзо",
+      "source": "nhs-sepsis",
+      "outcome": "o_emergency"
     }
   ],
   "entry": "q_signs",
@@ -120,6 +132,26 @@
           "label": "Повеќе од 7 дена"
         }
       ],
+      "next": "q_vomit"
+    },
+    "q_vomit": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали повраќате?",
+      "options": [
+        {
+          "value": "no",
+          "label": "Не, имам само пролив"
+        },
+        {
+          "value": "lt_2d",
+          "label": "Да, помалку од 2 дена"
+        },
+        {
+          "value": "ge_2d",
+          "label": "Да, 2 дена или подолго"
+        }
+      ],
       "next": "q_risk"
     },
     "q_risk": {
@@ -134,6 +166,10 @@
         {
           "value": "ibd",
           "label": "Имам воспалителна болест на цревата"
+        },
+        {
+          "value": "diabetes",
+          "label": "Имам дијабетес"
         },
         {
           "value": "none",
@@ -153,16 +189,50 @@
           "when": {
             "all": [
               {
-                "answer": "q_signs",
-                "includes": "no_fluids"
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes": "diabetes"
+                  },
+                  {
+                    "answer": "q_risk",
+                    "includes": "diabetes"
+                  }
+                ]
               },
               {
-                "answer": "q_duration",
+                "answer": "q_vomit",
                 "in": [
-                  "1_2d",
-                  "3_7d",
-                  "gt_7d"
+                  "lt_2d",
+                  "ge_2d"
                 ]
+              }
+            ]
+          },
+          "goto": "o_urgent_diab"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "no_fluids"
+                  },
+                  {
+                    "answer": "q_duration",
+                    "in": [
+                      "1_2d",
+                      "3_7d",
+                      "gt_7d"
+                    ]
+                  }
+                ]
+              },
+              {
+                "answer": "q_vomit",
+                "eq": "ge_2d"
               }
             ]
           },
@@ -214,6 +284,10 @@
                       "kidney_disease",
                       "diabetes"
                     ]
+                  },
+                  {
+                    "answer": "q_risk",
+                    "includes": "diabetes"
                   }
                 ]
               },
@@ -235,16 +309,22 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_signs",
-                "includes": "bloody_diarrhoea"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "dizzy_standing"
-              }
-            ]
+            "answer": "q_signs",
+            "includes": "no_fluids"
+          },
+          "goto": "o_urgent_nofluids"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "bloody_diarrhoea"
+          },
+          "goto": "o_urgent_blood"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "dizzy_standing"
           },
           "goto": "o_doc48_1"
         },
@@ -283,7 +363,7 @@
             "answer": "q_duration",
             "eq": "gt_7d"
           },
-          "goto": "o_gp_1"
+          "goto": "o_doc48_long"
         },
         {
           "when": {
@@ -335,7 +415,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Знаците што ги одбравте може да значат дехидрација што бара преглед истиот ден.",
       "reasons": [
-        "Не можете да задржите течности повеќе од еден ден."
+        "Не можете да задржите течности, или повраќате 2 дена или подолго."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -428,7 +508,7 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Лекарот ќе процени дали се потребни анализи или промена на лековите.",
       "reasons": [
-        "Крв во проливот или вртоглавица при станување треба да ги процени лекар."
+        "Вртоглавица при станување може да значи дека губите премногу течност."
       ],
       "do_now": [
         "Закажете кај избраниот лекар.",
@@ -503,34 +583,6 @@
           "opsta-medicina",
           "semejna-medicina",
           "infektologija",
-          "gastroenterohepatologija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-dv"
-      ]
-    },
-    "o_gp_1": {
-      "level": "see_gp_this_week",
-      "title": "Закажете кај избраниот лекар",
-      "summary": "Подолготрајниот пролив треба да се испита.",
-      "reasons": [
-        "Пролив подолг од 7 дена треба да се испита."
-      ],
-      "do_now": [
-        "Закажете оваа недела; лекарот може да побара анализа на столица."
-      ],
-      "watch_for": [
-        "Ако се појави крв во столицата, силна болка или знаци на дехидрација (многу малку урина, вртоглавица), веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
           "gastroenterohepatologija"
         ],
         "facility_types": [
@@ -631,11 +683,136 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_urgent_diab": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Повраќање кај дијабетес може брзо да го покачи шеќерот и кетоните, па треба да се процени истиот ден.",
+      "reasons": [
+        "Кај дијабетес повраќањето може да доведе до опасно закиселување на крвта, дури и кога шеќерот не е многу висок."
+      ],
+      "do_now": [
+        "Измерете го шеќерот во крвта, а ако имате апарат и кетоните.",
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте мали голтки течност на секои неколку минути; не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако кетоните се 3 или повеќе, или се појави болка во стомакот, длабоко или брзо дишење, поспаност или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
+    },
+    "o_urgent_blood": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Крвта во проливот треба да се процени истиот ден.",
+      "reasons": [
+        "Крв во проливот може да значи инфекција или воспаление што бара преглед денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте доволно течности; раствор за рехидрација од аптека може да помогне."
+      ],
+      "watch_for": [
+        "Ако крварењето е обилно, столицата стане црна или се појави силна болка во стомакот или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
+    },
+    "o_doc48_long": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Подолготрајниот пролив треба да го процени лекар.",
+      "reasons": [
+        "Пролив подолг од 7 дена треба да го прегледа лекар наскоро."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар во наредните 1–2 дена; лекарот може да побара анализа на столица.",
+        "Пијте доволно течности."
+      ],
+      "watch_for": [
+        "Ако се појави крв во столицата, силна болка или знаци на дехидрација (многу малку урина, вртоглавица), веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "infektologija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dv"
+      ]
+    },
+    "o_urgent_nofluids": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Знаците што ги одбравте може да значат дехидрација што бара преглед истиот ден.",
+      "reasons": [
+        "Не можете да задржите ниту голтка течност."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте мали голтки течност на секои неколку минути."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, несвестица, крв во повраќаното или силна болка во стомакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dv",
+        "nhs-dehydration"
+      ]
     }
   },
   "populations": {
     "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
-    "older_adult": "Referenced: dehydration signs in ≥65 → same day."
+    "older_adult": "Referenced: dehydration signs in ≥65 → same day.",
+    "chronic": "Referenced: diabetes (demographics or the q_risk answer) with vomiting → same day with glucose/ketone check; other chronic conditions with dehydration signs → same day."
   },
   "sources": [
     {

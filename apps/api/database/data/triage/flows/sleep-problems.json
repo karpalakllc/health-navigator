@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "sleep-problems",
   "title": "Проблеми со спиењето",
-  "summary_en": "Adult sleep problems. Crisis features handled by mental-health red flags (repeated here only as 'not safe'); falling asleep while driving or witnessed apnoeas → GP (doc48 if driving). Insomnia <4 weeks → self-care; >3 months or affecting life → GP.",
-  "notes_en": "NHS insomnia (>3 months → GP) and sleep apnoea (snoring + witnessed apnoeas, daytime sleepiness, driving risk). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult sleep problems. Self-harm thoughts / not feeling safe and suspected postpartum psychosis → global crisis. Waking breathless or unable to lie flat → same day. Falling asleep while driving → 24–48h; witnessed apnoeas/daytime sleepiness → GP. Insomnia <4 weeks → self-care; >3 months or affecting life → GP.",
+  "notes_en": "NHS insomnia (>3 months → GP) and sleep apnoea (snoring + witnessed apnoeas, daytime sleepiness, driving risk). 2026-10-23 safety fixes (pending clinician review): postpartum psychosis red flag, breathless-at-night option → same day, rule order fixed so the pregnancy and older-adult outcomes are reachable. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -28,6 +28,20 @@
       "label": "Поради расположението имате мисли да се повредите или не се чувствувате безбедни",
       "outcome": "global:crisis",
       "source": "nhs-suicidal"
+    },
+    {
+      "code": "postpartum_psychosis",
+      "label": "Во бременост или по породување: многу малку сон заедно со збунетост, необични мисли, слушање гласови или многу покачено расположение",
+      "when": {
+        "demo": "pregnancy",
+        "in": [
+          "pregnant",
+          "postpartum",
+          "unsure"
+        ]
+      },
+      "outcome": "global:crisis",
+      "source": "nhs-postpartum-psychosis"
     }
   ],
   "entry": "q_problem",
@@ -60,6 +74,10 @@
         {
           "value": "legs",
           "label": "Непријатно чувство во нозете навечер што ме тера да ги мрдам"
+        },
+        {
+          "value": "breathless_night",
+          "label": "Се будам без воздух или не можам да дишам кога лежам рамно"
         },
         {
           "value": "none",
@@ -97,9 +115,33 @@
         {
           "when": {
             "answer": "q_problem",
+            "includes": "breathless_night"
+          },
+          "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "answer": "q_problem",
             "includes": "drowsy_driving"
           },
           "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_problem",
+                "includes": "sleepy_day"
+              }
+            ]
+          },
+          "goto": "o_gp_5"
         },
         {
           "when": {
@@ -115,6 +157,25 @@
             ]
           },
           "goto": "o_gp_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "answer": "q_problem",
+                "includes": "low_mood"
+              }
+            ]
+          },
+          "goto": "o_gp_4"
         },
         {
           "when": {
@@ -143,48 +204,42 @@
           "goto": "o_gp_3"
         },
         {
-          "when": {
-            "all": [
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "postpartum",
-                  "unsure"
-                ]
-              },
-              {
-                "answer": "q_problem",
-                "includes": "low_mood"
-              }
-            ]
-          },
-          "goto": "o_gp_4"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "demo": "age_band",
-                "in": [
-                  "older_65_plus"
-                ]
-              },
-              {
-                "answer": "q_problem",
-                "includes": "sleepy_day"
-              }
-            ]
-          },
-          "goto": "o_gp_5"
-        },
-        {
           "goto": "o_self"
         }
       ]
     }
   },
   "outcomes": {
+    "o_urgent_1": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Будење без воздух или тешко дишење кога лежите рамно треба да го провери лекар уште денес.",
+      "reasons": [
+        "Недостиг на воздух во лежечка положба може да значи дека срцето или белите дробови не работат доволно добро."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар, во дежурна служба или итна амбуланта уште денес.",
+        "Додека чекате, седете исправено или спијте потпрени на повеќе перници."
+      ],
+      "watch_for": [
+        "Ако недостигот на воздух е силен, се влошува или имате болка во градите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "interna-medicina",
+          "kardiologija",
+          "opsta-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-heart-failure"
+      ]
+    },
     "o_doc48_1": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
@@ -401,7 +456,8 @@
   },
   "populations": {
     "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
-    "chronic": "No condition-specific threshold; medication side effects are a GP question."
+    "chronic": "No condition-specific threshold; medication side effects are a GP question.",
+    "pregnancy": "Referenced: pregnancy/postpartum with low mood → GP (o_gp_4); suspected postpartum psychosis (very little sleep with confusion, unusual thoughts or elation) is a red flag → global:crisis."
   },
   "sources": [
     {
@@ -421,6 +477,18 @@
       "title": "NHS (Велика Британија) — Help for suicidal thoughts",
       "url": "https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/behaviours/help-for-suicidal-thoughts/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-postpartum-psychosis",
+      "title": "NHS (Велика Британија) — Postpartum psychosis",
+      "url": "https://www.nhs.uk/mental-health/conditions/post-partum-psychosis/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-heart-failure",
+      "title": "NHS (Велика Британија) — Heart failure",
+      "url": "https://www.nhs.uk/conditions/heart-failure/",
+      "accessed": "2026-10-23"
     }
   ]
 }

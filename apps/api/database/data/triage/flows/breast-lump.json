@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "breast-lump",
   "title": "Грутка или промени во дојката",
-  "summary_en": "Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast with fever while breastfeeding → 24–48h (same day if unwell). Any new lump, nipple inversion/discharge with blood, skin dimpling → GP/gynaecologist this week with instruction to request breast ultrasound/mammography referral without delay.",
-  "notes_en": "NHS breast lump / breast cancer symptoms / mastitis. Any new lump → prompt GP/gynaecology (NHS urgent referral). Men are included (labels are sex-neutral). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Breast lump/changes (all adults incl. men). Sepsis signs → 194. Red hot breast with fever → 24–48h (same day if immunosuppressed/diabetic); red hot breast without fever while breastfeeding → self-care with safety net, otherwise → 24–48h. Any new lump, nipple change, rash or spontaneous discharge, skin dimpling → doctor in 1–2 days with breast imaging referral.",
+  "notes_en": "NHS breast lump / breast cancer symptoms / mastitis. Any new lump → prompt GP/gynaecology (NHS urgent referral). Men are included (labels are sex-neutral). 2026-10-23 fixes (pending clinician review): mastitis self-care aligned with NHS (cold compresses, feed on demand, no firm massage); red, warm breast without fever when not breastfeeding → 24–48h; nipple rash/scaling or spontaneous discharge option → 24–48h. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -49,6 +49,10 @@
         {
           "value": "nipple",
           "label": "Брадавицата се вовлече, или има крвав секрет"
+        },
+        {
+          "value": "nipple_skin",
+          "label": "Осип, црвенило или лушпи на брадавицата, или секрет од брадавицата без притискање"
         },
         {
           "value": "red_hot",
@@ -153,19 +157,12 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_changes",
-                "includes": "lump"
-              },
-              {
-                "answer": "q_changes",
-                "includes": "skin"
-              },
-              {
-                "answer": "q_changes",
-                "includes": "nipple"
-              }
+            "answer": "q_changes",
+            "includes_any": [
+              "lump",
+              "skin",
+              "nipple",
+              "nipple_skin"
             ]
           },
           "goto": "o_doc48_2"
@@ -184,6 +181,13 @@
             ]
           },
           "goto": "o_self_bf_1"
+        },
+        {
+          "when": {
+            "answer": "q_changes",
+            "includes": "red_hot"
+          },
+          "goto": "o_doc48_2"
         },
         {
           "when": {
@@ -292,7 +296,7 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Повеќето грутки во дојката не се канцер, но секоја нова промена треба брзо да се испита.",
       "reasons": [
-        "Секоја нова грутка или промена на кожата или брадавицата треба да се испита без одлагање, иако најчесто не е опасна."
+        "Секоја нова грутка, промена на кожата или брадавицата, или црвена и топла дојка без температура треба да се испита без одлагање, иако најчесто не е опасна."
       ],
       "do_now": [
         "Јавете се кај избраниот лекар или гинеколог во наредните 1–2 дена и кажете дека имате нова промена во дојката.",
@@ -327,8 +331,9 @@
         "Црвенило при доење често е од застој на млекото и може да се подобри со доење."
       ],
       "do_now": [
-        "Продолжете да доите често, почнувајќи од болната дојка.",
-        "Топли облози пред доење и ладни потоа; одморајте се."
+        "Продолжете да доите кога бебето сака, и од болната дојка ако не е премногу болно.",
+        "Ладни облози на дојката (на пример крпа натопена во ладна вода) по 10 минути може да ја ублажат болката.",
+        "Не притискајте и не масирајте силно, и не измолзувајте повеќе млеко отколку што му треба на бебето; одморајте се."
       ],
       "watch_for": [
         "Ако се појави температура, тресење или не се подобри за 24 часа, јавете се кај лекар истиот ден.",

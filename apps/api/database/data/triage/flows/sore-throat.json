@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "sore-throat",
   "title": "Болка во грлото",
-  "summary_en": "Adult sore throat. Stridor, drooling/can't swallow saliva, breathing difficulty → emergency. One-sided severe swelling/trismus (quinsy), immunosuppression/carbimazole-type drugs → same day. High fever + pus no cough → 48h. Otherwise pharmacy/self-care.",
-  "notes_en": "NHS sore throat/tonsillitis/quinsy. FeverPAIN/Centor scores are public but not reproduced; a plain 'fever + pus, no cough' item approximates them conservatively. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult sore throat. Stridor, drooling/can't swallow saliva, rapidly progressing swelling, severe rapidly worsening symptoms or muffled voice → emergency. Chemotherapy/marrow-suppressing drugs or immunosuppression with fever → emergency department now (NICE NG151); one-sided severe swelling/trismus (quinsy), inability to drink, immunosuppression without fever → same day. Fever + pus no cough → 48h. >2 weeks, neck lump, hoarseness/dysphagia >3 weeks → GP. Otherwise pharmacy/self-care.",
+  "notes_en": "NHS sore throat/tonsillitis/quinsy. FeverPAIN/Centor scores are public but not reproduced; a plain 'fever + pus, no cough' item approximates them conservatively. 2026-10-23 safety fixes: immunosuppression + fever → ED now; red flag for severe rapid worsening / muffled voice (NHS 999); hoarseness/dysphagia >3 weeks → GP; antithyroid wording. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -41,6 +41,12 @@
       "label": "Отекување на јазикот, усните или вратот што брзо напредува",
       "outcome": "o_emergency",
       "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "rapid_worse_muffled",
+      "label": "Тегобите се многу силни и брзо се влошуваат, или гласот ви е придушен",
+      "outcome": "o_emergency",
+      "source": "nhs-sore-throat"
     }
   ],
   "entry": "q_features",
@@ -64,11 +70,19 @@
         },
         {
           "value": "immuno_drugs",
-          "label": "Пијам лекови што можат да го намалат бројот на бели крвни клетки (на пр. за тироидна жлезда, хемотерапија)"
+          "label": "Примате хемотерапија или лекови што може да го намалат бројот на бели крвни клетки (на пр. лекови против зголемена функција на тироидната жлезда)"
         },
         {
           "value": "lump_neck",
           "label": "Оток или грутка на вратот што не се повлекува"
+        },
+        {
+          "value": "fever",
+          "label": "Температура 38 °C или повеќе, или ве тресе"
+        },
+        {
+          "value": "hoarse_swallow",
+          "label": "Засипнат глас или тешко голтање храна подолго од 3 недели"
         },
         {
           "value": "none",
@@ -97,6 +111,32 @@
         }
       ],
       "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "answer": "q_features",
+                    "includes": "immuno_drugs"
+                  },
+                  {
+                    "demo": "conditions",
+                    "includes": "immunosuppressed"
+                  }
+                ]
+              },
+              {
+                "answer": "q_features",
+                "includes_any": [
+                  "fever",
+                  "fever_pus"
+                ]
+              }
+            ]
+          },
+          "goto": "o_ed_immuno"
+        },
         {
           "when": {
             "any": [
@@ -144,6 +184,10 @@
               {
                 "answer": "q_features",
                 "includes": "lump_neck"
+              },
+              {
+                "answer": "q_features",
+                "includes": "hoarse_swallow"
               }
             ]
           },
@@ -246,9 +290,9 @@
     "o_gp_1": {
       "level": "see_gp_this_week",
       "title": "Закажете кај избраниот лекар",
-      "summary": "Подолготрајната болка или оток на вратот треба да се испитаат.",
+      "summary": "Подолготрајните тегоби во грлото или оток на вратот треба да се испитаат.",
       "reasons": [
-        "Болка или оток што траат повеќе од 2 недели треба да се испитаат."
+        "Болка или оток што траат повеќе од 2 недели, или засипнатост и тешко голтање подолго од 3 недели, треба да се испитаат."
       ],
       "do_now": [
         "Закажете преглед оваа недела."
@@ -308,7 +352,7 @@
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
         "Седнете исправено и останете мирни; не легнувајте.",
-        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Ако сте сами, отклучете ја вратата ако можете.",
         "Не возете сами до болница.",
         "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
       ],
@@ -333,6 +377,36 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_ed_immuno": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Кај хемотерапија или ослабен имунитет, болно грло со температура може да значи сериозна инфекција што треба да се лекува веднаш.",
+      "reasons": [
+        "Примате хемотерапија, лекови што го намалуваат бројот на бели крвни клетки или имате ослабен имунитет, а имате температура."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение — не чекајте да видите дали ќе помине.",
+        "Ако вашиот онколошки или друг тим ви дал телефон за итни случаи, јавете се и таму на пат.",
+        "Кажете кои лекови ги примате.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако не можете безбедно да стигнете, дишењето стане тешко или се чувствувате полошо, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng151"
       ]
     }
   },
@@ -365,6 +439,12 @@
       "title": "NHS (Велика Британија) — Anaphylaxis",
       "url": "https://www.nhs.uk/conditions/anaphylaxis/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng151",
+      "title": "NICE NG151 — Neutropenic sepsis: prevention and management in people with cancer",
+      "url": "https://www.nice.org.uk/guidance/ng151",
+      "accessed": "2026-10-23"
     }
   ]
 }

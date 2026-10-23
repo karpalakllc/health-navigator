@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "mental-health",
   "title": "Психичко здравје: вознемиреност, лошо расположение, криза",
-  "summary_en": "Mental health (teens and adults). Crisis red flags (suicidal plan/intent, self-harm now, risk to others, severe confusion/psychosis with danger) → global crisis outcome (194/112 + nearest ED). Frequent thoughts of death, psychotic or manic features, inability to function, teens or postpartum with any thoughts → same day; occasional thoughts without plan → 24–48h; low mood/anxiety >2 weeks → GP; mild → self-care with safety net (194/112 always repeated).",
-  "notes_en": "NHS suicidal thoughts / urgent mental-health help / depression / anxiety / psychosis; WHO suicide fact sheet. Any self-harm or suicidal intent routes to global:crisis and never to self-care. Passive ideation without plan → 24–48h; frequent → same day; teens and postpartum have lower thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Mental health (teens and adults). Crisis red flags (suicidal plan/intent, self-harm now, risk to others, severe confusion/psychosis with danger) and any thoughts of death or self-harm → global crisis outcome (194/112, support lines, nearest ED); suspected postpartum psychosis → crisis. Psychotic or manic features, inability to function → same day; low mood/anxiety >2 weeks → GP; mild → self-care with safety net (194/112 always repeated).",
+  "notes_en": "NHS suicidal thoughts / urgent mental-health help / depression / anxiety / psychosis; WHO suicide fact sheet. Any self-harm or suicidal thought (q_thoughts sometimes/often) routes to global:crisis, consistent with the global self_harm red flag (2026-10-23; previously passive ideation → 24–48h, frequent → same day). Suspected postpartum psychosis (postpartum + unusual experiences or elation) → global:crisis. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -86,7 +86,21 @@
           "label": "Да, често"
         }
       ],
-      "next": "q_main"
+      "next": [
+        {
+          "when": {
+            "answer": "q_thoughts",
+            "in": [
+              "sometimes",
+              "often"
+            ]
+          },
+          "goto": "global:crisis"
+        },
+        {
+          "goto": "q_main"
+        }
+      ]
     },
     "q_main": {
       "type": "question",
@@ -170,37 +184,21 @@
       "next": [
         {
           "when": {
-            "answer": "q_thoughts",
-            "eq": "often"
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
             "all": [
               {
                 "demo": "pregnancy",
                 "eq": "postpartum"
               },
               {
-                "any": [
-                  {
-                    "answer": "q_thoughts",
-                    "eq": "sometimes"
-                  },
-                  {
-                    "answer": "q_main",
-                    "includes": "unusual"
-                  },
-                  {
-                    "answer": "q_main",
-                    "includes": "elated"
-                  }
+                "answer": "q_main",
+                "includes_any": [
+                  "unusual",
+                  "elated"
                 ]
               }
             ]
           },
-          "goto": "o_urgent_2"
+          "goto": "global:crisis"
         },
         {
           "when": {
@@ -220,32 +218,6 @@
             ]
           },
           "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "demo": "age_band",
-                "in": [
-                  "teen_13_17"
-                ]
-              },
-              {
-                "not": {
-                  "answer": "q_thoughts",
-                  "eq": "no"
-                }
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "answer": "q_thoughts",
-            "eq": "sometimes"
-          },
-          "goto": "o_doc48_1"
         },
         {
           "when": {
@@ -296,134 +268,12 @@
     }
   },
   "outcomes": {
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Разговарајте со стручно лице денес",
-      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
-      "reasons": [
-        "Честите мисли за смрт или самоповредување треба да ги процени стручно лице уште денес."
-      ],
-      "do_now": [
-        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
-        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
-        "Кажете му на некој близок како се чувствувате и не останувајте сами."
-      ],
-      "watch_for": [
-        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
-      ],
-      "care": {
-        "setting": "mental_health",
-        "specialties": [
-          "psihijatrija",
-          "opsta-medicina",
-          "semejna-medicina"
-        ],
-        "facility_types": [
-          "hospital",
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-mh-urgent"
-      ]
-    },
-    "o_urgent_2": {
-      "level": "urgent_same_day",
-      "title": "Разговарајте со стручно лице денес",
-      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
-      "reasons": [
-        "Промени во расположението или необични доживувања по породување треба да се проценат истиот ден."
-      ],
-      "do_now": [
-        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
-        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
-        "Кажете му на некој близок како се чувствувате и не останувајте сами."
-      ],
-      "watch_for": [
-        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
-      ],
-      "care": {
-        "setting": "mental_health",
-        "specialties": [
-          "psihijatrija",
-          "opsta-medicina",
-          "semejna-medicina"
-        ],
-        "facility_types": [
-          "hospital",
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-mh-urgent"
-      ]
-    },
     "o_urgent_3": {
       "level": "urgent_same_day",
       "title": "Разговарајте со стручно лице денес",
       "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
       "reasons": [
         "Необичните доживувања, многу покаченото расположение или неможноста за функционирање бараат брза стручна проценка."
-      ],
-      "do_now": [
-        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
-        "Може да се обратите и во психијатриско одделение или во итната служба на најблиската болница.",
-        "Кажете му на некој близок како се чувствувате и не останувајте сами."
-      ],
-      "watch_for": [
-        "Ако почнете да размислувате како да си одземете живот или не се чувствувате безбедни, веднаш повикајте 194 или 112 или одете во најблиската итна служба."
-      ],
-      "care": {
-        "setting": "mental_health",
-        "specialties": [
-          "psihijatrija",
-          "opsta-medicina",
-          "semejna-medicina"
-        ],
-        "facility_types": [
-          "hospital",
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-mh-urgent"
-      ]
-    },
-    "o_doc48_1": {
-      "level": "see_doctor_24_48h",
-      "title": "Закажете разговор со лекар во наредните 1–2 дена",
-      "summary": "Мислите за смрт се чести кога човек е под голем притисок и треба да се разговара за нив.",
-      "reasons": [
-        "Мислите за смрт треба да се споделат со лекар наскоро, дури и без план."
-      ],
-      "do_now": [
-        "Закажете кај избраниот лекар; може да ве упати кај психијатар или психолог.",
-        "Разговарајте со некој близок."
-      ],
-      "watch_for": [
-        "Ако мислите станат почести, направите план или не се чувствувате безбедни, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
-          "psihijatrija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-suicidal"
-      ]
-    },
-    "o_urgent_4": {
-      "level": "urgent_same_day",
-      "title": "Разговарајте со стручно лице денес",
-      "summary": "Вашите одговори покажуваат дека е добро уште денес да разговарате со лекар или психијатар.",
-      "reasons": [
-        "Кај млади лица мислите за смрт или самоповредување треба брзо да ги процени стручно лице; разговарајте и со возрасен на кого му верувате."
       ],
       "do_now": [
         "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете што чувствувате.",
@@ -540,8 +390,8 @@
     }
   },
   "populations": {
-    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
-    "pregnancy": "Referenced: pregnancy/postpartum low mood/anxiety → GP minimum; postpartum unusual experiences/elation/thoughts → same day (postpartum psychosis risk).",
+    "child": "Teenagers (13–17) follow the adult path for this symptom; any thoughts of death or self-harm go to global:crisis at every age. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Referenced: pregnancy/postpartum low mood/anxiety → GP minimum; postpartum unusual experiences or elation (possible postpartum psychosis) → global:crisis (NHS: a medical emergency).",
     "older_adult": "Same thresholds; new confusion in older adults is in confusion-older.",
     "chronic": "No condition-specific threshold."
   },

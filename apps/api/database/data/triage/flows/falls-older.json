@@ -2,7 +2,7 @@
   "schema": "zdravje.triage/1",
   "key": "falls-older",
   "title": "Пад кај постаро лице",
-  "summary_en": "Falls in older adults. Cannot get up / suspected hip fracture, head injury on anticoagulants, blackout before fall, chest pain/palpitations, stroke signs, long lie → emergency/same day. Injury or new confusion → same day. Recurrent falls (≥2 in 12 months), fear of falling → GP for a falls assessment (NICE NG249). Uninjured single trip → self-care with prevention tips.",
+  "summary_en": "Falls in older adults. Cannot get up / suspected hip fracture, head injury on anticoagulants, neck/back pain or new numbness, chest pain/palpitations, stroke signs, long lie, new confusion, blackout with injury → 194. Blackout without injury, pain or head bump → same day. Recurrent falls (≥2 in 12 months), fear of falling → GP for a falls assessment (NICE NG249). Uninjured single trip → self-care with prevention tips.",
   "notes_en": "NHS falls; NICE NG249 (2025) falls risk assessment triggers (≥2 falls/12 months, fear of falling, injury); head injury with anticoagulation; syncope. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
@@ -43,6 +43,13 @@
       "source": "nhs-head-injury"
     },
     {
+      "code": "neck_back",
+      "label": "Болка во вратот или грбот по падот, или ново трпнење или слабост во рацете или нозете",
+      "help": "Не го кревајте и не го движете лицето додека не стигне помош.",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
       "code": "stroke",
       "label": "Опуштено лице, слабост на рака или нога, нејасен говор",
       "outcome": "o_emergency",
@@ -66,7 +73,7 @@
     "i_help_up": {
       "type": "info",
       "title": "Ако е сè уште на подот",
-      "text": "Не кревајте го нагло. Ако не е повреден/а, помогнете му полека: прво на колена, потоа до стабилен стол. Ако боли или не може, покријте го/ја да не се излади и повикајте помош.",
+      "text": "Не кревајте го нагло. Ако го боли колкот, грбот или вратот, или не може да ја движи ногата, не кревајте го/ја: покријте го/ја да не се излади и повикајте 194. Ако не е повреден/а, помогнете му полека: прво на колена, потоа до стабилен стол.",
       "next": "q_cause"
     },
     "q_cause": {
@@ -156,6 +163,32 @@
       "next": [
         {
           "when": {
+            "all": [
+              {
+                "answer": "q_cause",
+                "eq": "blackout"
+              },
+              {
+                "answer": "q_after",
+                "includes_any": [
+                  "pain",
+                  "head_bump",
+                  "confused_new"
+                ]
+              }
+            ]
+          },
+          "goto": "o_emergency_blackout"
+        },
+        {
+          "when": {
+            "answer": "q_after",
+            "includes": "confused_new"
+          },
+          "goto": "o_emergency_confused"
+        },
+        {
+          "when": {
             "answer": "q_cause",
             "eq": "blackout"
           },
@@ -167,10 +200,6 @@
               {
                 "answer": "q_after",
                 "includes": "pain"
-              },
-              {
-                "answer": "q_after",
-                "includes": "confused_new"
               },
               {
                 "answer": "q_after",
@@ -268,7 +297,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Кај постари лица падовите почесто доведуваат до скршеници и понекогаш се знак на друга болест.",
       "reasons": [
-        "По пад кај постаро лице, болката, ударот во главата или новата збунетост бараат преглед истиот ден."
+        "По пад кај постаро лице, болката или ударот во главата бараат преглед истиот ден."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -448,6 +477,90 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_emergency_blackout": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Губење свест пред падот, заедно со повреда или нова збунетост, бара итна помош (може да се работи за проблем со срцето или за сериозна повреда)."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не го кревајте ако може да е скршена коската; покријте го/ја со ќебе.",
+        "Не давајте храна и пијалак додека не стигне помош.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-fainting",
+        "nhs-falls"
+      ]
+    },
+    "o_emergency_confused": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Нова или поголема збунетост по пад може да значи повреда на главата, инфекција или друга итна состојба."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не го кревајте ако може да е скршена коската; покријте го/ја со ќебе.",
+        "Не давајте храна и пијалак додека не стигне помош.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-falls",
+        "nhs-head-injury"
       ]
     }
   },

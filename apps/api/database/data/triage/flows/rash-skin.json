@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "rash-skin",
   "title": "Осип или промени на кожата",
-  "summary_en": "Adult rash. Non-blanching rash with fever/unwell, rapidly spreading rash with blistering/skin peeling, anaphylaxis signs → emergency. Spreading red hot skin with fever (cellulitis), rash near eye (shingles), immunosuppressed → same day/48h. Hives/itch → pharmacy.",
-  "notes_en": "NHS cellulitis/shingles/hives/impetigo/scabies; glass test and anaphylaxis signs as red flags; SJS/TEN-type features (blistering, mucosal involvement after new drug) emergency. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult rash. Non-blanching spots (global red flag, also an option, with or without fever), rapidly spreading rash with blistering/skin peeling, anaphylaxis signs, necrotising-fasciitis features (pain out of proportion, dark/purple/blistering skin, very unwell) → emergency. Spreading red hot skin with fever → emergency department now; without fever, rash near the eye, shingles, immunosuppressed, new drug + fever → same day. Hives/itch → pharmacy.",
+  "notes_en": "NHS cellulitis/shingles/hives/impetigo/scabies/necrotising fasciitis; glass test and anaphylaxis signs as red flags; SJS/TEN-type features (blistering, mucosal involvement after new drug) emergency. 2026-10-23 safety fixes: local non-blanching flag removed (the global flag now covers it regardless of fever) and a non-blanching option → 194; necrotising-fasciitis red flag; cellulitis with fever → ED now, without fever → same day; shingles → same day (antivirals within 72 h); new drug + fever → same day; anaphylaxis outcome with positioning/auto-injector steps. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -26,15 +26,16 @@
   ],
   "red_flags": [
     {
-      "code": "nonblanch_unwell",
-      "label": "Осип што не бледнее под притисок на чаша, а лицето е болно или има температура",
+      "code": "severe_pain_dark_skin",
+      "label": "Многу силна болка, посилна отколку што изгледа кожата, кожа што брзо станува темна, виолетова или со меури, или се чувствувате многу лошо",
+      "help": "Може да е брзо ширење на тешка инфекција под кожата.",
       "outcome": "o_emergency",
-      "source": "nhs-meningitis"
+      "source": "nhs-necrotising-fasciitis"
     },
     {
       "code": "anaphylaxis",
       "label": "Отекување на усните, јазикот или грлото, или отежнато дишење",
-      "outcome": "o_emergency",
+      "outcome": "o_emergency_anaph",
       "source": "nhs-anaphylaxis"
     },
     {
@@ -81,6 +82,10 @@
           "label": "Бенка што се менува (големина, облик, боја) или крвави"
         },
         {
+          "value": "non_blanching",
+          "label": "Ситни црвени или виолетови точки или дамки што не бледеат кога ќе се притисне со стаклена чаша"
+        },
+        {
           "value": "other",
           "label": "Друг осип"
         },
@@ -105,24 +110,30 @@
       "next": [
         {
           "when": {
-            "any": [
+            "answer": "q_type",
+            "includes": "non_blanching"
+          },
+          "goto": "global:emergency_now"
+        },
+        {
+          "when": {
+            "all": [
               {
                 "answer": "q_type",
-                "includes": "near_eye"
+                "includes": "red_hot_spreading"
               },
               {
-                "all": [
-                  {
-                    "answer": "q_type",
-                    "includes": "red_hot_spreading"
-                  },
-                  {
-                    "answer": "q_fever",
-                    "eq": "yes"
-                  }
-                ]
+                "answer": "q_fever",
+                "eq": "yes"
               }
             ]
+          },
+          "goto": "o_ed_cellulitis"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes": "near_eye"
           },
           "goto": "o_urgent_1"
         },
@@ -177,18 +188,32 @@
         },
         {
           "when": {
-            "any": [
+            "answer": "q_type",
+            "includes": "red_hot_spreading"
+          },
+          "goto": "o_urgent_cellulitis"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes": "band_blisters"
+          },
+          "goto": "o_urgent_shingles"
+        },
+        {
+          "when": {
+            "all": [
               {
-                "answer": "q_type",
-                "includes": "red_hot_spreading"
+                "answer": "q_new_drug",
+                "eq": "yes"
               },
               {
-                "answer": "q_type",
-                "includes": "band_blisters"
+                "answer": "q_fever",
+                "eq": "yes"
               }
             ]
           },
-          "goto": "o_doc48_1"
+          "goto": "o_urgent_drug"
         },
         {
           "when": {
@@ -255,7 +280,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Некои промени на кожата треба да се лекуваат истиот ден.",
       "reasons": [
-        "Осип околу окото или црвена кожа што се шири со температура бара лекување истиот ден."
+        "Осип или меурчиња околу окото или на врвот на носот бараат лекување истиот ден."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -342,34 +367,6 @@
       "sources": [
         "nhs-chickenpox",
         "nhs-shingles"
-      ]
-    },
-    "o_doc48_1": {
-      "level": "see_doctor_24_48h",
-      "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Промената треба да ја види лекар.",
-      "reasons": [
-        "Црвенило што се шири или појас меурчиња треба брзо да се прегледа; лекувањето е најкорисно во првите денови."
-      ],
-      "do_now": [
-        "Закажете кај избраниот лекар; сликајте ја промената за да следите како се менува."
-      ],
-      "watch_for": [
-        "Ако се појави осип што не бледнее, отекување на лицето, отежнато дишење или рани во устата, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
-          "dermatologija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-cellulitis"
       ]
     },
     "o_doc48_2": {
@@ -579,6 +576,169 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_emergency_anaph": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Отекувањето на усните, јазикот или грлото, или тешкото дишење, може да значи тешка алергиска реакција. Веднаш повикајте итна помош.",
+      "reasons": [
+        "Означивте знаци на можна тешка алергиска реакција (анафилакса)."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш и кажете дека може да е тешка алергиска реакција.",
+        "Ако имате автоинјектор со адреналин, употребете го веднаш во надворешната страна на бутот.",
+        "Легнете со подигнати нозе; ако тешко дишете, седнете исправено. Не станувајте и не одете.",
+        "Ако по 5 минути нема подобрување и имате втор автоинјектор, употребете го.",
+        "Не возете сами до болница."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-anaphylaxis"
+      ]
+    },
+    "o_ed_cellulitis": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Црвена, топла кожа што се шири, со температура или тресење, може да значи инфекција што брзо се шири.",
+      "reasons": [
+        "Црвенилото на кожата се шири, а имате температура, тресење или се чувствувате болно."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар).",
+        "Со пенкало обележете ги рабовите на црвенилото за да следите дали се шири.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, многу брзо дишење, многу бледа или студена кожа со дамки, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "dermatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis",
+        "nhs-sepsis"
+      ]
+    },
+    "o_urgent_cellulitis": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои промени на кожата треба да се лекуваат истиот ден.",
+      "reasons": [
+        "Црвена, топла кожа што се шири треба да се прегледа истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Со пенкало обележете ги рабовите на црвенилото за да следите дали се шири."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето или отежнато дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "dermatologija",
+          "infektologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
+    },
+    "o_urgent_shingles": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои промени на кожата треба да се лекуваат истиот ден.",
+      "reasons": [
+        "Болни меурчиња во појас (херпес зостер) најдобро се лекуваат ако лекувањето почне во првите 3 дена."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес.",
+        "Покријте ги меурчињата и не ги чепкајте."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето или отежнато дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "dermatologija",
+          "infektologija",
+          "oftalmologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-shingles"
+      ]
+    },
+    "o_urgent_drug": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Осип со температура по нов лек треба да се прегледа истиот ден.",
+      "reasons": [
+        "Осип со температура по нов лек може да е реакција на лекот што треба брзо да се процени; не го прекинувајте лекот на своја рака без совет."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар или во дежурна служба уште денес и кажете кој лек го почнавте.",
+        "Сликајте ја промената за да следите како се менува."
+      ],
+      "watch_for": [
+        "Ако се појави осип што не бледнее, отекување на лицето, отежнато дишење или рани во устата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "dermatologija",
+          "opsta-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-cellulitis"
+      ]
     }
   },
   "populations": {
@@ -640,6 +800,12 @@
       "title": "NHS (Велика Британија) — Chickenpox",
       "url": "https://www.nhs.uk/conditions/chickenpox/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-necrotising-fasciitis",
+      "title": "NHS — Necrotising fasciitis",
+      "url": "https://www.nhs.uk/conditions/necrotising-fasciitis/",
+      "accessed": "2026-10-23"
     }
   ]
 }

@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "back-pain",
   "title": "Болка во грбот",
-  "summary_en": "Adult back pain. Cauda equina signs (saddle numbness, bladder/bowel change, bilateral leg weakness), trauma in elderly, tearing pain → emergency. Fever/immunosuppression/cancer history, night pain → same day/48h. Sciatica without red flags → GP. Simple mechanical → self-care.",
-  "notes_en": "NHS back pain/sciatica: cauda equina emergency signs; infection/cancer/osteoporosis as yellow-orange flags. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult back pain. Cauda equina signs (saddle numbness, bladder/bowel change, pain/numbness/weakness in both legs), serious trauma, sudden severe tearing pain (with or without fainting) → emergency. Fever/immunosuppression with night pain, cancer history, new one-leg weakness → same day; older adult night pain, minor fall with osteoporosis → 48h. Sciatica without red flags → GP. Simple mechanical → self-care.",
+  "notes_en": "NHS back pain/sciatica/AAA: cauda equina emergency signs; infection/cancer/osteoporosis as yellow-orange flags. 2026-10-23 safety fixes (pending clinician review): tearing pain no longer needs fainting (NHS AAA: sudden severe tummy/back pain → 999); both-legs symptoms need not be worsening (cauda equina); cancer history + back pain → same day (NICE NG234 suspected spinal metastases, verify); new one-leg weakness / foot drop → same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -38,7 +38,7 @@
     },
     {
       "code": "both_legs",
-      "label": "Слабост или трпнење во двете нозе или нестабилен од, што се влошува",
+      "label": "Болка, трпнење или слабост во двете нозе, или нестабилен од",
       "outcome": "o_emergency",
       "source": "nhs-back-pain"
     },
@@ -50,9 +50,10 @@
     },
     {
       "code": "tearing",
-      "label": "Ненадејна, многу силна болка во средината на грбот или стомакот, со несвестица",
+      "label": "Ненадејна, многу силна болка во грбот или стомакот, како кинење, со или без несвестица",
       "outcome": "o_emergency",
-      "source": "nhs-back-pain"
+      "source": "nhs-aaa",
+      "help": "Особено ако сте над 65 години, пушите или знаете дека имате проширена аорта (аневризма)."
     },
     {
       "code": "chest",
@@ -87,6 +88,10 @@
         {
           "value": "one_leg",
           "label": "Болка или трпнење што се шири низ едната нога под коленото"
+        },
+        {
+          "value": "leg_weakness",
+          "label": "Едната нога или стапалото ослабува (се сопнувате, стапалото „паѓа“)"
         },
         {
           "value": "flank_urine",
@@ -169,6 +174,21 @@
         },
         {
           "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "cancer"
+              },
+              {
+                "answer": "q_features",
+                "includes": "leg_weakness"
+              }
+            ]
+          },
+          "goto": "o_urgent_4"
+        },
+        {
+          "when": {
             "all": [
               {
                 "demo": "age_band",
@@ -186,16 +206,8 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_features",
-                "includes": "cancer"
-              },
-              {
-                "answer": "q_features",
-                "includes": "minor_fall_older"
-              }
-            ]
+            "answer": "q_features",
+            "includes": "minor_fall_older"
           },
           "goto": "o_doc48_2"
         },
@@ -326,6 +338,39 @@
         "nhs-back-pain"
       ]
     },
+    "o_urgent_4": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Вашата историја или слабоста во ногата бараат лекарот да ве прегледа истиот ден.",
+      "reasons": [
+        "Нова болка во грбот кај канцер сега или порано, или нова слабост во едната нога, треба да се провери уште денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Ако се лекувате од канцер, јавете се и на тимот што ве лекува и кажете дека имате нова болка во грбот."
+      ],
+      "watch_for": [
+        "Ако се појави трпнење околу анусот или тешкотии со мокрењето, веднаш повикајте 194 или 112.",
+        "Ако слабоста во нозете се влошува, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "onkologija-radioterapija",
+          "nevrologija",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-back-pain",
+        "nhs-sciatica"
+      ]
+    },
     "o_doc48_1": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
@@ -360,7 +405,7 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Нема итни знаци, но вашата историја бара грбот да го прегледа лекар.",
       "reasons": [
-        "Кај претходен канцер или остеопороза треба да се исклучи промена на коската."
+        "Кај остеопороза или над 65 години, по помал пад треба да се исклучи скршеница на прешлен."
       ],
       "do_now": [
         "Закажете кај избраниот лекар."
@@ -540,6 +585,12 @@
       "title": "NHS (Велика Британија) — Chest pain",
       "url": "https://www.nhs.uk/symptoms/chest-pain/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-aaa",
+      "title": "NHS (Велика Британија) — Abdominal aortic aneurysm",
+      "url": "https://www.nhs.uk/conditions/abdominal-aortic-aneurysm/",
+      "accessed": "2026-10-23"
     }
   ]
 }

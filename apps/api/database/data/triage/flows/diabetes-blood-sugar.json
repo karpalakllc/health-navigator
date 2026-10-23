@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "diabetes-blood-sugar",
   "title": "Дијабетес: низок или висок шеќер",
-  "summary_en": "Diabetes high/low blood glucose (children and adults). Unconscious/unable to swallow, seizure, hypo not improving after two treatments with drowsiness, DKA signs (vomiting, abdominal pain, deep breathing, ketones ≥3) → 194. Hypo treated and recovered → self-care; ketones 1.5–2.9, vomiting with type 1, persistent high glucose → same day; repeated hypos or persistently high → GP/endocrinology.",
-  "notes_en": "NHS hypoglycaemia (fetched 2026-10-07: recheck after 10–15 min, <4 mmol/L repeat), hyperglycaemia and DKA (ketone bands 0.6/1.5/3.0 from public NHS diabetes pages). No insulin dose advice. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Diabetes high/low blood glucose (children and adults). Unconscious/unable to swallow, seizure → 194 (hypo emergency outcome). High sugar with any one DKA sign (vomiting, abdominal pain, deep/fast breathing, ketone breath, drowsiness/confusion), ketones ≥3, or very high glucose with dehydration → 194 (hyperglycaemia emergency outcome, no glucagon advice). Low sugar not rising after two treatments → 194. Ketones 1.5–2.9, type 1 with unmeasured ketones, glucose ≥20, children, pregnancy → same day; repeated hypos or persistently high → 1–2 days / GP.",
+  "notes_en": "NHS hypoglycaemia (recheck after 10–15 min, <4 mmol/L repeat), hyperglycaemia (being sick, stomach pain, fast/deep breathing, drowsiness, confusion → 999/A&E) and DKA (ketone bands 0.6/1.5/3.0). 2026-10-23 safety fixes: DKA red flag is any-of; vomiting with high sugar → 194; separate hyperglycaemia emergency outcome; HHS red flag; persistent hypo → 194; type 1 with unmeasured ketones → same day; separate high-sugar self-care. No insulin dose advice. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_3_12m",
@@ -42,9 +42,16 @@
     },
     {
       "code": "dka",
-      "label": "Повраќање, болка во стомакот, длабоко и брзо дишење, мирис на овошје (ацетон) од устата и поспаност",
-      "outcome": "o_emergency",
-      "source": "nhs-dka"
+      "label": "Висок шеќер со барем еден од овие знаци: повраќање, болка во стомакот, длабоко или брзо дишење, мирис на овошје (ацетон) од устата, поспаност или збунетост",
+      "outcome": "o_emergency_1",
+      "source": "nhs-hyper",
+      "help": "Доволен е и само еден од знаците."
+    },
+    {
+      "code": "very_high_dehydrated",
+      "label": "Многу висок шеќер (над 30 или апаратот покажува „HI“) со силна жед, сува уста, многу малку мокрење или слабост",
+      "outcome": "o_emergency_1",
+      "source": "nhs-hyper"
     }
   ],
   "entry": "q_problem",
@@ -84,95 +91,7 @@
           "goto": "q_treated"
         },
         {
-          "when": {
-            "answer": "q_problem",
-            "eq": "high"
-          },
           "goto": "q_ketones"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "high"
-          },
-          "goto": "q_high_signs"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "low"
-          },
-          "goto": "q_repeated_hypos"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 20
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "unsure"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4_preg"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "age_band",
-                "in": [
-                  "infant_3_12m",
-                  "child_1_4",
-                  "child_5_12"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 15
-              }
-            ]
-          },
-          "goto": "o_gp_1"
-        },
-        {
-          "goto": "o_self"
         }
       ]
     },
@@ -197,108 +116,13 @@
       "next": [
         {
           "when": {
-            "answer": "q_problem",
-            "eq": "high"
-          },
-          "goto": "q_ketones"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "high"
-          },
-          "goto": "q_high_signs"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "low"
-          },
-          "goto": "q_repeated_hypos"
-        },
-        {
-          "when": {
             "answer": "q_treated",
             "eq": "still_low"
           },
-          "goto": "o_urgent_1"
+          "goto": "o_emergency_low"
         },
         {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 20
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "unsure"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4_preg"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "age_band",
-                "in": [
-                  "infant_3_12m",
-                  "child_1_4",
-                  "child_5_12"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 15
-              }
-            ]
-          },
-          "goto": "o_gp_1"
-        },
-        {
-          "when": {
-            "answer": "q_treated",
-            "eq": "not_yet"
-          },
-          "goto": "o_treat_now_1"
-        },
-        {
-          "goto": "o_self"
+          "goto": "q_repeated_hypos"
         }
       ]
     },
@@ -331,141 +155,13 @@
       "next": [
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_ketones",
-                "eq": "ge_3"
-              }
-            ]
-          },
-          "goto": "o_emergency_1"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "high"
-          },
-          "goto": "q_high_signs"
-        },
-        {
-          "when": {
-            "answer": "q_problem",
-            "eq": "low"
-          },
-          "goto": "q_repeated_hypos"
-        },
-        {
-          "when": {
             "answer": "q_ketones",
             "eq": "ge_3"
           },
           "goto": "o_emergency_1"
         },
         {
-          "when": {
-            "answer": "q_treated",
-            "eq": "still_low"
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_ketones",
-                "eq": "1_5_2_9"
-              }
-            ]
-          },
-          "goto": "o_urgent_2"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 20
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "unsure"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4_preg"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "age_band",
-                "in": [
-                  "infant_3_12m",
-                  "child_1_4",
-                  "child_5_12"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "answer": "q_ketones",
-            "eq": "0_6_1_4"
-          },
-          "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "answer": "q_glucose",
-                "gte": 15
-              }
-            ]
-          },
-          "goto": "o_gp_1"
-        },
-        {
-          "when": {
-            "answer": "q_treated",
-            "eq": "not_yet"
-          },
-          "goto": "o_treat_now_1"
-        },
-        {
-          "goto": "o_self"
+          "goto": "q_high_signs"
         }
       ]
     },
@@ -503,53 +199,15 @@
       "next": [
         {
           "when": {
-            "answer": "q_problem",
-            "eq": "low"
-          },
-          "goto": "q_repeated_hypos"
-        },
-        {
-          "when": {
-            "answer": "q_ketones",
-            "eq": "ge_3"
+            "answer": "q_high_signs",
+            "includes": "vomiting"
           },
           "goto": "o_emergency_1"
         },
         {
           "when": {
-            "answer": "q_treated",
-            "eq": "still_low"
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "any": [
-                  {
-                    "answer": "q_ketones",
-                    "eq": "1_5_2_9"
-                  },
-                  {
-                    "all": [
-                      {
-                        "answer": "q_high_signs",
-                        "includes": "type1"
-                      },
-                      {
-                        "answer": "q_high_signs",
-                        "includes": "vomiting"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
+            "answer": "q_ketones",
+            "eq": "1_5_2_9"
           },
           "goto": "o_urgent_2"
         },
@@ -557,58 +215,47 @@
           "when": {
             "all": [
               {
-                "answer": "q_problem",
-                "eq": "high"
+                "answer": "q_high_signs",
+                "includes": "type1"
               },
               {
-                "any": [
-                  {
-                    "answer": "q_glucose",
-                    "gte": 20
-                  },
-                  {
-                    "answer": "q_high_signs",
-                    "includes": "vomiting"
-                  }
-                ]
+                "answer": "q_ketones",
+                "eq": "not_measured"
+              },
+              {
+                "not": {
+                  "answer": "q_glucose",
+                  "lt": 11
+                }
               }
             ]
+          },
+          "goto": "o_urgent_5"
+        },
+        {
+          "when": {
+            "answer": "q_glucose",
+            "gte": 20
           },
           "goto": "o_urgent_3"
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "unsure"
-                ]
-              }
+            "demo": "pregnancy",
+            "in": [
+              "pregnant",
+              "unsure"
             ]
           },
           "goto": "o_urgent_4_preg"
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "age_band",
-                "in": [
-                  "infant_3_12m",
-                  "child_1_4",
-                  "child_5_12"
-                ]
-              }
+            "demo": "age_band",
+            "in": [
+              "infant_3_12m",
+              "child_1_4",
+              "child_5_12"
             ]
           },
           "goto": "o_urgent_4"
@@ -634,36 +281,21 @@
         },
         {
           "when": {
-            "all": [
+            "any": [
               {
-                "answer": "q_problem",
-                "eq": "high"
+                "answer": "q_high_signs",
+                "includes": "thirst"
               },
               {
-                "any": [
-                  {
-                    "answer": "q_high_signs",
-                    "includes": "thirst"
-                  },
-                  {
-                    "answer": "q_glucose",
-                    "gte": 15
-                  }
-                ]
+                "answer": "q_glucose",
+                "gte": 15
               }
             ]
           },
           "goto": "o_gp_1"
         },
         {
-          "when": {
-            "answer": "q_treated",
-            "eq": "not_yet"
-          },
-          "goto": "o_treat_now_1"
-        },
-        {
-          "goto": "o_self"
+          "goto": "o_self_high"
         }
       ]
     },
@@ -674,161 +306,17 @@
       "next": [
         {
           "when": {
-            "answer": "q_ketones",
-            "eq": "ge_3"
-          },
-          "goto": "o_emergency_1"
-        },
-        {
-          "when": {
-            "answer": "q_treated",
-            "eq": "still_low"
-          },
-          "goto": "o_urgent_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "any": [
-                  {
-                    "answer": "q_ketones",
-                    "eq": "1_5_2_9"
-                  },
-                  {
-                    "all": [
-                      {
-                        "answer": "q_high_signs",
-                        "includes": "type1"
-                      },
-                      {
-                        "answer": "q_high_signs",
-                        "includes": "vomiting"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_2"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "any": [
-                  {
-                    "answer": "q_glucose",
-                    "gte": 20
-                  },
-                  {
-                    "answer": "q_high_signs",
-                    "includes": "vomiting"
-                  }
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "pregnancy",
-                "in": [
-                  "pregnant",
-                  "unsure"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4_preg"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "demo": "age_band",
-                "in": [
-                  "infant_3_12m",
-                  "child_1_4",
-                  "child_5_12"
-                ]
-              }
-            ]
-          },
-          "goto": "o_urgent_4"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_repeated_hypos",
-                "eq": "yes"
-              },
-              {
-                "answer": "q_high_signs",
-                "includes": "days"
-              },
-              {
-                "answer": "q_high_signs",
-                "includes": "ill"
-              },
-              {
-                "answer": "q_ketones",
-                "eq": "0_6_1_4"
-              }
-            ]
-          },
-          "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "answer": "q_problem",
-                "eq": "high"
-              },
-              {
-                "any": [
-                  {
-                    "answer": "q_high_signs",
-                    "includes": "thirst"
-                  },
-                  {
-                    "answer": "q_glucose",
-                    "gte": 15
-                  }
-                ]
-              }
-            ]
-          },
-          "goto": "o_gp_1"
-        },
-        {
-          "when": {
             "answer": "q_treated",
             "eq": "not_yet"
           },
           "goto": "o_treat_now_1"
+        },
+        {
+          "when": {
+            "answer": "q_repeated_hypos",
+            "eq": "yes"
+          },
+          "goto": "o_doc48_1"
         },
         {
           "goto": "o_self"
@@ -840,17 +328,17 @@
     "o_emergency_1": {
       "level": "emergency_now",
       "title": "Повикајте итна помош сега",
-      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "summary": "Висок шеќер со овие знаци може да значи опасно закиселување на крвта или силна дехидрација. Веднаш е потребна итна помош.",
       "reasons": [
-        "Кетоните од 3 или повеќе се знак за опасно закиселување на крвта кај дијабетес — итна состојба."
+        "Висок шеќер со кетони 3 или повеќе, повраќање, болка во стомакот, длабоко дишење, поспаност или силна дехидрација може да значи опасно закиселување на крвта — итна состојба."
       ],
       "do_now": [
-        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и дека станува збор за висок шеќер кај дијабетес.",
         "Ако е без свест, ставете го/ја на страна; не давајте ништо преку уста.",
-        "Ако имате глукагон и знаете како, употребете го според упатството.",
+        "Ако може безбедно да голта, нека пие вода во мали голтки.",
         "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
         "Не возете сами до болница.",
-        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+        "Подгответе го апаратот за шеќер, инсулинот и другите лекови, ако се при рака."
       ],
       "watch_for": [
         "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
@@ -873,36 +361,7 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
-      ]
-    },
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Побарајте помош денес",
-      "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
-      "reasons": [
-        "Шеќерот останува низок и по два обида — треба помош денес; ако стане поспан/а, повикајте 194."
       ],
-      "do_now": [
-        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
-        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
-      ],
-      "watch_for": [
-        "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
-        "Ако не може безбедно да голта, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "on_call",
-        "specialties": [
-          "endokrinologija",
-          "urgentna-medicina",
-          "interna-medicina",
-          "pedijatrija"
-        ],
-        "facility_types": [
-          "clinic",
-          "hospital"
-        ]
-      },
       "sources": [
         "nhs-hyper",
         "nhs-dka"
@@ -913,11 +372,12 @@
       "title": "Побарајте помош денес",
       "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
       "reasons": [
-        "Покачени кетони или повраќање кај тип 1 може да водат кон опасно закиселување на крвта; потребна е помош денес."
+        "Покачените кетони (1,5–2,9) може да водат кон опасно закиселување на крвта; потребна е помош денес."
       ],
       "do_now": [
         "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
-        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+        "Пијте вода или пијалаци без шеќер; не прескокнувајте инсулин без совет.",
+        "Измерете ги шеќерот и кетоните повторно за 2 часа."
       ],
       "watch_for": [
         "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
@@ -946,11 +406,11 @@
       "title": "Побарајте помош денес",
       "summary": "Вашиот шеќер или кетоните бараат проценка истиот ден.",
       "reasons": [
-        "Многу висок шеќер или повраќање бараат проценка денес."
+        "Многу висок шеќер (20 или повеќе) бара проценка денес."
       ],
       "do_now": [
         "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
-        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+        "Пијте вода или пијалаци без шеќер; не прескокнувајте инсулин без совет."
       ],
       "watch_for": [
         "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
@@ -983,7 +443,7 @@
       ],
       "do_now": [
         "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
-        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+        "Пијте вода или пијалаци без шеќер; не прескокнувајте инсулин без совет."
       ],
       "watch_for": [
         "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
@@ -1016,7 +476,7 @@
       ],
       "do_now": [
         "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
-        "Пијте вода (без шеќер ако шеќерот е висок); не прескокнувајте инсулин без совет."
+        "Пијте вода или пијалаци без шеќер; не прескокнувајте инсулин без совет."
       ],
       "watch_for": [
         "Ако се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112.",
@@ -1129,9 +589,9 @@
     "o_self": {
       "level": "self_care_with_safety_net",
       "title": "Добро е — продолжете да следите",
-      "summary": "Нискиот шеќер е третиран и се подобрува, или шеќерот не е многу висок.",
+      "summary": "Нискиот шеќер е третиран и се подобрува.",
       "reasons": [
-        "Нискиот шеќер е третиран и се подобрува, или шеќерот не е многу висок."
+        "Нискиот шеќер е третиран и се подобрува."
       ],
       "do_now": [
         "Изедете нешто со бавен шеќер (сендвич, оброк).",
@@ -1191,6 +651,108 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_emergency_low": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Шеќерот останува низок и по две внесувања брз шеќер. Најбезбедно е веднаш да повикате итна помош.",
+      "reasons": [
+        "Низок шеќер што не се крева и покрај лекувањето може брзо да доведе до губење на свеста."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете дека шеќерот е низок и не се крева.",
+        "Додека чекате, ако е буден/будна и може безбедно да голта, внесете уште брз шеќер (сок, шеќерен пијалак или таблети гликоза).",
+        "Ако е без свест, ставете го/ја на страна и не давајте ништо преку уста. Ако имате глукагон и знаете како, употребете го според упатството.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-hypo"
+      ]
+    },
+    "o_urgent_5": {
+      "level": "urgent_same_day",
+      "title": "Измерете кетони и побарајте помош денес",
+      "summary": "Кај дијабетес тип 1 или со инсулин, при висок шеќер треба да се знаат кетоните.",
+      "reasons": [
+        "Имате тип 1 или примате инсулин, шеќерот е висок, а кетоните не се измерени."
+      ],
+      "do_now": [
+        "Ако имате апарат или ленти за кетони, измерете ги сега.",
+        "Јавете се кај вашиот ендокринолог/дијабетолог или во дежурна служба уште денес.",
+        "Пијте вода или пијалаци без шеќер; не прескокнувајте инсулин без совет."
+      ],
+      "watch_for": [
+        "Ако кетоните се 3 или повеќе, или се појави повраќање, болка во стомакот, длабоко дишење или поспаност, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "endokrinologija",
+          "urgentna-medicina",
+          "interna-medicina",
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hyper",
+        "nhs-dka"
+      ]
+    },
+    "o_self_high": {
+      "level": "self_care_with_safety_net",
+      "title": "Продолжете да следите го шеќерот",
+      "summary": "Шеќерот е покачен, но без знаци што бараат преглед денес.",
+      "reasons": [
+        "Шеќерот не е многу висок и немате знаци за итност."
+      ],
+      "do_now": [
+        "Пијте вода или пијалаци без шеќер.",
+        "Земајте ги лековите и инсулинот како што ви е кажано и мерете го шеќерот почесто.",
+        "Размислете што го покачило (оброк, болест, пропуштен лек)."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, болка во стомакот, длабоко дишење, поспаност или збунетост, веднаш повикајте 194 или 112.",
+        "Ако шеќерот остане висок повеќе од 2 дена, јавете се кај вашиот лекар."
+      ],
+      "care": {
+        "setting": "self_care",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "endokrinologija"
+        ],
+        "facility_types": []
+      },
+      "sources": [
+        "nhs-hyper"
       ]
     }
   },

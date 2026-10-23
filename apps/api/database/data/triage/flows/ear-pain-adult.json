@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "ear-pain-adult",
   "title": "Болка во увото",
-  "summary_en": "Adult earache. Swelling/redness behind the ear with protruding ear, facial weakness, severe headache + confusion → emergency/same day. Discharge, hearing loss, >3 days → 48h. Sudden hearing loss in one ear → same day. Otherwise self-care/pharmacy.",
-  "notes_en": "NHS earache / ear infections. Sudden sensorineural hearing loss escalated same day (time-sensitive treatment). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult earache. Swelling/redness behind the ear with protruding ear, facial weakness, severe headache + confusion → emergency. Sudden hearing loss in one ear, object in the ear, very high temperature or shivers, diabetes/immunosuppression with discharge or persistent pain → same day. Discharge, vertigo, hearing change, >3 days → 48h. Mild fever → pharmacy; otherwise self-care.",
+  "notes_en": "NHS earache / ear infections. Sudden sensorineural hearing loss escalated same day (time-sensitive treatment). 2026-10-23 safety fixes: very high temperature/shivers → same day (NHS urgent); diabetes/immunosuppression with discharge or ≥3 days → same day; gradual hearing change option → 1–2 days. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -58,7 +58,11 @@
         },
         {
           "value": "fever",
-          "label": "Температура"
+          "label": "Температура под 39 °C"
+        },
+        {
+          "value": "high_fever",
+          "label": "Многу висока температура (39 °C или повеќе) или ве тресе"
         },
         {
           "value": "object",
@@ -71,6 +75,10 @@
         {
           "value": "diabetes_pain",
           "label": "Имам дијабетес и болката е многу силна"
+        },
+        {
+          "value": "hearing_change",
+          "label": "Послабо слушате или слухот постепено се променил"
         },
         {
           "value": "none",
@@ -109,6 +117,33 @@
               {
                 "answer": "q_features",
                 "includes": "object"
+              },
+              {
+                "answer": "q_features",
+                "includes": "high_fever"
+              },
+              {
+                "all": [
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "answer": "q_features",
+                        "includes": "discharge"
+                      },
+                      {
+                        "answer": "q_duration",
+                        "eq": "gt_3d"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           },
@@ -124,6 +159,10 @@
               {
                 "answer": "q_features",
                 "includes": "vertigo"
+              },
+              {
+                "answer": "q_features",
+                "includes": "hearing_change"
               },
               {
                 "answer": "q_duration",
@@ -152,7 +191,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Некои проблеми со увото најдобро се лекуваат што порано.",
       "reasons": [
-        "Ненадејното губење на слухот и предметите во увото се подобро решаваат брзо; кај дијабетес силната болка во увото бара преглед."
+        "Ненадејното губење на слухот, предметите во увото, многу високата температура или тресењето, и силната болка или течење кај дијабетес или ослабен имунитет треба да се проверат денес."
       ],
       "do_now": [
         "Јавете се во дежурна служба или на УНГ (уво-нос-грло) амбуланта денес.",
@@ -181,7 +220,7 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Лекарот треба да го погледне увото.",
       "reasons": [
-        "Течење, вртоглавица или болка подолга од 3 дена треба да ги провери лекар."
+        "Течење, вртоглавица, промена на слухот или болка подолга од 3 дена треба да ги провери лекар."
       ],
       "do_now": [
         "Закажете кај избраниот лекар или УНГ специјалист."
@@ -207,7 +246,7 @@
     "o_pharm_1": {
       "level": "pharmacy_advice",
       "title": "Фармацевтот може да ве посоветува",
-      "summary": "Повеќето инфекции на увото поминуваат за 3 дена.",
+      "summary": "Болката во увото со блага температура често се подобрува сама за неколку дена.",
       "reasons": [
         "Болка во увото со температура често се подобрува сама за неколку дена."
       ],
@@ -217,6 +256,7 @@
       ],
       "watch_for": [
         "Ако се појави оток зад увото или слабост на лицето, веднаш повикајте 194 или 112.",
+        "Ако температурата стане многу висока или почне да ве тресе, јавете се во дежурна служба истиот ден.",
         "Ако не се подобри за 3 дена, закажете кај лекар."
       ],
       "care": {
@@ -299,7 +339,7 @@
     "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
     "pregnancy": "No pregnancy-specific threshold in public earache guidance.",
     "older_adult": "No age-specific threshold; sudden hearing loss is same day at any age.",
-    "chronic": "Diabetes with severe ear pain is asked directly in q_features (necrotising otitis externa risk)."
+    "chronic": "Referenced: diabetes or immunosuppression (demographics) with discharge or pain ≥3 days → same day; diabetes with severe ear pain is also asked directly (necrotising otitis externa risk)."
   },
   "sources": [
     {

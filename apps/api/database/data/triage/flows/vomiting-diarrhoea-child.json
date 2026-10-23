@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "vomiting-diarrhoea-child",
   "title": "Повраќање или пролив кај дете",
-  "summary_en": "Childhood vomiting/diarrhoea and dehydration. Green/bloody vomit, blood in stool with pain, drowsy, no urine 12h → emergency. Infants <3 m vomiting, dehydration signs, unable to keep fluids → same day. Vomiting >2 days / diarrhoea >7 days → paediatrician. NICE CG84 dehydration features (not reproduced).",
-  "notes_en": "NHS D&V and dehydration; NICE CG84 (gastroenteritis in under 5s) dehydration/shock features; WHO IMCI (unable to drink). Bilious vomiting as red flag (malrotation/obstruction). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Childhood vomiting/diarrhoea and dehydration. Green/bloody vomit, severe pain, drowsy, no urine 12h, fast/deep breathing, cold extremities, stiff neck, bulging fontanelle, possible ingestion → emergency. Diabetes: DKA signs or ketones ≥3 → 194, ketones 1.5–2.9 → emergency department now, otherwise same day with glucose/ketone checks. Vomiting after a head injury and infants <3 m with V&D → emergency department now. Dehydration, unable to keep fluids, frequent stools/vomits under 6 months, vomiting without diarrhoea with fever/headache, distended abdomen, immunosuppression/kidney disease → same day. Vomiting >2 days / diarrhoea >7 days → paediatrician. NICE CG84 features (not reproduced).",
+  "notes_en": "NHS D&V and dehydration; NICE CG84 (gastroenteritis in under 5s) dehydration/shock features; WHO IMCI (unable to drink). Bilious vomiting as red flag (malrotation/obstruction). 2026-10-23 safety fixes: diabetes + vomiting → same day minimum with ketone-based escalation (aligned with abdominal-pain-child and diabetes-blood-sugar thresholds); CG84 shock signs, stiff neck, bulging fontanelle and ingestion as red flags; vomiting after head injury → ED now; CG84 risk factors (frequency under 6 months), vomiting without diarrhoea, distension → same day; immunosuppression/kidney disease → same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -85,6 +85,40 @@
       "label": "Силна болка во стомакот што не попушта",
       "outcome": "o_emergency",
       "source": "nhs-dv"
+    },
+    {
+      "code": "fast_breathing",
+      "label": "Дише многу брзо или длабоко",
+      "outcome": "o_emergency",
+      "source": "nice-cg84"
+    },
+    {
+      "code": "cold_hands",
+      "label": "Многу студени раце и стапала, или бледа кожа со дамки",
+      "outcome": "o_emergency",
+      "source": "nice-cg84"
+    },
+    {
+      "code": "stiff_neck",
+      "label": "Вкочанет врат или многу му пречи светлината",
+      "outcome": "o_emergency",
+      "source": "nice-cg84"
+    },
+    {
+      "code": "fontanelle_bulging",
+      "label": "Испакнато (издигнато) меко место на темето (фонтанела)",
+      "when": {
+        "demo": "age_months",
+        "lt": 24
+      },
+      "outcome": "o_emergency",
+      "source": "nice-cg84"
+    },
+    {
+      "code": "swallowed",
+      "label": "Можеби голтнало лекови, хемикалија или мала батерија",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
     }
   ],
   "entry": "q_signs",
@@ -109,6 +143,22 @@
         {
           "value": "fever",
           "label": "Температура"
+        },
+        {
+          "value": "frequent",
+          "label": "Во последните 24 часа: пролив повеќе од 5 пати или повраќање повеќе од 2 пати"
+        },
+        {
+          "value": "vomit_only",
+          "label": "Само повраќа, без пролив, и има температура или главоболка"
+        },
+        {
+          "value": "swollen_belly",
+          "label": "Стомакот е надуен или тврд"
+        },
+        {
+          "value": "head_injury",
+          "label": "Почна да повраќа по удар во главата"
         },
         {
           "value": "none",
@@ -196,6 +246,20 @@
         },
         {
           "when": {
+            "demo": "conditions",
+            "includes": "diabetes"
+          },
+          "goto": "q_diabetes"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "head_injury"
+          },
+          "goto": "o_ed_now_head"
+        },
+        {
+          "when": {
             "demo": "age_band",
             "in": [
               "infant_0_3m"
@@ -232,6 +296,25 @@
               {
                 "answer": "q_infant",
                 "includes": "projectile"
+              },
+              {
+                "answer": "q_signs",
+                "includes_any": [
+                  "vomit_only",
+                  "swollen_belly"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "frequent"
+                  },
+                  {
+                    "demo": "age_months",
+                    "lt": 6
+                  }
+                ]
               }
             ]
           },
@@ -257,23 +340,20 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_duration",
-                "eq": "3_7d"
-              },
-              {
-                "answer": "q_duration",
-                "eq": "gt_7d"
-              },
-              {
-                "demo": "conditions",
-                "includes_any": [
-                  "immunosuppressed",
-                  "kidney_disease",
-                  "diabetes"
-                ]
-              }
+            "demo": "conditions",
+            "includes_any": [
+              "immunosuppressed",
+              "kidney_disease"
+            ]
+          },
+          "goto": "o_urgent_risk"
+        },
+        {
+          "when": {
+            "answer": "q_duration",
+            "in": [
+              "3_7d",
+              "gt_7d"
             ]
           },
           "goto": "o_doc48_1"
@@ -282,15 +362,67 @@
           "goto": "o_self"
         }
       ]
+    },
+    "q_diabetes": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Детето има дијабетес. Дали забележувате нешто од ова?",
+      "help": "Ако имате апарат, измерете шеќер и кетони во крвта сега.",
+      "options": [
+        {
+          "value": "deep_breath",
+          "label": "Длабоко или забрзано дишење"
+        },
+        {
+          "value": "acetone",
+          "label": "Мирис на овошје или ацетон од устата"
+        },
+        {
+          "value": "ketones_high",
+          "label": "Кетони во крвта 3 mmol/L или повеќе"
+        },
+        {
+          "value": "ketones_mid",
+          "label": "Кетони во крвта од 1,5 до 2,9 mmol/L"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното или не сте измериле",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_diabetes",
+            "includes_any": [
+              "deep_breath",
+              "acetone",
+              "ketones_high"
+            ]
+          },
+          "goto": "o_emergency_dka"
+        },
+        {
+          "when": {
+            "answer": "q_diabetes",
+            "includes": "ketones_mid"
+          },
+          "goto": "o_ed_now_diabetes"
+        },
+        {
+          "goto": "o_urgent_diabetes"
+        }
+      ]
     }
   },
   "outcomes": {
     "o_urgent_now_1": {
-      "level": "urgent_same_day",
-      "title": "Одете со бебето на преглед денес, без чекање",
+      "level": "emergency_department_now",
+      "title": "Одете со бебето на преглед сега",
       "summary": "Најмалите бебиња многу брзо губат течности.",
       "reasons": [
-        "Кај бебиња помлади од 3 месеци повраќањето и проливот бараат преглед истиот ден, без чекање."
+        "Кај бебиња помлади од 3 месеци повраќањето и проливот треба веднаш да ги провери лекар."
       ],
       "do_now": [
         "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
@@ -319,7 +451,8 @@
       "title": "Одете со детето на преглед денес",
       "summary": "Детето можеби губи повеќе течности отколку што внесува.",
       "reasons": [
-        "Знаците на губење течности (дехидрација) или млазното повраќање бараат преглед истиот ден."
+        "Знаците на губење течности (дехидрација), млазното повраќање или надуениот стомак бараат преглед истиот ден.",
+        "Исто важи за чест пролив или повраќање кај бебе под 6 месеци и за повраќање без пролив со температура или главоболка."
       ],
       "do_now": [
         "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
@@ -379,7 +512,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Тегобите траат подолго од очекуваното.",
       "reasons": [
-        "Повраќање подолго од 2 дена, пролив подолг од неколку дена или хронична болест бараат проценка кај педијатар."
+        "Повраќање подолго од 2 дена или пролив подолг од неколку дена бараат проценка кај педијатар."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар.",
@@ -509,10 +642,172 @@
       "sources": [
         "nhs-under5-urgent"
       ]
+    },
+    "o_emergency_dka": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Кај дете со дијабетес, повраќање со вакви знаци може да значи опасно покачување на кетоните во крвта."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете дека детето има дијабетес и повраќа.",
+        "Не прекинувајте го инсулинот; следете ги упатствата на диспечерот или на вашиот дијабетолог.",
+        "Останете со детето и следете како дише.",
+        "Понесете го апаратот за шеќер, инсулинот и здравствената книшка."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-dka"
+      ]
+    },
+    "o_ed_now_diabetes": {
+      "level": "emergency_department_now",
+      "title": "Одете со детето во итно одделение веднаш",
+      "summary": "Повраќање со покачени кетони кај дете со дијабетес треба веднаш да го прегледа лекар.",
+      "reasons": [
+        "Кетони од 1,5 mmol/L или повеќе со повраќање кај дете со дијабетес може брзо да станат опасни."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница и кажете дека детето има дијабетес.",
+        "Ако имате број од вашиот дијабетолог или одделение, јавете им се и на нив.",
+        "Не прекинувајте го инсулинот. Понесете го апаратот за шеќер и инсулинот.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето почне да дише длабоко или брзо, стане поспано или збунето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "endokrinologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_diabetes": {
+      "level": "urgent_same_day",
+      "title": "Измерете шеќер и кетони и јавете се денес",
+      "summary": "Кај дете со дијабетес, повраќањето треба да се провери истиот ден, бидејќи може да се покачат кетоните.",
+      "reasons": [
+        "Повраќањето кај дете со дијабетес може да е почеток на опасно покачување на кетоните, дури и кога нема други знаци."
+      ],
+      "do_now": [
+        "Измерете шеќер и кетони во крвта сега и повторувајте на секои 2 часа.",
+        "Јавете се кај дијабетологот на детето или во дежурна педијатриска служба уште денес.",
+        "Не прекинувајте го инсулинот; давајте течности во мали голтки."
+      ],
+      "watch_for": [
+        "Ако кетоните се 1,5 mmol/L или повеќе, или детето не може да задржи течности, веднаш одете во итно одделение.",
+        "Ако дише длабоко или брзо, стане поспано или збунето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "endokrinologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dka",
+        "nhs-dv"
+      ]
+    },
+    "o_ed_now_head": {
+      "level": "emergency_department_now",
+      "title": "Одете со детето во итно одделение веднаш",
+      "summary": "Повраќање по удар во главата треба веднаш да го прегледа лекар.",
+      "reasons": [
+        "Повраќањето по удар во главата може да значи повреда што бара преглед во болница."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница.",
+        "Не давајте му храна додека не го види лекар.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето стане поспано, збунето, има напад или повраќа повторно, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
+      ]
+    },
+    "o_urgent_risk": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Кај деца со хронична болест течностите и лековите треба да се проверат истиот ден.",
+      "reasons": [
+        "Кај дете со ослабен имунитет или болест на бубрезите, повраќањето и проливот треба да ги види лекар истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте раствор за рехидрација (од аптека) во многу мали голтки, на пр. лажичка на секои неколку минути. Ако доите, продолжете."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди или не мокрело 12 часа, веднаш повикајте 194 или 112.",
+        "Ако повраќа зелено или има крв во столицата, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dehydration"
+      ]
     }
   },
   "populations": {
-    "child": "Child flow; ages 1–12 use the same rules; infants have extra rules."
+    "child": "Child flow; ages 1–12 use the same rules; infants have extra rules.",
+    "chronic": "Referenced: diabetes → ketone question (194 / ED now / same day); immunosuppression or kidney disease → same day."
   },
   "sources": [
     {
@@ -550,6 +845,18 @@
       "title": "NHS (Велика Британија) — Febrile seizures",
       "url": "https://www.nhs.uk/conditions/febrile-seizures/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dka",
+      "title": "NHS (Велика Британија) — Diabetic ketoacidosis",
+      "url": "https://www.nhs.uk/conditions/diabetic-ketoacidosis/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-23"
     }
   ]
 }

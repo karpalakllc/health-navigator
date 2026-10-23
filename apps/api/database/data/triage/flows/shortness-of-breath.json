@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "shortness-of-breath",
   "title": "Отежнато дишење",
-  "summary_en": "Adult breathlessness. Severe/sudden breathlessness, cyanosis, inability to speak, chest pain, collapse → 194. Gradual breathlessness with fever (possible pneumonia) or worsening known COPD/heart failure → same day. Chronic slow change → GP.",
-  "notes_en": "NHS breathlessness 999 criteria (unable to speak, blue lips, chest pain, confusion). SpO2 thresholds (≤91 emergency, ≤94 urgent) are conservative public-health thresholds used widely in COVID-19 home-monitoring advice; COPD patients may run lower, so the 94 rule is skipped for COPD. Assumptions: Pulse oximeter values are optional and only escalate, never de-escalate. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult breathlessness. Severe/sudden breathlessness, cyanosis, inability to speak, chest pain, coughing up blood, collapse, SpO2 ≤92%, asthma with the reliever not helping (or no reliever) → 194. Clot risk → 194 (new-onset) or same day (gradual, newer risk items). Gradual breathlessness with fever (possible pneumonia) or worsening known COPD/heart failure → same day. Chronic slow change → GP.",
+  "notes_en": "NHS breathlessness 999 criteria (unable to speak, blue lips, chest pain, confusion). SpO2 thresholds (≤92 emergency per NHS pulse-oximetry advice, 93–94 urgent; changed 2026-10-23 from ≤91) are conservative public-health thresholds used widely in COVID-19 home-monitoring advice; COPD patients may run lower, so the 94 rule is skipped for COPD. Assumptions: Pulse oximeter values are optional and only escalate, never de-escalate. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -61,7 +61,7 @@
     },
     {
       "code": "coughing_blood",
-      "label": "Искашлување поголемо количество крв",
+      "label": "Искашлување крв",
       "outcome": "o_emergency",
       "source": "nhs-pe"
     }
@@ -103,7 +103,18 @@
           "exclusive": true
         }
       ],
-      "next": "q_dvt_risk"
+      "next": [
+        {
+          "when": {
+            "answer": "q_context",
+            "includes": "asthma"
+          },
+          "goto": "q_reliever"
+        },
+        {
+          "goto": "q_dvt_risk"
+        }
+      ]
     },
     "q_dvt_risk": {
       "type": "question",
@@ -121,6 +132,18 @@
         {
           "value": "prior_clot",
           "label": "Порано сте имале тромб"
+        },
+        {
+          "value": "long_travel",
+          "label": "Долго патување (над 4 часа седење) во последните 4 недели"
+        },
+        {
+          "value": "cancer",
+          "label": "Активен карцином или лекување за карцином"
+        },
+        {
+          "value": "hormones",
+          "label": "Земате хормонски контрацептивни таблети или хормонска терапија"
         },
         {
           "value": "none",
@@ -215,12 +238,12 @@
           "label": "95 % или повеќе"
         },
         {
-          "value": "92_94",
-          "label": "92–94 %"
+          "value": "93_94",
+          "label": "93–94 %"
         },
         {
-          "value": "le91",
-          "label": "91 % или помалку"
+          "value": "le92",
+          "label": "92 % или помалку"
         },
         {
           "value": "no_device",
@@ -231,14 +254,7 @@
         {
           "when": {
             "answer": "q_spo2",
-            "eq": "le91"
-          },
-          "goto": "o_emergency_1"
-        },
-        {
-          "when": {
-            "answer": "q_spo2",
-            "eq": "le91"
+            "eq": "le92"
           },
           "goto": "o_emergency_1"
         },
@@ -263,6 +279,39 @@
         },
         {
           "when": {
+            "all": [
+              {
+                "answer": "q_dvt_risk",
+                "includes_any": [
+                  "long_travel",
+                  "cancer",
+                  "hormones"
+                ]
+              },
+              {
+                "answer": "q_onset",
+                "in": [
+                  "hours",
+                  "days"
+                ]
+              }
+            ]
+          },
+          "goto": "o_emergency_2"
+        },
+        {
+          "when": {
+            "answer": "q_dvt_risk",
+            "includes_any": [
+              "long_travel",
+              "cancer",
+              "hormones"
+            ]
+          },
+          "goto": "o_urgent_clot"
+        },
+        {
+          "when": {
             "demo": "pregnancy",
             "in": [
               "pregnant",
@@ -277,7 +326,7 @@
             "all": [
               {
                 "answer": "q_spo2",
-                "eq": "92_94"
+                "eq": "93_94"
               },
               {
                 "not": {
@@ -375,6 +424,41 @@
           "goto": "o_doc48"
         }
       ]
+    },
+    "q_reliever": {
+      "type": "question",
+      "kind": "single",
+      "text": "Дали пумпичката (инхалаторот) за олеснување помогна?",
+      "help": "Ако сè уште не сте ја користеле, користете ја сега според вашиот план за астма, па одговорете.",
+      "options": [
+        {
+          "value": "helped",
+          "label": "Да, сега дишам нормално или многу полесно"
+        },
+        {
+          "value": "not_helped",
+          "label": "Малку или воопшто не помогна, сè уште тешко дишам"
+        },
+        {
+          "value": "no_inhaler",
+          "label": "Немам пумпичка за олеснување при рака"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_reliever",
+            "in": [
+              "not_helped",
+              "no_inhaler"
+            ]
+          },
+          "goto": "o_emergency_asthma"
+        },
+        {
+          "goto": "q_dvt_risk"
+        }
+      ]
     }
   },
   "outcomes": {
@@ -383,7 +467,7 @@
       "title": "Повикајте итна помош сега",
       "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
       "reasons": [
-        "Сатурацијата е многу ниска."
+        "Сатурацијата е 92 % или пониска."
       ],
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
@@ -772,6 +856,77 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_emergency_asthma": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Кај астма, ако пумпичката за олеснување не ве смири или ја немате при рака, тоа е итна состојба."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Седнете исправено; продолжете со пумпичката за олеснување како што е во вашиот план или како што ќе ви каже диспечерот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете на безбедно место.",
+        "Не возете сами до болница."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-asthma"
+      ]
+    },
+    "o_urgent_clot": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Недостигот на воздух може брзо да се влоши; треба да ве прегледаат истиот ден.",
+      "reasons": [
+        "Недостиг на воздух што трае подолго, заедно со ризик за тромб (згрутчување крв), треба да се провери истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или во итна амбуланта уште денес.",
+        "Ако имате план за астма или ХОББ од лекарот, следете го."
+      ],
+      "watch_for": [
+        "Ако недостигот на воздух нагло се влоши или се појави болка во градите или искашлување крв, веднаш повикајте 194 или 112.",
+        "Ако не можете да зборувате во цели реченици, веднаш повикајте 194 или 112.",
+        "Ако усните или лицето посинат, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "pulmologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-pe"
       ]
     }
   },

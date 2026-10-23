@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "urinary-symptoms",
   "title": "Тегоби при мокрење",
-  "summary_en": "Adult urinary symptoms. Unable to pass urine with pain, sepsis signs → emergency/same day. Loin pain + fever, men, pregnancy, visible blood, catheter → same day/48h. Uncomplicated cystitis in women → pharmacy/GP. Testicular pain in males → emergency red flag.",
-  "notes_en": "NHS UTI / kidney infection / blood in urine. Men, pregnancy, catheter, fever and loin pain exclude self-care. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult urinary symptoms. Unable to pass urine with pain, sepsis signs, sudden testicular pain → emergency. Fever, loin pain or vomiting (possible kidney infection), renal-colic pain, pregnancy, catheter → same day. Men, visible blood, diabetes/immunosuppression, under-16s or unspecified sex → 1–2 days. Uncomplicated cystitis in women 16+ → pharmacy; otherwise GP.",
+  "notes_en": "NHS UTI / kidney infection / blood in urine. Men, pregnancy, catheter, fever and loin pain exclude self-care. 2026-10-23 safety fixes: fever / loin pain / vomiting → same day at every age; renal-colic option → same day; pregnancy includes cloudy urine; pharmacy only for women 16+ without diabetes/immunosuppression; safety-nets aligned with routing. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -86,6 +86,10 @@
           "label": "Гадење или повраќање"
         },
         {
+          "value": "colic",
+          "label": "Ненадејна, многу силна болка од слабината кон препоните; не можете да најдете удобна положба"
+        },
+        {
           "value": "discharge",
           "label": "Секрет од половите органи, или чешање во таа област"
         },
@@ -123,26 +127,21 @@
       "next": [
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_symptoms",
-                "includes": "loin_pain"
-              },
-              {
-                "any": [
-                  {
-                    "answer": "q_symptoms",
-                    "includes": "fever"
-                  },
-                  {
-                    "answer": "q_symptoms",
-                    "includes": "vomiting"
-                  }
-                ]
-              }
+            "answer": "q_symptoms",
+            "includes_any": [
+              "fever",
+              "loin_pain",
+              "vomiting"
             ]
           },
           "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "answer": "q_symptoms",
+            "includes": "colic"
+          },
+          "goto": "o_urgent_colic"
         },
         {
           "when": {
@@ -159,6 +158,7 @@
                 "includes_any": [
                   "burning",
                   "frequent",
+                  "cloudy",
                   "loin_pain",
                   "visible_blood"
                 ]
@@ -169,64 +169,10 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_context",
-                "includes": "catheter"
-              },
-              {
-                "all": [
-                  {
-                    "demo": "conditions",
-                    "includes_any": [
-                      "immunosuppressed",
-                      "heart_disease",
-                      "lung_disease",
-                      "kidney_disease",
-                      "diabetes"
-                    ]
-                  },
-                  {
-                    "answer": "q_symptoms",
-                    "includes": "fever"
-                  }
-                ]
-              }
-            ]
+            "answer": "q_context",
+            "includes": "catheter"
           },
           "goto": "o_urgent_2"
-        },
-        {
-          "when": {
-            "all": [
-              {
-                "demo": "age_band",
-                "in": [
-                  "older_65_plus"
-                ]
-              },
-              {
-                "answer": "q_symptoms",
-                "includes": "fever"
-              }
-            ]
-          },
-          "goto": "o_urgent_3"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_symptoms",
-                "includes": "fever"
-              },
-              {
-                "answer": "q_symptoms",
-                "includes": "loin_pain"
-              }
-            ]
-          },
-          "goto": "o_doc48_1"
         },
         {
           "when": {
@@ -253,6 +199,40 @@
             "includes": "visible_blood"
           },
           "goto": "o_doc48_3"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_symptoms",
+                "includes_any": [
+                  "burning",
+                  "frequent",
+                  "cloudy"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "immunosuppressed",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "demo": "age_years",
+                    "lt": 16
+                  },
+                  {
+                    "demo": "sex",
+                    "eq": "unspecified"
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_risk"
         },
         {
           "when": {
@@ -291,10 +271,7 @@
             "all": [
               {
                 "demo": "sex",
-                "in": [
-                  "female",
-                  "unspecified"
-                ]
+                "eq": "female"
               },
               {
                 "answer": "q_symptoms",
@@ -320,7 +297,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Вашите одговори покажуваат можна посериозна инфекција.",
       "reasons": [
-        "Болка во слабината со температура или повраќање може да значи инфекција на бубрегот."
+        "Температура, болка во слабината или повраќање при уринарни тегоби може да значат инфекција на бубрегот."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -404,67 +381,6 @@
       },
       "sources": [
         "nhs-kidney-infection"
-      ]
-    },
-    "o_urgent_3": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Вашите одговори покажуваат можна посериозна инфекција.",
-      "reasons": [
-        "По 65 години температура со уринарни тегоби треба да се провери денес."
-      ],
-      "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Пијте доволно течности."
-      ],
-      "watch_for": [
-        "Ако се појави тресење, збунетост, забрзано дишење или не можете да мокрите, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "on_call",
-        "specialties": [
-          "urgentna-medicina",
-          "urologija",
-          "nefrologija",
-          "infektologija"
-        ],
-        "facility_types": [
-          "clinic",
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-kidney-infection"
-      ]
-    },
-    "o_doc48_1": {
-      "level": "see_doctor_24_48h",
-      "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Потребна е анализа на урина и преглед.",
-      "reasons": [
-        "Температура или болка во слабината бараат преглед и анализа на урина."
-      ],
-      "do_now": [
-        "Закажете кај избраниот лекар; може да ви побараат примерок урина (лабораторија)."
-      ],
-      "watch_for": [
-        "Ако се појави тресење, збунетост или повраќање, веднаш повикајте 194 или 112.",
-        "Ако температурата расте, јавете се во дежурна служба истиот ден."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
-          "urologija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-uti",
-        "nhs-blood-in-urine"
       ]
     },
     "o_doc48_2": {
@@ -571,7 +487,8 @@
         "За сексуално преносливи инфекции можете да се обратите и кај гинеколог или дерматовенеролог."
       ],
       "watch_for": [
-        "Ако се појави температура, болка во слабината или крв во урината, веднаш повикајте 194 или 112."
+        "Ако се појави температура, болка во слабината или крв во урината, јавете се во дежурна служба уште истиот ден.",
+        "Ако се појави тресење, збунетост, забрзано дишење или не можете да мокрите, веднаш повикајте 194 или 112."
       ],
       "care": {
         "setting": "gp",
@@ -603,7 +520,8 @@
         "Фармацевтот може да ве посоветува и да ви каже дали е потребен лекар."
       ],
       "watch_for": [
-        "Ако се појави температура, болка во слабината или повраќање, веднаш повикајте 194 или 112.",
+        "Ако се појави температура, болка во слабината или повраќање, јавете се во дежурна служба уште истиот ден.",
+        "Ако се појави тресење, збунетост, забрзано дишење или не можете да мокрите, веднаш повикајте 194 или 112.",
         "Ако не се подобри за 2–3 дена, закажете кај лекар."
       ],
       "care": {
@@ -630,7 +548,8 @@
         "За сексуално преносливи инфекции можете да се обратите и кај гинеколог или дерматовенеролог."
       ],
       "watch_for": [
-        "Ако се појави температура, болка во слабината или крв во урината, веднаш повикајте 194 или 112."
+        "Ако се појави температура, болка во слабината или крв во урината, јавете се во дежурна служба уште истиот ден.",
+        "Ако се појави тресење, збунетост, забрзано дишење или не можете да мокрите, веднаш повикајте 194 или 112."
       ],
       "care": {
         "setting": "gp",
@@ -685,11 +604,73 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_urgent_colic": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Многу силна болка од слабината кон препоните треба да се прегледа денес.",
+      "reasons": [
+        "Ненадејна силна болка од слабината кон препоните може да значи камен што го попречува мокрењето."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Пијте доволно течности."
+      ],
+      "watch_for": [
+        "Ако се појави температура или тресење, болката е неподнослива или не можете да мокрите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "urologija",
+          "nefrologija",
+          "infektologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-kidney-infection"
+      ]
+    },
+    "o_doc48_risk": {
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Потребна е анализа на урина и преглед.",
+      "reasons": [
+        "При дијабетес, ослабен имунитет, кај помлади од 16 години или кога полот не е наведен, уринарните тегоби треба да ги процени лекар, не само фармацевт."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар; може да ви побараат примерок урина (лабораторија)."
+      ],
+      "watch_for": [
+        "Ако се појави тресење, збунетост или повраќање, веднаш повикајте 194 или 112.",
+        "Ако температурата расте, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina",
+          "urologija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-uti",
+        "nhs-blood-in-urine"
+      ]
     }
   },
   "populations": {
     "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
-    "older_adult": "Referenced: ≥65 with fever → same day; any ≥65 → GP minimum. Older adults with new confusion use the confusion flow."
+    "older_adult": "Referenced: any ≥65 → GP minimum; fever or loin pain at any age → same day. Older adults with new confusion use the confusion flow.",
+    "chronic": "Referenced: diabetes or immunosuppression with cystitis symptoms → doctor in 1–2 days, never pharmacy; with fever → same day (as everyone)."
   },
   "sources": [
     {

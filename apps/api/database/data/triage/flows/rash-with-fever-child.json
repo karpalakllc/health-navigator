@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "rash-with-fever-child",
   "title": "Осип кај дете (со или без температура)",
-  "summary_en": "Rash in children with focus on meningitis/sepsis signs. Non-blanching rash, stiff neck, light sensitivity, drowsy, cold extremities → 194. Infants, unwell child, scarlet-fever pattern, rash near eyes/blisters in eczema → same day/48h. Chickenpox/HFMD/viral rash in a well child → home care with safety net.",
-  "notes_en": "NHS rashes in babies and children; meningitis (glass test, dark skin advice); scarlet fever; chickenpox (newborn/immunosuppressed exceptions); hand, foot and mouth disease; eczema herpeticum as same-day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Rash in children with focus on meningitis/sepsis signs. Non-blanching rash, stiff neck, light sensitivity, drowsy, weak/high-pitched cry, bulging fontanelle, no urine 12 h, cold extremities → 194. Under 3 months with fever (or unsure) → 194; very unwell → emergency department now; fever with any rash, possible measles, fever ≥5 days with red eyes/lips or swollen hands/feet, infected chickenpox skin, eczema blisters, rash near the eye → same day; scarlet-fever pattern, new rash under 3 months, bit off → 48h. Afebrile well child with chickenpox/HFMD/viral rash → home care with safety net.",
+  "notes_en": "NHS rashes in babies and children; meningitis (glass test, dark skin advice); scarlet fever; chickenpox (newborn/immunosuppressed exceptions); hand, foot and mouth disease; eczema herpeticum as same-day. 2026-10-23 safety fixes: fever + rash at any age → same day (NHS fever in children: 111; aligned with fever-infant-child); red flags harmonised with the fever flow (cry, bulging fontanelle, no urine 12 h); q_fever „Не знам“ treated as fever under 3 months; measles, Kawasaki-type and infected-chickenpox items → same day; new rash under 3 months → 48h. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -41,6 +41,48 @@
     {
       "code": "drowsy",
       "label": "Тешко се буди, не реагира или е млитаво",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "cry",
+      "label": "Слаб, писклив или непрекинат плач што е невообичаен за детето",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "fontanelle_bulging",
+      "label": "Испакнато (издигнато) меко место на темето (фонтанела)",
+      "when": {
+        "demo": "age_months",
+        "lt": 24
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-meningitis"
+    },
+    {
+      "code": "no_urine",
+      "label": "Не мокрело 12 часа или повеќе (суви пелени)",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "infant_0_3m",
+          "infant_3_12m",
+          "child_1_4"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "no_urine_older",
+      "label": "Не мокрело 12 часа или повеќе",
+      "when": {
+        "demo": "age_band",
+        "in": [
+          "child_5_12"
+        ]
+      },
       "outcome": "o_emergency",
       "source": "nhs-under5-urgent"
     },
@@ -113,6 +155,18 @@
           "label": "Осип или меурчиња околу окото"
         },
         {
+          "value": "measles",
+          "label": "Осип што почнал на лицето или зад ушите и се шири, со кашлица, течење од носот или црвени очи"
+        },
+        {
+          "value": "long_fever",
+          "label": "Температура 5 дена или повеќе, со црвени очи, црвени испукани усни или отечени дланки и стапала"
+        },
+        {
+          "value": "infected_skin",
+          "label": "Кожата околу меурчињата е црвена, топла, отечена или многу боли"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
@@ -124,7 +178,9 @@
       "type": "question",
       "kind": "yes_no",
       "text": "Дали има температура?",
-      "next": "q_behaviour"
+      "next": "q_behaviour",
+      "allow_unsure": true,
+      "help": "Ако не сте ја измериле: дали детето е топло на допир?"
     },
     "q_behaviour": {
       "type": "question",
@@ -156,7 +212,10 @@
               },
               {
                 "answer": "q_fever",
-                "eq": "yes"
+                "in": [
+                  "yes",
+                  "unsure"
+                ]
               }
             ]
           },
@@ -172,18 +231,10 @@
                 ]
               },
               {
-                "any": [
-                  {
-                    "answer": "q_fever",
-                    "eq": "yes"
-                  },
-                  {
-                    "not": {
-                      "answer": "q_behaviour",
-                      "eq": "normal"
-                    }
-                  }
-                ]
+                "not": {
+                  "answer": "q_behaviour",
+                  "eq": "normal"
+                }
               }
             ]
           },
@@ -198,15 +249,10 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_type",
-                "includes": "eczema_blisters"
-              },
-              {
-                "answer": "q_type",
-                "includes": "near_eye"
-              }
+            "answer": "q_type",
+            "includes_any": [
+              "eczema_blisters",
+              "near_eye"
             ]
           },
           "goto": "o_urgent_1"
@@ -239,32 +285,48 @@
         {
           "when": {
             "answer": "q_type",
+            "includes": "measles"
+          },
+          "goto": "o_urgent_measles"
+        },
+        {
+          "when": {
+            "answer": "q_type",
+            "includes_any": [
+              "long_fever",
+              "infected_skin"
+            ]
+          },
+          "goto": "o_urgent_3"
+        },
+        {
+          "when": {
+            "answer": "q_fever",
+            "eq": "yes"
+          },
+          "goto": "o_urgent_fever"
+        },
+        {
+          "when": {
+            "answer": "q_type",
             "includes": "sandpaper"
           },
           "goto": "o_doc48_1"
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_fever",
-                "eq": "yes"
-              },
+            "any": [
               {
                 "demo": "age_band",
                 "in": [
-                  "infant_0_3m",
-                  "infant_3_12m"
+                  "infant_0_3m"
                 ]
+              },
+              {
+                "answer": "q_behaviour",
+                "eq": "bit_off"
               }
             ]
-          },
-          "goto": "o_doc48_2"
-        },
-        {
-          "when": {
-            "answer": "q_behaviour",
-            "eq": "bit_off"
           },
           "goto": "o_doc48_3"
         },
@@ -276,11 +338,11 @@
   },
   "outcomes": {
     "o_urgent_now_1": {
-      "level": "urgent_same_day",
+      "level": "emergency_department_now",
       "title": "Одете со детето на преглед сега",
       "summary": "Осип кај бебе или кај многу болно дете треба веднаш да го прегледа лекар.",
       "reasons": [
-        "Кај бебиња помлади од 3 месеци осип со температура или промена во однесувањето треба веднаш да се провери."
+        "Кај бебиња помлади од 3 месеци осип со промена во однесувањето треба веднаш да се провери."
       ],
       "do_now": [
         "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
@@ -306,7 +368,7 @@
       ]
     },
     "o_urgent_now_2": {
-      "level": "urgent_same_day",
+      "level": "emergency_department_now",
       "title": "Одете со детето на преглед сега",
       "summary": "Осип кај бебе или кај многу болно дете треба веднаш да го прегледа лекар.",
       "reasons": [
@@ -370,7 +432,7 @@
       "title": "Одете со детето на преглед денес",
       "summary": "Овој вид осип бара лекување истиот ден.",
       "reasons": [
-        "Овчи сипаници кај бебиња под 4 недели или кај ослабен имунитет бараат брза проценка."
+        "Овчи сипаници кај бебиња помлади од 3 месеци или кај ослабен имунитет бараат брза проценка."
       ],
       "do_now": [
         "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес."
@@ -422,39 +484,12 @@
         "nhs-scarlet-fever"
       ]
     },
-    "o_doc48_2": {
-      "level": "see_doctor_24_48h",
-      "title": "Закажете кај педијатар во наредните 1–2 дена",
-      "summary": "Педијатарот треба да го погледне осипот и грлото.",
-      "reasons": [
-        "Кај бебе под 1 година осип со температура вреди да го види педијатар."
-      ],
-      "do_now": [
-        "Јавете се кај избраниот педијатар; кажете дека детето има осип (можеби ќе ве примат во посебен термин)."
-      ],
-      "watch_for": [
-        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
-        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "pediatrics",
-        "specialties": [
-          "pedijatrija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-scarlet-fever"
-      ]
-    },
     "o_doc48_3": {
       "level": "see_doctor_24_48h",
       "title": "Закажете кај педијатар во наредните 1–2 дена",
-      "summary": "Педијатарот треба да го погледне осипот и грлото.",
+      "summary": "Педијатарот треба да го погледне осипот.",
       "reasons": [
-        "Ако детето не е сосема како порано, педијатарот треба да го види."
+        "Ако детето не е сосема како порано, или е бебе помладо од 3 месеци со нов осип, педијатарот треба да го види."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар; кажете дека детето има осип (можеби ќе ве примат во посебен термин)."
@@ -473,7 +508,7 @@
         ]
       },
       "sources": [
-        "nhs-scarlet-fever"
+        "nhs-rashes-children"
       ]
     },
     "o_self": {
@@ -585,10 +620,101 @@
       "sources": [
         "nhs-under5-urgent"
       ]
+    },
+    "o_urgent_fever": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Температура со осип треба да ја види лекар истиот ден.",
+      "reasons": [
+        "Осип заедно со температура треба да го прегледа лекар денес, дури и кога осипот бледнее под притисок и детето си игра."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Давајте течности често; облечете го лесно.",
+        "Повремено проверувајте го осипот со стаклена чаша."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fever-children",
+        "nhs-rashes-children"
+      ]
+    },
+    "o_urgent_measles": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Осипот личи на сипаници (морбили), кои лесно се пренесуваат и треба да ги види лекар денес.",
+      "reasons": [
+        "Сипаниците може да имаат компликации; лекарот треба да го прегледа детето денес."
+      ],
+      "do_now": [
+        "Јавете се однапред кај педијатарот или во дежурната служба денес и кажете дека мислите на сипаници — за да ве примат одделно од другите.",
+        "Детето нека не оди во градинка или училиште и нека не се дружи со бебиња."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-measles",
+        "nhs-rashes-children"
+      ]
+    },
+    "o_urgent_3": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Знаците што ги одбравте треба да ги види лекар истиот ден.",
+      "reasons": [
+        "Температура што трае 5 дена или повеќе со вакви промени, или црвена, топла и болна кожа околу меурчињата, треба да ја прегледа лекар денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес."
+      ],
+      "watch_for": [
+        "Ако осипот престане да бледнее под чаша, веднаш повикајте 194 или 112.",
+        "Ако детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng143",
+        "nhs-chickenpox"
+      ]
     }
   },
   "populations": {
-    "child": "Child flow."
+    "child": "Child flow.",
+    "infant_0_3m": "Referenced: fever (or unsure) → 194; not behaving normally → emergency department now; any new rash → paediatrician within 48h."
   },
   "sources": [
     {
@@ -638,6 +764,24 @@
       "title": "NHS (Велика Британија) — Febrile seizures",
       "url": "https://www.nhs.uk/conditions/febrile-seizures/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-fever-children",
+      "title": "NHS (Велика Британија) — Fever in children",
+      "url": "https://www.nhs.uk/symptoms/fever-in-children/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-measles",
+      "title": "NHS (Велика Британија) — Measles",
+      "url": "https://www.nhs.uk/conditions/measles/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nice-ng143",
+      "title": "NICE NG143 — Fever in under 5s: assessment and initial management",
+      "url": "https://www.nice.org.uk/guidance/ng143",
+      "accessed": "2026-10-23"
     }
   ]
 }

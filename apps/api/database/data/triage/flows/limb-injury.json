@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "limb-injury",
   "title": "Повреда на рака или нога",
-  "summary_en": "Limb/joint injury (all ages). Open fracture, obvious deformity, cold/pale/pulseless limb, major trauma → 194/ED. Unable to bear weight, severe swelling, suspected fracture, hip injury in older adults → same day. Sprain → self-care. Swollen calf without injury → DVT pathway.",
-  "notes_en": "NHS broken arm/leg/ankle and sprains; DVT (swollen calf) and septic arthritis/gout (hot joint) included as non-traumatic presentations. Ottawa rules are public but not reproduced; 'cannot bear weight' and 'bone tenderness' approximate them conservatively. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Limb/joint injury (all ages). Open fracture, obvious deformity, cold/pale/pulseless limb, major trauma → 194. Possible compartment syndrome (pain out of proportion, tense limb, tight cast) → emergency department now. Unable to bear weight, severe swelling, suspected fracture, red hot joint, under-5 with any injury or a painful limb without injury → same day. Sprain → self-care. Swollen calf → DVT pathway (same day).",
+  "notes_en": "NHS broken arm/leg/ankle and sprains; DVT (swollen calf) and septic arthritis/gout (hot joint) included as non-traumatic presentations. Ottawa rules are public but not reproduced; 'cannot bear weight' and 'bone tenderness' approximate them conservatively. 2026-10-23 safety fixes (pending clinician review): compartment-syndrome item → emergency department now; red hot joint → same day whatever the cause (the option includes fever); under-5 with a painful/swollen limb and no injury → same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -115,6 +115,10 @@
           "label": "Зглобот е црвен, топол и многу болен, со или без температура"
         },
         {
+          "value": "compartment",
+          "label": "Болката е многу силна и расте, повеќе од очекуваното; делот е тврд и затегнат, мрдањето на прстите многу боли, или гипсот или завојот стега"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
@@ -132,32 +136,21 @@
         {
           "when": {
             "answer": "q_signs",
+            "includes": "compartment"
+          },
+          "goto": "o_ed_now_compartment"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
             "includes": "calf"
           },
           "goto": "o_urgent_dvt_1"
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_signs",
-                "includes": "red_hot_joint"
-              },
-              {
-                "any": [
-                  {
-                    "demo": "conditions",
-                    "includes": "immunosuppressed"
-                  },
-                  {
-                    "not": {
-                      "answer": "q_cause",
-                      "eq": "injury"
-                    }
-                  }
-                ]
-              }
-            ]
+            "answer": "q_signs",
+            "includes": "red_hot_joint"
           },
           "goto": "o_urgent_1"
         },
@@ -206,6 +199,25 @@
               {
                 "demo": "age_band",
                 "in": [
+                  "infant_0_3m",
+                  "infant_3_12m",
+                  "child_1_4"
+                ]
+              },
+              {
+                "answer": "q_cause",
+                "eq": "no_injury"
+              }
+            ]
+          },
+          "goto": "o_urgent_child_no_injury"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
                   "older_65_plus"
                 ]
               },
@@ -216,13 +228,6 @@
             ]
           },
           "goto": "o_doc48_1"
-        },
-        {
-          "when": {
-            "answer": "q_signs",
-            "includes": "red_hot_joint"
-          },
-          "goto": "o_doc48_2"
         },
         {
           "when": {
@@ -238,6 +243,37 @@
     }
   },
   "outcomes": {
+    "o_ed_now_compartment": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Многу силна болка што расте, затегнат дел или гипс што стега треба веднаш да се прегледаат.",
+      "reasons": [
+        "Болка многу посилна од очекуваното, тврд и затегнат дел или гипс што стега може да значат притисок врз мускулите и нервите, што бара итна помош во болница."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар) — не чекајте закажан термин.",
+        "Олабавете го завојот ако стега; не го кревајте делот високо.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако делот стане студен, бел или син, престанете да го чувствувате, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "ortopedija",
+          "traumatologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-broken-arm",
+        "nhs-broken-leg"
+      ]
+    },
     "o_urgent_dvt_1": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
@@ -271,16 +307,16 @@
     "o_urgent_1": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
-      "summary": "Повредата може да бара снимка или имобилизација (гипс, шина).",
+      "summary": "Црвен, топол и многу болен зглоб треба да се прегледа истиот ден.",
       "reasons": [
-        "Црвен, топол, многу болен зглоб без повреда може да значи инфекција на зглобот или гихт (протин); треба преглед денес."
+        "Црвен, топол, многу болен зглоб може да значи инфекција на зглобот или гихт (протин); треба преглед денес, особено ако имате температура."
       ],
       "do_now": [
-        "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
-        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+        "Одморете го зглобот и не ставајте тежина на него.",
+        "Одете во итна амбуланта уште денес."
       ],
       "watch_for": [
-        "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
+        "Ако имате висока температура со треска, се чувствувате многу лошо или збунето, веднаш повикајте 194 или 112."
       ],
       "care": {
         "setting": "emergency_department",
@@ -294,8 +330,7 @@
         ]
       },
       "sources": [
-        "nhs-broken-arm",
-        "nhs-broken-leg"
+        "nhs-gout"
       ]
     },
     "o_urgent_2": {
@@ -307,7 +342,8 @@
       ],
       "do_now": [
         "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
-        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+        "Одете во итна амбуланта, ортопедска или трауматолошка служба.",
+        "Ако е повредена ногата, не возете сами; нека ве однесе некој друг."
       ],
       "watch_for": [
         "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
@@ -337,7 +373,8 @@
       ],
       "do_now": [
         "Ставете ладен облог завиткан во крпа; не ставајте тежина на повредениот дел.",
-        "Одете во итна амбуланта, ортопедска или трауматолошка служба."
+        "Одете во итна амбуланта, ортопедска или трауматолошка служба.",
+        "Ако е повредена ногата, не возете сами; нека ве однесе некој друг."
       ],
       "watch_for": [
         "Ако делот под повредата стане студен, бел, син или трне, веднаш повикајте 194 или 112."
@@ -358,43 +395,42 @@
         "nhs-broken-leg"
       ]
     },
+    "o_urgent_child_no_injury": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болна или отечена рака или нога кај мало дете, без позната повреда, треба да се прегледа денес.",
+      "reasons": [
+        "Кај мали деца болна, отечена рака или нога, или ако детето не ја користи, без позната повреда, може да значи инфекција на коската или зглобот, или повреда што не сте ја виделе; треба преглед денес."
+      ],
+      "do_now": [
+        "Одете во итна амбуланта или кај дежурен педијатар уште денес.",
+        "Не давајте му да стапнува на ногата ако го боли."
+      ],
+      "watch_for": [
+        "Ако детето има висока температура и е млитаво или многу поспано, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina",
+          "ortopedija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-broken-arm",
+        "nhs-broken-leg"
+      ]
+    },
     "o_doc48_1": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Лекарот треба да ја процени повредата или зглобот.",
       "reasons": [
         "По 65 години коските полесно се кршат; лекарот треба да ја процени повредата."
-      ],
-      "do_now": [
-        "Мирување, ладен облог 20 минути неколкупати дневно, кренете го делот."
-      ],
-      "watch_for": [
-        "Ако болката нагло се засили, делот стане студен или бледо-син, веднаш повикајте 194 или 112.",
-        "Ако не можете да стапнете на ногата, јавете се во итна служба истиот ден."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
-          "ortopedija",
-          "revmatologija"
-        ],
-        "facility_types": [
-          "clinic"
-        ]
-      },
-      "sources": [
-        "nhs-sprains",
-        "nhs-gout"
-      ]
-    },
-    "o_doc48_2": {
-      "level": "see_doctor_24_48h",
-      "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Лекарот треба да ја процени повредата или зглобот.",
-      "reasons": [
-        "Црвен и топол зглоб треба да го процени лекар."
       ],
       "do_now": [
         "Мирување, ладен облог 20 минути неколкупати дневно, кренете го делот."
@@ -519,8 +555,9 @@
   "populations": {
     "infant_0_3m": "Referenced via under-5 injury rule.",
     "infant_3_12m": "Referenced via under-5 injury rule.",
-    "child": "Under-5 referenced; older children follow adult thresholds. Non-accidental injury is out of scope — clinician to advise on wording.",
-    "pregnancy": "Swollen calf (DVT) already same day; pregnancy raises DVT risk but does not change routing."
+    "child": "Under-5: any injury, or a painful/swollen limb without injury (septic arthritis, osteomyelitis, unwitnessed injury), → same day. Older children follow adult thresholds. Non-accidental injury wording is left for the clinician.",
+    "pregnancy": "Swollen calf (DVT) already same day; pregnancy raises DVT risk but does not change routing.",
+    "chronic": "A red hot joint now goes to the same day for everyone, so immunosuppression (previously the only condition used) no longer changes routing; DVT and fracture thresholds do not depend on a condition."
   },
   "sources": [
     {

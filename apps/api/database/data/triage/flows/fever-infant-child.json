@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "fever-infant-child",
   "title": "Температура кај бебиња и деца",
-  "summary_en": "Fever in children under 13. NHS under-5 999 signs as red flags. <3 months ≥38 °C or <36 °C → go now; 3–6 months ≥39 °C → go now; dehydration, not feeding, fever ≥5 days → same day/48h; otherwise home care with safety net. Based on NHS fever in children and NICE NG143 risk features (not reproduced as a table).",
-  "notes_en": "NHS fever in children + 'urgent help for under 5s' (both fetched 2026-10-07): <3 m ≥38 °C, 3–6 m ≥39 °C, <36 °C, no urine 12 h, non-blanching rash, etc. NICE NG143 used for amber features (fever ≥5 days, poor feeding, reduced urine, swelling of a limb/joint). WHO IMCI general danger signs (unable to drink, convulsions, lethargy) are covered by red flags. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Fever in children under 13. NHS under-5 999 signs, bulging fontanelle (under 2) and green vomiting as red flags. <3 months ≥38 °C or unmeasured → 194; <3 months ≤35.9 °C → 194; immunosuppressed with fever → emergency department now; ≤35.9 °C or 3–6 months ≥39 °C (or unmeasured) → emergency department now; dehydration, not feeding, rigors, travel, rash → same day; fever ≥5 days → 48h; otherwise home care with safety net. Based on NHS fever in children and NICE NG143/NG51/NG151 risk features (not reproduced as a table).",
+  "notes_en": "NHS fever in children + 'urgent help for under 5s' (both fetched 2026-10-07): <3 m ≥38 °C, 3–6 m ≥39 °C, <36 °C, no urine 12 h, non-blanching rash, etc. NICE NG143 used for amber features (fever ≥5 days, poor feeding, reduced urine, swelling of a limb/joint). WHO IMCI general danger signs (unable to drink, convulsions, lethargy) are covered by red flags. 2026-10-23 safety fixes: bulging fontanelle and green vomiting red flags (NG143 red); immunosuppressed + fever → ED now (NG151); ≤35.9 °C under 3 months → 194, older → ED now (NG51); unmeasured at 3–5 months treated as ≥39 °C; rash + fever → same day (NHS 111); rigors and travel → same day (NG143 amber). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -85,6 +85,22 @@
           "child_5_12"
         ]
       }
+    },
+    {
+      "code": "fontanelle_bulging",
+      "label": "Испакнато (издигнато) меко место на темето (фонтанела)",
+      "when": {
+        "demo": "age_months",
+        "lt": 24
+      },
+      "outcome": "o_emergency",
+      "source": "nice-ng143"
+    },
+    {
+      "code": "green_vomit",
+      "label": "Повраќа зелено",
+      "outcome": "o_emergency",
+      "source": "nice-ng143"
     },
     {
       "code": "stiff_neck",
@@ -203,6 +219,14 @@
           "label": "Оток на зглоб или не стапнува на ногата"
         },
         {
+          "value": "rigors",
+          "label": "Силно тресење (треска) што не престанува"
+        },
+        {
+          "value": "travel",
+          "label": "Неодамна патувало надвор од Европа (на пример во Африка или Азија)"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
@@ -236,6 +260,46 @@
         },
         {
           "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_temp",
+                "lte": 35.9
+              }
+            ]
+          },
+          "goto": "o_emergency_low_temp"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_temp",
+                    "gte": 38
+                  },
+                  {
+                    "answer": "q_temp",
+                    "answered": false
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_ed_now_immuno"
+        },
+        {
+          "when": {
             "demo": "age_band",
             "in": [
               "infant_0_3m"
@@ -261,8 +325,16 @@
                 ]
               },
               {
-                "answer": "q_temp",
-                "gte": 39
+                "any": [
+                  {
+                    "answer": "q_temp",
+                    "gte": 39
+                  },
+                  {
+                    "answer": "q_temp",
+                    "answered": false
+                  }
+                ]
               }
             ]
           },
@@ -308,15 +380,13 @@
             "any": [
               {
                 "answer": "q_signs",
-                "includes": "not_feeding"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "unusual"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "breath_fast"
+                "includes_any": [
+                  "not_feeding",
+                  "unusual",
+                  "breath_fast",
+                  "rigors",
+                  "travel"
+                ]
               }
             ]
           },
@@ -324,20 +394,15 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_days",
-                "eq": "ge_5"
-              },
-              {
-                "demo": "conditions",
-                "includes": "immunosuppressed"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "rash"
-              }
-            ]
+            "answer": "q_signs",
+            "includes": "rash"
+          },
+          "goto": "o_urgent_rash"
+        },
+        {
+          "when": {
+            "answer": "q_days",
+            "eq": "ge_5"
           },
           "goto": "o_doc48_1"
         },
@@ -404,18 +469,18 @@
       ]
     },
     "o_urgent_now_2": {
-      "level": "urgent_same_day",
-      "title": "Одете со бебето на преглед сега",
-      "summary": "Кај најмалите бебиња температурата може да е единствениот знак на сериозна инфекција.",
+      "level": "emergency_department_now",
+      "title": "Одете со детето на преглед сега",
+      "summary": "Ниска телесна температура кај болно дете може да е знак на сериозна инфекција.",
       "reasons": [
-        "Ниската телесна температура кај дете што е болно е важен знак."
+        "Температура од 35,9 °C или пониска кај дете што е болно е важен знак и треба веднаш да ја провери лекар."
       ],
       "do_now": [
         "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
         "Ако не можете безбедно да стигнете, повикајте 194."
       ],
       "watch_for": [
-        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
+        "Ако детето стане млитаво, тешко се буди, или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
       ],
       "care": {
         "setting": "emergency_department",
@@ -429,15 +494,15 @@
       },
       "sources": [
         "nhs-fever-children",
-        "nice-ng143"
+        "nice-ng51"
       ]
     },
     "o_urgent_now_3": {
-      "level": "urgent_same_day",
+      "level": "emergency_department_now",
       "title": "Одете со бебето на преглед сега",
       "summary": "Кај најмалите бебиња температурата може да е единствениот знак на сериозна инфекција.",
       "reasons": [
-        "Кај бебиња од 3 до 6 месеци, температура од 39 °C или повеќе треба веднаш да се провери."
+        "Кај бебиња од 3 до 6 месеци, температура од 39 °C или повеќе — или температура што не сте ја измериле, а мислите дека е висока — треба веднаш да се провери."
       ],
       "do_now": [
         "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
@@ -496,7 +561,7 @@
       "title": "Одете со детето на преглед денес",
       "summary": "Знаците што ги одбравте покажуваат дека детето треба да го види лекар истиот ден.",
       "reasons": [
-        "Детето јаде многу помалку, не е како порано или дише побрзо — тоа треба да го види лекар денес."
+        "Детето јаде многу помалку, не е како порано, дише побрзо, силно се тресе или неодамна патувало надвор од Европа — тоа треба да го види лекар денес."
       ],
       "do_now": [
         "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
@@ -526,7 +591,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Нема знаци за итност, но температурата трае или има придружни тегоби.",
       "reasons": [
-        "Температура 5 дена или повеќе, или со осип, или кај дете со ослабен имунитет треба да ја процени педијатар."
+        "Температура што трае 5 дена или повеќе треба да ја процени педијатар."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар.",
@@ -715,10 +780,111 @@
         "nice-ng143",
         "nhs-under5-urgent"
       ]
+    },
+    "o_emergency_low_temp": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Ниска температура кај бебе помладо од 3 месеци може да е знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 35,9 °C или пониска треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има ниска температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница.",
+        "Облечете го бебето топло и држете го блиску до вас.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nice-ng51",
+        "nhs-under5-urgent"
+      ]
+    },
+    "o_ed_now_immuno": {
+      "level": "emergency_department_now",
+      "title": "Одете со детето во итно одделение веднаш",
+      "summary": "Кај дете со ослабен имунитет (на пример при хемотерапија) температурата може брзо да стане сериозна инфекција.",
+      "reasons": [
+        "Температура кај дете што прима хемотерапија или лекови што го ослабуваат имунитетот треба веднаш да ја провери лекар, во рок од еден час."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Ако имате број од одделението каде што се лекува детето, јавете им се и на нив.",
+        "Кажете дека детето прима хемотерапија или лекови за имунитетот и понесете ја документацијата.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди, дише тешко или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng151",
+        "nice-ng143"
+      ]
+    },
+    "o_urgent_rash": {
+      "level": "urgent_same_day",
+      "title": "Одете со детето на преглед денес",
+      "summary": "Температура со осип треба да ја види лекар истиот ден.",
+      "reasons": [
+        "Осип заедно со температура треба да го прегледа лекар денес, дури и кога осипот бледнее под притисок."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот или одете во дежурна педијатриска служба уште денес.",
+        "Повремено проверувајте го осипот со стаклена чаша."
+      ],
+      "watch_for": [
+        "Ако дамките престанат да бледнеат под чашата, или детето тешко се буди или дише тешко, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-fever-children"
+      ]
     }
   },
   "populations": {
-    "chronic": "Referenced: immunosuppressed children → 24–48h minimum."
+    "chronic": "Referenced: immunosuppressed children with fever (or unmeasured temperature) → emergency department now (NICE NG151)."
   },
   "sources": [
     {
@@ -756,6 +922,18 @@
       "title": "NHS (Велика Британија) — Meningitis",
       "url": "https://www.nhs.uk/conditions/meningitis/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng51",
+      "title": "NICE NG51 — Suspected sepsis: recognition, diagnosis and early management",
+      "url": "https://www.nice.org.uk/guidance/ng51",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nice-ng151",
+      "title": "NICE NG151 — Neutropenic sepsis: prevention and management in people with cancer",
+      "url": "https://www.nice.org.uk/guidance/ng151",
+      "accessed": "2026-10-23"
     }
   ]
 }

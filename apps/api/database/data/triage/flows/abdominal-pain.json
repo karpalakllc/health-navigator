@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "abdominal-pain",
   "title": "Болка во стомакот",
-  "summary_en": "Adult abdominal pain. Severe/sudden pain, rigid abdomen, vomiting blood, black stool, collapse, pregnancy-possible with one-sided pain/bleeding (ectopic) → emergency. Right lower quadrant migrating pain, persistent vomiting, fever with pain, kidney-stone type pain → same day. Mild indigestion → pharmacy.",
-  "notes_en": "NHS stomach ache 999/A&E criteria; appendicitis migrating pain; ectopic pregnancy (shoulder tip pain, bleeding); testicular torsion for males; bowel obstruction features; older adults have lower threshold. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult abdominal pain. Severe/sudden pain, rigid abdomen, vomiting blood, black stool, collapse, pregnancy-possible with one-sided pain/bleeding (ectopic) → emergency. Flank pain with fever → emergency department now. Pregnancy/postpartum, RLQ/migrating pain, persistent vomiting, fever with pain in risk groups or with lower pain, kidney-stone type pain, older adult with new (<24 h) pain, upper-middle pain at 50+ or with heart disease/diabetes → same day. Mild (≤4) upper-middle indigestion → pharmacy; 65+ never self-care.",
+  "notes_en": "NHS stomach ache 999/A&E criteria; appendicitis migrating pain; ectopic pregnancy (shoulder tip pain, bleeding); testicular torsion for males; bowel obstruction features; older adults have lower threshold. 2026-10-23 safety fixes (pending clinician review): upper-middle pain → pharmacy only when ≤4/10 and not 50+/heart disease/diabetes (those → same day: ACS/pancreatitis); flank + fever → emergency department now; lower pain + fever → same day; postpartum → same day; 65+ with pain <24 h → same day and never self-care. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -214,6 +214,21 @@
         },
         {
           "when": {
+            "all": [
+              {
+                "answer": "q_where",
+                "eq": "flank"
+              },
+              {
+                "answer": "q_with",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_ed_now_kidney"
+        },
+        {
+          "when": {
             "demo": "pregnancy",
             "in": [
               "pregnant",
@@ -221,6 +236,13 @@
             ]
           },
           "goto": "o_urgent_preg_1"
+        },
+        {
+          "when": {
+            "demo": "pregnancy",
+            "eq": "postpartum"
+          },
+          "goto": "o_urgent_postpartum"
         },
         {
           "when": {
@@ -238,6 +260,23 @@
             ]
           },
           "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
+                "answer": "q_duration",
+                "eq": "lt_24h"
+              }
+            ]
+          },
+          "goto": "o_urgent_older_acute"
         },
         {
           "when": {
@@ -316,6 +355,47 @@
         },
         {
           "when": {
+            "all": [
+              {
+                "answer": "q_where",
+                "eq": "lower"
+              },
+              {
+                "answer": "q_with",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_urgent_lower_fever"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "answer": "q_where",
+                "eq": "upper_middle"
+              },
+              {
+                "any": [
+                  {
+                    "demo": "conditions",
+                    "includes_any": [
+                      "heart_disease",
+                      "diabetes"
+                    ]
+                  },
+                  {
+                    "demo": "age_years",
+                    "gte": 50
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_epigastric"
+        },
+        {
+          "when": {
             "answer": "q_pain",
             "gte": 8
           },
@@ -359,10 +439,27 @@
         },
         {
           "when": {
-            "answer": "q_where",
-            "eq": "upper_middle"
+            "all": [
+              {
+                "answer": "q_where",
+                "eq": "upper_middle"
+              },
+              {
+                "answer": "q_pain",
+                "lte": 4
+              }
+            ]
           },
           "goto": "o_pharm_1"
+        },
+        {
+          "when": {
+            "demo": "age_band",
+            "in": [
+              "older_65_plus"
+            ]
+          },
+          "goto": "o_doc48"
         },
         {
           "when": {
@@ -443,12 +540,71 @@
         "nhs-preg-stomach-pain"
       ]
     },
+    "o_urgent_postpartum": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед кај гинеколог денес",
+      "summary": "Болката во стомакот по породување, особено со температура, треба брзо да се прегледа.",
+      "reasons": [
+        "Болка во стомакот во првите недели по породување треба да ја процени гинеколог истиот ден."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог или во породилиштето каде што се породивте уште денес."
+      ],
+      "watch_for": [
+        "Ако се појави обилно крварење, силна болка, висока температура со треска или несвестица, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-preg-stomach-pain"
+      ]
+    },
     "o_urgent_1": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
       "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
       "reasons": [
         "Кај постари лица силната болка во стомакот почесто има сериозна причина."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_older_acute": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Кај постари лица новата болка во стомакот, и кога не е многу силна, почесто има сериозна причина."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -539,12 +695,41 @@
         "nhs-stomach-ache"
       ]
     },
+    "o_ed_now_kidney": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Болка во слабината со температура треба веднаш да се прегледа во болница.",
+      "reasons": [
+        "Болка во слабината со температура може да значи инфекција на бубрегот зад камен, што бара брзо лекување во болница."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар) — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако се чувствувате многу лошо, збунети сте, тешко дишете или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "urologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-kidney-stones",
+        "nhs-sepsis"
+      ]
+    },
     "o_urgent_4": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
       "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
       "reasons": [
-        "Грчевита болка во слабината може да е камен во бубрегот; со температура е итно."
+        "Грчевита болка во слабината може да е камен во бубрегот и треба да се провери денес."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -633,6 +818,72 @@
       },
       "sources": [
         "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_lower_fever": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Некои причини за болка во стомакот (на пр. слепо црево, жолчка, камен во бубрег) бараат преглед истиот ден.",
+      "reasons": [
+        "Болка долу во стомакот со температура може да значи инфекција и треба да се прегледа денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112.",
+        "Ако се онесвестите, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache"
+      ]
+    },
+    "o_urgent_epigastric": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Болката горе на средина понекогаш не доаѓа од желудникот, па е добро да се провери истиот ден.",
+      "reasons": [
+        "Болка горе на средина кај лица над 50 години, со срцева болест или дијабетес може да доаѓа од срцето или панкреасот и треба да се провери денес."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес.",
+        "Не јадете тешка храна; пијте мали голтки вода ако не повраќате."
+      ],
+      "watch_for": [
+        "Ако болката се шири кон градите, раката или вилицата, или се потите и тешко дишете, веднаш повикајте 194 или 112.",
+        "Ако болката стане многу силна или стомакот стане тврд, веднаш повикајте 194 или 112.",
+        "Ако повраќате крв или имате црна столица, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "opsta-hirurgija",
+          "gastroenterohepatologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache",
+        "nhs-heart-attack",
+        "nhs-pancreatitis"
       ]
     },
     "o_urgent_7": {
@@ -792,7 +1043,7 @@
       "title": "Фармацевтот може да ве посоветува",
       "summary": "Блага болка во горниот дел често е поврзана со варењето.",
       "reasons": [
-        "Блага болка горе на средина често е поврзана со варење или желудечна киселина."
+        "Блага болка горе на средина, без други знаци, често е поврзана со варење или желудечна киселина."
       ],
       "do_now": [
         "Фармацевтот може да предложи средство против киселина или гасови.",
@@ -912,7 +1163,8 @@
     }
   },
   "populations": {
-    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Referenced: pregnant/unsure → same-day gynaecology; postpartum → same-day gynaecology (own outcome); ectopic red flag when pregnancy can apply."
   },
   "sources": [
     {

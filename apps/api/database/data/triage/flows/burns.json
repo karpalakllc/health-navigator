@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "burns",
   "title": "Изгореници",
-  "summary_en": "Burns and scalds (all ages). Airway/smoke inhalation, electrical/chemical, large burns, full-thickness, face/hands/genitals, infants → emergency/same day. Small superficial → self-care with cooling first aid.",
-  "notes_en": "NHS burns and scalds: A&E for large/deep/chemical/electrical/face/hands/feet/genitals/joints, and for children under 5 and older people with blistered burns; 20 min cool running water. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Burns and scalds (all ages). Airway/smoke inhalation, electrical/chemical, large, full-thickness or circumferential burns → emergency. Any burn under 12 months, blistered burns under 5 or in 65+, face/hands/feet/genitals/buttocks/joints, large blisters → same day. Small superficial → self-care with cooling first aid.",
+  "notes_en": "NHS burns and scalds: A&E for large/deep/chemical/electrical/face/hands/feet/genitals/joints, and for children under 5 and older people with blistered burns; 20 min cool running water. 2026-10-23 safety fixes: any burn in a baby under 12 months → same day; blistered burns in 65+ → same day (was 24–48h); buttocks added to the genital option and back of hand/fingers to hands; circumferential burns → 194; chemical-burn irrigation line in the emergency do-now; NICE CKS burns cited for the thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -42,6 +42,12 @@
       "source": "nhs-burns"
     },
     {
+      "code": "circumferential",
+      "label": "Изгореницата оди околу целата рака, нога, вратот или градите",
+      "outcome": "o_emergency",
+      "source": "nice-cks-burns"
+    },
+    {
       "code": "electrical",
       "label": "Изгореница од струја или од хемикалија",
       "outcome": "o_emergency",
@@ -73,11 +79,11 @@
         },
         {
           "value": "hands_feet",
-          "label": "Дланки или стапала"
+          "label": "Шаки, прсти или стапала"
         },
         {
           "value": "genitals",
-          "label": "Половите органи или препоните"
+          "label": "Половите органи, препоните или задникот"
         },
         {
           "value": "joint",
@@ -116,20 +122,26 @@
       "next": [
         {
           "when": {
-            "all": [
+            "any": [
               {
-                "demo": "age_band",
-                "in": [
-                  "infant_0_3m",
-                  "infant_3_12m",
-                  "child_1_4"
-                ]
+                "demo": "age_months",
+                "lt": 12
               },
               {
-                "not": {
-                  "answer": "q_look",
-                  "eq": "red_only"
-                }
+                "all": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "child_1_4"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "answer": "q_look",
+                      "eq": "red_only"
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -150,6 +162,22 @@
               {
                 "answer": "q_look",
                 "eq": "blisters_large"
+              },
+              {
+                "all": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "older_65_plus"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "answer": "q_look",
+                      "eq": "red_only"
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -207,7 +235,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Местото, големината или возраста бараат изгореницата да ја прегледа лекар истиот ден.",
       "reasons": [
-        "Кај мали деца изгорениците со меурчиња секогаш треба да ги прегледа лекар истиот ден."
+        "Кај бебиња под 1 година секоја изгореница, а кај мали деца изгорениците со меурчиња, треба да ги прегледа лекар истиот ден."
       ],
       "do_now": [
         "Ако уште не сте, ладете ја 20 минути под млака вода.",
@@ -228,7 +256,8 @@
         ]
       },
       "sources": [
-        "nhs-burns"
+        "nhs-burns",
+        "nice-cks-burns"
       ]
     },
     "o_urgent_2": {
@@ -236,7 +265,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Местото, големината или возраста бараат изгореницата да ја прегледа лекар истиот ден.",
       "reasons": [
-        "Изгорениците на лицето, дланките, стапалата, половите органи или преку зглоб, како и поголемите, треба да ги прегледа лекар денес."
+        "Изгорениците на лицето, шаките, стапалата, половите органи, задникот или преку зглоб, поголемите, и изгорениците со меурчиња кај постари лица треба да ги прегледа лекар денес."
       ],
       "do_now": [
         "Ако уште не сте, ладете ја 20 минути под млака вода.",
@@ -257,7 +286,8 @@
         ]
       },
       "sources": [
-        "nhs-burns"
+        "nhs-burns",
+        "nice-cks-burns"
       ]
     },
     "o_doc48_1": {
@@ -385,6 +415,7 @@
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
         "Продолжете со ладење под млака вода додека чекате (до 20 минути), но внимавајте детето или повредениот да не се изладат премногу.",
         "При струја: не допирајте го повредениот додека струјата не е исклучена.",
+        "При хемикалија: со ракавици тргнете ја извалканата облека, сув прав прво истресете го, па плакнете со многу течна вода.",
         "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
         "Не возете сами до болница.",
         "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
@@ -414,10 +445,10 @@
     }
   },
   "populations": {
-    "infant_0_3m": "Referenced via under-5 rule.",
-    "infant_3_12m": "Referenced via under-5 rule.",
+    "infant_0_3m": "Referenced: any burn under 12 months → same day.",
+    "infant_3_12m": "Referenced: any burn under 12 months → same day.",
     "child": "Referenced via under-5 rule; 5–17 follow adult thresholds.",
-    "older_adult": "Referenced (slower healing → 24–48h)."
+    "older_adult": "Referenced: blistered burns in 65+ → same day; other burns → 24–48h (slower healing)."
   },
   "sources": [
     {
@@ -425,6 +456,12 @@
       "title": "NHS (Велика Британија) — Burns and scalds",
       "url": "https://www.nhs.uk/conditions/burns-and-scalds/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-cks-burns",
+      "title": "NICE CKS — Burns and scalds",
+      "url": "https://cks.nice.org.uk/topics/burns-scalds/",
+      "accessed": "2026-10-23"
     }
   ]
 }

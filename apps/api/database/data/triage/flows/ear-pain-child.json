@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "ear-pain-child",
   "title": "Болка во увото кај дете",
-  "summary_en": "Child earache. Swelling behind ear/protruding ear, stiff neck, drowsy, facial weakness → emergency. Infants <3 m with fever → fever flow rules (same day). Discharge, >3 days, <2 years both ears with fever, very unwell → 24–48h. Most → home care, improve in 3 days.",
-  "notes_en": "NHS earache/ear infections in children; NICE NG91 criteria (under 2 bilateral, otorrhoea) are well known but not cited directly — clinician to confirm. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Child earache. Swelling behind ear/protruding ear, stiff neck, drowsy, facial weakness, button battery or magnet in the ear/nose, blood or clear fluid from the ear after a head injury → emergency. Infants <3 m with fever → 194; immunosuppressed with fever → emergency department now; very unwell, object in the ear, sudden hearing loss, any earache under 3 months → same day. Discharge, >3 days, fever under 1 year, <2 years both ears with fever, immunosuppression → 24–48h. Most → home care, improve in 3 days.",
+  "notes_en": "NHS earache/ear infections in children; NICE NG91 criteria (under 2 bilateral, otorrhoea) are well known but not cited directly — clinician to confirm. 2026-10-23 safety fixes: button battery/magnet and ear fluid after head injury → 194; immunosuppressed + fever → ED now (NICE NG151); under 3 months without fever → same day; fever at 3–12 months → 24–48h minimum; sudden hearing loss → same day (NHS hearing loss). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -40,6 +40,18 @@
       "label": "Опуштено лице на едната страна",
       "outcome": "o_emergency",
       "source": "nhs-earache"
+    },
+    {
+      "code": "battery",
+      "label": "Ставило мала батерија (копче) или магнет во увото или носот",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "after_head_injury",
+      "label": "По удар во главата тече крв или бистра течност од увото",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
     }
   ],
   "entry": "q_signs",
@@ -66,8 +78,12 @@
           "label": "Ставило нешто во увото"
         },
         {
+          "value": "sudden_hearing",
+          "label": "Наеднаш престана да слуша на едното или на двете уши"
+        },
+        {
           "value": "hearing",
-          "label": "Не слуша добро"
+          "label": "Не слуша добро (постепено или по настинка)"
         },
         {
           "value": "unwell",
@@ -115,14 +131,35 @@
         },
         {
           "when": {
-            "any": [
+            "all": [
               {
-                "answer": "q_signs",
-                "includes": "unwell"
+                "demo": "conditions",
+                "includes": "immunosuppressed"
               },
               {
                 "answer": "q_signs",
-                "includes": "object"
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_ed_now_immuno"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_signs",
+                "includes_any": [
+                  "unwell",
+                  "object",
+                  "sudden_hearing"
+                ]
+              },
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
               }
             ]
           },
@@ -159,6 +196,20 @@
                 ]
               },
               {
+                "all": [
+                  {
+                    "demo": "age_band",
+                    "in": [
+                      "infant_3_12m"
+                    ]
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes": "fever"
+                  }
+                ]
+              },
+              {
                 "demo": "conditions",
                 "includes": "immunosuppressed"
               }
@@ -185,7 +236,7 @@
       "title": "Одете со детето на преглед денес",
       "summary": "Детето треба да го прегледа лекар истиот ден.",
       "reasons": [
-        "Многу болно дете или предмет во увото бара преглед денес."
+        "Многу болно дете, предмет во увото, ненадејно губење на слухот или болка во увото кај бебе помладо од 3 месеци бара преглед денес."
       ],
       "do_now": [
         "Јавете се кај педијатарот, во дежурна служба или на УНГ (уво-нос-грло) амбуланта.",
@@ -206,7 +257,8 @@
         ]
       },
       "sources": [
-        "nhs-ear-infections"
+        "nhs-ear-infections",
+        "nhs-hearing-loss"
       ]
     },
     "o_doc48_1": {
@@ -214,7 +266,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Педијатарот треба да го погледне увото.",
       "reasons": [
-        "Течење, болка подолга од 3 дена или болка во двете уши со температура кај мало дете треба да ги процени педијатар."
+        "Течење, болка подолга од 3 дена, температура кај бебе под 1 година или болка во двете уши со температура кај мало дете треба да ги процени педијатар."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар.",
@@ -370,11 +422,43 @@
       "sources": [
         "nhs-under5-urgent"
       ]
+    },
+    "o_ed_now_immuno": {
+      "level": "emergency_department_now",
+      "title": "Одете со детето во итно одделение веднаш",
+      "summary": "Кај дете со ослабен имунитет (на пример при хемотерапија) температурата може брзо да стане сериозна инфекција.",
+      "reasons": [
+        "Температура кај дете што прима хемотерапија или лекови што го ослабуваат имунитетот треба веднаш да ја провери лекар, во рок од еден час."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Ако имате број од одделението каде што се лекува детето, јавете им се и на нив.",
+        "Кажете дека детето прима хемотерапија или лекови за имунитетот и понесете ја документацијата.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето стане млитаво, тешко се буди, дише тешко или кожата поплави или добие дамки, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng151"
+      ]
     }
   },
   "populations": {
     "child": "Child flow.",
-    "infant_3_12m": "Referenced via under-2 bilateral rule."
+    "infant_3_12m": "Referenced: fever → 24–48h minimum; under-2 bilateral rule.",
+    "infant_0_3m": "Referenced: fever → 194; any earache → same day.",
+    "chronic": "Referenced: immunosuppressed with fever → emergency department now; otherwise 24–48h."
   },
   "sources": [
     {
@@ -400,6 +484,24 @@
       "title": "NHS (Велика Британија) — Meningitis",
       "url": "https://www.nhs.uk/conditions/meningitis/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-head-injury",
+      "title": "NHS (Велика Британија) — Head injury and concussion",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nice-ng151",
+      "title": "NICE NG151 — Neutropenic sepsis: prevention and management in people with cancer",
+      "url": "https://www.nice.org.uk/guidance/ng151",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-hearing-loss",
+      "title": "NHS (Велика Британија) — Hearing loss",
+      "url": "https://www.nhs.uk/conditions/hearing-loss/",
+      "accessed": "2026-10-23"
     }
   ]
 }

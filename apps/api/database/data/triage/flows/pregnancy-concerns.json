@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "pregnancy-concerns",
   "title": "Загриженост во бременост или по породување",
-  "summary_en": "Pregnancy and postpartum concerns. Seizure, heavy bleeding, severe abdominal pain, pre-eclampsia features, chest pain/breathlessness → 194. Reduced/absent fetal movements, waters breaking, regular contractions <37 weeks, fever, severe vomiting, calf swelling → same day (go now) to maternity. Itching of hands/feet → 24–48h. Postpartum: heavy bleeding, fever, wound infection, mood (crisis → global crisis).",
-  "notes_en": "NHS pregnancy pages: reduced movements, waters breaking, bleeding, pre-eclampsia, severe vomiting, labour signs; postnatal danger signs (bleeding, fever, DVT, mood/psychosis). Cord prolapse knee-chest position is standard public first aid. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Pregnancy and postpartum concerns. Seizure, heavy bleeding, possible ectopic pregnancy (early pregnancy with one-sided pain, shoulder-tip pain, dizziness or fainting), severe abdominal pain, pre-eclampsia features, chest pain/breathlessness → 194; reduced fetal movements → 194. Any bleeding or spotting, waters breaking, contractions before 37 weeks, a blow to the bump, fever, severe vomiting, calf swelling → same day (go now) to maternity; itching of hands/feet → same-day call. Postpartum: heavy bleeding, fever, calf → same day; suspected postpartum psychosis → global crisis; wound/breast/mood → 24–48h.",
+  "notes_en": "NHS pregnancy pages: reduced movements, waters breaking, bleeding, pre-eclampsia, severe vomiting, labour signs; postnatal danger signs (bleeding, fever, DVT, mood/psychosis). Cord prolapse knee-chest position is standard public first aid. 2026-10-23 safety fixes (pending clinician review): spotting at any gestation → same day (consistent with vaginal-bleeding), ectopic red flag added, contractions before 20 weeks → same day, itching → same day, abdominal blow option, postpartum psychosis → global:crisis, dead routing removed. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -39,8 +39,15 @@
       "source": "nhs-preg-bleeding"
     },
     {
+      "code": "ectopic",
+      "label": "Рана бременост (позитивен тест или задоцнет циклус) и болка долу на едната страна од стомакот, болка во врвот на рамото, вртоглавица или несвестица",
+      "help": "Можна бременост надвор од матката (вонматерична бременост).",
+      "outcome": "o_emergency",
+      "source": "nhs-ectopic"
+    },
+    {
       "code": "severe_pain",
-      "label": "Силна, постојана болка во стомакот што не попушта меѓу контракциите",
+      "label": "Силна, постојана болка во стомакот (при породување: болка што не попушта меѓу контракциите)",
       "outcome": "o_emergency",
       "source": "nhs-preg-stomach-pain"
     },
@@ -74,7 +81,7 @@
     "q_stage": {
       "type": "question",
       "kind": "single",
-      "text": "Каде сте сега?",
+      "text": "Во која фаза сте?",
       "options": [
         {
           "value": "early",
@@ -106,21 +113,7 @@
           "goto": "q_preg_signs"
         },
         {
-          "when": {
-            "answer": "q_stage",
-            "eq": "postpartum"
-          },
           "goto": "q_post_signs"
-        },
-        {
-          "when": {
-            "demo": "conditions",
-            "includes": "pregnancy_complication_history"
-          },
-          "goto": "o_gp_1"
-        },
-        {
-          "goto": "o_gp"
         }
       ]
     },
@@ -144,6 +137,10 @@
         {
           "value": "spotting",
           "label": "Мало крварење или кафеав секрет"
+        },
+        {
+          "value": "blow",
+          "label": "Удар или пад на стомакот"
         },
         {
           "value": "fever",
@@ -174,13 +171,6 @@
       "next": [
         {
           "when": {
-            "answer": "q_stage",
-            "eq": "postpartum"
-          },
-          "goto": "q_post_signs"
-        },
-        {
-          "when": {
             "answer": "q_preg_signs",
             "includes": "movements"
           },
@@ -195,30 +185,23 @@
                   "waters",
                   "fever",
                   "calf",
-                  "vomiting"
+                  "vomiting",
+                  "spotting",
+                  "blow"
                 ]
               },
               {
                 "all": [
                   {
                     "answer": "q_stage",
-                    "eq": "mid"
+                    "in": [
+                      "early",
+                      "mid"
+                    ]
                   },
                   {
                     "answer": "q_preg_signs",
                     "includes": "contractions"
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "answer": "q_stage",
-                    "eq": "early"
-                  },
-                  {
-                    "answer": "q_preg_signs",
-                    "includes": "spotting"
                   }
                 ]
               }
@@ -243,20 +226,15 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_preg_signs",
-                "includes": "spotting"
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "itch"
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "urinary"
-              }
-            ]
+            "answer": "q_preg_signs",
+            "includes": "itch"
+          },
+          "goto": "o_urgent_call_1"
+        },
+        {
+          "when": {
+            "answer": "q_preg_signs",
+            "includes": "urinary"
           },
           "goto": "o_doc48_1"
         },
@@ -318,43 +296,10 @@
       "next": [
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_preg_signs",
-                "includes_any": [
-                  "waters",
-                  "fever",
-                  "calf",
-                  "vomiting"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "answer": "q_stage",
-                    "eq": "mid"
-                  },
-                  {
-                    "answer": "q_preg_signs",
-                    "includes": "contractions"
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "answer": "q_stage",
-                    "eq": "early"
-                  },
-                  {
-                    "answer": "q_preg_signs",
-                    "includes": "spotting"
-                  }
-                ]
-              }
-            ]
+            "answer": "q_post_signs",
+            "includes": "unusual"
           },
-          "goto": "o_urgent_now_1"
+          "goto": "global:crisis"
         },
         {
           "when": {
@@ -362,51 +307,19 @@
             "includes_any": [
               "bleeding_more",
               "fever",
-              "calf",
-              "unusual"
+              "calf"
             ]
           },
           "goto": "o_urgent_now_2"
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_stage",
-                "eq": "term"
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "contractions"
-              }
-            ]
-          },
-          "goto": "o_labour_1"
-        },
-        {
-          "when": {
-            "any": [
-              {
-                "answer": "q_post_signs",
-                "includes_any": [
-                  "smell",
-                  "wound",
-                  "breast",
-                  "mood"
-                ]
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "spotting"
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "itch"
-              },
-              {
-                "answer": "q_preg_signs",
-                "includes": "urinary"
-              }
+            "answer": "q_post_signs",
+            "includes_any": [
+              "smell",
+              "wound",
+              "breast",
+              "mood"
             ]
           },
           "goto": "o_doc48_1"
@@ -430,7 +343,7 @@
       "title": "Одете во породилиште сега",
       "summary": "Овие знаци бараат преглед во гинеколошко-акушерска служба без чекање — не чекајте до утре.",
       "reasons": [
-        "Овие знаци во бременост треба да се проверат во породилиште без чекање."
+        "Овие знаци во бременост (и секое крварење, без оглед колку е мало) треба да се проверат во породилиште без чекање."
       ],
       "do_now": [
         "Одете во најблиското породилиште (гинеколошко-акушерско одделение) сега или јавете се таму.",
@@ -460,7 +373,7 @@
       "title": "Одете во породилиште сега",
       "summary": "Овие знаци бараат преглед во гинеколошко-акушерска служба без чекање — не чекајте до утре.",
       "reasons": [
-        "По породување, засиленото крварење, температурата, отечената потколеница или необичните мисли бараат преглед без чекање."
+        "По породување, засиленото крварење, температурата или отечената потколеница бараат преглед без чекање."
       ],
       "do_now": [
         "Одете во најблиското породилиште (гинеколошко-акушерско одделение) сега или јавете се таму.",
@@ -512,6 +425,35 @@
       },
       "sources": [
         "nhs-labour-signs"
+      ]
+    },
+    "o_urgent_call_1": {
+      "level": "urgent_same_day",
+      "title": "Јавете се во породилиште или кај гинеколог денес",
+      "summary": "Силното чешање на дланките и стапалата во бременост треба да се провери истиот ден, со анализа на крвта.",
+      "reasons": [
+        "Силното чешање без осип во бременост може да е знак за проблем со црниот дроб што бара брза проверка."
+      ],
+      "do_now": [
+        "Јавете се кај вашиот гинеколог или во гинеколошко-акушерска служба (породилиште) уште денес.",
+        "Кажете дека имате силно чешање на дланките и стапалата."
+      ],
+      "watch_for": [
+        "Ако бебето почне да се движи помалку, веднаш повикајте 194 или 112.",
+        "Ако се појави крварење, силна болка или пукне водењакот, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "gynecology",
+        "specialties": [
+          "ginekologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-icp"
       ]
     },
     "o_doc48_1": {
@@ -609,7 +551,7 @@
       ],
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
-        "Легнете на левата страна.",
+        "Ако не се гледа папочна врвца, легнете на левата страна.",
         "Ако се гледа папочната врвца, клекнете на колена и лакти (со задникот нагоре) додека чекате.",
         "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
         "Не возете сами до болница.",
@@ -743,6 +685,24 @@
       "title": "NHS (Велика Британија) — Pulmonary embolism",
       "url": "https://www.nhs.uk/conditions/pulmonary-embolism/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ectopic",
+      "title": "NHS (Велика Британија) — Ectopic pregnancy",
+      "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-postpartum-psychosis",
+      "title": "NHS (Велика Британија) — Postpartum psychosis",
+      "url": "https://www.nhs.uk/mental-health/conditions/post-partum-psychosis/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-icp",
+      "title": "NHS (Велика Британија) — Intrahepatic cholestasis of pregnancy",
+      "url": "https://www.nhs.uk/pregnancy/complications/itching-and-intrahepatic-cholestasis/",
+      "accessed": "2026-10-23"
     }
   ],
   "demographics_ok_reason": "Inherently about pregnancy and the weeks after birth: the visitor chose this symptom; the age-band catalogue cannot filter by sex or pregnancy, so sex and pregnancy wording is waived for the whole flow."

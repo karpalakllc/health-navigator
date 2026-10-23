@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "vaginal-bleeding",
   "title": "Вагинално крварење",
-  "summary_en": "Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible pregnancy with one-sided pain/shoulder-tip pain → 194. Any bleeding in pregnancy, heavy postpartum bleeding, very heavy bleeding → same day gynaecology. Postmenopausal bleeding → GP/gynaecologist this week (urgent referral pathway). Bleeding between periods/after sex → GP.",
-  "notes_en": "NHS heavy periods / post-menopausal bleeding / miscarriage / ectopic / bleeding in pregnancy. Any bleeding in pregnancy → same day. Postmenopausal bleeding → this-week gynaecology (NHS: urgent referral). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Vaginal bleeding (teens/adults/older). Heavy bleeding with faintness, possible pregnancy with one-sided pain/shoulder-tip pain, heavy bleeding or severe pain in (possible) pregnancy → 194. Any bleeding in pregnancy, postpartum bleeding, very heavy bleeding, heavy bleeding on anticoagulants, fever/foul discharge with bleeding → same day gynaecology. Postmenopausal bleeding (or 65+) → gynaecologist in 1–2 days. Bleeding between periods/after sex → GP.",
+  "notes_en": "NHS heavy periods / post-menopausal bleeding / miscarriage / ectopic / bleeding in pregnancy. Any bleeding in pregnancy → same day. Postmenopausal bleeding → this-week gynaecology (NHS: urgent referral). 2026-10-23 safety fixes (pending clinician review): preg_heavy red flag shown whenever pregnancy can apply (not only when demographics said pregnant); anticoagulants with soaking or clots → same day; fever or foul discharge with bleeding → same day; neutral default copy. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -45,11 +45,7 @@
       "label": "Во бременост: обилно крварење или крварење со силна болка во стомакот",
       "when": {
         "demo": "pregnancy",
-        "in": [
-          "pregnant",
-          "postpartum",
-          "unsure"
-        ]
+        "ne": "not_asked"
       },
       "outcome": "o_emergency",
       "source": "nhs-preg-bleeding"
@@ -193,6 +189,21 @@
               {
                 "answer": "q_signs",
                 "includes": "tired_breathless"
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "anticoag"
+                  },
+                  {
+                    "answer": "q_signs",
+                    "includes_any": [
+                      "soaking",
+                      "clots"
+                    ]
+                  }
+                ]
               }
             ]
           },
@@ -200,16 +211,8 @@
         },
         {
           "when": {
-            "all": [
-              {
-                "answer": "q_signs",
-                "includes": "fever"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "pain"
-              }
-            ]
+            "answer": "q_signs",
+            "includes": "fever"
           },
           "goto": "o_urgent_2"
         },
@@ -338,7 +341,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Знаците што ги одбравте бараат гинеколошки преглед истиот ден.",
       "reasons": [
-        "Многу обилното крварење или знаците на губење крв треба да се проверат денес."
+        "Многу обилното крварење, обилното крварење додека пиете лекови за разредување на крвта или знаците на губење крв треба да се проверат денес."
       ],
       "do_now": [
         "Јавете се во дежурна гинеколошка служба или итна амбуланта уште денес."
@@ -367,7 +370,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Знаците што ги одбравте бараат гинеколошки преглед истиот ден.",
       "reasons": [
-        "Болка и температура може да значат воспаление на карличните органи."
+        "Температура или непријатен мирис на секретот со крварење може да значат воспаление (инфекција) што треба да се провери денес."
       ],
       "do_now": [
         "Јавете се во дежурна гинеколошка служба или итна амбуланта уште денес."
@@ -483,9 +486,9 @@
     "o_gp": {
       "level": "see_gp_this_week",
       "title": "Закажете кај гинеколог или избран лекар",
-      "summary": "Обилните менструации се чести и можат да се ублажат.",
+      "summary": "Крварењето што не покажува знаци за итност сепак треба да го процени гинеколог.",
       "reasons": [
-        "Обилните менструации се чести и можат да се ублажат."
+        "Не одбравте знаци за итност."
       ],
       "do_now": [
         "Водете дневник на менструациите (денови, колку влошки).",

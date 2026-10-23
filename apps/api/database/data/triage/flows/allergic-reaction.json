@@ -2,7 +2,7 @@
   "schema": "zdravje.triage/1",
   "key": "allergic-reaction",
   "title": "Алергиска реакција",
-  "summary_en": "Allergic reaction (all ages). Airway/breathing/circulation signs or known anaphylaxis trigger with rapid symptoms → 194 (use own adrenaline auto-injector as prescribed). Lip/face swelling without breathing problem → same day. Mild hives/itch → pharmacy.",
+  "summary_en": "Allergic reaction (all ages). Airway/breathing/circulation signs, known anaphylaxis trigger, sting in the mouth/throat, blistering rash after a new medicine, lip/face swelling (as the global allergic_swelling flag), vomiting/cramps after a sting or food, or widespread hives in someone with a prescribed auto-injector → 194. Widespread hives → same day. Babies under 12 months → paediatrician. Mild hives/itch → pharmacy.",
   "notes_en": "NHS anaphylaxis ABC signs; prior anaphylaxis + symptoms → emergency. Use of own prescribed adrenaline auto-injector follows the user's prescription (not a dose instruction). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
@@ -44,7 +44,7 @@
     },
     {
       "code": "circulation",
-      "label": "Вртоглавица, несвестица, бледа и влажна кожа или збунетост",
+      "label": "Вртоглавица, несвестица, бледа и влажна кожа или збунетост (кај дете: млитаво, бледо или многу поспано)",
       "outcome": "o_emergency",
       "source": "nhs-anaphylaxis"
     },
@@ -53,6 +53,18 @@
       "label": "Претходно сте имале анафилакса (тешка алергиска реакција) и сега имате симптоми по истиот предизвикувач",
       "outcome": "o_emergency",
       "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "mouth_sting",
+      "label": "Убод од пчела или оса во устата или грлото",
+      "outcome": "o_emergency",
+      "source": "nhs-anaphylaxis"
+    },
+    {
+      "code": "skin_blisters",
+      "label": "Меурчиња или лупење на кожата, или рани во устата или очите по нов лек",
+      "outcome": "o_emergency",
+      "source": "nhs-allergies"
     }
   ],
   "entry": "q_signs",
@@ -64,7 +76,7 @@
       "options": [
         {
           "value": "lip_face",
-          "label": "Отекување на усните, очите или лицето (без проблем со дишењето)"
+          "label": "Отекување на усните, очите или лицето"
         },
         {
           "value": "hives_wide",
@@ -97,6 +109,13 @@
           "goto": "o_emergency_1"
         },
         {
+          "when": {
+            "answer": "q_signs",
+            "includes": "lip_face"
+          },
+          "goto": "o_emergency_swelling"
+        },
+        {
           "goto": "q_has_autoinjector"
         }
       ]
@@ -108,17 +127,10 @@
       "next": [
         {
           "when": {
-            "answer": "q_signs",
-            "includes": "vomit_pain"
-          },
-          "goto": "o_emergency_1"
-        },
-        {
-          "when": {
-            "any": [
+            "all": [
               {
-                "answer": "q_signs",
-                "includes": "lip_face"
+                "answer": "q_has_autoinjector",
+                "eq": "yes"
               },
               {
                 "answer": "q_signs",
@@ -126,7 +138,24 @@
               }
             ]
           },
+          "goto": "o_emergency_known"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "hives_wide"
+          },
           "goto": "o_urgent_1"
+        },
+        {
+          "when": {
+            "demo": "age_band",
+            "in": [
+              "infant_0_3m",
+              "infant_3_12m"
+            ]
+          },
+          "goto": "o_doc48_1"
         },
         {
           "when": {
@@ -134,8 +163,6 @@
               {
                 "demo": "age_band",
                 "in": [
-                  "infant_0_3m",
-                  "infant_3_12m",
                   "child_1_4"
                 ]
               },
@@ -173,7 +200,7 @@
       "title": "Повикајте итна помош сега",
       "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
       "reasons": [
-        "Повраќање или грчеви по убод или храна, заедно со други знаци, може да значат почеток на тешка реакција."
+        "Повраќање или грчеви во стомакот по убод или храна може да значат почеток на тешка реакција."
       ],
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
@@ -210,9 +237,9 @@
     "o_urgent_1": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
-      "summary": "Реакцијата засега не го зафаќа дишењето, но треба да ве прегледаат истиот ден.",
+      "summary": "Копривката засега не го зафаќа дишењето, но треба да ве прегледаат истиот ден.",
       "reasons": [
-        "Отекување на лицето или раширена копривка треба да се процени денес — реакцијата понекогаш се влошува."
+        "Раширена копривка треба да се процени денес — реакцијата понекогаш се влошува."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -242,7 +269,7 @@
       "title": "Јавете се кај педијатар во наредните 1–2 дена",
       "summary": "Кај мали деца е корисно лекарот да ја види реакцијата и да посоветува.",
       "reasons": [
-        "Кај мали деца и благите реакции треба да ги види педијатар."
+        "Кај мали деца и благите алергиски реакции треба да ги види педијатар, наместо да се купуваат средства во аптека."
       ],
       "do_now": [
         "Сликајте ја реакцијата и закажете кај избраниот педијатар."
@@ -384,11 +411,96 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_emergency_swelling": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Ненадејно отекување на усните или лицето по храна, лек или убод може брзо да се прошири на јазикот и грлото."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако имате пропишан автоинјектор со адреналин, употребете го веднаш, според упатството на лекарот.",
+        "Легнете со подигнати нозе; ако тешко дишете, седнете исправено. Не стојте и не одете.",
+        "Ако нема подобрување за 5 минути и имате втор автоинјектор, кажете му на диспечерот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-anaphylaxis",
+        "nhs-angioedema"
+      ]
+    },
+    "o_emergency_known": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Имате пропишан автоинјектор (позната тешка алергија), а сега имате раширена реакција по кожата."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Имајте го автоинјекторот при рака. Употребете го веднаш ако се појави тешко дишење, оток во устата или грлото, вртоглавица или несвестица, или ако така ви кажал лекарот.",
+        "Легнете со подигнати нозе; ако тешко дишете, седнете исправено. Не стојте и не одете.",
+        "Ако нема подобрување за 5 минути и имате втор автоинјектор, кажете му на диспечерот.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-anaphylaxis"
+      ]
     }
   },
   "populations": {
-    "infant_0_3m": "Referenced via child-band rule (local reactions in young children → paediatrician). Breathing/circulation red flags apply to all ages.",
-    "infant_3_12m": "Referenced via child-band rule.",
+    "infant_0_3m": "Referenced: babies under 12 months with any non-emergency reaction → paediatrician in 1–2 days (no pharmacy route). Breathing/circulation red flags apply to all ages.",
+    "infant_3_12m": "Referenced: as infant_0_3m.",
     "child": "Referenced via child-band rule; red flags identical for children (NHS).",
     "pregnancy": "Anaphylaxis management is the same in pregnancy (call 194); no separate threshold.",
     "older_adult": "Same thresholds.",

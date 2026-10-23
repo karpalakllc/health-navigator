@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "confusion-older",
   "title": "Ненадејна збунетост кај постаро лице",
-  "summary_en": "New or worsening confusion (delirium). Stroke signs, unresponsive, seizure, sepsis signs, head injury, low sugar in diabetes not improving → emergency. Sudden confusion over hours/days → same day (delirium is a medical emergency in public guidance). Gradual memory problems over months → GP.",
-  "notes_en": "NHS confusion; NICE CG103 delirium (acute onset/fluctuating course as key features). Sudden confusion is never routed below same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "New or worsening confusion (delirium). Stroke signs, unresponsive, seizure, sepsis signs, head injury, possible poisoning, severe headache with stiff neck, diabetes with confusion (possible hypo) → emergency. Sudden or fluctuating confusion → 194 (NHS: 999/A&E; same as the global unconscious_or_confused flag). Worsening dementia or gradual confusion with acute clues → same day. Gradual memory problems over months → GP.",
+  "notes_en": "NHS confusion; NICE CG103 delirium (acute onset/fluctuating course as key features). Sudden or fluctuating confusion → 194 since 2026-10-23 (was same day). Fast sugar is advised only in the hypo emergency outcome, for a person awake and able to swallow. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -57,9 +57,21 @@
     },
     {
       "code": "hypo",
-      "label": "Има дијабетес, шеќерот е низок и не се подобрува по внесување шеќер",
-      "outcome": "o_emergency",
+      "label": "Лицето има дијабетес и сега е збунето, се поти или трепери (можен низок шеќер)",
+      "outcome": "o_emergency_hypo",
       "source": "nhs-hypo"
+    },
+    {
+      "code": "poisoning",
+      "label": "Можно труење: премногу лекови, алкохол, хемикалии или гас (јаглерод моноксид од печка)",
+      "outcome": "o_emergency",
+      "source": "nhs-confusion"
+    },
+    {
+      "code": "headache_neck",
+      "label": "Силна главоболка со вкочанет врат или чувствителност на светлина",
+      "outcome": "o_emergency",
+      "source": "nhs-confusion"
     }
   ],
   "entry": "q_onset",
@@ -133,7 +145,7 @@
               }
             ]
           },
-          "goto": "o_urgent_1"
+          "goto": "o_emergency_sudden"
         },
         {
           "when": {
@@ -141,6 +153,19 @@
             "includes": "dementia"
           },
           "goto": "o_urgent_2"
+        },
+        {
+          "when": {
+            "answer": "q_clues",
+            "includes_any": [
+              "infection",
+              "not_drinking",
+              "new_meds",
+              "alcohol",
+              "constipation"
+            ]
+          },
+          "goto": "o_urgent"
         },
         {
           "when": {
@@ -156,37 +181,6 @@
     }
   },
   "outcomes": {
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува.",
-      "reasons": [
-        "Ненадејната или променлива збунетост (делириум) е знак дека нешто не е во ред со телото и бара преглед истиот ден."
-      ],
-      "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Понесете список на лековите; некој близок нека биде со него/неа."
-      ],
-      "watch_for": [
-        "Ако стане поспан/а, не реагира, има напад или слабост на едната страна, веднаш повикајте 194 или 112.",
-        "Ако има висока температура и забрзано дишење, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "emergency_department",
-        "specialties": [
-          "urgentna-medicina",
-          "interna-medicina",
-          "nevrologija"
-        ],
-        "facility_types": [
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-confusion",
-        "nice-cg103"
-      ]
-    },
     "o_urgent_2": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
@@ -252,7 +246,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува.",
       "reasons": [
-        "Ненадејната збунетост кај постари лица најчесто има телесна причина (инфекција, дехидрација, лекови) што може да се лекува."
+        "Нагло влошување кај постепена збунетост, со знак како инфекција, малку пиење, нов лек или задржување урина, треба да се провери истиот ден."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта уште денес.",
@@ -287,8 +281,7 @@
       ],
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
-        "Ако има дијабетес и може да голта, дајте му брз шеќер (на пр. сок).",
-        "Не давајте ништо преку уста ако е многу поспан/а.",
+        "Не давајте храна, пијалак ни лекови преку уста додека не стигне помош.",
         "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
         "Не возете сами до болница.",
         "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
@@ -315,12 +308,94 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_emergency_hypo": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Збунетост кај лице со дијабетес може да е од низок шеќер, што бара итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Ако е будно и може безбедно да голта, дајте му брз шеќер (на пр. сок или шеќер растворен во вода).",
+        "Не давајте ништо преку уста ако е многу поспано или не може да голта.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-hypo"
+      ]
+    },
+    "o_emergency_sudden": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Ненадејната или променлива збунетост (делириум) може да е знак за сериозна состојба (инфекција, мозочен удар, низок шеќер) и бара итна помош."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете ја адресата и што се случува.",
+        "Не давајте храна, пијалак ни лекови преку уста додека не стигне помош.",
+        "Останете со лицето. Ако сте сами, отклучете ја вратата и седнете или легнете на безбедно место.",
+        "Не возете сами до болница.",
+        "Подгответе ги лековите што ги пиете и здравствената картичка, ако се при рака."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-confusion",
+        "nice-cg103"
+      ]
     }
   },
   "populations": {
     "child": "Teenagers with sudden confusion are covered by red flags/same-day routing; no lower age-specific threshold.",
-    "older_adult": "Written for 65+; also applies to younger adults (any sudden confusion → same day).",
-    "pregnancy": "Confusion in pregnancy/postpartum routes to same day like everyone; postpartum psychosis is also in mental-health.",
+    "older_adult": "Written for 65+; also applies to younger adults (any sudden confusion → 194).",
+    "pregnancy": "Confusion in pregnancy/postpartum routes like everyone (sudden → 194); postpartum psychosis is also in mental-health.",
     "chronic": "Diabetes hypoglycaemia is a red flag item; dementia worsening is asked directly."
   },
   "sources": [

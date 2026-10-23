@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "toothache",
   "title": "Забоболка и проблеми со забите",
-  "summary_en": "Toothache/dental (all ages). Facial swelling spreading to eye/neck with breathing/swallowing difficulty → emergency. Facial swelling with fever, knocked-out adult tooth, uncontrolled bleeding after extraction → same day. Toothache >2 days → dentist.",
-  "notes_en": "NHS toothache/dental abscess: facial swelling affecting eye/neck or breathing → A&E; dentist otherwise. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Toothache/dental (all ages). Facial swelling with breathing/speaking/swallowing difficulty, swelling to the eye, swelling under the tongue / a lot of mouth swelling / spreading under the jaw → emergency. Knocked-out permanent tooth → dentist now; facial or jaw swelling (with or without fever), uncontrolled bleeding after extraction → same day. Toothache >2 days, broken tooth, fever → dentist 1–2 days.",
+  "notes_en": "NHS toothache/dental abscess (opened 2026-10-23): hard to breathe, speak or swallow, swollen eye, a lot of swelling in the mouth, cannot open mouth → 999/A&E; suspected abscess → urgent dentist. 2026-10-23 safety fixes (pending clinician review): floor-of-mouth swelling is its own red flag (Ludwig's angina risk); facial swelling alone → same day; knocked-out tooth → dentist now (replant within the hour). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -30,7 +30,14 @@
   "red_flags": [
     {
       "code": "swelling_airway",
-      "label": "Оток на лицето или вратот со отежнато дишење, голтање или неможност да ја отворите устата",
+      "label": "Оток на лицето или вратот со отежнато дишење, зборување или голтање, или не можете да ја отворите устата",
+      "outcome": "o_emergency",
+      "source": "nhs-dental-abscess"
+    },
+    {
+      "code": "mouth_swelling",
+      "label": "Оток под јазикот, многу оток во устата, или оток што се шири под вилицата кон вратот",
+      "help": "Таков оток може брзо да го стесни дишниот пат.",
       "outcome": "o_emergency",
       "source": "nhs-dental-abscess"
     },
@@ -50,7 +57,7 @@
       "options": [
         {
           "value": "face_swelling",
-          "label": "Оток на образот, вилицата или под јазикот"
+          "label": "Оток на образот или вилицата"
         },
         {
           "value": "fever",
@@ -97,22 +104,17 @@
       "next": [
         {
           "when": {
+            "answer": "q_signs",
+            "includes": "knocked_out"
+          },
+          "goto": "o_urgent_tooth"
+        },
+        {
+          "when": {
             "any": [
               {
-                "all": [
-                  {
-                    "answer": "q_signs",
-                    "includes": "face_swelling"
-                  },
-                  {
-                    "answer": "q_signs",
-                    "includes": "fever"
-                  }
-                ]
-              },
-              {
                 "answer": "q_signs",
-                "includes": "knocked_out"
+                "includes": "face_swelling"
               },
               {
                 "answer": "q_signs",
@@ -127,11 +129,11 @@
             "any": [
               {
                 "answer": "q_signs",
-                "includes": "face_swelling"
+                "includes": "broken"
               },
               {
                 "answer": "q_signs",
-                "includes": "broken"
+                "includes": "fever"
               },
               {
                 "answer": "q_duration",
@@ -155,16 +157,44 @@
     }
   },
   "outcomes": {
+    "o_urgent_tooth": {
+      "level": "urgent_same_day",
+      "title": "Одете кај стоматолог веднаш",
+      "summary": "Испаднат траен заб најдобро се враќа во првиот час, па побарајте помош веднаш.",
+      "reasons": [
+        "Испаднат траен заб има најголема шанса да се зачува ако стоматолог го врати во првиот час."
+      ],
+      "do_now": [
+        "Фатете го забот за круната (не за коренот), исплакнете го кратко и вратете го во местото или чувајте го во млеко.",
+        "Одете веднаш кај стоматолог или во дежурна стоматолошка служба.",
+        "Млечен (детски) заб не се враќа — само однесете го детето на преглед."
+      ],
+      "watch_for": [
+        "Ако отокот почне да се шири кон окото или вратот, веднаш повикајте 194 или 112.",
+        "Ако почнете тешко да дишете или голтате, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "dentist",
+        "specialties": [
+          "maksilofacijalna-hirurgija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-dental-abscess"
+      ]
+    },
     "o_urgent_1": {
       "level": "urgent_same_day",
       "title": "Побарајте стоматолог денес",
       "summary": "Некои проблеми со забите бараат помош во истиот ден.",
       "reasons": [
-        "Оток со температура, испаднат траен заб или крварење по вадење бараат стоматолошка помош истиот ден."
+        "Оток на образот или вилицата (можен апсцес) или крварење по вадење заб бараат стоматолошка помош истиот ден."
       ],
       "do_now": [
-        "Јавете се кај вашиот стоматолог или во дежурна стоматолошка служба.",
-        "Испаднат траен заб: фатете го за круната (не за коренот), исплакнете го кратко и вратете го во местото или чувајте го во млеко."
+        "Јавете се кај вашиот стоматолог или во дежурна стоматолошка служба уште денес."
       ],
       "watch_for": [
         "Ако отокот почне да се шири кон окото или вратот, веднаш повикајте 194 или 112.",
@@ -188,7 +218,7 @@
       "title": "Закажете кај стоматолог во наредните 1–2 дена",
       "summary": "Стоматологот треба да ја најде причината за болката или отокот.",
       "reasons": [
-        "Оток, скршен заб или болка подолга од 2 дена треба да ги види стоматолог."
+        "Скршен заб, температура или болка подолга од 2 дена треба да ги види стоматолог."
       ],
       "do_now": [
         "Закажете кај вашиот стоматолог.",
@@ -299,7 +329,7 @@
     "child": "Knocked-out baby teeth should NOT be replaced (NHS); the instruction above names permanent teeth only. Clinician to confirm wording.",
     "pregnancy": "Dental care in pregnancy is the same; no separate threshold.",
     "older_adult": "Same thresholds.",
-    "chronic": "Immunosuppression with facial swelling would reach same day via fever; clinician to confirm whether swelling alone should be same day."
+    "chronic": "No condition-specific threshold: any facial swelling now goes to the same-day dentist."
   },
   "sources": [
     {

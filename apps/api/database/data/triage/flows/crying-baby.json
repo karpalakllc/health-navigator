@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "crying-baby",
   "title": "Бебе што многу плаче",
-  "summary_en": "Crying baby (0–12 months). Weak/high-pitched/continuous cry with illness signs, fever thresholds, bulging fontanelle, floppy, green vomit, not feeding → emergency/go now. Caregiver at risk of harming the baby → safety step + global crisis. Colic pattern in a well, feeding baby → self-care with soothing; parental exhaustion → paediatrician/GP.",
-  "notes_en": "NHS soothing a crying baby / colic / under-5 urgent signs / fever thresholds / newborn jaundice. Includes shaken-baby prevention wording and a caregiver-harm red flag to the global crisis outcome. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Crying baby (0–12 months). Weak/high-pitched/continuous cry with illness signs, fever thresholds, bulging fontanelle, floppy, green vomit, episodic screaming with pallor/vomiting or blood in the stool (intussusception) → emergency. Groin/genital swelling or new episodic crying → emergency department now; jaundice in a newborn or with sleepiness/poor feeding → same day. Caregiver at risk of harming the baby → global crisis. Colic pattern in a well, feeding baby under 4 months → self-care; otherwise paediatrician.",
+  "notes_en": "NHS soothing a crying baby / colic / under-5 urgent signs / fever thresholds / newborn jaundice. Includes shaken-baby prevention wording and a caregiver-harm red flag to the global crisis outcome. 2026-10-23 safety fixes: intussusception and blood-in-stool red flags; colic self-care only under 4 months; jaundice same day when <1 month or sleepy/poor feeding (NICE CG98); groin swelling → ED now; low temperature (≤35.9 °C) under 3 months → 194, older → ED now (NICE NG51); warm and unmeasured under 3 months → 194; fever ≥38 °C at 3–12 months → at least 24–48h. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -72,6 +72,19 @@
       "source": "nhs-dv"
     },
     {
+      "code": "intussusception",
+      "label": "Плаче на напади со силен врисок и ги собира нозете кон стомачето, а меѓу нападите е бледо, млитаво или повраќа",
+      "help": "Нападите обично се повторуваат на секои 10–20 минути.",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
+      "code": "blood_stool",
+      "label": "Крв или слуз во акото, или темноцрвено желатинозно ако",
+      "outcome": "o_emergency",
+      "source": "nhs-stomach-ache"
+    },
+    {
       "code": "carer_harm",
       "label": "Се плашите дека можете да му наштетите на бебето",
       "help": "Ставете го бебето безбедно на грб во креветчето, излезете од собата и побарајте помош.",
@@ -102,12 +115,16 @@
           "label": "Јаде помалку од половина од вообичаеното"
         },
         {
+          "value": "sleepy",
+          "label": "Поспано е повеќе од вообичаено или е мрзеливо при цицање"
+        },
+        {
           "value": "fewer_nappies",
           "label": "Помалку мокри пелени"
         },
         {
           "value": "yellow",
-          "label": "Жолтеникава кожа или очи (во првите недели), особено ако е поспано"
+          "label": "Жолтеникава кожа или очи"
         },
         {
           "value": "different",
@@ -120,6 +137,18 @@
         {
           "value": "hernia",
           "label": "Оток во препоните или во областа на половите органи"
+        },
+        {
+          "value": "vomiting",
+          "label": "Повраќа повеќе пати или млазно (силно, како фонтана)"
+        },
+        {
+          "value": "pale_poo",
+          "label": "Многу бледо ако (бело, сиво или светложолто) или темна урина"
+        },
+        {
+          "value": "feels_hot",
+          "label": "Топло е на допир, а не сте ја измериле температурата"
         },
         {
           "value": "none",
@@ -136,7 +165,11 @@
       "options": [
         {
           "value": "colic",
-          "label": "Плаче долго, обично навечер, а меѓу нападите е добро, јаде и расте"
+          "label": "Плаче долго, обично навечер, а меѓу нападите е добро, јаде и расте (колики)"
+        },
+        {
+          "value": "episodic",
+          "label": "Нови напади на силен плач што доаѓаат и си одат, на секои 10–20 минути"
         },
         {
           "value": "new_constant",
@@ -159,17 +192,60 @@
             "all": [
               {
                 "demo": "age_band",
-                "in": [
-                  "infant_0_3m"
-                ]
+                "eq": "infant_0_3m"
               },
               {
-                "answer": "q_temp",
-                "gte": 38
+                "any": [
+                  {
+                    "answer": "q_temp",
+                    "gte": 38
+                  },
+                  {
+                    "all": [
+                      {
+                        "answer": "q_signs",
+                        "includes": "feels_hot"
+                      },
+                      {
+                        "answer": "q_temp",
+                        "answered": false
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           },
           "goto": "o_emergency_infant_fever"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "eq": "infant_0_3m"
+              },
+              {
+                "answer": "q_temp",
+                "lte": 35.9
+              }
+            ]
+          },
+          "goto": "o_emergency_low_temp"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "hernia"
+          },
+          "goto": "o_ed_now_hernia"
+        },
+        {
+          "when": {
+            "answer": "q_pattern",
+            "eq": "episodic"
+          },
+          "goto": "o_ed_now_episodes"
         },
         {
           "when": {
@@ -198,22 +274,42 @@
         },
         {
           "when": {
+            "all": [
+              {
+                "answer": "q_signs",
+                "includes": "yellow"
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_signs",
+                    "includes_any": [
+                      "sleepy",
+                      "not_feeding"
+                    ]
+                  },
+                  {
+                    "demo": "age_months",
+                    "lt": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_urgent_jaundice"
+        },
+        {
+          "when": {
             "any": [
               {
                 "answer": "q_signs",
-                "includes": "not_feeding"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "fewer_nappies"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "hernia"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "injury"
+                "includes_any": [
+                  "not_feeding",
+                  "fewer_nappies",
+                  "injury",
+                  "sleepy",
+                  "vomiting"
+                ]
               },
               {
                 "answer": "q_pattern",
@@ -225,18 +321,37 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_signs",
-                "includes": "yellow"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "different"
-              }
+            "answer": "q_signs",
+            "includes_any": [
+              "yellow",
+              "different",
+              "pale_poo"
             ]
           },
           "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_temp",
+                "gte": 38
+              },
+              {
+                "all": [
+                  {
+                    "answer": "q_signs",
+                    "includes": "feels_hot"
+                  },
+                  {
+                    "answer": "q_temp",
+                    "answered": false
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_doc48_fever"
         },
         {
           "when": {
@@ -247,8 +362,16 @@
         },
         {
           "when": {
-            "answer": "q_pattern",
-            "eq": "colic"
+            "all": [
+              {
+                "answer": "q_pattern",
+                "eq": "colic"
+              },
+              {
+                "demo": "age_months",
+                "lt": 4
+              }
+            ]
           },
           "goto": "o_self_1"
         },
@@ -260,7 +383,7 @@
   },
   "outcomes": {
     "o_urgent_now_2": {
-      "level": "urgent_same_day",
+      "level": "emergency_department_now",
       "title": "Одете со бебето на преглед сега",
       "summary": "Кај мали бебиња температурата може да е знак на сериозна инфекција.",
       "reasons": [
@@ -288,11 +411,11 @@
       ]
     },
     "o_urgent_now_3": {
-      "level": "urgent_same_day",
+      "level": "emergency_department_now",
       "title": "Одете со бебето на преглед сега",
       "summary": "Кај мали бебиња температурата може да е знак на сериозна инфекција.",
       "reasons": [
-        "Ниската температура кај бебе е важен знак."
+        "Температура од 35,9 °C или пониска кај бебе е важен знак и треба веднаш да ја провери лекар."
       ],
       "do_now": [
         "Одете со детето во итна педијатриска служба или ургентен центар сега — не чекајте до утре.",
@@ -312,7 +435,8 @@
         ]
       },
       "sources": [
-        "nhs-fever-children"
+        "nhs-fever-children",
+        "nice-ng51"
       ]
     },
     "o_urgent_1": {
@@ -348,7 +472,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Педијатарот ќе го прегледа бебето и ќе ве посоветува.",
       "reasons": [
-        "Жолтилото или променетиот плач треба да ги процени педијатар."
+        "Жолтилото, многу бледото ако или променетиот плач треба да ги процени педијатар."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар или патронажната сестра."
@@ -433,7 +557,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Педијатарот ќе го прегледа бебето и ќе ве посоветува.",
       "reasons": [
-        "Педијатарот ќе го прегледа бебето и ќе ве посоветува."
+        "Плачот не личи на типични колики кај мало бебе, или не е јасно зошто плаче, па добро е педијатарот да го прегледа."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар или патронажната сестра."
@@ -499,7 +623,7 @@
       "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
       "summary": "Кај бебиња помлади од 3 месеци температурата може да е единствениот знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
       "reasons": [
-        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или температура што не сте можеле да ја измерите — треба веднаш да ја провери лекар."
+        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или бебе што е топло на допир, а температурата не е измерена — треба веднаш да ја провери лекар."
       ],
       "do_now": [
         "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има температура.",
@@ -535,10 +659,171 @@
         "nhs-fever-children",
         "nhs-under5-urgent"
       ]
+    },
+    "o_emergency_low_temp": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Ниска температура кај бебе помладо од 3 месеци може да е знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 35,9 °C или пониска треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има ниска температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница.",
+        "Облечете го бебето топло и држете го блиску до вас.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nice-ng51",
+        "nhs-under5-urgent"
+      ]
+    },
+    "o_ed_now_hernia": {
+      "level": "emergency_department_now",
+      "title": "Одете со бебето во итно одделение веднаш",
+      "summary": "Оток во препоните или кај половите органи кај бебе што плаче треба веднаш да го прегледа лекар.",
+      "reasons": [
+        "Таков оток со плач може да значи дека нешто е заглавено и треба брз преглед кај хирург."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница — не чекајте закажан термин.",
+        "Не давајте му храна додека не го види лекар, освен ако лекарот не каже поинаку.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако бебето почне да повраќа зелено, стане млитаво или отеченото место поцрвени или потемни, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-crying-baby",
+        "nhs-under5-urgent"
+      ]
+    },
+    "o_ed_now_episodes": {
+      "level": "emergency_department_now",
+      "title": "Одете со бебето во итно одделение веднаш",
+      "summary": "Нови напади на силен плач што се повторуваат треба веднаш да ги прегледа лекар.",
+      "reasons": [
+        "Плач на напади, со мирни периоди меѓу нив, може да значи проблем со цревата што бара брз преглед."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница.",
+        "Забележете кога почнуваат нападите и кажете му на лекарот ако има крв или слуз во акото.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако бебето стане бледо или млитаво, повраќа зелено или има крв во акото, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "detska-hirurgija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-stomach-ache",
+        "nhs-under5-urgent"
+      ]
+    },
+    "o_urgent_jaundice": {
+      "level": "urgent_same_day",
+      "title": "Одете со бебето на преглед денес",
+      "summary": "Жолтило кај многу мало бебе, или жолтило со поспаност или слабо цицање, треба да се провери истиот ден.",
+      "reasons": [
+        "Жолтилото (билирубинот) се проверува со едноставна проба; кај новороденчиња и поспани бебиња тоа треба да биде денес."
+      ],
+      "do_now": [
+        "Јавете се кај педијатарот, патронажната сестра или во дежурна педијатриска служба уште денес.",
+        "Продолжете да го доите или да му давате млеко често."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, не цица или има напад, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-jaundice-babies",
+        "nice-cg98"
+      ]
+    },
+    "o_doc48_fever": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот ќе го прегледа бебето и ќе ве посоветува.",
+      "reasons": [
+        "Бебето плаче и има температура; педијатарот треба да ја најде причината."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар и закажете преглед.",
+        "Давајте му често да цица или да пие и не завиткувајте го премногу."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, поплави или престане да јаде, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-fever-children",
+        "nhs-crying-baby"
+      ]
     }
   },
   "populations": {
-    "chronic": "Babies with known conditions: clinician to decide whether to add a lower threshold."
+    "chronic": "Babies with known conditions: clinician to decide whether to add a lower threshold.",
+    "infant_0_3m": "Referenced: ≥38 °C or warm and unmeasured → 194; ≤35.9 °C → 194; jaundice under 1 month → same day; colic self-care only under 4 months."
   },
   "sources": [
     {
@@ -588,6 +873,24 @@
       "title": "NHS (Велика Британија) — Diarrhoea and vomiting",
       "url": "https://www.nhs.uk/symptoms/diarrhoea-and-vomiting/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-stomach-ache",
+      "title": "NHS (Велика Британија) — Stomach ache",
+      "url": "https://www.nhs.uk/symptoms/stomach-ache/",
+      "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-cg98",
+      "title": "NICE CG98 — Jaundice in newborn babies under 28 days",
+      "url": "https://www.nice.org.uk/guidance/cg98",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nice-ng51",
+      "title": "NICE NG51 — Suspected sepsis: recognition, diagnosis and early management",
+      "url": "https://www.nice.org.uk/guidance/ng51",
+      "accessed": "2026-10-23"
     }
   ]
 }

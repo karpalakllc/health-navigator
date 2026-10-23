@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "cough-cold-flu",
   "title": "Кашлица, настинка или грип",
-  "summary_en": "Adult cough/cold/flu. Breathing difficulty, chest pain, coughing blood, confusion → emergency. Risk groups with flu-like illness, high fever + breathlessness → same day/48h. Cough >3 weeks → GP. Otherwise pharmacy/self-care.",
-  "notes_en": "NHS cough/flu/cold pages; risk groups for flu complications; cough >3 weeks → GP. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult cough/cold/flu. Breathing difficulty, chest pain, coughing blood, blue lips, confusion, sepsis skin signs / no urine all day → emergency. Immunosuppressed with fever → emergency department now; pregnancy/postpartum with fever, high fever + breathlessness → same day; other risk groups with fever, worsening → 48h. Cough >3 weeks → GP. Otherwise pharmacy/self-care.",
+  "notes_en": "NHS cough/flu/cold pages; risk groups for flu complications; cough >3 weeks → GP. 2026-10-23 safety fixes: immunosuppression + fever → ED now (NICE NG151, consistent with fever-adult); pregnancy incl. postpartum + fever → same day; sepsis red flag (NHS sepsis). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -54,6 +54,12 @@
       "label": "Збунетост или многу тешко будење",
       "outcome": "o_emergency",
       "source": "nhs-sepsis"
+    },
+    {
+      "code": "sepsis_signs",
+      "label": "Кожата е многу бледа, студена или со дамки, или не сте мокреле цел ден",
+      "outcome": "o_emergency",
+      "source": "nhs-sepsis"
     }
   ],
   "entry": "q_symptoms",
@@ -65,7 +71,7 @@
       "options": [
         {
           "value": "fever_high",
-          "label": "Температура над 38 °C"
+          "label": "Температура 38 °C или повеќе"
         },
         {
           "value": "sob_mild",
@@ -161,6 +167,40 @@
           "when": {
             "all": [
               {
+                "demo": "conditions",
+                "includes": "immunosuppressed"
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "fever_high"
+              }
+            ]
+          },
+          "goto": "o_ed_immuno"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "unsure",
+                  "postpartum"
+                ]
+              },
+              {
+                "answer": "q_symptoms",
+                "includes": "fever_high"
+              }
+            ]
+          },
+          "goto": "o_urgent_preg"
+        },
+        {
+          "when": {
+            "all": [
+              {
                 "any": [
                   {
                     "demo": "age_band",
@@ -171,18 +211,10 @@
                   {
                     "demo": "conditions",
                     "includes_any": [
-                      "immunosuppressed",
                       "heart_disease",
                       "lung_disease",
                       "kidney_disease",
                       "diabetes"
-                    ]
-                  },
-                  {
-                    "demo": "pregnancy",
-                    "in": [
-                      "pregnant",
-                      "unsure"
                     ]
                   }
                 ]
@@ -493,10 +525,71 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_ed_immuno": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Кај ослабен имунитет температурата може да значи сериозна инфекција што треба да се лекува веднаш.",
+      "reasons": [
+        "Имате ослабен имунитет (на пр. хемотерапија или лекови што го слабеат имунитетот) и температура."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение — не чекајте да видите дали ќе помине.",
+        "Ако вашиот онколошки или друг тим ви дал телефон за итни случаи, јавете се и таму на пат.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако дишењето стане многу тешко, се појави збунетост, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng151"
+      ]
+    },
+    "o_urgent_preg": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Температура во бременост или по породување треба да се провери истиот ден.",
+      "reasons": [
+        "Во бременост и во првите недели по породување грипот почесто има компликации."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот лекар, гинеколог или во дежурна служба уште денес.",
+        "Одморајте се, пијте многу течности."
+      ],
+      "watch_for": [
+        "Ако дишењето стане многу тешко, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите, посинување или збунетост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "ginekologija",
+          "opsta-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-flu"
+      ]
     }
   },
   "populations": {
-    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Referenced: pregnant, unsure or postpartum with fever → same day."
   },
   "sources": [
     {
@@ -534,6 +627,12 @@
       "title": "NHS (Велика Британија) — Sepsis",
       "url": "https://www.nhs.uk/conditions/sepsis/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng151",
+      "title": "NICE NG151 — Neutropenic sepsis: prevention and management in people with cancer",
+      "url": "https://www.nice.org.uk/guidance/ng151",
+      "accessed": "2026-10-23"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "schema": "zdravje.triage/1",
   "key": "dizziness-fainting",
   "title": "Вртоглавица или несвестица",
-  "summary_en": "Adult dizziness/fainting. Stroke signs, chest pain/palpitations with faint, faint during exertion, not fully recovered → emergency. First faint >65, faint with known heart disease, pregnancy → same day. Vertigo with hearing loss → 48h. Simple faint with clear trigger → self-care.",
+  "summary_en": "Adult dizziness/fainting. Stroke signs, chest pain/palpitations, faint during exertion or lying down, seriously hurt, not fully recovered, vomiting blood/black stools, possible ectopic (pregnant + one-sided or shoulder-tip pain) → 194. Faint or near-faint >65 / heart disease / family sudden death, faint in pregnancy or postpartum, sudden one-sided hearing loss → same day. Faint with clear trigger → GP this week; near-faint with clear trigger → self-care.",
   "notes_en": "NHS fainting/dizziness/vertigo/stroke; exertional syncope and family history of sudden death as high-risk features. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
@@ -52,6 +52,37 @@
       "label": "Удри со главата при паѓањето и зема лекови за разредување на крвта",
       "outcome": "o_emergency",
       "source": "nhs-head-injury"
+    },
+    {
+      "code": "hurt",
+      "label": "Се повреди сериозно пред или по несвестицата (на пр. силен удар во главата, длабока рана или можна скршеница)",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "lying_down",
+      "label": "Се онесвести додека лежеше",
+      "outcome": "o_emergency",
+      "source": "nhs-fainting"
+    },
+    {
+      "code": "blood_loss",
+      "label": "Повраќање крв или црна, катранеста столица",
+      "outcome": "o_emergency",
+      "source": "nhs-dizziness"
+    },
+    {
+      "code": "ectopic",
+      "label": "Сте бремени или можеби сте бремени и имате болка долу на едната страна од стомакот или болка во врвот на рамото",
+      "when": {
+        "demo": "pregnancy",
+        "in": [
+          "pregnant",
+          "unsure"
+        ]
+      },
+      "outcome": "o_emergency",
+      "source": "nhs-ectopic"
     },
     {
       "code": "seizure_like",
@@ -137,6 +168,7 @@
                 "demo": "pregnancy",
                 "in": [
                   "pregnant",
+                  "postpartum",
                   "unsure"
                 ]
               }
@@ -149,7 +181,10 @@
             "all": [
               {
                 "answer": "q_what",
-                "eq": "fainted"
+                "in": [
+                  "fainted",
+                  "nearly"
+                ]
               },
               {
                 "any": [
@@ -200,11 +235,14 @@
         },
         {
           "when": {
+            "answer": "q_context",
+            "includes": "hearing"
+          },
+          "goto": "o_urgent_hearing"
+        },
+        {
+          "when": {
             "any": [
-              {
-                "answer": "q_context",
-                "includes": "hearing"
-              },
               {
                 "answer": "q_context",
                 "includes": "repeated"
@@ -234,6 +272,13 @@
         },
         {
           "when": {
+            "answer": "q_what",
+            "eq": "fainted"
+          },
+          "goto": "o_gp_faint"
+        },
+        {
+          "when": {
             "any": [
               {
                 "answer": "q_context",
@@ -259,7 +304,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Несвестицата понекогаш е поврзана со ритамот на срцето и треба брзо да се провери.",
       "reasons": [
-        "Несвестица кај постари лица, кај срцева болест или ненадејна смрт во семејството треба да се провери денес (на пр. ЕКГ)."
+        "Несвестица или речиси несвестица кај постари лица, кај срцева болест или ненадејна смрт во семејството треба да се провери денес (на пр. ЕКГ)."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта денес. Не возете додека не ве прегледаат."
@@ -289,7 +334,7 @@
       "title": "Побарајте преглед денес",
       "summary": "Несвестицата понекогаш е поврзана со ритамот на срцето и треба брзо да се провери.",
       "reasons": [
-        "Несвестица во бременост треба да се провери денес (на пр. ЕКГ)."
+        "Несвестица во бременост или по породување треба да се провери денес."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта денес. Не возете додека не ве прегледаат."
@@ -349,7 +394,7 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Нема итни знаци, но треба да се најде причината.",
       "reasons": [
-        "Повторувани епизоди, промени на слухот или нов лек треба да ги процени лекар."
+        "Повторувани епизоди или нов лек треба да ги процени лекар."
       ],
       "do_now": [
         "Закажете кај избраниот лекар; понесете ги лековите што ги пиете."
@@ -500,6 +545,66 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_urgent_hearing": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Ненадејно губење на слухот на едното уво треба да се провери уште денес, затоа што лекувањето е најкорисно рано.",
+      "reasons": [
+        "Ненадејно губење на слухот или звонење во едното уво треба да се процени истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта денес. Не возете додека не ве прегледаат."
+      ],
+      "watch_for": [
+        "Ако се појави слабост, нејасен говор, двојно гледање или опуштено лице, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "otorinolaringologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-hearing-loss"
+      ]
+    },
+    "o_gp_faint": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар",
+      "summary": "Кратка несвестица со јасен поттик најчесто е безопасна, но по несвестица е добро да ве прегледа лекар.",
+      "reasons": [
+        "По несвестица, дури и со јасен поттик (стоење, топлина), лекарот треба да провери дали има друга причина."
+      ],
+      "do_now": [
+        "Закажете кај избраниот лекар оваа недела.",
+        "Легнете и подигнете ги нозете кога чувствувате дека ќе ве фати несвестица.",
+        "Пијте доволно вода и не прескокнувајте оброци.",
+        "Станувајте полека."
+      ],
+      "watch_for": [
+        "Ако се онесвестите при напор, веднаш повикајте 194 или 112.",
+        "Ако се појави болка во градите или силно чукање на срцето, веднаш повикајте 194 или 112.",
+        "Ако повторно се онесвестите пред прегледот, јавете се во дежурна служба истиот ден."
+      ],
+      "care": {
+        "setting": "gp",
+        "specialties": [
+          "opsta-medicina",
+          "semejna-medicina"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-fainting"
+      ]
     }
   },
   "populations": {
@@ -547,6 +652,18 @@
       "title": "NHS (Велика Британија) — Head injury and concussion",
       "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-ectopic",
+      "title": "NHS (Велика Британија) — Ectopic pregnancy",
+      "url": "https://www.nhs.uk/conditions/ectopic-pregnancy/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-hearing-loss",
+      "title": "NHS (Велика Британија) — Hearing loss",
+      "url": "https://www.nhs.uk/conditions/hearing-loss/",
+      "accessed": "2026-10-23"
     }
   ]
 }

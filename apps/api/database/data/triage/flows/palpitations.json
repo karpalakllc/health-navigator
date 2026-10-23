@@ -2,7 +2,7 @@
   "schema": "zdravje.triage/1",
   "key": "palpitations",
   "title": "Чукање или прескокнување на срцето",
-  "summary_en": "Adult palpitations. With chest pain, fainting, breathlessness → emergency. Ongoing fast palpitations now, known heart disease → same day. Brief, occasional, triggered by caffeine/stress → self-care/GP.",
+  "summary_en": "Adult palpitations. With chest pain, fainting, breathlessness, pulse >=150 or <=40 -> 194. Fast or irregular palpitations now (or pulse >=120) -> emergency department now; mild palpitations still present, known heart disease, exertional or family sudden death -> same day. Pregnancy/postpartum -> 1-2 days. Brief, occasional, triggered by caffeine/stress -> self-care/GP.",
   "notes_en": "NHS heart palpitations. Pulse thresholds (≥150 or ≤40 emergency; ≥120 same day) are conservative lay thresholds — clinician to confirm. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
@@ -154,6 +154,13 @@
               }
             ]
           },
+          "goto": "o_ed_now_fast"
+        },
+        {
+          "when": {
+            "answer": "q_now",
+            "eq": "now_mild"
+          },
           "goto": "o_urgent_1"
         },
         {
@@ -188,6 +195,7 @@
             "demo": "pregnancy",
             "in": [
               "pregnant",
+              "postpartum",
               "unsure"
             ]
           },
@@ -263,14 +271,15 @@
     "o_urgent_1": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
-      "summary": "ЕКГ додека трае нерамномерното чукање му помага на лекарот да ја најде причината.",
+      "summary": "Чукањето на срцето трае и сега. ЕКГ додека трае му помага на лекарот да ја најде причината.",
       "reasons": [
-        "Срцето во моментов чука брзо или неправилно — треба да се сними ЕКГ додека трае."
+        "Чукање на срцето што трае и сега, иако благо, треба да се провери истиот ден со ЕКГ."
       ],
       "do_now": [
         "Јавете се во дежурна служба или итна амбуланта денес."
       ],
       "watch_for": [
+        "Ако чукањето стане многу брзо или неправилно, веднаш одете во итно одделение.",
         "Ако се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194 или 112."
       ],
       "care": {
@@ -347,9 +356,9 @@
     "o_doc48_1_preg": {
       "level": "see_doctor_24_48h",
       "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Палпитациите најчесто се безопасни, но во бременост вреди побрзо да се проверат.",
+      "summary": "Палпитациите најчесто се безопасни, но во бременост и по породување вреди побрзо да се проверат.",
       "reasons": [
-        "Во бременост палпитациите вреди побрзо да ги процени лекар."
+        "Во бременост и во првите недели по породување палпитациите вреди побрзо да ги процени лекар."
       ],
       "do_now": [
         "Закажете кај избраниот лекар или кај гинекологот во рок од 1–2 дена."
@@ -490,6 +499,35 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_ed_now_fast": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Срцето сега чука многу брзо или неправилно. Тоа треба да се провери веднаш, додека трае, со ЕКГ.",
+      "reasons": [
+        "Брзо или неправилно чукање на срцето што трае и сега треба веднаш да се сними со ЕКГ."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар) — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами.",
+        "Ако имате, понесете ги лековите што ги пиете и претходните наоди."
+      ],
+      "watch_for": [
+        "Ако не можете безбедно да стигнете, или се појави болка во градите, несвестица или силен недостиг на воздух, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "kardiologija"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-palpitations"
       ]
     }
   },

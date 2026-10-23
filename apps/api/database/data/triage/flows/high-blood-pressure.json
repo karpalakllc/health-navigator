@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "high-blood-pressure",
   "title": "Висок крвен притисок (измерена вредност)",
-  "summary_en": "Adult with a high home BP reading. Stroke/chest pain/breathlessness/confusion/severe headache/vision change → 194. ≥180/120 without symptoms → same day recheck; pregnancy/postpartum ≥140/90 → same-day maternity; 160–179 or 100–119 → 48h; 140–159/90–99 → GP week.",
-  "notes_en": "NHS high blood pressure: ≥180/120 needs same-day assessment; ≥140/90 at home is raised. Pregnancy ≥140/90 is the public pre-eclampsia threshold. Bands are plain cut-offs, not a guideline table. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult with a high home BP reading. Stroke/chest pain/breathlessness/confusion/severe headache/vision change → 194. ≥180/120 without symptoms → same day recheck; pregnancy/postpartum ≥160/110 → emergency department now (NICE NG133 severe hypertension), ≥140/90 → same-day maternity; 160–179 or 100–119 → 48h; 140–159/90–99 → GP week.",
+  "notes_en": "NHS high blood pressure: ≥180/120 needs same-day assessment; ≥140/90 at home is raised. Pregnancy ≥140/90 is the public pre-eclampsia threshold. Bands are plain cut-offs, not a guideline table. 2026-10-23 fixes (pending clinician review): pregnancy/postpartum ≥160/110 → emergency_department_now (NICE NG133: admit); the reading instruction asks for the second reading instead of the lower one. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -62,7 +62,7 @@
     "i_how": {
       "type": "info",
       "title": "Како да измерите правилно",
-      "text": "Седнете мирно 5 минути, со грбот потпрен и раката на маса во висина на срцето. Не пушете и не пијте кафе 30 минути пред мерењето. Измерете двапати во размак од 1–2 минути и запишете ја пониската вредност.",
+      "text": "Седнете мирно 5 минути, со грбот потпрен и раката на маса во висина на срцето. Не пушете и не пијте кафе 30 минути пред мерењето. Измерете двапати во размак од 1–2 минути и внесете ја втората вредност.",
       "next": "q_systolic"
     },
     "q_systolic": {
@@ -111,6 +111,33 @@
         }
       ],
       "next": [
+        {
+          "when": {
+            "all": [
+              {
+                "demo": "pregnancy",
+                "in": [
+                  "pregnant",
+                  "postpartum",
+                  "unsure"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "answer": "q_systolic",
+                    "gte": 160
+                  },
+                  {
+                    "answer": "q_diastolic",
+                    "gte": 110
+                  }
+                ]
+              }
+            ]
+          },
+          "goto": "o_ed_now_preg_1"
+        },
         {
           "when": {
             "all": [
@@ -228,6 +255,36 @@
     }
   },
   "outcomes": {
+    "o_ed_now_preg_1": {
+      "level": "emergency_department_now",
+      "title": "Одете во болница веднаш",
+      "summary": "Во бременост или по породување притисок од 160/110 или повеќе е многу висок и треба да се провери веднаш, во болница.",
+      "reasons": [
+        "Многу високиот притисок во бременост или по породување (160/110 или повеќе) бара итна проценка во болница, без чекање."
+      ],
+      "do_now": [
+        "Одете веднаш во гинеколошко-акушерско одделение (породилиште) или итно одделение во болница — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами.",
+        "Понесете ја здравствената книшка или наодите од бременоста и запишаните мерења."
+      ],
+      "watch_for": [
+        "Ако не можете безбедно да стигнете, или се појави силна главоболка, нарушен вид, болка под ребрата, напад или тешко дишење, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng133",
+        "nhs-pre-eclampsia"
+      ]
+    },
     "o_urgent_preg_1": {
       "level": "urgent_same_day",
       "title": "Јавете се во породилиште или кај гинеколог денес",
@@ -502,6 +559,12 @@
       "title": "NHS (Велика Британија) — Chest pain",
       "url": "https://www.nhs.uk/symptoms/chest-pain/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng133",
+      "title": "NICE NG133 — Hypertension in pregnancy: diagnosis and management",
+      "url": "https://www.nice.org.uk/guidance/ng133",
+      "accessed": "2026-10-23"
     }
   ]
 }

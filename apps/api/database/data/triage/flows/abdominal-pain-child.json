@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "abdominal-pain-child",
   "title": "Болка во стомакот кај дете",
-  "summary_en": "Child abdominal pain. Green vomit, severe/constant pain, testicular pain, blood in stool with episodic screaming (intussusception), rigid abdomen, after injury → emergency. Migrating RLQ pain, pain + fever + vomiting, infant pain → same day. Urinary symptoms → 24–48h. Constipation/recurrent pain in a well child → pharmacy/GP.",
-  "notes_en": "NHS stomach ache/appendicitis/testicular pain; intussusception classic triad as red flag (public NHS descriptions of bowel obstruction in babies). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Child abdominal pain. Green vomit, vomiting blood, fast/deep breathing, severe/constant pain, testicular pain, episodic screaming with pallor/vomiting (intussusception), rigid abdomen, after injury → emergency. Under 3 months with fever → 194. Diabetes: DKA signs or ketones ≥3 → 194; vomiting or ketones 1.5–2.9 → emergency department now; otherwise same day with glucose/ketone checks. Migrating RLQ pain, pain + fever + vomiting/urinary symptoms, severe pain, blood in stool, distension, unable to pass urine, infant pain → same day. Urinary symptoms or fever, vomiting → 24–48h. Constipation/recurrent pain in a well child → pharmacy/GP.",
+  "notes_en": "NHS stomach ache/appendicitis/testicular pain; intussusception classic triad as red flag (public NHS descriptions of bowel obstruction in babies). 2026-10-23 safety fixes: diabetes + abdominal pain (with or without vomiting) → ketone question with 194 / ED now / same-day routing and a diabetes-specific do-now (no fasting advice); intussusception flag no longer needs blood in the stool; blood in stool, distension, unable to pass urine → same day; vomiting blood and fast breathing → 194; fever + urinary → same day (NHS UTI); vomiting + pain → 24–48h minimum; under 3 months + fever → 194 (aligned with the other child flows). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -45,9 +45,10 @@
     },
     {
       "code": "intussusception",
-      "label": "Напади на силен плач со подигнување на нозете и столица со крв или слуз (кај мало дете)",
+      "label": "Напади на силен плач или болка со собирање на нозете, а меѓу нападите е бледо, млитаво или повраќа",
       "outcome": "o_emergency",
-      "source": "nhs-stomach-ache"
+      "source": "nhs-stomach-ache",
+      "help": "Особено кај бебиња и мали деца; нападите обично се повторуваат на секои 10–20 минути."
     },
     {
       "code": "rigid",
@@ -64,6 +65,18 @@
     {
       "code": "drowsy",
       "label": "Тешко се буди, млитаво е или е многу бледо",
+      "outcome": "o_emergency",
+      "source": "nhs-under5-urgent"
+    },
+    {
+      "code": "vomit_blood",
+      "label": "Повраќа крв или нешто што личи на талог од кафе",
+      "outcome": "o_emergency",
+      "source": "nhs-dv"
+    },
+    {
+      "code": "fast_breathing",
+      "label": "Дише многу брзо или длабоко",
       "outcome": "o_emergency",
       "source": "nhs-under5-urgent"
     }
@@ -100,6 +113,18 @@
           "label": "Повремени болки повеќе недели, а меѓу нив е добро"
         },
         {
+          "value": "blood_stool",
+          "label": "Крв или слуз во столицата"
+        },
+        {
+          "value": "swollen_belly",
+          "label": "Стомакот е надуен или отечен"
+        },
+        {
+          "value": "no_wee",
+          "label": "Не може да мокри, иако сака"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
@@ -116,6 +141,30 @@
       "next": [
         {
           "when": {
+            "all": [
+              {
+                "demo": "age_band",
+                "in": [
+                  "infant_0_3m"
+                ]
+              },
+              {
+                "answer": "q_signs",
+                "includes": "fever"
+              }
+            ]
+          },
+          "goto": "o_emergency_infant_fever"
+        },
+        {
+          "when": {
+            "demo": "conditions",
+            "includes": "diabetes"
+          },
+          "goto": "q_diabetes"
+        },
+        {
+          "when": {
             "demo": "age_band",
             "in": [
               "infant_0_3m",
@@ -126,25 +175,15 @@
         },
         {
           "when": {
-            "all": [
-              {
-                "demo": "conditions",
-                "includes": "diabetes"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "vomiting"
-              }
-            ]
-          },
-          "goto": "o_urgent_2"
-        },
-        {
-          "when": {
             "any": [
               {
                 "answer": "q_signs",
-                "includes": "right_lower"
+                "includes_any": [
+                  "right_lower",
+                  "blood_stool",
+                  "swollen_belly",
+                  "no_wee"
+                ]
               },
               {
                 "all": [
@@ -154,7 +193,10 @@
                   },
                   {
                     "answer": "q_signs",
-                    "includes": "vomiting"
+                    "includes_any": [
+                      "vomiting",
+                      "urinary"
+                    ]
                   }
                 ]
               },
@@ -168,18 +210,20 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_signs",
-                "includes": "urinary"
-              },
-              {
-                "answer": "q_signs",
-                "includes": "fever"
-              }
+            "answer": "q_signs",
+            "includes_any": [
+              "urinary",
+              "fever"
             ]
           },
           "goto": "o_doc48_1"
+        },
+        {
+          "when": {
+            "answer": "q_signs",
+            "includes": "vomiting"
+          },
+          "goto": "o_doc48_vomit"
         },
         {
           "when": {
@@ -197,6 +241,66 @@
         },
         {
           "goto": "o_self"
+        }
+      ]
+    },
+    "q_diabetes": {
+      "type": "question",
+      "kind": "multi",
+      "text": "Детето има дијабетес. Дали забележувате нешто од ова?",
+      "help": "Ако имате апарат, измерете шеќер и кетони во крвта сега.",
+      "options": [
+        {
+          "value": "deep_breath",
+          "label": "Длабоко или забрзано дишење"
+        },
+        {
+          "value": "acetone",
+          "label": "Мирис на овошје или ацетон од устата"
+        },
+        {
+          "value": "ketones_high",
+          "label": "Кетони во крвта 3 mmol/L или повеќе"
+        },
+        {
+          "value": "ketones_mid",
+          "label": "Кетони во крвта од 1,5 до 2,9 mmol/L"
+        },
+        {
+          "value": "none",
+          "label": "Ништо од наведеното или не сте измериле",
+          "exclusive": true
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "answer": "q_diabetes",
+            "includes_any": [
+              "deep_breath",
+              "acetone",
+              "ketones_high"
+            ]
+          },
+          "goto": "o_emergency_dka"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_diabetes",
+                "includes": "ketones_mid"
+              },
+              {
+                "answer": "q_signs",
+                "includes": "vomiting"
+              }
+            ]
+          },
+          "goto": "o_ed_now_diabetes"
+        },
+        {
+          "goto": "o_urgent_diabetes"
         }
       ]
     }
@@ -232,42 +336,13 @@
         "nhs-appendicitis"
       ]
     },
-    "o_urgent_2": {
-      "level": "urgent_same_day",
-      "title": "Одете со детето на преглед денес",
-      "summary": "Знаците бараат лекар да го прегледа стомакот истиот ден.",
-      "reasons": [
-        "Кај дете со дијабетес, болка во стомакот со повраќање може да значи сериозно покачување на кетоните; измерете шеќер и кетони и јавете се денес."
-      ],
-      "do_now": [
-        "Јавете се кај педијатарот или одете во дежурна педијатриска или детска хируршка служба.",
-        "Не давајте храна додека не го прегледаат; мали голтки вода се во ред."
-      ],
-      "watch_for": [
-        "Ако болката стане многу силна или постојана, веднаш повикајте 194 или 112.",
-        "Ако детето повраќа зелено, тешко се буди или има крв во столицата, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "emergency_department",
-        "specialties": [
-          "pedijatrija",
-          "detska-hirurgija",
-          "urgentna-medicina"
-        ],
-        "facility_types": [
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-appendicitis"
-      ]
-    },
     "o_urgent_3": {
       "level": "urgent_same_day",
       "title": "Одете со детето на преглед денес",
       "summary": "Знаците бараат лекар да го прегледа стомакот истиот ден.",
       "reasons": [
-        "Болка долу десно, болка со температура и повраќање, или силна болка може да значат воспаление на слепото црево."
+        "Болка долу десно, болка со температура и повраќање, или силна болка може да значат воспаление на слепото црево.",
+        "Крв во столицата, надуен стомак, неможност да мокри или температура со тегоби при мокрење исто така треба да ги види лекар денес."
       ],
       "do_now": [
         "Јавете се кај педијатарот или одете во дежурна педијатриска или детска хируршка служба.",
@@ -289,7 +364,9 @@
         ]
       },
       "sources": [
-        "nhs-appendicitis"
+        "nhs-appendicitis",
+        "nhs-uti",
+        "nhs-stomach-ache"
       ]
     },
     "o_doc48_1": {
@@ -297,7 +374,7 @@
       "title": "Закажете кај педијатар во наредните 1–2 дена",
       "summary": "Педијатарот треба да го прегледа детето и можеби да побара анализа на урина.",
       "reasons": [
-        "Болка со температура или тегоби при мокрење може да значат уринарна инфекција; потребна е анализа на урина."
+        "Температура или тегоби при мокрење може да значат уринарна инфекција; потребна е анализа на урина."
       ],
       "do_now": [
         "Јавете се кај избраниот педијатар.",
@@ -436,11 +513,185 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_emergency_infant_fever": {
+      "level": "emergency_now",
+      "title": "Повикајте 194 — бебето треба веднаш да го прегледа лекар",
+      "summary": "Кај бебиња помлади од 3 месеци температурата може да е единствениот знак на сериозна инфекција. Најбезбедно е веднаш да се јавите на итна помош.",
+      "reasons": [
+        "Кај бебиња помлади од 3 месеци, температура од 38 °C или повеќе — или температура што не сте можеле да ја измерите — треба веднаш да ја провери лекар."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 сега и кажете дека бебето е помладо од 3 месеци и има температура.",
+        "Ако диспечерот ви каже да дојдете сами, одете веднаш во најблискиот ургентен центар или детска болница — не чекајте до утре.",
+        "Не завиткувајте го бебето премногу и продолжете да го доите или да му давате млеко.",
+        "Не давајте лекови без совет од лекар.",
+        "Понесете ја здравствената книшка на детето."
+      ],
+      "watch_for": [
+        "Ако бебето стане млитаво, тешко се буди, или кожата поплави или добие дамки, кажете му го тоа веднаш на диспечерот."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-fever-children",
+        "nhs-under5-urgent"
+      ]
+    },
+    "o_emergency_dka": {
+      "level": "emergency_now",
+      "title": "Повикајте итна помош сега",
+      "summary": "Одбравте знак што може да значи сериозна, итна состојба. Во такви случаи е најбезбедно веднаш да ве прегледа екипа за итна помош.",
+      "reasons": [
+        "Кај дете со дијабетес, болка во стомакот со вакви знаци може да значи опасно покачување на кетоните во крвта."
+      ],
+      "do_now": [
+        "Повикајте 194 (итна медицинска помош) или 112 веднаш. Кажете дека детето има дијабетес и болка во стомакот.",
+        "Не прекинувајте го инсулинот; следете ги упатствата на диспечерот или на вашиот дијабетолог.",
+        "Останете со детето и следете како дише.",
+        "Понесете го апаратот за шеќер, инсулинот и здравствената книшка."
+      ],
+      "watch_for": [
+        "Ако лицето престане да дише или не реагира, кажете му го тоа на диспечерот — тој ќе ве води чекор по чекор."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "call": [
+        {
+          "number": "194",
+          "label": "Итна медицинска помош"
+        },
+        {
+          "number": "112",
+          "label": "Единствен европски број за итни случаи"
+        }
+      ],
+      "sources": [
+        "nhs-dka"
+      ]
+    },
+    "o_ed_now_diabetes": {
+      "level": "emergency_department_now",
+      "title": "Одете со детето во итно одделение веднаш",
+      "summary": "Болка во стомакот со повраќање или покачени кетони кај дете со дијабетес треба веднаш да ја прегледа лекар.",
+      "reasons": [
+        "Кај дете со дијабетес, болка во стомакот со повраќање или кетони од 1,5 mmol/L или повеќе може брзо да стане опасна."
+      ],
+      "do_now": [
+        "Одете веднаш во најблискиот ургентен центар или детска болница и кажете дека детето има дијабетес.",
+        "Ако имате број од вашиот дијабетолог или одделение, јавете им се и на нив.",
+        "Не прекинувајте го инсулинот. Понесете го апаратот за шеќер и инсулинот.",
+        "Ако не можете безбедно да стигнете, повикајте 194."
+      ],
+      "watch_for": [
+        "Ако детето почне да дише длабоко или брзо, стане поспано или збунето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "pedijatrija",
+          "endokrinologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dka"
+      ]
+    },
+    "o_urgent_diabetes": {
+      "level": "urgent_same_day",
+      "title": "Измерете шеќер и кетони и јавете се денес",
+      "summary": "Кај дете со дијабетес, болката во стомакот треба да се провери истиот ден, бидејќи може да се покачат кетоните.",
+      "reasons": [
+        "Болката во стомакот кај дете со дијабетес може да е почеток на опасно покачување на кетоните, дури и кога нема други знаци."
+      ],
+      "do_now": [
+        "Измерете шеќер и кетони во крвта сега и повторувајте на секои 2 часа.",
+        "Јавете се кај дијабетологот на детето или во дежурна педијатриска служба уште денес.",
+        "Не прекинувајте го инсулинот; давајте течности во мали голтки."
+      ],
+      "watch_for": [
+        "Ако кетоните се 1,5 mmol/L или повеќе, или детето почне да повраќа, веднаш одете во итно одделение.",
+        "Ако дише длабоко или брзо, стане поспано или збунето, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "pedijatrija",
+          "endokrinologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-dka",
+        "nhs-dv"
+      ]
+    },
+    "o_doc48_vomit": {
+      "level": "see_doctor_24_48h",
+      "title": "Закажете кај педијатар во наредните 1–2 дена",
+      "summary": "Педијатарот треба да го прегледа детето.",
+      "reasons": [
+        "Болка во стомакот со повраќање треба да ја види лекар, дури и без температура."
+      ],
+      "do_now": [
+        "Јавете се кај избраниот педијатар.",
+        "Давајте течности во мали голтки."
+      ],
+      "watch_for": [
+        "Ако болката се засили, се префрли долу десно или повраќањето трае подолго од 12 часа, одете на преглед истиот ден.",
+        "Ако детето повраќа зелено или тешко се буди, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "pediatrics",
+        "specialties": [
+          "pedijatrija"
+        ],
+        "facility_types": [
+          "clinic"
+        ]
+      },
+      "sources": [
+        "nhs-appendicitis",
+        "nhs-dv"
+      ]
     }
   },
   "populations": {
     "child": "Child flow.",
-    "chronic": "Referenced: diabetes + vomiting → same day (DKA risk)."
+    "chronic": "Referenced: diabetes → ketone question (194 / ED now / same day).",
+    "infant_0_3m": "Referenced: fever → 194 (aligned with the other child flows); otherwise same day."
   },
   "sources": [
     {
@@ -478,6 +729,18 @@
       "title": "NHS (Велика Британија) — When to get urgent medical help for babies and children under 5",
       "url": "https://www.nhs.uk/baby/health/when-to-get-urgent-medical-help-for-babies-and-children-under-5/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nhs-dka",
+      "title": "NHS (Велика Британија) — Diabetic ketoacidosis",
+      "url": "https://www.nhs.uk/conditions/diabetic-ketoacidosis/",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nhs-fever-children",
+      "title": "NHS (Велика Британија) — Fever in children",
+      "url": "https://www.nhs.uk/symptoms/fever-in-children/",
+      "accessed": "2026-10-23"
     }
   ]
 }

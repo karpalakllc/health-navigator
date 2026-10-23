@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "emergency-contraception",
   "title": "Итна контрацепција (по незаштитен однос)",
-  "summary_en": "Emergency contraception guidance: where to go and how soon. Red flag: possible ectopic (pain/bleeding). <72h → pharmacy or gynaecologist today; 72–120h → gynaecologist today (some methods work up to 5 days); >120h → pregnancy test and gynaecologist. Sexual violence → same-day support (police 192 / emergency department).",
-  "notes_en": "NHS emergency contraception (fetched 2026-10-07): levonorgestrel ≤72h, ulipristal ≤120h, copper IUD ≤5 days; WHO EC fact sheet. No drug names or doses in public copy. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Emergency contraception guidance: where to go and how soon. Red flag: possible ectopic (pain/bleeding). <72h → pharmacy or gynaecologist today (with a pregnancy test too when the period is late); 72–120h → gynaecologist today (some methods work up to 5 days); >120h → gynaecologist in 1–2 days (a coil may still be possible) and a pregnancy test. Sexual violence → same-day support (police 192 / emergency department).",
+  "notes_en": "NHS emergency contraception (fetched 2026-10-07): levonorgestrel ≤72h, ulipristal ≤120h, copper IUD ≤5 days; WHO EC fact sheet. No drug names or doses in public copy. 2026-10-23 safety fix (pending clinician review): the time window is routed before the late-period answer, so a late period no longer overrides <72 h; >120 h → 24–48 h with coil wording. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -93,28 +93,20 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_late_period",
-                "eq": "yes"
-              },
-              {
-                "answer": "q_hours",
-                "eq": "gt_120"
-              }
-            ]
+            "answer": "q_hours",
+            "eq": "gt_120"
           },
           "goto": "o_gp_test_1"
         },
         {
           "when": {
-            "answer": "q_hours",
-            "eq": "lt_72"
+            "answer": "q_late_period",
+            "eq": "yes"
           },
-          "goto": "o_pharm_1"
+          "goto": "o_pharm_late_1"
         },
         {
-          "goto": "o_pharm"
+          "goto": "o_pharm_1"
         }
       ]
     }
@@ -130,6 +122,7 @@
       "do_now": [
         "Ако сте во опасност, повикајте полиција на 192 или 112.",
         "Одете во итна служба или гинеколошка служба уште денес; ако можете, не се миете и не ја менувајте облеката пред прегледот.",
+        "Заштитата од бременост и лековите против ХИВ делуваат најдобро ако се почнат што побрзо, најдобро во првите 72 часа.",
         "Може да побарате со вас да биде лице на кое му верувате."
       ],
       "watch_for": [
@@ -151,15 +144,16 @@
       ]
     },
     "o_gp_test_1": {
-      "level": "see_gp_this_week",
-      "title": "Направете тест за бременост и закажете кај гинеколог",
-      "summary": "Итната контрацепција веројатно повеќе не е опција; прво треба да се провери дали има бременост.",
+      "level": "see_doctor_24_48h",
+      "title": "Јавете се кај гинеколог и направете тест за бременост",
+      "summary": "По 5 дена пилулите за итна контрацепција обично не се препорачуваат, но гинекологот може да провери дали има друга можност.",
       "reasons": [
-        "Поминаа повеќе од 5 дена или менструацијата доцни — прво треба тест за бременост."
+        "Поминаа повеќе од 5 дена од односот."
       ],
       "do_now": [
+        "Јавете се кај гинеколог во наредните 1–2 дена: во некои случаи бакарна спирала може да се постави и по 5 дена.",
         "Тест за бременост од аптека е сигурен 3 недели по односот.",
-        "Закажете кај гинеколог за разговор за тестот, контрацепцијата и тестирање за сексуално преносливи инфекции."
+        "Прашајте и за контрацепција и тестирање за сексуално преносливи инфекции."
       ],
       "watch_for": [
         "Ако се појави силна болка на едната страна долу во стомакот или крварење, веднаш повикајте 194 или 112."
@@ -235,19 +229,21 @@
         "who-ec"
       ]
     },
-    "o_pharm": {
+    "o_pharm_late_1": {
       "level": "pharmacy_advice",
       "title": "Аптека или гинеколог — уште денес",
       "summary": "Итната контрацепција делува најдобро што побрзо по односот.",
       "reasons": [
-        "Итната контрацепција делува најдобро што побрзо по односот."
+        "Поминаа помалку од 3 дена: итната контрацепција сè уште може да помогне, и тоа што побрзо.",
+        "Бидејќи менструацијата доцни, треба да се провери и дали веќе има бременост."
       ],
       "do_now": [
         "Обратете се во аптека уште денес; фармацевтот ќе ве посоветува и ќе ви каже дали е потребен лекар.",
+        "Направете и тест за бременост и кажете го резултатот на фармацевтот или гинекологот.",
         "Друга можност е гинеколог: бакарната спирала (интраутерина помагала) е најефикасна и може да се постави до 5 дена по односот."
       ],
       "watch_for": [
-        "Ако менструацијата задоцни повеќе од 7 дена или е необична, направете тест за бременост и јавете се кај гинеколог.",
+        "Ако тестот е позитивен, закажете кај гинеколог.",
         "Ако се појави силна болка на едната страна долу во стомакот, веднаш повикајте 194 или 112."
       ],
       "care": {
@@ -301,7 +297,7 @@
   },
   "populations": {
     "child": "Teens 13–17 are included; same timing applies. Consent/confidentiality for minors is an open question.",
-    "pregnancy": "Late period / >5 days routes to a pregnancy test first.",
+    "pregnancy": "Within 120 hours the emergency-contraception window decides first; a late period then adds a pregnancy test (o_pharm_late_1). More than 5 days → gynaecologist in 1–2 days and a pregnancy test.",
     "chronic": "No condition-specific threshold; the pharmacist/gynaecologist checks interactions."
   },
   "sources": [

@@ -52,12 +52,17 @@ v2 extends 3f-a; everything above still holds unless stated here.
   pain 0–10) and anonymous demographics (age in months, sex at birth,
   pregnancy, chronic conditions). Still no free text; symptom search runs in
   the browser and its text never reaches the server.
-- **Outcome levels**: emergency (194/112), same day, 1–2 days, GP this week,
+- **Outcome levels**: emergency (194/112), go to an emergency department now
+  (added 2026-10-23), same day, 1–2 days, GP this week,
   pharmacist, self-care — each with reasons, what to do now, „if … then at
   once …“ safety-netting and where to go (directory links built in the
   browser; the city stays in the browser).
 - **Mental-health crisis**: self-harm is a global red flag leading to a crisis
-  outcome with 194/112 and the nearest emergency department; never self-care.
+  outcome with 194/112, three support lines (Црвен крст psychosocial support,
+  Ало Бушавко for children and young people, the national SOS line for domestic
+  violence 15 315) and the nearest emergency department; never self-care. Any
+  question or answer about self-harm or suicidal thoughts leads there too
+  (linter rule, docs/triage-flows.md §13).
 - **Summary for the doctor**: built and printed / shared in the browser only;
   no e-mail sending (it would identify the visitor).
 - **Anonymous aggregate counts** of outcomes per flow per week

@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "fever-adult",
   "title": "Температура кај возрасни",
-  "summary_en": "Adult fever. Sepsis signs, meningism, non-blanching rash, confusion → emergency. Immunosuppression/chemo, pregnancy, ≥65 with high fever, travel → same day. Fever >3 days → 48h. Otherwise self-care with safety net.",
-  "notes_en": "NHS fever in adults + sepsis signs (public). Hypothermia <36 treated as concerning. Pregnancy and immunosuppression lower thresholds. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult fever. Sepsis signs, meningism, non-blanching rash, confusion → emergency. Chemotherapy/transplant/immunosuppression with fever, or temperature ≤35.9 °C → go to the emergency department now. Feeling very unwell, rigors, travel, surgery within 6 weeks, pregnancy/postpartum, ≥65 with ≥39 °C → same day. Fever >3 days, ≥65, chronic conditions → 48h. Otherwise self-care with safety net.",
+  "notes_en": "NHS fever in adults + sepsis signs (public); NICE NG151 (suspected neutropenic sepsis = immediate assessment) and NG51 (temperature <36 °C, rigors, surgery within 6 weeks). 2026-10-23 safety fixes: immunosuppression/chemo → ED now; ≤35.9 °C → ED now; postpartum and unmeasured fever in pregnancy → same day; rigors → same day; any fever at 65+ → at least 1–2 days. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -115,7 +115,7 @@
         },
         {
           "value": "post_op",
-          "label": "Имавте операција или процедура во последните 2 недели"
+          "label": "Имавте операција или процедура во последните 6 недели"
         },
         {
           "value": "feel_very_unwell",
@@ -126,19 +126,16 @@
           "label": "Имате кашлица, болка при мокрење или болка во стомакот"
         },
         {
+          "value": "rigors",
+          "label": "Силно ве тресе (треска) и не можете да го запрете тресењето"
+        },
+        {
           "value": "none",
           "label": "Ништо од наведеното",
           "exclusive": true
         }
       ],
       "next": [
-        {
-          "when": {
-            "answer": "q_temp",
-            "lte": 35.9
-          },
-          "goto": "o_urgent_1"
-        },
         {
           "when": {
             "any": [
@@ -152,12 +149,22 @@
               }
             ]
           },
-          "goto": "o_urgent_2"
+          "goto": "o_ed_immuno"
+        },
+        {
+          "when": {
+            "answer": "q_temp",
+            "lte": 35.9
+          },
+          "goto": "o_ed_lowtemp"
         },
         {
           "when": {
             "answer": "q_situation",
-            "includes": "feel_very_unwell"
+            "includes_any": [
+              "feel_very_unwell",
+              "rigors"
+            ]
           },
           "goto": "o_urgent_3"
         },
@@ -183,12 +190,15 @@
                 "demo": "pregnancy",
                 "in": [
                   "pregnant",
-                  "unsure"
+                  "unsure",
+                  "postpartum"
                 ]
               },
               {
-                "answer": "q_temp",
-                "gte": 38
+                "not": {
+                  "answer": "q_temp",
+                  "lt": 38
+                }
               }
             ]
           },
@@ -223,6 +233,12 @@
                 "eq": "gt_5d"
               },
               {
+                "demo": "age_band",
+                "in": [
+                  "older_65_plus"
+                ]
+              },
+              {
                 "demo": "conditions",
                 "includes_any": [
                   "immunosuppressed",
@@ -247,78 +263,15 @@
     }
   },
   "outcomes": {
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
-      "reasons": [
-        "Ниска телесна температура при болест исто така може да е знак за сериозна инфекција."
-      ],
-      "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
-      ],
-      "watch_for": [
-        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
-        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "on_call",
-        "specialties": [
-          "urgentna-medicina",
-          "infektologija",
-          "interna-medicina"
-        ],
-        "facility_types": [
-          "clinic",
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-sepsis"
-      ]
-    },
-    "o_urgent_2": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед денес",
-      "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
-      "reasons": [
-        "Кај ослабен имунитет температурата може да значи сериозна инфекција — треба да се јавите веднаш (и на онкологот/тимот што ве лекува)."
-      ],
-      "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
-      ],
-      "watch_for": [
-        "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
-        "Ако не мокрите цел ден, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "on_call",
-        "specialties": [
-          "urgentna-medicina",
-          "infektologija",
-          "interna-medicina"
-        ],
-        "facility_types": [
-          "clinic",
-          "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-sepsis"
-      ]
-    },
     "o_urgent_3": {
       "level": "urgent_same_day",
       "title": "Побарајте преглед денес",
       "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
       "reasons": [
-        "Чувството дека сте многу лошо е важен знак и треба да се провери денес."
+        "Чувството дека сте многу лошо или силното тресење се важни знаци и треба да се проверат денес."
       ],
       "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
       ],
       "watch_for": [
         "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
@@ -348,8 +301,7 @@
         "Температура по патување или по операција треба да се провери денес."
       ],
       "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
       ],
       "watch_for": [
         "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
@@ -376,11 +328,10 @@
       "title": "Побарајте преглед денес",
       "summary": "Вашите одговори покажуваат поголем ризик од сериозна инфекција.",
       "reasons": [
-        "Температура во бременост треба да се провери истиот ден."
+        "Температура во бременост или во првите недели по породување треба да се провери истиот ден."
       ],
       "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
       ],
       "watch_for": [
         "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
@@ -410,8 +361,7 @@
         "Кај постари лица висока температура треба да се провери денес."
       ],
       "do_now": [
-        "Јавете се во дежурна служба или итна амбуланта уште денес.",
-        "Ако сте на хемотерапија, јавете се и на телефонот што ви го дал вашиот онколошки тим."
+        "Јавете се во дежурна служба или итна амбуланта уште денес."
       ],
       "watch_for": [
         "Ако се појави збунетост, забрзано дишење, дамки на кожата или осип што не бледнее, веднаш повикајте 194 или 112.",
@@ -438,7 +388,8 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Нема знаци за итност, но температурата трае или имате придружни тегоби.",
       "reasons": [
-        "Температура што трае повеќе од 3 дена или е придружена со други тегоби треба да ја процени лекар."
+        "Температура што трае повеќе од 3 дена или е придружена со други тегоби треба да ја процени лекар.",
+        "Во постара возраст и кај хронични болести температурата е добро да ја провери лекар."
       ],
       "do_now": [
         "Закажете кај избраниот лекар.",
@@ -526,10 +477,74 @@
           "label": "Единствен европски број за итни случаи"
         }
       ]
+    },
+    "o_ed_immuno": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Кај ослабен имунитет температурата може да значи сериозна инфекција што треба да се лекува веднаш, во рок од час.",
+      "reasons": [
+        "Примате хемотерапија, сте имале трансплантација или имате ослабен имунитет, а имате температура или се чувствувате лошо."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение — не чекајте да видите дали ќе помине.",
+        "Ако вашиот онколошки или друг тим ви дал телефон за итни случаи, јавете се и таму на пат.",
+        "Кажете дека примате хемотерапија или лекови што го слабеат имунитетот.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": [
+        "Ако не можете безбедно да стигнете или состојбата се влошува, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng151",
+        "nhs-sepsis"
+      ]
+    },
+    "o_ed_lowtemp": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Ниска телесна температура при болест може да е знак на сериозна инфекција.",
+      "reasons": [
+        "Измеривте температура 35,9 °C или пониска, а се чувствувате болни."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение.",
+        "Нека ве однесе некој друг; не возете сами.",
+        "Облечете се топло додека чекате превоз."
+      ],
+      "watch_for": [
+        "Ако се појави збунетост, многу брзо дишење, сина или многу бледа кожа со дамки, или не можете безбедно да стигнете, веднаш повикајте 194."
+      ],
+      "care": {
+        "setting": "emergency_department",
+        "specialties": [
+          "urgentna-medicina",
+          "infektologija",
+          "interna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nice-ng51",
+        "nhs-sepsis"
+      ]
     }
   },
   "populations": {
-    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows."
+    "child": "Teenagers (13–17) follow the adult path for this symptom: the public adult guidance applies and the thresholds are not lower for teens. Children under 13 are not in this flow's audience and are offered the child flows.",
+    "pregnancy": "Referenced: pregnant, unsure or postpartum with fever ≥38 °C or no reading → same day."
   },
   "sources": [
     {
@@ -549,6 +564,18 @@
       "title": "NHS (Велика Британија) — Meningitis",
       "url": "https://www.nhs.uk/conditions/meningitis/",
       "accessed": "2026-10-07"
+    },
+    {
+      "id": "nice-ng151",
+      "title": "NICE NG151 — Neutropenic sepsis: prevention and management in people with cancer",
+      "url": "https://www.nice.org.uk/guidance/ng151",
+      "accessed": "2026-10-23"
+    },
+    {
+      "id": "nice-ng51",
+      "title": "NICE NG51 — Suspected sepsis: recognition, diagnosis and early management",
+      "url": "https://www.nice.org.uk/guidance/ng51",
+      "accessed": "2026-10-23"
     }
   ]
 }

@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "eye-problems",
   "title": "Проблеми со очите (црвено око, промена на видот)",
-  "summary_en": "Red eye / vision change (all ages, adult wording). Sudden vision loss, chemical injury, penetrating injury, curtain/flashes, painful red eye with vomiting/halos → emergency/same day. Contact lens + painful red eye → same day. Sticky red eye → pharmacy. Newborn red sticky eye → same day.",
-  "notes_en": "NHS red eye / vision loss / eye injuries / retinal detachment / acute glaucoma. Contact lens + painful eye → same day (keratitis risk). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Red eye / vision change (all ages, adult wording). Sudden vision loss, chemical injury, penetrating injury, stroke signs, acute-glaucoma features → 194. Red eye with blurred vision, pain on looking at light, a foreign body that stays or a grinding/hammering injury, unequal pupils or a very dark red eye → emergency department now (NHS red eye: A&E). Curtain/flashes, painful red eye, contact lens wear → same day. Sticky red eye → pharmacy. Newborn red eye → same day.",
+  "notes_en": "NHS red eye / vision loss / eye injuries / retinal detachment / acute glaucoma. 2026-10-23 safety fixes (pending clinician review), from the NHS red-eye page (opened 2026-10-23): sight change, 'hurts to look at light', something stuck, unequal pupils, very dark red → A&E (emergency_department_now); very painful red eye or contact lens wear → urgent same day. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "infant_0_3m",
@@ -93,7 +93,15 @@
         },
         {
           "value": "injury_minor",
-          "label": "Мал удар или ситно зрнце (прашина) во окото"
+          "label": "Мал удар или ситно зрнце (прашина) што излезе со трепкање или плакнење"
+        },
+        {
+          "value": "foreign_body",
+          "label": "Нешто е заглавено во окото и не излегува, или парче ве удри во окото при брусење, дупчење или чукање"
+        },
+        {
+          "value": "pupil_dark",
+          "label": "Едната зеница е поголема од другата, или окото е многу темно црвено"
         },
         {
           "value": "none",
@@ -119,7 +127,30 @@
               }
             ]
           },
-          "goto": "o_urgent_1"
+          "goto": "o_ed_now_preg"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "answer": "q_features",
+                "includes": "blurred"
+              },
+              {
+                "answer": "q_features",
+                "includes": "light"
+              },
+              {
+                "answer": "q_features",
+                "includes": "foreign_body"
+              },
+              {
+                "answer": "q_features",
+                "includes": "pupil_dark"
+              }
+            ]
+          },
+          "goto": "o_ed_now"
         },
         {
           "when": {
@@ -165,36 +196,12 @@
           "when": {
             "any": [
               {
-                "all": [
-                  {
-                    "answer": "q_features",
-                    "includes": "pain"
-                  },
-                  {
-                    "any": [
-                      {
-                        "answer": "q_features",
-                        "includes": "light"
-                      },
-                      {
-                        "answer": "q_features",
-                        "includes": "blurred"
-                      }
-                    ]
-                  }
-                ]
+                "answer": "q_features",
+                "includes": "pain"
               },
               {
-                "all": [
-                  {
-                    "answer": "q_features",
-                    "includes": "lens"
-                  },
-                  {
-                    "answer": "q_features",
-                    "includes": "pain"
-                  }
-                ]
+                "answer": "q_features",
+                "includes": "lens"
               }
             ]
           },
@@ -202,20 +209,8 @@
         },
         {
           "when": {
-            "any": [
-              {
-                "answer": "q_features",
-                "includes": "blurred"
-              },
-              {
-                "answer": "q_features",
-                "includes": "injury_minor"
-              },
-              {
-                "answer": "q_features",
-                "includes": "pain"
-              }
-            ]
+            "answer": "q_features",
+            "includes": "injury_minor"
           },
           "goto": "o_doc48_1"
         },
@@ -233,34 +228,69 @@
     }
   },
   "outcomes": {
-    "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Побарајте преглед кај очен лекар денес",
-      "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
+    "o_ed_now_preg": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Заматениот вид треба веднаш да се прегледа.",
       "reasons": [
-        "Заматен вид во бременост или по породување може да е поврзан со висок крвен притисок (прееклампсија) и треба да се провери денес."
+        "Заматен вид во бременост или по породување може да е поврзан со висок крвен притисок (прееклампсија) и треба веднаш да се провери."
       ],
       "do_now": [
-        "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
+        "Одете веднаш во најблиското итно одделение или дежурна очна служба — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами.",
+        "Ако нешто е заглавено во окото, не го вадете и не го тријте окото.",
         "Ако носите контактни леќи, извадете ги и не ги ставајте."
       ],
       "watch_for": [
-        "Ако видот ненадејно се изгуби, веднаш повикајте 194 или 112.",
+        "Ако видот ненадејно се изгуби или не можете безбедно да стигнете, веднаш повикајте 194.",
         "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
       ],
       "care": {
-        "setting": "specialist",
+        "setting": "emergency_department",
+        "specialties": [
+          "oftalmologija",
+          "ginekologija",
+          "urgentna-medicina"
+        ],
+        "facility_types": [
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-red-eye",
+        "nhs-eye-injuries"
+      ]
+    },
+    "o_ed_now": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Промена на видот, болка од светлина или нешто заглавено во окото треба веднаш да се прегледа, за да се зачува видот.",
+      "reasons": [
+        "Црвено око со заматен вид, болка кога гледате во светлина, нееднакви зеници или нешто заглавено во окото бара преглед кај очен лекар веднаш."
+      ],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение или дежурна очна служба — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами.",
+        "Ако нешто е заглавено во окото, не го вадете и не го тријте окото.",
+        "Ако носите контактни леќи, извадете ги и не ги ставајте."
+      ],
+      "watch_for": [
+        "Ако видот ненадејно се изгуби или не можете безбедно да стигнете, веднаш повикајте 194.",
+        "Ако се појави слабост на лицето или телото или нејасен говор, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "emergency_department",
         "specialties": [
           "oftalmologija",
           "urgentna-medicina"
         ],
         "facility_types": [
-          "clinic",
           "hospital"
         ]
       },
       "sources": [
-        "nhs-red-eye"
+        "nhs-red-eye",
+        "nhs-eye-injuries"
       ]
     },
     "o_urgent_2": {
@@ -357,7 +387,7 @@
       "title": "Побарајте преглед кај очен лекар денес",
       "summary": "Некои проблеми со очите можат трајно да го оштетат видот ако се одложат.",
       "reasons": [
-        "Болно црвено око со осетливост на светлина, заматен вид или кај носење леќи бара преглед кај офталмолог (очен лекар) истиот ден."
+        "Многу болно црвено око, или црвено око кога носите контактни леќи, бара преглед кај офталмолог (очен лекар) истиот ден."
       ],
       "do_now": [
         "Јавете се во дежурна очна служба или итна амбуланта уште денес.",
@@ -387,13 +417,13 @@
       "title": "Јавете се кај лекар во наредните 1–2 дена",
       "summary": "Окото треба да се прегледа, но нема знаци за итност.",
       "reasons": [
-        "Окото треба да го погледне лекар."
+        "Мал удар или зрнце што излезе: окото треба да го погледне лекар ако и понатаму пече или е црвено."
       ],
       "do_now": [
         "Закажете кај избраниот лекар или офталмолог (очен лекар)."
       ],
       "watch_for": [
-        "Ако видот нагло се влоши или болката стане силна, веднаш повикајте 194 или 112."
+        "Ако видот се замати, ве боли кога гледате во светлина или болката стане силна, веднаш одете во итно одделение или повикајте 194."
       ],
       "care": {
         "setting": "specialist",

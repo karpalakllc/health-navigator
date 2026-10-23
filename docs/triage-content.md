@@ -18,12 +18,31 @@ Files: `apps/api/database/data/triage/flows/<key>.json` (schema `zdravje.triage/
 - Checked on 2026-10-07: the Ministry of Health (zdravstvo.gov.mk) and the Institute of Public Health (iph.mk) search results list **no official suicide-prevention or mental-health crisis telephone line**. Web search was exhausted in this session, so a wider search was not possible.
 - A third-party directory (findahelpline.com, not official) lists for North Macedonia: a University Clinic of Psychiatry line, the „Ало Бушавко“ child line, a domestic-violence SOS line (15 315) and others. **None of these were verified from an official source, so none is used in the content.**
 - The crisis path therefore uses the engine's `global:crisis` outcome: **194 / 112 and the nearest emergency department**. If the owner verifies an official line, add it as `global/<name>.json` → `outcome_patches.crisis.call` (schema §11) after 194 and 112.
+- **Update 2026-10-23 (owner decision):** still no official national crisis or suicide line could be verified, so `core.json` → `outcomes.crisis.call` now lists, after 194 and 112, three lines checked on their operators' own pages: Црвен крст на РСМ psychosocial support line **+389 72 271 048** (https://ckrm.org.mk/mentalno-zdravje-i-psihosotsijalna-poddrshka/, Skopje line; not a crisis line, no hours stated), **Ало Бушавко** for children and young people **+389 70 390 632** (alobushavko.mk, run by Меѓаши), and the **national SOS line for domestic violence 15 315**, 24/7 (krizencentar.org.mk, run by „Надеж“). Labels say who answers; none is called a suicide line. The sources are recorded here and in docs/triage-flows.md §8.3, not in `core.json` (their domains are outside the linter's public-source list).
+- The poisoning first-aid guide shows the toxicology clinic (02 3147 168, Ministry of Health institutions list); no triage outcome is poisoning-specific (the carbon-monoxide red flag in `headache` goes to 194).
 
 ## Notes for the engine/integration
 
 - `global/core.json` cites `https://www.nhs.uk/pregnancy/related-conditions/common-symptoms/vaginal-bleeding/`, which now redirects to `https://www.nhs.uk/pregnancy/common-symptoms/vaginal-bleeding/`.
 - Specialty keys follow the licence groups (`opsta-medicina`, `gastroenterohepatologija`, `opsta-hirurgija`, `plasticna-hirurgija`), while the specialty catalogue created by the ФЗОМ import uses `opshta-medicina`, `gastroenterologija`, `opshta-hirurgija`, `plastichna-hirurgija`. **Bridged at integration (2026-10-07):** `OutcomePresenter` links a key to a staff link in `licence_specialty_mappings`, else the key itself, else the slug the ФЗОМ import gives the group's wordings (`SpecialtyGroups::catalogueSlugs`); `SpecialtyResolutionTest` checks every key used in a flow against the import's catalogue.
 - No content seeder was added: the engine's `TriageFlowSeeder` already imports every file in `flows/`.
+
+## Safety fixes (2026-10-23) — pending clinician review
+
+Owner decision after the AI pre-review pack (outside the repo,
+`Zdravje360-clinical-review/`): fix every High concern and every Medium
+concern that is a clear routing error now, with no new disclaimers, and keep
+clinician sign-off as a separate step. All 41 flows changed; the full list (flow, node/option, before
+→ after, reference) is `CHANGES-2026-10-23.md` in that pack. Highlights:
+a new level `emergency_department_now` (docs/triage-flows.md §8.1); any
+suicidal thought → `global:crisis` (new linter rule); fever on chemotherapy /
+immunosuppression → go to the emergency department now (NICE NG151);
+temperature ≤35.9 °C (NICE NG51); bulging fontanelle; new confusion → 194;
+DKA on any sign and high sugar with vomiting → 194; pregnancy bleeding at any
+gestation same day, ectopic red flag → 194, postpartum psychosis → crisis;
+intussusception screen; reliever not helping → 194; non-blanching rash → 194
+regardless of fever. Tests: `tests/Feature/Triage/SafetyFixes/*`
+(helpers in `Concerns/WalksFlows.php`).
 
 ## Integration decisions (2026-10-07) — pending clinician review
 

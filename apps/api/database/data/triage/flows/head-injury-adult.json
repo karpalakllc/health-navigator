@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "head-injury-adult",
   "title": "Удар во главата кај возрасни",
-  "summary_en": "Adult head injury. NHS 999 criteria (unconsciousness, seizure, fall >1 m/5 stairs, CSF leak, focal deficit, high-speed) → 194. Vomiting, anticoagulants, alcohol, ≥65, amnesia → same day ED. Mild with no features → self-care with 48h observation advice.",
-  "notes_en": "NHS head injury 999/111/GP criteria (fetched 2026-10-07); NICE NG232 risk factors (anticoagulation, age ≥65) for CT within hours — expressed only as 'same-day ED'. Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
+  "summary_en": "Adult head injury. NHS 999 criteria (unconsciousness, seizure, fall >1 m/5 stairs, CSF leak, focal deficit incl. hearing, high-speed, confusion/behaviour change) and neck pain → 194. Vomiting, anticoagulants, alcohol, ≥65, amnesia, worsening headache → emergency department now. Dizziness → same day. Mild with no features → self-care with 48h observation advice.",
+  "notes_en": "NHS head injury 999/111/GP criteria (fetched 2026-10-07); NICE NG232 risk factors (anticoagulation, age ≥65) for CT within hours — expressed as 'emergency department now' (level added 2026-10-23; was same day). Status: draft — awaiting clinician review („нацрт — чека лекарски преглед“).",
   "audience": {
     "age_bands": [
       "teen_13_17",
@@ -42,15 +42,29 @@
     },
     {
       "code": "fluid",
-      "label": "Бистра течност или крв од ушите или носот, модринка зад ушите",
+      "label": "Бистра течност или крв од ушите или носот, модринка зад ушите или околу двете очи",
       "outcome": "o_emergency",
       "source": "nhs-head-injury"
     },
     {
       "code": "neuro",
-      "label": "Ново трпнење или слабост, проблеми со одењето, говорот, разбирањето или видот",
+      "label": "Ново трпнење или слабост, проблеми со одењето, говорот, разбирањето, видот или слухот",
       "outcome": "o_emergency",
       "source": "nhs-head-injury"
+    },
+    {
+      "code": "confused",
+      "label": "По ударот е збунет, се однесува поинаку или е невообичаено поспан",
+      "help": "На пример е раздразлив, расеан, не знае каде е или што се случило.",
+      "outcome": "o_emergency",
+      "source": "nhs-head-injury"
+    },
+    {
+      "code": "neck",
+      "label": "Болка во вратот, трпнење во рацете или не може да го сврти вратот",
+      "help": "Не го движете лицето додека не стигне помош.",
+      "outcome": "o_emergency",
+      "source": "nice-ng232"
     },
     {
       "code": "wound_dent",
@@ -144,6 +158,13 @@
       "next": [
         {
           "when": {
+            "answer": "q_after",
+            "includes": "behaviour"
+          },
+          "goto": "o_emergency"
+        },
+        {
+          "when": {
             "any": [
               {
                 "answer": "q_after",
@@ -151,8 +172,7 @@
                   "vomiting",
                   "lost_consc",
                   "amnesia",
-                  "headache_worse",
-                  "behaviour"
+                  "headache_worse"
                 ]
               },
               {
@@ -178,7 +198,7 @@
             "answer": "q_after",
             "includes": "dizzy"
           },
-          "goto": "o_doc48_1"
+          "goto": "o_urgent_dizzy"
         },
         {
           "when": {
@@ -195,18 +215,18 @@
   },
   "outcomes": {
     "o_urgent_1": {
-      "level": "urgent_same_day",
-      "title": "Одете во итна служба денес",
-      "summary": "По удар во главата, некои знаци или ризици (на пр. лекови за разредување на крвта) бараат брз преглед.",
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "По удар во главата, некои знаци или ризици (на пр. лекови за разредување на крвта) бараат преглед веднаш, често и снимка на главата.",
       "reasons": [
-        "По удар во главата, овие знаци или ризици бараат преглед во итна служба истиот ден (можеби и снимка)."
+        "По удар во главата, овие знаци или ризици бараат преглед во итно одделение веднаш, не подоцна во текот на денот."
       ],
       "do_now": [
-        "Одете во итна амбуланта или ургентен центар. Не возете сами.",
+        "Одете веднаш во итно одделение (ургентен центар). Нека ве однесе некој друг; не возете сами.",
         "Некој треба да биде со повредениот."
       ],
       "watch_for": [
-        "Ако повредениот стане поспан, збунет или повраќа повторно, веднаш повикајте 194 или 112.",
+        "Ако не можете безбедно да стигнете, или повредениот стане поспан, збунет или повраќа повторно, веднаш повикајте 194.",
         "Ако се појави напад, слабост или нејасен говор, веднаш повикајте 194 или 112."
       ],
       "care": {
@@ -218,34 +238,6 @@
         ],
         "facility_types": [
           "hospital"
-        ]
-      },
-      "sources": [
-        "nhs-head-injury"
-      ]
-    },
-    "o_doc48_1": {
-      "level": "see_doctor_24_48h",
-      "title": "Јавете се кај лекар во наредните 1–2 дена",
-      "summary": "Нема итни знаци, но вртоглавицата треба да се процени.",
-      "reasons": [
-        "Вртоглавицата по удар во главата треба да ја процени лекар."
-      ],
-      "do_now": [
-        "Одморете се; избегнувајте алкохол, спорт и возење додека не се подобри."
-      ],
-      "watch_for": [
-        "Ако се појави повраќање, поспаност, збунетост, напад или слабост, веднаш повикајте 194 или 112."
-      ],
-      "care": {
-        "setting": "gp",
-        "specialties": [
-          "opsta-medicina",
-          "semejna-medicina",
-          "nevrologija"
-        ],
-        "facility_types": [
-          "clinic"
         ]
       },
       "sources": [
@@ -344,6 +336,35 @@
           "number": "112",
           "label": "Единствен европски број за итни случаи"
         }
+      ]
+    },
+    "o_urgent_dizzy": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед денес",
+      "summary": "Нема итни знаци, но вртоглавицата по удар во главата треба да се процени уште денес.",
+      "reasons": [
+        "Вртоглавицата по удар во главата треба да ја процени лекар истиот ден."
+      ],
+      "do_now": [
+        "Јавете се во дежурна служба или итна амбуланта уште денес. Не возете сами.",
+        "Одморете се; избегнувајте алкохол и спорт додека не се подобри."
+      ],
+      "watch_for": [
+        "Ако се појави повраќање, поспаност, збунетост, напад или слабост, веднаш повикајте 194 или 112."
+      ],
+      "care": {
+        "setting": "on_call",
+        "specialties": [
+          "urgentna-medicina",
+          "nevrologija"
+        ],
+        "facility_types": [
+          "clinic",
+          "hospital"
+        ]
+      },
+      "sources": [
+        "nhs-head-injury"
       ]
     }
   },

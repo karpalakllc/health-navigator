@@ -2,8 +2,8 @@
   "schema": "zdravje.triage/1",
   "key": "general",
   "title": "Општи симптоми",
-  "summary_en": "The pre-v2 general flow carried over: concern, severity and duration decide between seeing a doctor soon and self-care with safety-netting. Offered when no specific symptom matches. Infants, pregnancy, older adults and chronic conditions are escalated one level.",
-  "notes_en": "Grandfathered (config triage.grandfathered_flows): published without a clinician review because it was live before sign-off existed. Same questions and rules as the v1 TriageSeeder flow; the age question moved to the engine's demographics.",
+  "summary_en": "The pre-v2 general flow carried over: concern, severity and duration decide between the emergency department now, same day, a doctor in 1–2 days, the GP this week and self-care with safety-netting. Offered when no specific symptom matches. Infants, pregnancy, older adults and chronic conditions are escalated one level.",
+  "notes_en": "Grandfathered (config triage.grandfathered_flows): published without a clinician review because it was live before sign-off existed. Started from the v1 TriageSeeder flow; the age question moved to the engine's demographics. 2026-10-23 safety fixes (pending clinician review): sepsis-sign and vomited-blood red flags; a 'very severe' answer → emergency department now; severe symptoms that started in the last 24 hours, or severe symptoms in a risk group (infant, 65+, pregnancy/postpartum, chronic condition) → same day; any severe symptom in a baby under 3 months → emergency department now; symptoms over a week → GP this week instead of self-care.",
   "audience": {
     "age_bands": ["infant_0_3m", "infant_3_12m", "child_1_4", "child_5_12", "teen_13_17", "adult_18_64", "older_65_plus"]
   },
@@ -15,6 +15,17 @@
       "code": "rapid_worsening",
       "label": "Состојбата нагло и многу се влошува во последните часови",
       "source": "nhs-when-to-call-999"
+    },
+    {
+      "code": "sepsis_signs",
+      "label": "Дишете многу брзо, кожата е сина, бледа или со дамки, или многу ве тресе и сте многу топли или многу ладни на допир",
+      "help": "Ова може да се знаци на тешка инфекција (сепса).",
+      "source": "nhs-sepsis"
+    },
+    {
+      "code": "vomiting_blood",
+      "label": "Повраќате крв или нешто што личи на талог од кафе, или имате црна столица",
+      "source": "nhs-vomiting-blood"
     }
   ],
   "entry": "concern",
@@ -37,7 +48,8 @@
       "options": [
         { "value": "mild", "label": "Благи — се забележуваат, но се поднесливи" },
         { "value": "moderate", "label": "Умерени — ги попречуваат секојдневните активности" },
-        { "value": "severe", "label": "Силни — многу тешко се поднесуваат" }
+        { "value": "severe", "label": "Силни — многу тешко се поднесуваат" },
+        { "value": "very_severe", "label": "Многу силни — најлошо досега, не можам ништо да правам" }
       ],
       "next": "duration"
     },
@@ -51,22 +63,73 @@
         { "value": "over_week", "label": "Повеќе од една недела" }
       ],
       "next": [
+        { "when": { "answer": "severity", "eq": "very_severe" }, "goto": "ed_now" },
+        { "when": { "all": [
+            { "demo": "age_band", "eq": "infant_0_3m" },
+            { "answer": "severity", "eq": "severe" }
+          ] }, "goto": "ed_now_infant" },
         { "when": { "demo": "age_band", "eq": "infant_0_3m" }, "goto": "same_day" },
+        { "when": { "all": [
+            { "answer": "severity", "eq": "severe" },
+            { "any": [
+              { "answer": "duration", "eq": "under_24h" },
+              { "demo": "age_band", "in": ["infant_3_12m", "older_65_plus"] },
+              { "demo": "pregnancy", "in": ["pregnant", "postpartum", "unsure"] },
+              { "demo": "conditions", "includes_any": ["immunosuppressed", "heart_disease", "lung_disease", "kidney_disease", "diabetes", "pregnancy_complication_history"] }
+            ] }
+          ] }, "goto": "same_day_severe" },
         { "when": { "answer": "severity", "eq": "severe" }, "goto": "seek_care_soon" },
         { "when": { "all": [
             { "answer": "duration", "eq": "over_week" },
-            { "answer": "severity", "in": ["moderate", "severe"] }
+            { "answer": "severity", "eq": "moderate" }
           ] }, "goto": "seek_care_soon" },
         { "when": { "any": [
             { "demo": "age_band", "in": ["infant_3_12m", "older_65_plus"] },
             { "demo": "pregnancy", "in": ["pregnant", "postpartum", "unsure"] },
             { "demo": "conditions", "includes_any": ["immunosuppressed", "heart_disease", "lung_disease", "kidney_disease", "diabetes"] }
           ] }, "goto": "seek_care_soon" },
+        { "when": { "answer": "duration", "eq": "over_week" }, "goto": "gp_this_week" },
         { "goto": "general_information" }
       ]
     }
   },
   "outcomes": {
+    "ed_now": {
+      "level": "emergency_department_now",
+      "title": "Одете во итно одделение веднаш",
+      "summary": "Многу силните симптоми, најлоши досега, треба веднаш да ги процени лекар во итно одделение.",
+      "reasons": ["Симптомите ги опишавте како многу силни, најлоши досега."],
+      "do_now": [
+        "Одете веднаш во најблиското итно одделение (ургентен центар) — не чекајте закажан термин.",
+        "Нека ве однесе некој друг; не возете сами."
+      ],
+      "watch_for": ["Ако не можете безбедно да стигнете или состојбата се влошува, веднаш повикајте 194."],
+      "care": { "setting": "emergency_department", "specialties": ["urgentna-medicina"], "facility_types": ["hospital"] },
+      "sources": ["nhs-when-to-call-999"]
+    },
+    "ed_now_infant": {
+      "level": "emergency_department_now",
+      "title": "Однесете го бебето во итно одделение веднаш",
+      "summary": "Бебе помладо од 3 месеци со силни симптоми треба веднаш да го прегледа лекар.",
+      "reasons": ["Бебињата помлади од 3 месеци можат многу брзо да се разболат сериозно."],
+      "do_now": [
+        "Однесете го бебето веднаш во најблиското итно одделение за деца — не чекајте закажан термин.",
+        "Нека вози некој друг, за да можете да го следите бебето."
+      ],
+      "watch_for": ["Ако бебето е млитаво, тешко дише или не можете безбедно да стигнете, веднаш повикајте 194."],
+      "care": { "setting": "emergency_department", "specialties": ["pedijatrija", "urgentna-medicina"], "facility_types": ["hospital"] },
+      "sources": ["nhs-when-to-call-999"]
+    },
+    "same_day_severe": {
+      "level": "urgent_same_day",
+      "title": "Побарајте преглед уште денес",
+      "summary": "Силните симптоми што почнале неодамна, или силните симптоми кога имате поголем ризик, треба да ги процени лекар денес.",
+      "reasons": ["Симптомите се силни и почнале во последните 24 часа, или имате поголем ризик од компликации."],
+      "do_now": ["Јавете се во дежурна служба или појдете во итна амбуланта уште денес."],
+      "watch_for": ["Ако симптомите нагло се влошат, тешко дишете или се чувствувате како да ќе се онесвестите, веднаш јавете се на 194 или 112."],
+      "care": { "setting": "on_call", "specialties": ["opsta-medicina", "urgentna-medicina"], "facility_types": ["hospital", "clinic"] },
+      "sources": ["nhs-111"]
+    },
     "same_day": {
       "level": "urgent_same_day",
       "title": "Бебето нека го прегледа лекар денес",
@@ -78,11 +141,20 @@
     },
     "seek_care_soon": {
       "level": "see_doctor_24_48h",
-      "title": "Размислете за преглед наскоро",
-      "summary": "Вашите одговори упатуваат дека можеби е разумно наскоро да разговарате со здравствен работник, особено ако симптомите се влошат.",
+      "title": "Јавете се кај лекар во наредните 1–2 дена",
+      "summary": "Вашите одговори упатуваат дека е добро наскоро да ве прегледа лекар, особено ако симптомите се влошат.",
       "reasons": ["Симптомите се силни, траат подолго, или имате поголем ризик од компликации."],
-      "do_now": ["Закажете преглед кај вашиот матичен лекар во наредните 1–2 дена."],
+      "do_now": ["Закажете преглед кај вашиот избран лекар во наредните 1–2 дена."],
       "watch_for": ["Ако симптомите нагло се влошат, веднаш јавете се на 194 или 112."],
+      "care": { "setting": "gp", "specialties": ["opsta-medicina", "semejna-medicina"], "facility_types": ["clinic"] }
+    },
+    "gp_this_week": {
+      "level": "see_gp_this_week",
+      "title": "Закажете кај избраниот лекар оваа недела",
+      "summary": "Симптомите траат повеќе од една недела, па е добро да ги погледне вашиот избран лекар.",
+      "reasons": ["Симптомите траат повеќе од една недела."],
+      "do_now": ["Закажете преглед кај вашиот избран лекар оваа недела.", "Запишете кога почнале симптомите и што ги олеснува или влошува."],
+      "watch_for": ["Ако симптомите станат силни или нагло се влошат, јавете се во дежурна служба истиот ден; ако тешко дишете или ве боли силно во градите, веднаш јавете се на 194."],
       "care": { "setting": "gp", "specialties": ["opsta-medicina", "semejna-medicina"], "facility_types": ["clinic"] }
     },
     "general_information": {
@@ -91,7 +163,10 @@
       "summary": "Според оваа листа за проверка, вашите одговори не упатуваат на непосредна итна состојба. Следете ги симптомите и побарајте стручен совет ако и понатаму сте загрижени.",
       "reasons": ["Симптомите се благи или умерени и не траат долго."],
       "do_now": ["Одморајте и пијте доволно течности.", "Ако имате прашања за лекови, прашајте фармацевт."],
-      "watch_for": ["Ако симптомите се влошат или не поминат за една недела, јавете се кај матичниот лекар."],
+      "watch_for": [
+        "Ако симптомите се влошат или не поминат за една недела, јавете се кај избраниот лекар.",
+        "Ако нагло ви се влоши, тешко дишете или ве боли силно во градите, веднаш јавете се на 194 или 112."
+      ],
       "care": { "setting": "self_care", "specialties": [], "facility_types": [] }
     }
   },
@@ -100,6 +175,7 @@
   },
   "sources": [
     { "id": "nhs-when-to-call-999", "title": "NHS — When to call 999", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-call-999/", "accessed": "2026-10-07" },
-    { "id": "nhs-111", "title": "NHS — When to use 111", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-use-111/", "accessed": "2026-10-07" }
+    { "id": "nhs-111", "title": "NHS — When to use 111", "url": "https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-use-111/", "accessed": "2026-10-07" },
+    { "id": "nhs-vomiting-blood", "title": "NHS — Vomiting blood", "url": "https://www.nhs.uk/conditions/vomiting-blood/", "accessed": "2026-10-23" }
   ]
 }
