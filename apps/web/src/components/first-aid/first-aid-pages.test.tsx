@@ -109,7 +109,7 @@ describe("FirstAidGuideArticle", () => {
       .closest("section")!;
     expect(
       within(box).getByRole("link", { name: /02 3147 168/ }),
-    ).toHaveAttribute("href", "tel:023147168");
+    ).toHaveAttribute("href", "tel:+38923147168");
     // 194 stays first.
     expect(within(box).getAllByRole("link")[0]).toHaveAttribute(
       "href",

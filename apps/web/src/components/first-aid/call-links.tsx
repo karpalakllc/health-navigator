@@ -30,9 +30,15 @@ export function FirstAidCallLinks() {
   );
 }
 
-/** Tel: href for a number as written ("02 3147 168" → "tel:023147168"). */
+/**
+ * Tel: href for a number as written. A Macedonian trunk-prefixed number dials
+ * in international form, so it also works from a foreign SIM ("02 3147 168" →
+ * "tel:+38923147168"); short codes and +389 numbers are kept as they are.
+ */
 export function telHref(number: string): string {
-  return `tel:${number.replace(/[^\d+]/g, "")}`;
+  const digits = number.replace(/[^\d+]/g, "");
+
+  return `tel:${/^0[1-9]/.test(digits) ? `+389${digits.slice(1)}` : digits}`;
 }
 
 /**

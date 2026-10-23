@@ -188,7 +188,10 @@ Open / unverified — see the checklist:
 ### Phone numbers besides 194/112 (`phones`)
 
 A guide may list further numbers in `phones` (`{ number, label }`); they render
-as tap-to-call links after 194 and 112, in ink rather than emergency red. Only
+as tap-to-call links after 194 and 112, in ink rather than emergency red. A
+number written with the trunk prefix (02 …, 07…) dials in international form
+(`tel:+3892…`) so it also works from a foreign SIM; the text keeps the local
+form. Only
 numbers verified on an official page, with the page recorded here; the label
 says who answers and never claims hours the source does not state. Vitest
 (`first-aid.test.ts`) checks the format and that 194/112 are not repeated.
