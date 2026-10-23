@@ -614,8 +614,11 @@ facility's own site or official social page the images came from (optional).
 - **Skipped and listed** at the end of the run: a facility id that does not
   exist, a deleted or merged facility (not moved to the one that stayed —
   check it by hand), a `name` that does not roughly match the facility's
-  (a guard against a wrong id: legal form and town ignored, the words of one
-  name contained in the other or at least half shared), and every entry
+  (a guard against a wrong id: legal form, town and words that only say the
+  kind of facility — „Аптека“, „Поликлиника“… — are ignored; the remaining
+  words of one name must be in the other or at least half shared, branch
+  numbers must agree, and a name with nothing distinctive left must be the
+  same name), and every entry
   whose confidence is not `high` (*needs review*: nothing imported; look at
   it and re-run with `high` if it is right).
 - Files: a real JPEG, PNG or WebP (checked from the file, not its name);

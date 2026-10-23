@@ -36,8 +36,8 @@ final class FacilityImageStore
      */
     public static function resolveFile(ImportContext $context, string $baseDir, mixed $relative): ?string
     {
-        $relative = is_string($relative) ? $relative : '';
-        $path = realpath($baseDir.'/'.$relative);
+        $relative = is_string($relative) && ! str_contains($relative, "\0") ? $relative : '';
+        $path = $relative !== '' ? realpath($baseDir.'/'.$relative) : false;
         $root = rtrim((string) realpath($baseDir), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
 
         // Only files inside the dataset folder.

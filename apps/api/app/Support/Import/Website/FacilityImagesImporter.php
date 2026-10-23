@@ -42,6 +42,15 @@ final class FacilityImagesImporter
     /** Hosts whose pages are social profiles, not the facility's own site. */
     private const SOCIAL_HOSTS = ['facebook.com', 'fb.com', 'fb.me', 'instagram.com', 'tiktok.com', 'linkedin.com', 'youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'threads.net'];
 
+    /** Words that only name the kind of facility (upper case, as NameKey writes them). */
+    private const GENERIC_WORDS = [
+        'АПТЕКА', 'АПТЕКИ', 'ФАРМАЦИЈА', 'ПОЛИКЛИНИКА', 'ОРДИНАЦИЈА', 'СПЕЦИЈАЛИСТИЧКА', 'СПЕЦИЈАЛИСТИЧКО', 'КОНСУЛТАТИВНА',
+        'ДЕНТАЛНА', 'ДЕНТАЛЕН', 'СТОМАТОЛОШКА', 'СТОМАТОЛОШКИ', 'ЦЕНТАР', 'БОЛНИЦА', 'ОПШТА', 'СПЕЦИЈАЛНА', 'КЛИНИКА',
+        'КЛИНИЧКА', 'УНИВЕРЗИТЕТСКА', 'ЛАБОРАТОРИЈА', 'БИОХЕМИСКА', 'ДИЈАГНОСТИЧКИ', 'ЗДРАВСТВЕН', 'ЗДРАВСТВЕНА',
+        'ЗДРАВСТВЕНИ', 'ДОМ', 'МЕДИЦИНСКА', 'МЕДИЦИНСКИ', 'ПРИВАТНА', 'ЈАВНА', 'УСТАНОВА', 'ЗА', 'И', 'НА', 'ПО', 'ОД',
+        'ГИНЕКОЛОШКА', 'ИНТЕРНА', 'ПЕДИЈАТРИСКА', 'ОФТАЛМОЛОШКА', 'ОРТОПЕДСКА', 'ДЕРМАТОЛОШКА',
+    ];
+
     /**
      * Entries not (fully) imported, for the command's report.
      *
@@ -129,7 +138,7 @@ final class FacilityImagesImporter
         $label = (string) $facility->name.($facility->city !== null ? ', '.$facility->city : '');
         $officialUrl = FacilityImageStore::url($entry['official_url'] ?? null);
 
-        if ($officialUrl !== null && ! self::isSocial($officialUrl) && $facility->website === null) {
+        if ($officialUrl !== null && ! self::isSocial($officialUrl) && ProvenanceWriter::normalise($facility->website) === null) {
             if ($p->from($officialUrl)->scalar($facility, 'website', $officialUrl, false, null, $label) === 'written') {
                 $context->increment('websites_filled');
             }
@@ -229,29 +238,47 @@ final class FacilityImagesImporter
     }
 
     /**
-     * A sanity check against a wrong id, not a matcher: the significant
-     * words (no legal form, no town, no punctuation) of one name are all in
-     * the other, or at least half of all their words are shared.
+     * A sanity check against a wrong id, not a matcher. Legal form, town and
+     * punctuation are ignored, and so are words that only say what kind of
+     * facility it is („Аптека“, „Поликлиника“…): the remaining, distinctive
+     * words of one name must all be in the other, or at least half of all
+     * of them shared — and at least one shared. Branch numbers must agree
+     * („Зегин 5“ is not „Зегин 12“). A name with no distinctive word must be
+     * the same name.
      */
     public static function namesMatch(string $given, string $actual, ?string $town): bool
     {
         $townWords = explode(' ', NameKey::for((string) (preg_split('/\s+[-–—]\s+/u', trim((string) $town))[0] ?? '')));
-        $tokens = fn (string $name): array => array_values(array_unique(array_filter(
+        $words = fn (string $name, bool $withoutTown): array => array_values(array_unique(array_filter(
             explode(' ', NameKey::for($name)),
-            fn (string $word): bool => $word !== '' && ! in_array($word, InstitutionsJsonImporter::LEGAL_WORDS, true) && ! in_array($word, $townWords, true),
+            fn (string $word): bool => $word !== '' && ! in_array($word, InstitutionsJsonImporter::LEGAL_WORDS, true)
+                && ! ($withoutTown && in_array($word, $townWords, true)),
         )));
+        $numbers = fn (array $tokens): array => array_values(array_filter($tokens, fn (string $word): bool => ctype_digit($word)));
 
-        $a = $tokens($given);
-        $b = $tokens($actual);
+        $a = $words($given, true);
+        $b = $words($actual, true);
 
-        // A name that is only a legal form and a town: compare everything.
+        if ($numbers($a) !== [] && $numbers($b) !== [] && array_diff($numbers($a), $numbers($b)) !== []) {
+            return false;
+        }
+
+        $a = array_values(array_diff($a, self::GENERIC_WORDS, $numbers($a)));
+        $b = array_values(array_diff($b, self::GENERIC_WORDS, $numbers($b)));
+
         if ($a === [] || $b === []) {
-            return NameKey::for($given) !== '' && NameKey::for($given) === NameKey::for($actual);
+            $full = fn (string $name): array => (function (array $tokens): array {
+                sort($tokens, SORT_STRING);
+
+                return $tokens;
+            })($words($name, false));
+
+            return $full($given) !== [] && $full($given) === $full($actual);
         }
 
         $shared = count(array_intersect($a, $b));
 
-        return $shared === count($a) || $shared === count($b) || $shared * 2 >= count(array_unique([...$a, ...$b]));
+        return $shared > 0 && ($shared === count($a) || $shared === count($b) || $shared * 2 >= count(array_unique([...$a, ...$b])));
     }
 
     private static function isSocial(string $url): bool

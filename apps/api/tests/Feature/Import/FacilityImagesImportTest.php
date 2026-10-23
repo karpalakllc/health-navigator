@@ -160,11 +160,13 @@ class FacilityImagesImportTest extends TestCase
     {
         $facility = $this->clinic();
         ProvenanceWriter::setLock($facility, 'avatar_url', true, User::factory()->create());
+        ProvenanceWriter::setLock($facility, 'website', true, User::factory()->create());
 
         $run = $this->runImport([$this->entry($facility)]);
 
         $this->assertNull($facility->refresh()->avatar_url);
         $this->assertNotNull($facility->cover_path);
+        $this->assertNull($facility->website);
         $this->assertSame(1, $run->count('logos_skipped_locked'));
         $this->assertSame(0, FacilityMedia::query()->where('kind', FacilityMedia::KIND_LOGO)->count());
     }
@@ -262,6 +264,10 @@ class FacilityImagesImportTest extends TestCase
         $this->assertSame(1, $run->count('images_too_small'));
         $this->assertSame(1, $run->count('images_missing_file'));
 
+        // A null byte in a path is refused, not fatal for the run.
+        $null = $this->runImport([$this->entry($facility, ['logo' => ['file' => "logos/logo.png\0.txt"], 'covers' => []])]);
+        $this->assertSame(1, $null->count('images_missing_file'));
+
         $small = $this->runImport([$this->entry($facility, ['logo' => ['file' => 'logos/tiny.png'], 'covers' => []])]);
         $this->assertSame(1, $small->count('images_too_small'));
     }
@@ -287,5 +293,12 @@ class FacilityImagesImportTest extends TestCase
         $this->assertTrue(FacilityImagesImporter::namesMatch('Поликлиника Тестово Здравје', 'ПЗУ Поликлиника „Тестово Здравје“ ДООЕЛ Скопје', 'Скопје'));
         $this->assertTrue(FacilityImagesImporter::namesMatch('PZU Apteka Zegin', 'ПЗУ Аптека Зегин', null));
         $this->assertFalse(FacilityImagesImporter::namesMatch('Дентален центар Насмевка', 'Поликлиника Тестово Здравје', 'Скопје'));
+        $this->assertTrue(FacilityImagesImporter::namesMatch('Аптека Битола', 'ПЗУ Аптека Битола', 'Битола'));
+        // Generic words alone or differing branch numbers do not match.
+        $this->assertFalse(FacilityImagesImporter::namesMatch('Аптека', 'ПЗУ Аптека Мега Битола', 'Битола'));
+        $this->assertFalse(FacilityImagesImporter::namesMatch('Аптека Зегин', 'ПЗУ Аптека Битола', 'Битола'));
+        $this->assertFalse(FacilityImagesImporter::namesMatch('Аптека Јанев', 'ПЗУ Аптека', 'Охрид'));
+        $this->assertFalse(FacilityImagesImporter::namesMatch('ПЗУ Аптека Зегин 5', 'ПЗУ Аптека Зегин 12', null));
+        $this->assertTrue(FacilityImagesImporter::namesMatch('Аптека Зегин 5', 'ПЗУ Аптека Зегин 5 Скопје', 'Скопје'));
     }
 }
