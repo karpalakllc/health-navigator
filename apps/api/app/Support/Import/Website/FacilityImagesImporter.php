@@ -39,8 +39,8 @@ final class FacilityImagesImporter
 
     private const ALLOWED_TYPES = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP];
 
-    /** Hosts whose pages are social profiles, not the facility's own site. */
-    private const SOCIAL_HOSTS = ['facebook.com', 'fb.com', 'fb.me', 'instagram.com', 'tiktok.com', 'linkedin.com', 'youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'threads.net'];
+    /** Hosts whose pages are social profiles, map listings or link pages, not the facility's own site. */
+    private const SOCIAL_HOSTS = ['facebook.com', 'fb.com', 'fb.me', 'instagram.com', 'tiktok.com', 'linkedin.com', 'youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'threads.net', 'google.com', 'goo.gl', 'linktr.ee'];
 
     /** Words that only name the kind of facility (upper case, as NameKey writes them). */
     private const GENERIC_WORDS = [
