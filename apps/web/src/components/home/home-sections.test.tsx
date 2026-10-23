@@ -32,6 +32,10 @@ describe("HomeHowItWorksSection (owner-kept „Како функционира�
       within(section).getByText(t("home.howItWorksDescription")),
     ).toBeInTheDocument();
 
+    expect(section.textContent).not.toMatch(
+      /не е дијагноза|не го заменува|замена за лекар|информативна/,
+    );
+
     const steps = within(section).getAllByRole("listitem");
     expect(steps).toHaveLength(4);
     expect(steps[0].closest("ol")).not.toBeNull();

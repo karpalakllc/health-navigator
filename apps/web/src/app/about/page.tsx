@@ -14,7 +14,6 @@ export const metadata: Metadata = pageMetadata(
 
 const TRUST: Array<{ icon: IconName; key: MessageKey }> = [
   { icon: "shield-check", key: "home.trustModerated" },
-  { icon: "info", key: "home.trustInformational" },
   { icon: "map-pin", key: "home.trustLocal" },
 ];
 

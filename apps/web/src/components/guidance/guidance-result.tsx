@@ -8,12 +8,11 @@ import {
 } from "@/components/guidance/care-ladder";
 import { EmergencyCard } from "@/components/guidance/emergency-card";
 import { HelpfulFeedback } from "@/components/feedback/helpful-feedback";
-import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
+import { NoticeTelLink } from "@/components/ui/notice";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icons";
-import { NoticeTelLink } from "@/components/ui/notice";
 import { Tag } from "@/components/ui/tag";
 import type { GuidanceOutcomeV2, GuidanceState } from "@/lib/api/guidance-v2";
 import { directoryLinks, type DirectoryLink } from "@/lib/guidance/care";
@@ -203,8 +202,6 @@ export function GuidanceResult({
             </ul>
           </section>
         ) : null}
-
-        <GuidanceSafetyNotice />
       </div>
 
       <SummarySection summary={summary} />
@@ -244,7 +241,16 @@ function OutcomeDetails({
             {t("guidance.watchTitle")}
           </h3>
           <List items={outcome.watch_for} />
-          <GuidanceSafetyNotice compact />
+          <p
+            data-guidance-compact-emergency
+            className="flex items-start gap-2 type-meta text-ink-2"
+          >
+            <Icon name="info" size={20} className="mt-0.5 shrink-0" />
+            <span>
+              {t("guidance.compactLead")} <NoticeTelLink number="194" />{" "}
+              {t("guidance.compactOr")} <NoticeTelLink number="112" />.
+            </span>
+          </p>
         </section>
       ) : null}
     </div>

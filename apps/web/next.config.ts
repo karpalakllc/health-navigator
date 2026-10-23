@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { mediaRemotePatterns, resolveMediaUrl } from "./src/lib/media-origin";
 import { htmlLimitedBotsPattern } from "./src/lib/crawlers";
 import { securityHeaders } from "./src/lib/security-headers";
@@ -67,6 +67,6 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
-  disableLogger: true,
+  webpack: { treeshake: { removeDebugLogging: true } },
   telemetry: false,
 });

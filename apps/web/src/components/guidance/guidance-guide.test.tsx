@@ -405,7 +405,7 @@ describe("GuidanceGuide intro", () => {
     ).toBeNull();
     expect(screen.queryByRole("link", { name: "194" })).toBeNull();
     expect(screen.queryByRole("link", { name: "112" })).toBeNull();
-    expect(screen.queryByText(t("guidance.notDiagnosisBody"))).toBeNull();
+    expect(screen.queryByText(/Оваа алатка дава општи информации/)).toBeNull();
     expect(screen.queryByText(t("guidance.emergencyDelay"))).toBeNull();
     expect(screen.queryByText(/Не е медицински совет\./)).toBeNull();
   });
@@ -545,6 +545,13 @@ describe("GuidanceGuide steps", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(gpOutcome.reasons[0])).toBeInTheDocument();
     expect(screen.getByText(gpOutcome.watch_for[0])).toBeInTheDocument();
+    // The outcome's own „watch for“ safety-netting stays; the generic
+    // „not a diagnosis“ block does not.
+    expect(
+      document.querySelectorAll("[data-guidance-compact-emergency]"),
+    ).toHaveLength(1);
+    expect(screen.queryByText("Важно — не е дијагноза")).toBeNull();
+    expect(screen.queryByText(/Оваа алатка дава општи информации/)).toBeNull();
     expect(
       screen.getByRole("link", { name: t("guidance.linkDoctors") }),
     ).toHaveAttribute("href", "/doctors");

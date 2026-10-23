@@ -40,3 +40,20 @@ if (sentryEnabled() && typeof window !== "undefined") {
     window.addEventListener("load", start, { once: true });
   }
 }
+
+/*
+ * Next calls this on every client navigation. With tracing off
+ * (tracesSampleRate 0) the SDK does nothing with it, but exporting the hook
+ * satisfies Sentry's build check without putting the SDK into the first-load
+ * bundle: it only forwards once a DSN is set, loading the lazy chunk on demand.
+ */
+export const onRouterTransitionStart = (
+  href: string,
+  navigationType: "push" | "replace" | "traverse",
+): void => {
+  void loadSentry()
+    ?.then((Sentry) =>
+      Sentry.captureRouterTransitionStart(href, navigationType),
+    )
+    .catch(() => {});
+};

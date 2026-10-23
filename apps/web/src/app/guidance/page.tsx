@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { GuidanceGuide } from "@/components/guidance/guidance-guide";
-import { GuidanceSafetyNotice } from "@/components/guidance/guidance-safety-notice";
 import { guidancePageClass } from "@/components/guidance/guidance-layout";
 import { ComingSoonShell } from "@/components/layout/coming-soon-shell";
 import { NoticeTelLink } from "@/components/ui/notice";
@@ -52,7 +51,6 @@ export default async function GuidancePage() {
               {t("guidance.description")}
             </p>
           </div>
-          <GuidanceSafetyNotice />
           <p className="type-reading text-ink">{t("guidance.unavailable")}</p>
           <p className="type-reading text-ink">
             {t("guidance.compactLead")} <NoticeTelLink number="194" />{" "}

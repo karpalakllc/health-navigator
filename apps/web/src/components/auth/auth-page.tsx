@@ -42,11 +42,8 @@ export function AuthPage({
 
 const TRUST: Array<{
   icon: IconName;
-  key: "home.trustModerated" | "home.trustInformational";
-}> = [
-  { icon: "shield-check", key: "home.trustModerated" },
-  { icon: "info", key: "home.trustInformational" },
-];
+  key: "home.trustModerated";
+}> = [{ icon: "shield-check", key: "home.trustModerated" }];
 
 function AuthTrustNote() {
   return (
