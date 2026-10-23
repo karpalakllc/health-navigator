@@ -65,10 +65,11 @@ const noopSubscribe = () => () => {};
  * One layout for every directory list (D2a „Праска“):
  *
  * - mobile: a sticky search strip with „Филтри (N)“ that opens a full-height
- *   sheet, the title and count, quick chips and removable active filters,
+ *   sheet, the title with its count, removable active filters, quick chips,
  *   then the results — which start above the fold;
- * - desktop: breadcrumb, title, count and sort, quick chips, then a sticky
- *   4-column filter card beside an 8-column results area.
+ * - desktop: a compact head (breadcrumb; title, count, active filters and
+ *   sort on one row; quick chips), then a sticky 4-column filter card beside
+ *   an 8-column results area — both start within ~300px of the header.
  *
  * Filters apply as they change (useLiveFilters). Before hydration the rail is
  * a plain GET form with an „Примени“ button, so it works without JS.
@@ -197,7 +198,7 @@ export function DirectoryListView({
 
   const activeRow =
     activeFilters.length > 0 ? (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="order-last flex basis-full flex-wrap items-center gap-2 lg:order-none lg:basis-auto">
         <h2 className="sr-only">{t("filters.filtersActive")}</h2>
         {activeFilters.map((filter) => (
           <RemovableChip
@@ -225,30 +226,36 @@ export function DirectoryListView({
       </div>
 
       <Breadcrumbs
-        className="mb-0 hidden pt-8 lg:flex"
+        className="mb-0 hidden pt-3 lg:flex"
         items={[{ label: t("common.home"), href: "/" }, { label: title }]}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 pt-2 lg:pt-4">
-        <div className="min-w-0">
+      {/*
+       * One compact row: title with its count beside it, then the applied
+       * filters (on a phone they drop to their own line), sort at the end.
+       */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
           <h1
             ref={headingRef}
             tabIndex={-1}
             id={`${resultsId}-title`}
-            className="type-h2 text-ink lg:text-[2.5rem] lg:font-bold lg:leading-[2.875rem]"
+            className="type-h2 text-ink"
           >
             {title}
           </h1>
           <p
-            className="type-meta mt-1 text-ink-2"
+            className="type-meta text-ink-2"
             aria-live="polite"
             aria-busy={pending || undefined}
           >
             {countLine}
           </p>
         </div>
+        {activeRow}
         {sort ? (
           <SortSelect
+            className="ml-auto"
             name={sort.name}
             value={values[sort.name] || sort.options[0].value}
             options={sort.options}
@@ -259,12 +266,9 @@ export function DirectoryListView({
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 empty:hidden lg:mt-6">
-        {quickRow}
-        {activeRow}
-      </div>
+      {quickRow ? <div className="mt-2 lg:mt-3">{quickRow}</div> : null}
 
-      <div className="mt-5 grid min-w-0 items-start gap-5 lg:mt-8 lg:grid-cols-12 lg:gap-5">
+      <div className="mt-4 grid min-w-0 items-start gap-5 lg:mt-5 lg:grid-cols-12 lg:gap-5">
         {renderFields ? (
           <aside
             aria-labelledby={`${resultsId}-rail`}
