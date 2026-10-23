@@ -74,7 +74,9 @@ memo §2.1.1):
 
 - **ФЗОМ „Шифрарник на лекари“** (XML): name, specialty, institution, work
   unit, address and town of doctors with a ФЗО contract; the facsimile number
-  as an internal key.
+  as an internal key. Health associates (facsimile 8xxxxx: lab biologists,
+  psychologists, social workers, ...) are not imported as doctors
+  (docs/data-import.md §4).
 - **Лекарска комора list of valid licences** (PDF): name, licensed specialty,
   licence expiry and number, to verify the licence; the number is internal.
 - **ФЗОМ pharmacy contracts** (the „Аптеки“ rows of the same XML,

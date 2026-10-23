@@ -11,6 +11,7 @@ use App\Models\FieldProvenance;
 use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
 use App\Models\SourceRecord;
+use App\Models\Specialty;
 use App\Models\SpecialtyAlias;
 use App\Support\Import\DirectoryWriter;
 use App\Support\Import\ImportContext;
@@ -209,6 +210,34 @@ final class FzomImporter
             $excluded = [];
             $unmapped = [];
 
+            if (FzomAssociates::isAssociateFacsimile((string) $facsimile)) {
+                // Their own wordings only: no contract-type fallback, no
+                // work-unit activity (describes the unit, not the person).
+                foreach ($doctor['contracts'] as $contract) {
+                    $result = $resolver->resolve($contract['specialties']);
+                    $ids = array_merge($ids, $result['ids']);
+                }
+
+                $slugs = $ids === [] ? [] : Specialty::withTrashed()->whereIn('id', array_unique($ids))->pluck('slug')->all();
+
+                if (array_filter($slugs, FzomAssociates::isPhysicianOnlySlug(...)) === []) {
+                    $context->increment('people_excluded_non_physician');
+                    $context->increment('people_excluded_associate');
+                    unset($doctors[$facsimile]);
+
+                    continue;
+                }
+
+                // A physician-only specialty on an associate code: a hidden
+                // draft, confirmed by staff (flagged for importDoctors).
+                $context->increment('associates_with_physician_specialty');
+                $doctors[$facsimile]['specialty_ids'] = array_values(array_unique($ids));
+                $doctors[$facsimile]['unmapped'] = [];
+                $doctors[$facsimile]['associate_exception'] = true;
+
+                continue;
+            }
+
             foreach ($doctor['contracts'] as $contract) {
                 $result = $resolver->resolve($contract['specialties'], $contract['contract_type_id']);
                 $ids = array_merge($ids, $result['ids']);
@@ -217,7 +246,8 @@ final class FzomImporter
             }
 
             // No specialty on any contract: the activity (`Dejnost`) of the
-            // work unit, when it names a specialty unambiguously.
+            // work unit, when it names a specialty unambiguously (never for
+            // health associates, handled above).
             if ($ids === [] && $excluded === [] && $unmapped === []) {
                 foreach ($doctor['contracts'] as $contract) {
                     $slug = FzomSpecialtyCatalog::activityDefaultFor(SpecialtyAlias::keyFor((string) $contract['activity']));
@@ -498,6 +528,7 @@ final class FzomImporter
                     if ($doctor !== null && $stored['unchanged'] && $sourceRecord?->subject_id === $doctor->getKey()) {
                         $seen[] = (int) $doctor->getKey();
                         $context->increment('doctors_unchanged');
+                        $this->associateExceptionReview($context, $doctor, $data);
 
                         continue;
                     }
@@ -550,6 +581,7 @@ final class FzomImporter
                     $writer->syncSpecialties($doctor, $specialtyIds, $label, $isNew);
                     $writer->syncFacilities($doctor, $links, $primaryFacilityId, $label, $isNew);
                     $seen[] = (int) $doctor->getKey();
+                    $this->associateExceptionReview($context, $doctor, $data);
 
                     if ($data['unmapped'] !== []) {
                         $context->increment('doctors_with_unmapped_specialty');
@@ -585,6 +617,27 @@ final class FzomImporter
         }
 
         return $seen;
+    }
+
+    /**
+     * An associate code with a physician-only specialty wording stays a
+     * hidden draft until staff confirm it (a dismissed item stays dismissed).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function associateExceptionReview(ImportContext $context, Doctor $doctor, array $data): void
+    {
+        if (($data['associate_exception'] ?? false) !== true) {
+            return;
+        }
+
+        $context->review(
+            ImportReviewKind::Uncertain,
+            'fzom-associate:'.$doctor->getKey(),
+            (string) $doctor->full_name,
+            ['reason' => 'associate_code_physician_specialty', 'note' => 'ФЗОМ associate code with a physician specialty — confirm'],
+            $doctor,
+        );
     }
 
     /**
@@ -665,6 +718,13 @@ final class FzomImporter
 
         $absent = array_values(array_filter($known, fn (int $id): bool => ! isset($seen[$id])));
 
+        // Health associates are not doctors: profiles an earlier import made
+        // for them (docs/data-import.md) are never queued as "missing".
+        if ($subjectType === FieldProvenance::SUBJECT_DOCTOR && $absent !== []) {
+            $associates = $this->associateDoctorIds($absent);
+            $absent = array_values(array_filter($absent, fn (int $id): bool => ! isset($associates[$id])));
+        }
+
         foreach (array_chunk($absent, 500) as $chunk) {
             $model::withTrashed()->whereIn('id', $chunk)->toBase()->increment('import_missing_runs');
 
@@ -684,6 +744,30 @@ final class FzomImporter
         }
 
         $context->increment($subjectType === FieldProvenance::SUBJECT_DOCTOR ? 'doctors_absent' : 'facilities_absent', count($absent));
+    }
+
+    /**
+     * Of these doctors, the ФЗОМ-created ones on a health-associate
+     * facsimile code without a licence (a profile that holds a Комора
+     * licence is a physician whatever the code).
+     *
+     * @param  list<int>  $ids
+     * @return array<int, true>
+     */
+    private function associateDoctorIds(array $ids): array
+    {
+        $found = [];
+
+        foreach (array_chunk($ids, 500) as $chunk) {
+            Doctor::withTrashed()->whereIn('id', $chunk)->whereNull('licence_number')->get(['id', 'fzo_facsimile'])
+                ->each(function (Doctor $doctor) use (&$found): void {
+                    if (FzomAssociates::isAssociateFacsimile($doctor->fzo_facsimile)) {
+                        $found[(int) $doctor->getKey()] = true;
+                    }
+                });
+        }
+
+        return $found;
     }
 
     /**

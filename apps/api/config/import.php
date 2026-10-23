@@ -71,6 +71,19 @@ return [
         // vertical has its own sources.
         'excluded_contract_types' => [4],
 
+        // Facsimile prefixes of health associates („здравствени
+        // соработници“: lab biologists and chemists, psychologists, speech
+        // therapists, social workers, ...). A person whose facsimile starts
+        // with one of these is not imported as a doctor, and no
+        // contract-type or work-unit-activity specialty fallback applies;
+        // a physician-only specialty wording of their own makes a hidden
+        // draft with a review item instead. Comma-separated in the env;
+        // empty turns the rule off.
+        'associate_facsimile_prefixes' => array_values(array_filter(
+            array_map('trim', explode(',', (string) env('IMPORT_FZOM_ASSOCIATE_PREFIXES', '8'))),
+            fn (string $prefix): bool => $prefix !== '',
+        )),
+
         // TipDogovorID values that are hospital care (facility type hospital).
         'hospital_contract_types' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 34, 35, 36],
 

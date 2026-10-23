@@ -48,7 +48,7 @@ class FzomSafetyTest extends TestCase
                 .'<Dejnost>%1$s</Dejnost><Specijalnosti>%1$s</Specijalnosti><Adresa>УЛ. ПРОБНА 1</Adresa><Mesto>ПРОБНО</Mesto>'
                 .'<Faksimil>%2$d</Faksimil><Ime>ИМЕ</Ime><Prezime>%3$s</Prezime><ValidenOd>2025-01-01T00:00:00</ValidenOd></Lekar>',
                 $specialty,
-                800000 + $n,
+                700000 + $n,
                 self::surname($n),
             );
         }
@@ -166,7 +166,7 @@ class FzomSafetyTest extends TestCase
     {
         config(['import.max_missing_ratio' => 0.5]);
         $this->runSnapshot(range(0, 9));
-        $gone = Doctor::query()->where('fzo_facsimile', '800009')->firstOrFail();
+        $gone = Doctor::query()->where('fzo_facsimile', '700009')->firstOrFail();
 
         $this->runSnapshot(range(0, 8));
         $run = $this->runSnapshot(range(0, 8));
@@ -212,7 +212,7 @@ class FzomSafetyTest extends TestCase
         $run = $this->runSnapshot(range(0, 5));
 
         $this->assertNull($staffProfile->refresh()->fzo_facsimile, 'A common name is not proof: no automatic merge.');
-        $draft = Doctor::query()->where('fzo_facsimile', '800003')->firstOrFail();
+        $draft = Doctor::query()->where('fzo_facsimile', '700003')->firstOrFail();
         $this->assertFalse($draft->is_published);
         $this->assertSame(0, $run->count('doctors_matched'));
 

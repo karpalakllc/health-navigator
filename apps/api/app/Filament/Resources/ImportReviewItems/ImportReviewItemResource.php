@@ -656,6 +656,10 @@ class ImportReviewItemResource extends Resource
             };
         }
 
+        if (($details['reason'] ?? null) === 'associate_code_physician_specialty') {
+            return 'ФЗОМ lists this person under a health-associate code (8xxxxx: laboratory biologists, psychologists, social workers, ...) but names a physician-only specialty. Keep the draft hidden and dismiss this item unless you confirm the person is a physician (a Комора licence settles it); publish only then.';
+        }
+
         if (($details['reason'] ?? null) === NameCleanup::REASON) {
             $problem = NameCleanup::PROBLEMS[$details['problem'] ?? ''] ?? null;
 
@@ -685,6 +689,7 @@ class ImportReviewItemResource extends Resource
             'code_on_other_facility' => 'ФЗО code on a non-pharmacy facility',
             'possible_duplicate' => 'Possible duplicate',
             FacilityDuplicatePlanner::REASON => 'Same facility as a register one? Merge, or dismiss',
+            'associate_code_physician_specialty' => 'ФЗОМ associate code with a physician specialty — confirm',
             'name_cleanup' => 'Name cleanup',
             'unmatched', '' => 'Unmatched',
             default => str_replace('_', ' ', $reason),

@@ -18,7 +18,7 @@ Code: `apps/api/app/Support/Import/**` (import core, ФЗОМ, websites),
 
 | Source | Command | What we take | What we never take | Cadence |
 |---|---|---|---|---|
-| ФЗОМ „Шифрарник на лекари“ (two XML files: primary care, specialist/hospital) | `import:fzom` | Doctor first and last name, specialty, institution (name, ФЗО codes, tax number), work unit, address, town; the facsimile number as an **internal** matching key | Pharmacy contracts, nurses' names (`ClenNaTim`), absence reasons and validity statuses (`PricinaOtsustvo`, `*StatusValidnostID`), who substitutes for whom (`RedovnaZamena`, `VZamena*`), people whose every specialty is a non-physician profession, any phone or e-mail of a person | Weekly (Monday 05:30), once enabled |
+| ФЗОМ „Шифрарник на лекари“ (two XML files: primary care, specialist/hospital) | `import:fzom` | Doctor first and last name, specialty, institution (name, ФЗО codes, tax number), work unit, address, town; the facsimile number as an **internal** matching key | Pharmacy contracts, nurses' names (`ClenNaTim`), absence reasons and validity statuses (`PricinaOtsustvo`, `*StatusValidnostID`), who substitutes for whom (`RedovnaZamena`, `VZamena*`), people whose every specialty is a non-physician profession, health associates (facsimile 8xxxxx, §4), any phone or e-mail of a person | Weekly (Monday 05:30), once enabled |
 | Лекарска комора „Листа на доктори со важечки лиценци“ (a handful of PDFs) | `import:komora-licences` | Name, licensed specialty, licence expiry, licence number (**internal** only: matching and dedup) | Anything not in the list; the number and expiry date are never shown or exported publicly | Monthly (3rd, 06:00), once enabled; the Комора republishes about every four months. `import:komora-check` (1st, 06:20, ON) only tells staff a newer list is out |
 | ФЗОМ pharmacy contracts (the `TipDogovorID` 4 „Аптеки“ rows of the same primary-care XML) | `import:pharmacies` | Per contract unit (ФЗО code = one pharmacy branch): branch and legal name, tax number, address, town; the ФЗО code as matching key. Then links the on-duty schedule to the pharmacies (§4a) | The pharmacists in those rows (names, facsimiles, team members): never read, never stored | Weekly (Monday 06:10 Skopje), ON by default |
 | ФЗОМ „Распоред на дежурни аптеки“ (monthly .xlsx, fzo.org.mk/dezurni-apteki) | `import:on-duty-pharmacies` | Town, pharmacy name as printed, duty dates, phone **numbers**, the stated hours; linked to a directory pharmacy by `OnDutyLinker` (§4a; else the review queue; nothing is created); a linked pharmacy without a phone gets the schedule's | Pharmacists' names some towns write in the phone column | 1st, 15th and 28th of each month, 06:40 (ON by default; docs/urgent-care.md) |
@@ -220,6 +220,51 @@ name, specialty and town **without** a shared workplace is not proof (common
 names): the row becomes its own hidden draft and an *unmatched* item
 „Possibly the same person…“ (`possible_duplicate`) lists the existing
 profile for staff to compare.
+
+### Health associates (facsimile 8xxxxx)
+
+ФЗОМ gives „здравствени соработници“ (laboratory biologists and chemists,
+psychologists, speech therapists, defectologists, social workers,
+pharmacists, radiology technologists) facsimile codes starting with **8**;
+physicians are 7xxxxx. Of 230 such codes in the 2026-10 files only one holds
+a Комора licence. The rule (`FzomAssociates`, config
+`import.fzom.associate_facsimile_prefixes`, env
+`IMPORT_FZOM_ASSOCIATE_PREFIXES`, default `8`, comma-separated, empty = off):
+
+- A person whose facsimile starts with such a prefix gets **no doctor
+  profile**. Counted in `people_excluded_non_physician` and in
+  `people_excluded_associate`.
+- Neither fallback applies to them: not the contract-type one (e.g. general
+  practice → Општа медицина) nor the work-unit activity (`Dejnost`), which
+  describes the unit, not the person. Only wordings in the person's own
+  `Specijalnosti` count.
+- **Exception:** if one of those wordings maps to a physician-only specialty,
+  the person is imported as a hidden draft with an *uncertain* review item
+  „ФЗОМ associate code with a physician specialty — confirm“ (counted in
+  `associates_with_physician_specialty`). Specialties also held by
+  non-physicians do not count: `medicinska-genetika`, `mikrobiologija`,
+  `medicinska-biohemija`, `klinichka-farmakologija`, `imunologija`,
+  `higiena`, `epidemiologija` (`FzomAssociates::OPEN_TO_NON_PHYSICIANS`).
+  A Комора licence settles it; without one, dismiss unless you can confirm
+  the person is a physician.
+- **Profiles an earlier import already made** are not deleted or unpublished
+  by the importer, but the „missing“ detector ignores them (a ФЗОМ-created
+  doctor on an associate code without a licence is never queued as
+  *missing*). Suppression (§9) was not used: it keys on name + town too, so
+  it could block a real physician of the same name on a website import, and
+  its labels mean „objection“ / „deleted“. To also take them out of the
+  review queue (and so out of „Објави ги и неверификуваните од ФЗОМ“):
+
+  ```bash
+  php artisan import:fzom-exclude-associates --dry-run
+  php artisan import:fzom-exclude-associates --by=<staff email>
+  ```
+
+  It closes (dismissed, resolution `associate_excluded`, attributed to the
+  staff member) the open review items of ФЗОМ-created, unpublished profiles
+  on an associate code, and prints counts only. It leaves alone profiles
+  with a licence, reviews, an owner account, a published profile, or one of
+  their own wordings mapping to a physician-only specialty. Idempotent.
 
 ### First dry run (2026-10-06 files, scratch copy of the UI database)
 
