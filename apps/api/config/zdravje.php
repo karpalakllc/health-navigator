@@ -102,6 +102,13 @@ return [
             'email' => env('PLATFORM_MEMBER_EMAIL', 'member@zdravje360.test'),
             'password' => env('PLATFORM_MEMBER_PASSWORD', 'password'),
         ],
+        // The staff account that authors the starter forum topics
+        // (ForumStarterSeeder), shown publicly as „Администратор“. It has no
+        // usable password; set an address the team controls in production.
+        'forum_author' => [
+            'email' => env('FORUM_STARTER_AUTHOR_EMAIL', 'forum-admin@zdravje360.test'),
+            'username' => env('FORUM_STARTER_AUTHOR_USERNAME', 'Администратор'),
+        ],
     ],
 
     /*
