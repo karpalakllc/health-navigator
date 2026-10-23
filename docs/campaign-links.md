@@ -11,6 +11,12 @@ brings people in (Plausible → **Campaigns** / **Sources**):
 | `utm_campaign` | The push it belongs to | `lansiranje`, `forum-oktomvri`, `recenzii-esen` |
 | `utm_content` | Which of several links/posts | `kopce-gore`, `post-2`, `qr-cekalna` |
 
+The site's own „Препорачајте рецензија“ button (doctor profiles,
+docs/reviews-growth.md) uses one fixed set for everyone:
+`utm_source=share&utm_medium=referral&utm_campaign=napishi-recenzija`, plus
+`#napishi-recenzija`. It is the same link whoever shares it — never add a
+per-person value to it.
+
 Example (after your domain): `/forum?utm_source=viber&utm_medium=chat&utm_campaign=forum-oktomvri`
 
 ## Rules (enforced in `apps/web/src/lib/analytics/redact-url.ts`)

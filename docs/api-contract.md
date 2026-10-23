@@ -464,6 +464,18 @@ nobody can hold an account locked by merely sending traffic.
   reviews in that time. All of these count approved reviews only.
 - `POST …/reviews` accepts optional `aspects` (`{code: 1–5 or null}`); a code
   the profile type does not have is a 422 on `aspects`.
+- `POST /doctors/{slug}/reviews` also accepts optional `via_shared_link`
+  (boolean; anything else is a 422): the review was started from the shared
+  „write a review“ link. The web sends it only with statistics consent; it is
+  stored only for doctor profiles while `reviews_share_link` is on, is never
+  in a public or member payload, and changes no check. Three or more such
+  reviews on one profile within 48 h set the staff-only
+  `shared_link_burst_flagged_at` (docs/reviews-growth.md).
+- `GET /settings/public` carries four booleans for the review invitations
+  (admin: Site settings → Review invitations, all default `true`):
+  `reviews_prompt_on_profile`, `reviews_prompt_after_search`,
+  `reviews_share_link`, `reviews_mobile_sticky_cta`. The web treats them as
+  `false` when the settings cannot be read.
 - One review per member per profile, with one second chance: when the
   member's review of the profile was refused before publication and not yet
   resent, `POST …/reviews` replaces it (rating, body, aspects), sends it back
