@@ -80,6 +80,31 @@ describe("DirectoryAvatar above the fold", () => {
   });
 });
 
+describe("DirectoryAvatar image fit", () => {
+  it("crops a photo to fill the frame by default", () => {
+    const { container } = render(
+      <DirectoryAvatar kind="doctor" avatarUrl={AVATAR} name="Ана" />,
+    );
+
+    expect(container.querySelector("img")).toHaveClass("object-cover");
+  });
+
+  it("shows a whole wide logo when the caller asks for object-contain", () => {
+    const { container } = render(
+      <DirectoryAvatar
+        kind="pharmacy"
+        avatarUrl={AVATAR}
+        name="Аптека"
+        imageClassName="bg-white object-contain"
+      />,
+    );
+    const image = container.querySelector("img");
+
+    expect(image).toHaveClass("object-contain");
+    expect(image).not.toHaveClass("object-cover");
+  });
+});
+
 describe("DirectoryAvatar alt text", () => {
   const PLACEHOLDER = "https://media.zdravje360.mk/media/placeholder.webp";
 

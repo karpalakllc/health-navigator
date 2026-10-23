@@ -32,6 +32,7 @@ type DirectoryAvatarProps = {
    */
   alt?: string;
   className?: string;
+  /** Extra classes for the photo; an object-* class replaces the default object-cover. */
   imageClassName?: string;
   fallbackClassName?: string;
   /** Pass "eager" where the avatar is above the fold (a profile hero). */
@@ -105,7 +106,11 @@ export function DirectoryAvatar({
           decoding="async"
           onError={() => setFailedSrc(src)}
           className={cn(
-            "h-full w-full object-cover object-center",
+            "h-full w-full object-center",
+            // cn() does not merge classes: with both object-cover and
+            // object-contain present the stylesheet order decides, so the
+            // default fit applies only when the caller sets none.
+            imageClassName?.includes("object-") ? null : "object-cover",
             imageClassName,
           )}
         />
