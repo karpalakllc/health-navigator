@@ -67,6 +67,18 @@ export type FirstAidSource = {
  */
 export type FirstAidCallMode = "first" | "if-signs";
 
+/**
+ * A verified phone number besides 194/112 (e.g. a clinic that advises on
+ * poisoning), shown as a tap-to-call link in the call box. Record where the
+ * number was verified in docs/first-aid.md; claim no hours the source does not.
+ */
+export type FirstAidPhone = {
+  /** As dialled and shown, e.g. "02 3147 168" (digits, spaces, leading +). */
+  number: string;
+  /** Who answers, short and factual. */
+  label: string;
+};
+
 export type FirstAidReview = {
   /** Draft until a clinician signs it off (docs/first-aid-review-checklist.md). */
   status: "draft" | "reviewed";
@@ -88,6 +100,8 @@ export type FirstAidGuide = {
   call: FirstAidCallMode;
   /** One line under „Прво повикајте 194“, e.g. ask for a defibrillator. */
   callNote?: string;
+  /** Further verified numbers, after 194/112 in the call box. */
+  phones?: FirstAidPhone[];
   /** „Како да препознаете“: the signs, as short bullet lines. */
   recognise: string[];
   sections: FirstAidStepSection[];

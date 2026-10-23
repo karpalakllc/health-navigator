@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { FirstAidCallLinks } from "@/components/first-aid/call-links";
+import {
+  FirstAidCallLinks,
+  FirstAidPhoneLinks,
+} from "@/components/first-aid/call-links";
 import { FirstAidIllustration } from "@/components/first-aid/illustrations";
 import { PrintButton } from "@/components/first-aid/print-button";
 import { BackLink } from "@/components/ui/back-link";
@@ -202,6 +205,7 @@ export function FirstAidGuideArticle({
             {COPY.callFirstTitle}
           </h2>
           <FirstAidCallLinks />
+          {guide.phones ? <FirstAidPhoneLinks phones={guide.phones} /> : null}
           {guide.callNote ? (
             <p className={`${TEXT} text-ink`}>{guide.callNote}</p>
           ) : null}
@@ -220,6 +224,7 @@ export function FirstAidGuideArticle({
           <p className={`${TEXT} font-semibold text-ink`}>{COPY.callIfLead}</p>
           {escalateList}
           <FirstAidCallLinks />
+          {guide.phones ? <FirstAidPhoneLinks phones={guide.phones} /> : null}
           {guide.callNote ? (
             <p className={`${TEXT} text-ink`}>{guide.callNote}</p>
           ) : null}

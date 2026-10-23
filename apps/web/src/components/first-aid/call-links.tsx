@@ -1,5 +1,6 @@
 import { Icon } from "@/components/ui/icons";
 import { FIRST_AID_COPY } from "@/content/first-aid/copy";
+import type { FirstAidPhone } from "@/content/first-aid/types";
 
 /**
  * Tap-to-call 194 (and 112) for the first-aid pages: real tel: anchors. Same
@@ -26,5 +27,39 @@ export function FirstAidCallLinks() {
         <span>{FIRST_AID_COPY.call112}</span>
       </a>
     </div>
+  );
+}
+
+/** Tel: href for a number as written ("02 3147 168" → "tel:023147168"). */
+export function telHref(number: string): string {
+  return `tel:${number.replace(/[^\d+]/g, "")}`;
+}
+
+/**
+ * Further verified numbers after 194/112 (e.g. the toxicology clinic): plain
+ * ink pills, so emergency red stays reserved for 194 and 112. The number is
+ * in the text, for print and for anyone who cannot tap.
+ */
+export function FirstAidPhoneLinks({ phones }: { phones: FirstAidPhone[] }) {
+  if (phones.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      {phones.map((phone) => (
+        <li key={phone.number}>
+          <a
+            href={telHref(phone.number)}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-2 border-ink bg-white px-5 py-2 text-center text-base font-semibold leading-6 text-balance text-ink no-underline hover:bg-sand print:min-h-0 print:border-0 print:p-0"
+          >
+            <Icon name="phone" size={20} />
+            <span>
+              {phone.label} — {phone.number}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -166,10 +166,16 @@ unreachable), WHO.
 
 Open / unverified — see the checklist:
 
-1. **Toxicology centre phone number** (Универзитетска клиника за токсикологија,
-   Скопје): not verified from an official source, so **no number is shown**; the
-   poisoning guide says 194. Candidate from memory, to verify before adding:
-   02 3147 635. Add it to `truenje` only after confirming on an official page.
+1. **Toxicology clinic phone number** (Универзитетска клиника за токсикологија,
+   Скопје, ул. Мајка Тереза бр. 17): **02 3147 168**, verified 2026-10-23 on the
+   Ministry of Health list „Установи од секундарна и терцијарна ЗЗ“
+   (https://zdravstvo.gov.mk/mk-MK/ustanovi/ustanovi-od-sekundarna-i-tercijalna-zz,
+   which also lists 02 3237 504). The page does **not** say the line is staffed
+   24/7 or is a poison-information line, so the guide claims neither: `truenje`
+   shows it after 194/112 in the call box as „Совет при труење: Клиника за
+   токсикологија, Скопје“ (`phones`, rendered by `FirstAidPhoneLinks` in
+   `components/first-aid/call-links.tsx`) and keeps „Повикајте 194“ first. An
+   earlier unverified candidate number was dropped.
 2. **Stroke mnemonic**: no officially used Macedonian mnemonic was found, so
    the guide lists the signs (лице, рака, говор, време) in plain sentences
    without inventing an acronym.
@@ -178,3 +184,31 @@ Open / unverified — see the checklist:
    adults, tourniquet wording, cold-water immersion for heat stroke.
 4. 194 (ambulance) and 112 (general emergency) are the numbers already used
    across the site.
+
+### Phone numbers besides 194/112 (`phones`)
+
+A guide may list further numbers in `phones` (`{ number, label }`); they render
+as tap-to-call links after 194 and 112, in ink rather than emergency red. Only
+numbers verified on an official page, with the page recorded here; the label
+says who answers and never claims hours the source does not state. Vitest
+(`first-aid.test.ts`) checks the format and that 194/112 are not repeated.
+
+| Guide | Number | Label | Source (checked) |
+|---|---|---|---|
+| `truenje` | 02 3147 168 | Совет при труење: Клиника за токсикологија, Скопје | zdravstvo.gov.mk, Установи од секундарна и терцијарна ЗЗ (2026-10-23) |
+
+### Changes 2026-10-23 (safety fixes, pending clinician review)
+
+- `zadavuvanje`, `zadavuvanje-bebe`: the call box now says call 194 at once when
+  the choking is severe (someone else calls) or, alone, after the **first**
+  unsuccessful round of 5 back blows and 5 thrusts (RCUK 2025 First aid: „If
+  choking has not been relieved after five abdominal thrusts, call 999“); the
+  former trigger was „after three rounds“. Steps say „со вклучен звучник“; the
+  adult guide adds when to see a doctor after the object comes out; the infant
+  guide says what to do when a cough becomes weak or silent.
+- `povreda-na-glava`: fall from height, traffic collision or neck pain → call
+  194 and do not move the person; neck pain, tingling/weakness and a dangerous
+  mechanism added to the 194 list; „повраќа повеќе пати“ → „повраќал по
+  повредата“ (NHS: being sick since the injury); „постар човек“ → 65 or older.
+- `truenje`: toxicology clinic number (above); gas: no flames or switches,
+  switch the appliance off if safe.

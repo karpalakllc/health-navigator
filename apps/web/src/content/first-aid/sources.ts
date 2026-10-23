@@ -21,6 +21,18 @@ export const SOURCES = {
     url: "https://www.sja.org.uk/first-aid-advice/cpr/",
     accessed: ACCESSED,
   },
+  rcukFirstAid2025: {
+    publisher: "Resuscitation Council UK",
+    title: "2025 Resuscitation Guidelines — First aid",
+    url: "https://www.resus.org.uk/library/2025-resuscitation-guidelines/first-aid-guidelines",
+    accessed: "2026-10-23",
+  },
+  mzInstitutions: {
+    publisher: "Министерство за здравство",
+    title: "Установи од секундарна и терцијарна здравствена заштита",
+    url: "https://zdravstvo.gov.mk/mk-MK/ustanovi/ustanovi-od-sekundarna-i-tercijalna-zz",
+    accessed: "2026-10-23",
+  },
   sjaChoking: {
     publisher: "St John Ambulance",
     title: "Choking",

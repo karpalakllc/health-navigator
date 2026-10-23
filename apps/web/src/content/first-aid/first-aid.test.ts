@@ -84,6 +84,21 @@ describe("first-aid registry", () => {
     }
   });
 
+  it("lists only well-formed extra numbers, never 194/112 again (docs/first-aid.md § Phone numbers)", () => {
+    for (const guide of FIRST_AID_GUIDES) {
+      for (const phone of guide.phones ?? []) {
+        expect(phone.number, guide.slug).toMatch(/^\+?\d[\d ]{2,18}$/);
+        expect(["194", "112"]).not.toContain(phone.number.replace(/ /g, ""));
+        expect(phone.label.length, guide.slug).toBeLessThanOrEqual(80);
+      }
+    }
+    expect(
+      FIRST_AID_GUIDES.find((g) => g.slug === "truenje")?.phones?.map(
+        (p) => p.number,
+      ),
+    ).toEqual(["02 3147 168"]);
+  });
+
   it("keeps step-section anchors ASCII, unique and clear of the page anchors", () => {
     const pageAnchors = new Set<string>(Object.values(FIRST_AID_ANCHORS));
 

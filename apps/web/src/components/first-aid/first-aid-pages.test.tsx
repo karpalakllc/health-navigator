@@ -101,6 +101,35 @@ describe("FirstAidGuideArticle", () => {
     }
   });
 
+  it("offers the toxicology clinic as a tap-to-call link in the poisoning call box", () => {
+    render(<FirstAidGuideArticle guide={guide("truenje")} preview />);
+
+    const box = screen
+      .getByRole("heading", { level: 2, name: FIRST_AID_COPY.callFirstTitle })
+      .closest("section")!;
+    expect(
+      within(box).getByRole("link", { name: /02 3147 168/ }),
+    ).toHaveAttribute("href", "tel:023147168");
+    // 194 stays first.
+    expect(within(box).getAllByRole("link")[0]).toHaveAttribute(
+      "href",
+      "tel:194",
+    );
+  });
+
+  it.each(["zadavuvanje", "zadavuvanje-bebe"])(
+    "%s: the call box says to call after the first unsuccessful round, not after three",
+    (slug) => {
+      render(<FirstAidGuideArticle guide={guide(slug)} preview />);
+
+      const box = screen
+        .getByRole("heading", { level: 2, name: FIRST_AID_COPY.callIfTitle })
+        .closest("section")!;
+      expect(within(box).getByText(/првиот круг/)).toBeInTheDocument();
+      expect(within(box).queryByText(/три круга/)).toBeNull();
+    },
+  );
+
   it("marks a draft in staff preview and cites its sources with the access date", () => {
     render(<FirstAidGuideArticle guide={guide("truenje")} preview />);
 
