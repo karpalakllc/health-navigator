@@ -154,6 +154,13 @@ return [
         // days stops counting (reason website_outdated). An entry the latest
         // import of its site no longer lists stops at once (website_removed).
         'website_max_age_days' => (int) env('IMPORT_WEBSITE_MAX_AGE_DAYS', 180),
+
+        // A Комора licence that expired AFTER the date of the list it came
+        // from (the list could not show a renewal yet) keeps a doctor who is
+        // still current in ФЗОМ verified for this many days after the expiry,
+        // and never past the import of a newer list: the newer list decides.
+        // 0 turns the grace off (an expired licence un-verifies at once).
+        'licence_grace_days' => max(0, (int) env('IMPORT_LICENCE_GRACE_DAYS', 180)),
     ],
 
 ];

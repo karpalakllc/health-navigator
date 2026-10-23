@@ -9,7 +9,8 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /**
- * A failed or unusually large source import (App\Support\DataOps\ImportAlerter).
+ * A failed or unusually large source import, a stale register or a new
+ * Комора list to import (App\Support\DataOps\ImportAlerter).
  * Sent synchronously, not queued. Counts and a short error line only.
  */
 class ImportAlertMail extends Mailable
@@ -25,6 +26,7 @@ class ImportAlertMail extends Mailable
         public readonly array $counts,
         public readonly ?string $error,
         public readonly ?string $reviewUrl,
+        public readonly ?string $note = null,
     ) {}
 
     public function envelope(): Envelope
@@ -44,6 +46,8 @@ class ImportAlertMail extends Mailable
                 'heading' => self::heading($this->kind),
                 'failed' => $this->kind === ImportAlerter::KIND_FAILED,
                 'stale' => $this->kind === ImportAlerter::KIND_STALE_REGISTER,
+                'newList' => $this->kind === ImportAlerter::KIND_NEW_LIST,
+                'note' => $this->note,
                 'rows' => $this->rows(),
             ],
         );
@@ -54,6 +58,7 @@ class ImportAlertMail extends Mailable
         return match ($kind) {
             ImportAlerter::KIND_FAILED => 'Неуспешен увоз',
             ImportAlerter::KIND_STALE_REGISTER => 'Застарен регистар',
+            ImportAlerter::KIND_NEW_LIST => 'Нова листа за увоз',
             default => 'Голема промена при увоз',
         };
     }

@@ -135,7 +135,7 @@ class VerificationWriterTest extends TestCase
         app()->setLocale('mk');
         $doctor = Doctor::factory()->create();
         $facility = Facility::factory()->create();
-        $this->assertSame(['status' => 'unverified', 'basis' => null, 'basis_label' => null], $doctor->publicVerification());
+        $this->assertSame(['status' => 'unverified', 'basis' => null, 'basis_label' => null, 'licence_list_date' => null], $doctor->publicVerification());
 
         $this->writer()->verify($doctor, VerificationBasis::OfficialRegisters, ['x']);
         $this->writer()->verify($facility, VerificationBasis::OfficialRegisters, ['x']);
@@ -144,6 +144,7 @@ class VerificationWriterTest extends TestCase
             'status' => 'verified',
             'basis' => 'official_registers',
             'basis_label' => 'Регистар на ФЗОМ и Лекарска комора',
+            'licence_list_date' => null,
         ], $doctor->fresh()->publicVerification());
         $this->assertSame('Регистар на ФЗОМ', $facility->fresh()->publicVerification()['basis_label']);
         $this->assertSame(1, Doctor::query()->verified()->count());

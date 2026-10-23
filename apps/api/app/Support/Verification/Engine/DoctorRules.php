@@ -29,11 +29,17 @@ final class DoctorRules
         $byLicence = $e->specialtyNames !== [];
 
         // 1. Official registers: the ФЗОМ contract and the Комора licence.
-        if ($byLicence && $e->fzomCurrent && $licence?->holds() && $licence->uniqueFit) {
+        //    A licence that expired after the date of its list (the list
+        //    could not show the renewal) still counts while ФЗОМ lists the
+        //    doctor, within the grace period and until a newer list
+        //    (licence_grace in the evidence; docs/verification.md).
+        if ($byLicence && $e->fzomCurrent && $licence?->holdsWithGrace() && $licence->uniqueFit) {
             return Verdict::verified(VerificationRule::FzomLicence, [
                 'source_record_id' => $e->fzomRecordId,
                 'komora_licence_id' => $licence->komoraLicenceId,
                 'facility_id' => $e->fzomFacilityIds[0] ?? null,
+                'list_date' => $licence->listDate,
+                'licence_grace' => $licence->inGrace() ? $licence->graceEvidence() : null,
             ]);
         }
 
@@ -45,16 +51,19 @@ final class DoctorRules
                 'source_record_id' => $e->fzomRecordId,
                 'namesake_licences' => $e->namesakeLicences,
                 'facility_id' => $e->fzomFacilityIds[0] ?? null,
+                'list_date' => $e->komoraListDate,
             ]);
         }
 
         //    Dentists: the ФЗОМ contract alone (there is no public dental
         //    licence list; owner's decision). A licence attached and lapsed
-        //    still counts against it. Leaving ФЗОМ removes the verification.
-        if ($e->dental && $e->fzomCurrent && ($licence === null || ($licence->onList && $licence->valid))) {
+        //    still counts against it (not in its grace period). Leaving ФЗОМ
+        //    removes the verification.
+        if ($e->dental && $e->fzomCurrent && ($licence === null || ($licence->onList && ($licence->valid || $licence->inGrace())))) {
             return Verdict::verified(VerificationRule::FzomDentist, [
                 'source_record_id' => $e->fzomRecordId,
                 'facility_id' => $e->fzomFacilityIds[0] ?? null,
+                'licence_grace' => $licence?->inGrace() ? $licence->graceEvidence() : null,
             ]);
         }
 
@@ -65,6 +74,7 @@ final class DoctorRules
                 'source_record_id' => $sites[0]->recordId,
                 'facility_id' => $sites[0]->facilityId,
                 'komora_licence_id' => $licence->komoraLicenceId,
+                'list_date' => $licence->listDate,
             ]);
         }
 

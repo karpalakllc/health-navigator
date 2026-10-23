@@ -19,7 +19,7 @@ Code: `apps/api/app/Support/Import/**` (import core, ФЗОМ, websites),
 | Source | Command | What we take | What we never take | Cadence |
 |---|---|---|---|---|
 | ФЗОМ „Шифрарник на лекари“ (two XML files: primary care, specialist/hospital) | `import:fzom` | Doctor first and last name, specialty, institution (name, ФЗО codes, tax number), work unit, address, town; the facsimile number as an **internal** matching key | Pharmacy contracts, nurses' names (`ClenNaTim`), absence reasons and validity statuses (`PricinaOtsustvo`, `*StatusValidnostID`), who substitutes for whom (`RedovnaZamena`, `VZamena*`), people whose every specialty is a non-physician profession, any phone or e-mail of a person | Weekly (Monday 05:30), once enabled |
-| Лекарска комора „Листа на доктори со важечки лиценци“ (a handful of PDFs) | `import:komora-licences` | Name, licensed specialty, licence expiry, licence number (**internal** only: matching and dedup) | Anything not in the list; the number and expiry date are never shown or exported publicly | Monthly (3rd, 06:00), once enabled; the Комора republishes about every four months |
+| Лекарска комора „Листа на доктори со важечки лиценци“ (a handful of PDFs) | `import:komora-licences` | Name, licensed specialty, licence expiry, licence number (**internal** only: matching and dedup) | Anything not in the list; the number and expiry date are never shown or exported publicly | Monthly (3rd, 06:00), once enabled; the Комора republishes about every four months. `import:komora-check` (1st, 06:20, ON) only tells staff a newer list is out |
 | ФЗОМ pharmacy contracts (the `TipDogovorID` 4 „Аптеки“ rows of the same primary-care XML) | `import:pharmacies` | Per contract unit (ФЗО code = one pharmacy branch): branch and legal name, tax number, address, town; the ФЗО code as matching key. Then links the on-duty schedule to the pharmacies (§4a) | The pharmacists in those rows (names, facsimiles, team members): never read, never stored | Weekly (Monday 06:10 Skopje), ON by default |
 | ФЗОМ „Распоред на дежурни аптеки“ (monthly .xlsx, fzo.org.mk/dezurni-apteki) | `import:on-duty-pharmacies` | Town, pharmacy name as printed, duty dates, phone **numbers**, the stated hours; linked to a directory pharmacy by `OnDutyLinker` (§4a; else the review queue; nothing is created); a linked pharmacy without a phone gets the schedule's | Pharmacists' names some towns write in the phone column | 1st, 15th and 28th of each month, 06:40 (ON by default; docs/urgent-care.md) |
 | Institutions' own websites (a research slice prepared outside the app) | `import:institutions-json` | Facility contact details, logo, cover photos (each with its source URL); names and specialties of listed physicians and dentists | Photos of people, nurses and other staff | By hand only |
@@ -145,6 +145,23 @@ works and a failed scheduled run is retried by the next one.
 `import:komora-licences --file` reads local PDFs; such a partial list never
 marks licences missing unless you add `--complete` (the files are the whole
 list). Without `--list-date` the date is read from the file names.
+
+The **list date** is the date the Комора prepared the list. It decides the
+licence grace ([`verification.md`](verification.md) §2c), so it is never
+guessed: a download reads it from the page („Листата содржи активни лиценци
+изготвени заклучно со 2.7.2026 година“), else from a date in the file names;
+when neither states one, the run **fails** and asks for
+`--list-date=dd.mm.yyyy` (earlier versions fell back to today). It is stored
+in the run's `source_meta.list_date`, on every licence row the list contains
+(`komora_licences.list_date`) and on each download
+(`komora_licence_downloads.list_date`).
+
+```bash
+# Is there a newer list than the last one imported? Reads only the list page
+# (robots.txt, our User-Agent; a conditional HEAD per file when the page
+# states no date) and tells staff once per new list. Never imports.
+php artisan import:komora-check
+```
 
 Each run — every source, dry run or apply — writes an `import_runs` row
 (source, mode, status, counts, error); ФЗОМ and website runs also write a diff
@@ -391,7 +408,23 @@ matches it to a profile:
 The number and expiry date stay internal. A public profile shows only
 `has_valid_licence` („Лиценца: важечка“) — a status checked against today's
 date, which stays right between the four-monthly list updates, unlike a
-printed expiry date. An expired licence or none shows nothing.
+printed expiry date — with the date of the list it rests on
+(`licence_list_date`, the toggletip „Според листата на Лекарска комора од
+02.07.2026.“). An expired licence or none shows nothing. A licence that
+expired after its list's date keeps a ФЗОМ doctor verified for a grace
+period until a newer list decides ([`verification.md`](verification.md) §2c);
+the profile still shows no licence chip then.
+
+**New list?** `import:komora-check` runs monthly (1st, 06:20 Skopje,
+`KOMORA_CHECK_CRON`; `IMPORT_KOMORA_CHECK_SCHEDULE`, ON by default). It
+compares the date on the list page with the latest complete list imported
+(without a date on the page: the linked files, asked conditionally against
+the last download). A newer list goes once — per list date, or per set of
+changed files — to the panel's bell of everyone with `licences.manage` and
+to the import alert inbox („Нова листа за увоз“). It never imports: with
+`IMPORT_KOMORA_SCHEDULE` on, the scheduled import on the 3rd applies it;
+otherwise run `import:komora-licences` by hand. Each check is an
+`import_runs` row (source `komora-check`; *not modified* when nothing is new).
 
 ## 6. Institution websites (`import:institutions-json`)
 
@@ -586,6 +619,7 @@ runs daily at 05:50 (always on) and after every successful import apply.
 |---|---|---|
 | `IMPORT_FZOM_SCHEDULE` | `false` | Run `import:fzom` weekly, Monday 05:30 |
 | `IMPORT_KOMORA_SCHEDULE` | `false` | Run `import:komora-licences` monthly, on the 3rd at 06:00 |
+| `IMPORT_KOMORA_CHECK_SCHEDULE` | `true` | Run `import:komora-check` (`KOMORA_CHECK_CRON`, default `20 6 1 * *`, Skopje): tell staff about a newer Комора list; never imports (§5) |
 | `IMPORT_PHARMACIES_SCHEDULE` | `true` | Run `import:pharmacies` weekly, Monday 06:10 Skopje (`IMPORT_PHARMACIES=false` also stops the command) |
 | `IMPORT_ALERT_EMAIL` | unset → `PLATFORM_ALERT_EMAIL` | Who hears about failed or unusual runs |
 | `IMPORT_LARGE_DIFF_RATIO` | `0.10` | Share of the records seen that a run created, changed or found missing before it counts as a large diff… |
@@ -606,6 +640,9 @@ short error line only — never names or numbers):
   no ФЗОМ import or 304 within `IMPORT_FZOM_MAX_AGE_DAYS` (45); nothing from
   ФЗОМ verifies a profile until it is imported again
   ([`verification.md`](verification.md) §2b).
+- **New list** („Нова листа за увоз“): `import:komora-check` found a Комора
+  list newer than the last one imported; sent once per list (also to the
+  panel's bell of `licences.manage` holders), §5.
 - **ImportRunFinished**: dispatched by `ImportRunAnnouncer` when a real
   (not dry, not *not modified*) `import:fzom` or `import:komora-licences` run
   ends, by hand or scheduled; `AlertOnImportRun` mails on a failed run or a

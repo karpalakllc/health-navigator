@@ -21,6 +21,7 @@ use App\Support\Import\Pharmacies\PharmacyRegisterImporter;
 use App\Support\Import\TextCase;
 use App\Support\Import\Website\InstitutionsJsonImporter;
 use App\Support\Licences\Contracts\LicenceCandidate;
+use App\Support\Licences\KomoraListDate;
 use App\Support\Licences\LicenceSpecialtyMap;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -88,6 +89,9 @@ final class EvidenceLoader
     /** ФЗОМ has not been heard from within import.verification.fzom_max_age_days. */
     private bool $fzomStale = false;
 
+    /** The latest complete Комора list applied (KomoraListDate): a licence row last seen on an older one gets no grace. */
+    private readonly ?CarbonImmutable $latestListDate;
+
     public function __construct(?LicenceSpecialtyMap $map = null)
     {
         $this->map = $map ?? new LicenceSpecialtyMap;
@@ -95,6 +99,7 @@ final class EvidenceLoader
         $this->websiteSince = CarbonImmutable::now()->subDays(max(1, (int) config('import.verification.website_max_age_days', 180)));
         $this->fzomCurrentSince = $this->snapshotStart(FzomImporter::SOURCE, $this->fzomStale);
         $this->pharmaciesCurrentSince = $this->snapshotStart(PharmacyRegisterImporter::SOURCE, $this->pharmaciesStale);
+        $this->latestListDate = KomoraListDate::latestApplied();
         $this->loadList();
         $this->loadSuppressions();
         $this->loadSites();
@@ -150,7 +155,7 @@ final class EvidenceLoader
             ->groupBy('doctor_id');
         $numbers = $doctors->pluck('licence_number')->filter()->map(fn ($number): string => (string) $number)->values()->all();
         $licences = $numbers === [] ? collect() : DB::table('komora_licences')->whereIn('licence_number', $numbers)
-            ->get(['id', 'licence_number', 'full_name', 'specialty', 'specialty_key', 'valid_until', 'missing_since'])
+            ->get(['id', 'licence_number', 'full_name', 'specialty', 'specialty_key', 'valid_until', 'list_date', 'missing_since'])
             ->keyBy('licence_number');
         $profilesWithoutLicence = DB::table('doctors')
             ->whereNull('deleted_at')
@@ -201,6 +206,7 @@ final class EvidenceLoader
                     ->filter()->values()->all(),
                 specialtyNames: $candidate->specialtyNames,
                 fzomStale: $this->fzomStale,
+                komoraListDate: $this->latestListDate?->toDateString(),
             );
         }
 
@@ -374,11 +380,13 @@ final class EvidenceLoader
         $rowName = NameKey::sorted((string) $row->full_name);
         $groups = $this->map->licenceGroups($row->specialty);
         $namesakes = array_values(array_filter($this->listByName[$rowName] ?? [], fn (object $other): bool => (int) $other->id !== (int) $row->id));
+        $validUntil = $row->valid_until !== null ? CarbonImmutable::parse($row->valid_until)->startOfDay() : null;
+        $valid = $validUntil !== null && $validUntil->gte($this->today);
 
         return new LicenceFacts(
             komoraLicenceId: (int) $row->id,
             onList: $row->missing_since === null,
-            valid: $row->valid_until !== null && CarbonImmutable::parse($row->valid_until)->gte($this->today),
+            valid: $valid,
             nameAgrees: $rowName === $sortedName,
             fits: $groups !== null && $this->map->fits($groups, $candidate),
             uniqueFit: array_filter($namesakes, fn (object $other): bool => $this->fitsCandidate($other, $candidate)) === [],
@@ -386,7 +394,35 @@ final class EvidenceLoader
             specialty: $row->specialty,
             specialtyKey: $row->specialty_key,
             general: $groups !== null && $this->map->isGeneral($groups),
+            listDate: $row->list_date !== null ? CarbonImmutable::parse($row->list_date)->toDateString() : null,
+            graceUntil: $valid || $row->missing_since !== null ? null : $this->graceUntil($validUntil, $row->list_date),
+            validUntil: $validUntil?->toDateString(),
         );
+    }
+
+    /**
+     * The last day an expired licence keeps a ФЗОМ doctor verified, or null:
+     * it expired after the date of the list it came from (the list could not
+     * show the renewal), that list is still the latest imported, and the
+     * expiry is at most import.verification.licence_grace_days ago.
+     */
+    private function graceUntil(?CarbonImmutable $validUntil, ?string $rowListDate): ?string
+    {
+        $days = (int) config('import.verification.licence_grace_days', 180);
+
+        if ($days <= 0 || $validUntil === null || $rowListDate === null) {
+            return null;
+        }
+
+        $listDate = CarbonImmutable::parse($rowListDate)->startOfDay();
+
+        if (! $validUntil->gt($listDate) || ($this->latestListDate !== null && $listDate->lt($this->latestListDate))) {
+            return null;
+        }
+
+        $until = $validUntil->addDays($days);
+
+        return $until->gte($this->today) ? $until->toDateString() : null;
     }
 
     /**
@@ -488,7 +524,7 @@ final class EvidenceLoader
         DB::table('komora_licences')
             ->whereNull('missing_since')
             ->orderBy('id')
-            ->select(['id', 'full_name', 'specialty', 'specialty_key', 'valid_until', 'missing_since', 'doctor_id', 'outcome', 'candidate_doctor_ids'])
+            ->select(['id', 'full_name', 'specialty', 'specialty_key', 'valid_until', 'list_date', 'missing_since', 'doctor_id', 'outcome', 'candidate_doctor_ids'])
             ->lazyById(2000)
             ->each(function (object $row): void {
                 $this->listByName[NameKey::sorted((string) $row->full_name)][] = $row;

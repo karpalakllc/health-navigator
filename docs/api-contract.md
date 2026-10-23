@@ -387,15 +387,20 @@ nobody can hold an account locked by merely sending traffic.
   doctors also carry `is_sponsored`, which must stay visibly labelled.
 - `GET /doctors/{slug}` carries `has_valid_licence` (boolean): the doctor's
   Лекарска комора licence is on file and not expired today („Лиценца:
-  важечка“). The licence number, its expiry date and the ФЗО facsimile
-  number are internal and never in any payload (docs/data-import.md).
+  важечка“), and `licence_list_date` (`Y-m-d` or null): the date of the
+  Комора list that status rests on. The licence number, its expiry date and
+  the ФЗО facsimile number are internal and never in any payload
+  (docs/data-import.md).
 - Doctor, facility and pharmacy list and detail items carry
-  `verification: {status, basis, basis_label}`: `status` is `verified` or
+  `verification: {status, basis, basis_label, licence_list_date}`: `status` is `verified` or
   `unverified` („Верификуван“ / „Неверификуван“); while verified, `basis` is
   one of `official_registers`, `licence_and_website`,
   `website_and_register`, `staff`, `owner_claim` and `basis_label` its
   localised public wording (both `null` while unverified; a dentist
-  verified by the ФЗОМ contract alone reads „Регистар на ФЗОМ“). The evidence
+  verified by the ФЗОМ contract alone reads „Регистар на ФЗОМ“).
+  `licence_list_date` (`Y-m-d`) is the date of the Лекарска комора list a
+  doctor's licence-based verification rests on, null otherwise
+  (docs/verification.md §2d). The evidence
   behind a decision is internal and never in any payload. `GET /doctors`,
   `/facilities` and `/pharmacies` accept `verified=1` („Само
   верификувани“).

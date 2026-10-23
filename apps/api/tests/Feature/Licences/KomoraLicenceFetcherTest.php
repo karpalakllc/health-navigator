@@ -2,15 +2,26 @@
 
 namespace Tests\Feature\Licences;
 
+use App\Enums\ImportRunStatus;
+use App\Enums\UserKind;
+use App\Mail\ImportAlertMail;
+use App\Models\ImportRun;
+use App\Models\KomoraLicence;
 use App\Models\KomoraLicenceDownload;
+use App\Models\User;
+use App\Support\DataOps\ImportAlerter;
 use App\Support\Import\Contracts\DoctorLicenceSink;
 use App\Support\Licences\Contracts\LicenceCandidateSource;
 use App\Support\Licences\KomoraLicenceFetcher;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\FakeDoctorLicenceSink;
 use Tests\Support\FakeLicenceCandidateSource;
 use Tests\Support\KomoraListPdf;
@@ -41,6 +52,8 @@ class KomoraLicenceFetcherTest extends TestCase
 
     private string $etag = '"v1"';
 
+    private string $page = '';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -57,7 +70,7 @@ class KomoraLicenceFetcherTest extends TestCase
             ['name' => 'АНА ТЕСТОВСКА', 'specialty' => 'педијатрија', 'date' => '01.02.2030', 'number' => '0000001'],
         ]]);
 
-        $page = '<div><p>Листата содржи активни лиценци изготвени заклучно со 2.7.2026 година.</p>'
+        $this->page = '<div><p>Листата содржи активни лиценци изготвени заклучно со 2.7.2026 година.</p>'
             .'<a href="/upload/documents/Other.pdf">Друго</a>'
             .'<a href="'.str_replace('https://lkm.example', '', self::FILE_A).'">Список А-В</a>'
             .'<a href="'.self::FILE_B.'"> Список Г-Ж </a>'
@@ -66,12 +79,12 @@ class KomoraLicenceFetcherTest extends TestCase
             .'<a href="http://169.254.169.254/upload/records/962/y.pdf">Список У</a>'
             .'<a href="http://lkm.example/upload/records/962/z.pdf">Список З</a></div>';
 
-        Http::fake(function (Request $request) use ($page) {
+        Http::fake(function (Request $request) {
             $this->requests[] = $request;
 
             return match (true) {
                 str_ends_with($request->url(), '/robots.txt') => Http::response($this->robots, $this->robotsStatus),
-                $request->url() === self::PAGE => Http::response($page),
+                $request->url() === self::PAGE => Http::response($this->page),
                 $request->hasHeader('If-None-Match', $this->etag) => Http::response('', 304),
                 default => Http::response($this->pdf, 200, ['ETag' => $this->etag, 'Last-Modified' => 'Mon, 06 Jul 2026 10:59:59 GMT']),
             };
@@ -229,5 +242,136 @@ class KomoraLicenceFetcherTest extends TestCase
         $this->expectExceptionMessage('robots.txt');
 
         app(KomoraLicenceFetcher::class)->fetch();
+    }
+
+    /** A page that states no list date, linking to files whose names carry none either. */
+    private function undatedPage(): void
+    {
+        $this->page = '<div><a href="/upload/records/962/a.pdf">Список А-В</a><a href="/upload/records/962/b.pdf">Список Г-Ж</a></div>';
+    }
+
+    public function test_a_downloaded_list_without_a_stated_date_needs_the_list_date_option(): void
+    {
+        $this->app->instance(DoctorLicenceSink::class, new FakeDoctorLicenceSink);
+        $this->app->instance(LicenceCandidateSource::class, new FakeLicenceCandidateSource);
+        $this->undatedPage();
+
+        $this->artisan('import:komora-licences')
+            ->expectsOutputToContain('--list-date=dd.mm.yyyy')
+            ->assertFailed();
+        $this->assertSame(ImportRunStatus::Failed, ImportRun::query()->where('source', 'komora')->latest('id')->first()?->status);
+        $this->assertSame(0, KomoraLicence::query()->count(), 'Nothing is imported under a guessed date.');
+
+        $this->artisan('import:komora-licences', ['--list-date' => '02.07.2026'])
+            ->expectsOutputToContain('List of 02.07.2026, 2 file(s).')
+            ->assertSuccessful();
+        $this->assertSame('2026-07-02', ImportRun::query()->where('source', 'komora')->latest('id')->first()?->source_meta['list_date']);
+        $this->assertSame('2026-07-02', KomoraLicence::query()->first()?->list_date->toDateString());
+    }
+
+    private function appliedList(string $date): void
+    {
+        ImportRun::query()->create([
+            'source' => 'komora', 'dry_run' => false, 'status' => ImportRunStatus::Succeeded,
+            'started_at' => now(), 'finished_at' => now(), 'source_meta' => ['list_date' => $date, 'complete_list' => true],
+        ]);
+    }
+
+    private function staff(): User
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $admin = User::factory()->create(['user_kind' => UserKind::Staff]);
+        $admin->syncRoles(['Administrator']);
+
+        return $admin;
+    }
+
+    public function test_the_freshness_check_tells_staff_once_per_newer_list_and_never_imports(): void
+    {
+        Mail::fake();
+        Cache::flush();
+        config(['data_ops.alerts.email' => 'imports@example.invalid']);
+        $admin = $this->staff();
+        $member = User::factory()->create();
+        $this->appliedList('2026-03-01');
+
+        $this->artisan('import:komora-check')->expectsOutputToContain('licence list of 02.07.2026')->assertSuccessful();
+
+        // Only the page was read: no list file, nothing imported.
+        $this->assertSame(['https://lkm.example/robots.txt', self::PAGE], array_map(fn (Request $request): string => $request->url(), $this->requests));
+        $this->assertSame(0, KomoraLicenceDownload::query()->count());
+        $this->assertSame(0, KomoraLicence::query()->count());
+        $this->assertSame(1, $admin->notifications()->count());
+        $this->assertStringContainsString('02.07.2026', (string) json_encode($admin->notifications()->first()?->data));
+        $this->assertStringContainsString('01.03.2026', (string) json_encode($admin->notifications()->first()?->data));
+        $this->assertSame(0, $member->notifications()->count());
+        Mail::assertSent(ImportAlertMail::class, fn (ImportAlertMail $mail): bool => $mail->kind === ImportAlerter::KIND_NEW_LIST && str_contains((string) $mail->note, '02.07.2026'));
+
+        // The next checks: the same list is not announced again (the mail throttle aside).
+        Cache::flush();
+        $this->artisan('import:komora-check')->expectsOutputToContain('already told')->assertSuccessful();
+        $this->artisan('import:komora-check')->assertSuccessful();
+        $this->assertSame(1, $admin->notifications()->count());
+        Mail::assertSentCount(1);
+
+        // A still newer list is announced once more.
+        Cache::flush();
+        $this->page = str_replace('2.7.2026', '15.10.2026', $this->page);
+        $this->artisan('import:komora-check')->expectsOutputToContain('15.10.2026')->assertSuccessful();
+        $this->assertSame(2, $admin->notifications()->count());
+        Mail::assertSentCount(2);
+
+        // Imported: nothing more to say.
+        $this->appliedList('2026-10-15');
+        $this->artisan('import:komora-check')->expectsOutputToContain('No newer licence list')->assertSuccessful();
+        $this->assertSame(2, $admin->notifications()->count());
+        $this->assertSame(5, ImportRun::query()->where('source', 'komora-check')->count());
+    }
+
+    public function test_the_freshness_check_is_quiet_when_the_page_shows_the_imported_list(): void
+    {
+        Mail::fake();
+        $admin = $this->staff();
+        $this->appliedList('2026-07-02');
+
+        $this->artisan('import:komora-check')->expectsOutputToContain('No newer licence list')->assertSuccessful();
+
+        $this->assertSame(0, $admin->notifications()->count());
+        Mail::assertNothingSent();
+        $this->assertSame(ImportRunStatus::NotModified, ImportRun::query()->where('source', 'komora-check')->first()?->status);
+    }
+
+    public function test_without_a_page_date_the_freshness_check_asks_for_each_file_conditionally(): void
+    {
+        $admin = $this->staff();
+        $this->undatedPage();
+        app(KomoraLicenceFetcher::class)->fetch();
+        $this->appliedList('2026-07-02');
+        $this->requests = [];
+
+        $this->artisan('import:komora-check')->expectsOutputToContain('No newer licence list')->assertSuccessful();
+
+        $heads = array_values(array_filter($this->requests, fn (Request $request): bool => $request->method() === 'HEAD'));
+        $this->assertCount(2, $heads);
+        $this->assertSame('"v1"', $heads[0]->header('If-None-Match')[0]);
+        $this->assertSame(0, $admin->notifications()->count());
+
+        // A file changed on the server.
+        $this->etag = '"v2"';
+        $this->artisan('import:komora-check')->expectsOutputToContain('list files changed')->assertSuccessful();
+        $this->assertSame(1, $admin->notifications()->count());
+        $this->assertStringContainsString('--list-date', (string) json_encode($admin->notifications()->first()?->data));
+        $this->assertSame(0, KomoraLicence::query()->count());
+    }
+
+    public function test_the_freshness_check_honours_robots_txt(): void
+    {
+        $this->robots = "User-agent: *\nDisallow: /mk/record/";
+
+        $this->artisan('import:komora-check')->assertFailed();
+
+        $this->assertSame(['https://lkm.example/robots.txt'], array_map(fn (Request $request): string => $request->url(), $this->requests));
+        $this->assertSame(ImportRunStatus::Failed, ImportRun::query()->where('source', 'komora-check')->first()?->status);
     }
 }

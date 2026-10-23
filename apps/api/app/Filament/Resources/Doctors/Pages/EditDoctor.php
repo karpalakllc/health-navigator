@@ -10,6 +10,7 @@ use App\Filament\Resources\Doctors\DoctorResource;
 use App\Filament\Support\DoctorOwnerActions;
 use App\Filament\Support\ImportLockAction;
 use App\Filament\Support\VerificationActions;
+use App\Models\Doctor;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -36,6 +37,14 @@ class EditDoctor extends EditRecord
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+    /** A licence in its grace period (LicenceGrace) is said under the title. */
+    public function getSubheading(): ?string
+    {
+        $record = $this->getRecord();
+
+        return $record instanceof Doctor ? VerificationActions::graceNote($record) : null;
     }
 
     /**

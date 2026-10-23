@@ -26,7 +26,7 @@ class ImportKomoraLicencesCommand extends Command
     protected $signature = 'import:komora-licences
                             {--dry-run : Parse and match, print the counts, write nothing}
                             {--file=* : Read these local list PDFs instead of downloading (a partial list never marks licences missing)}
-                            {--list-date= : Date of the list (dd.mm.yyyy) for --file runs; read from the file names if left out}
+                            {--list-date= : Date of the list (dd.mm.yyyy): for --file runs when the file names carry none; for a download only when the page states none}
                             {--complete : With --file: the files are the whole list, so a licence not in them is missing}
                             {--force : Process the list even when no file changed since the last download}';
 
@@ -117,10 +117,13 @@ class ImportKomoraLicencesCommand extends Command
                 }
 
                 $files = $fetched['files'];
-                $listDate = $fetched['list_date'] ?? CarbonImmutable::today();
+                // The list date decides the licence grace (docs/verification.md):
+                // never guessed. The page states it („заклучно со 2.7.2026“);
+                // when it does not, staff give it.
+                $listDate = $fetched['list_date'] ?? $this->parseDate($this->option('list-date'));
 
-                if ($fetched['list_date'] === null) {
-                    $this->warn('The list page states no date; using today as the list date.');
+                if ($listDate === null) {
+                    return $this->failRun($run, $announcer, 'The list page states no list date; give it with --list-date=dd.mm.yyyy (the date the Комора list was prepared).');
                 }
             }
 
@@ -217,10 +220,22 @@ class ImportKomoraLicencesCommand extends Command
         $candidates = is_string($given) && $given !== '' ? [$given] : array_map('basename', $paths);
 
         foreach ($candidates as $text) {
-            if (preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})/', $text, $match) === 1
-                && checkdate((int) $match[2], (int) $match[1], (int) $match[3])) {
-                return CarbonImmutable::create((int) $match[3], (int) $match[2], (int) $match[1])->startOfDay();
+            $date = $this->parseDate($text);
+
+            if ($date !== null) {
+                return $date;
             }
+        }
+
+        return null;
+    }
+
+    /** dd.mm.yyyy anywhere in $text, or null. */
+    private function parseDate(mixed $text): ?CarbonImmutable
+    {
+        if (is_string($text) && preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})/', $text, $match) === 1
+            && checkdate((int) $match[2], (int) $match[1], (int) $match[3])) {
+            return CarbonImmutable::create((int) $match[3], (int) $match[2], (int) $match[1])->startOfDay();
         }
 
         return null;

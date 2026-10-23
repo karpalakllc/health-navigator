@@ -129,6 +129,65 @@ final class KomoraLicenceFetcher
     }
 
     /**
+     * Looks at the list page without downloading the list (the freshness
+     * check, `import:komora-check`): the list date the page states and the
+     * files it links to. When the page states no date, each file we
+     * downloaded before is asked about with a conditional HEAD request
+     * (If-None-Match / If-Modified-Since), spaced out like a download;
+     * `changed` lists the files that are new or answered other than 304.
+     *
+     * @return array{list_date: CarbonImmutable|null, urls: list<string>, changed: list<string>}
+     */
+    public function probe(): array
+    {
+        $listUrl = (string) config('licences.komora.list_url');
+        $this->assertAllowed($listUrl);
+
+        $page = $this->request($listUrl);
+
+        if (! $page->successful()) {
+            throw new RuntimeException("The licence list page answered HTTP {$page->status()}.");
+        }
+
+        $html = $page->body();
+        $links = $this->links($html, $listUrl);
+
+        if ($links === []) {
+            throw new RuntimeException('The licence list page links to no list files; the page layout may have changed.');
+        }
+
+        $listDate = $this->listDate($html, $links);
+        $changed = [];
+
+        if ($listDate === null) {
+            foreach ($links as $link) {
+                $this->assertAllowed($link['url']);
+                $previous = KomoraLicenceDownload::query()->where('url', $link['url'])->latest('id')->first();
+
+                if ($previous === null || ($previous->etag === null && $previous->last_modified === null)) {
+                    $changed[] = $link['url'];
+
+                    continue;
+                }
+
+                $this->pause();
+                $response = $this->request($link['url'], array_filter([
+                    'If-None-Match' => $previous->etag,
+                    'If-Modified-Since' => $previous->last_modified,
+                ]), 'HEAD');
+
+                $sameTag = $previous->etag !== null && $response->header('ETag') === $previous->etag;
+
+                if ($response->status() !== 304 && ! ($response->successful() && $sameTag)) {
+                    $changed[] = $link['url'];
+                }
+            }
+        }
+
+        return ['list_date' => $listDate, 'urls' => array_column($links, 'url'), 'changed' => $changed];
+    }
+
+    /**
      * The list files the page links to, in page order, with the link text as
      * a label („Список А-В“ → „А-В“).
      *
@@ -228,7 +287,7 @@ final class KomoraLicenceFetcher
     /**
      * @param  array<string, string>  $headers
      */
-    private function request(string $url, array $headers = []): Response
+    private function request(string $url, array $headers = [], string $method = 'GET'): Response
     {
         $max = (int) config('licences.komora.max_bytes', 20 * 1024 * 1024);
 
@@ -242,7 +301,7 @@ final class KomoraLicenceFetcher
                 },
             ])
             ->timeout((int) config('licences.komora.timeout', 60))
-            ->get($url);
+            ->send($method, $url);
     }
 
     private function pause(): void

@@ -32,7 +32,7 @@ final class VerificationWriter
     /**
      * Mark the profile verified on $basis.
      *
-     * @param  list<array<string, scalar|null>|string>  $evidence  internal, JSON-serialisable (e.g. ['source' => 'fzom', 'facility_id' => 12])
+     * @param  list<array<string, scalar|array<string, scalar|null>|null>|string>  $evidence  internal, JSON-serialisable (e.g. ['source' => 'fzom', 'facility_id' => 12])
      * @param  User|null  $staff  null = automatic (the engine); a user = staff decision (sticky)
      * @param  string|null  $note  staff reason (required by the Filament action), stored internally and in the audit log
      */
@@ -42,7 +42,7 @@ final class VerificationWriter
     }
 
     /**
-     * @param  list<array<string, scalar|null>|string>  $evidence
+     * @param  list<array<string, scalar|array<string, scalar|null>|null>|string>  $evidence
      */
     private function verifyLocked(Doctor|Facility $subject, VerificationBasis $basis, array $evidence, ?User $staff, ?string $note): VerificationResult
     {
@@ -83,7 +83,7 @@ final class VerificationWriter
      *
      * @param  string  $reason  automatic: a stable snake_case code (e.g. 'licence_expired', 'source_removed',
      *                          'no_licence', 'ambiguous_name'); staff: free text (required by the Filament action)
-     * @param  list<array<string, scalar|null>|string>  $evidence  internal, JSON-serialisable
+     * @param  list<array<string, scalar|array<string, scalar|null>|null>|string>  $evidence  internal, JSON-serialisable
      * @param  User|null  $staff  null = automatic (the engine); a user = staff decision (sticky)
      */
     public function unverify(Doctor|Facility $subject, string $reason, ?User $staff = null, array $evidence = []): VerificationResult
@@ -92,7 +92,7 @@ final class VerificationWriter
     }
 
     /**
-     * @param  list<array<string, scalar|null>|string>  $evidence
+     * @param  list<array<string, scalar|array<string, scalar|null>|null>|string>  $evidence
      */
     private function unverifyLocked(Doctor|Facility $subject, string $reason, ?User $staff, array $evidence): VerificationResult
     {

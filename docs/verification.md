@@ -45,9 +45,9 @@ and rule names only — never a licence number or a ФЗО facsimile.
 | Rule (`evidence.rule`) | Basis shown | Evidence required (all of it) |
 |---|---|---|
 | `owner_claim` | `owner_claim` | Staff linked a member account to the profile (`owner_user_id` and `owner_linked_at` set by `AssignDoctorOwner`, after checking the person outside the platform). |
-| `fzom_licence` | `official_registers` | 0. the profile has at least one specialty (§2a); 1. ФЗОМ lists the doctor in the latest complete snapshot that was applied (source record seen by that run, `import_missing_runs = 0`); 2. the attached Комора licence is on the latest list (`missing_since` empty) and valid today; 3. the licence holder's name is the profile name (normalised, either word order); 4. the licence specialty fits the profile's specialties (licence specialty mapping, §6); 5. no other row on the list with the same name also fits the profile. |
+| `fzom_licence` | `official_registers` | 0. the profile has at least one specialty (§2a); 1. ФЗОМ lists the doctor in the latest complete snapshot that was applied (source record seen by that run, `import_missing_runs = 0`); 2. the attached Комора licence is on the latest list (`missing_since` empty) and valid today — or in its **licence grace** (§2c); 3. the licence holder's name is the profile name (normalised, either word order); 4. the licence specialty fits the profile's specialties (licence specialty mapping, §6); 5. no other row on the list with the same name also fits the profile. |
 | `fzom_licence` (namesakes) | `official_registers` | ФЗОМ as above, no licence attached, and the list holds **several** valid licences of this name that fit the profile — at least as many as there are profiles of that name without a licence. Whichever is theirs, the ФЗОМ doctor holds one. No number is attached (`namesake_licences` = how many). |
-| `fzom_dentist` | `official_registers` (public label „Регистар на ФЗОМ“) | **Dentists only** (every specialty of the profile is a dental one, `stomatologija*`): ФЗОМ lists them in the latest complete snapshot as above. Nothing else is needed (owner's decision, 2026-10: there is no public dental licence list). A Комора licence attached to the profile and lapsed (expired or off the list) still blocks it. A dentist who drops out of ФЗОМ loses the badge on the next run (`source_removed`; a published one raises `verification_lost`). |
+| `fzom_dentist` | `official_registers` (public label „Регистар на ФЗОМ“) | **Dentists only** (every specialty of the profile is a dental one, `stomatologija*`): ФЗОМ lists them in the latest complete snapshot as above. Nothing else is needed (owner's decision, 2026-10: there is no public dental licence list). A Комора licence attached to the profile and lapsed (expired or off the list) still blocks it, unless it is in its licence grace (§2c). A dentist who drops out of ФЗОМ loses the badge on the next run (`source_removed`; a published one raises `verification_lost`). |
 | `website_licence` | `licence_and_website` | 1. The institution's own staff page lists the doctor (website import, research confidence „high“, the profile still linked to that institution, the site not flagged — §5); 2. the attached licence is on the list, valid, the profile's name and specialty as above; 3. **no other row on the whole list has this name** (stricter than ФЗОМ: a staff page is a weaker anchor than a contract). |
 | `fzom_website` | `website_and_register` | ФЗОМ current as above **and** the staff page of one of the **same** institutions the ФЗОМ contract names lists the doctor (high confidence, unflagged, still linked), and the page states no specialty that contradicts ФЗОМ's (a page wording nobody has mapped yet is not a contradiction). |
 
@@ -57,7 +57,7 @@ Everything else is **unverified**, with the first reason that applies:
 |---|---|---|
 | `suppressed` | Removed on objection or deleted; never verified automatically | no |
 | `licence_off_list` | The attached licence is no longer on the latest complete Комора list | only if the profile was public and verified (§4) |
-| `licence_expired` | The attached licence has expired | as above |
+| `licence_expired` | The attached licence has expired (and no licence grace applies, §2c) | as above |
 | `stale_register` | ФЗОМ was not imported, nor confirmed unchanged by a 304, within `IMPORT_FZOM_MAX_AGE_DAYS` (45): nothing from ФЗОМ is current. `import:adjudicate --report` warns and the import alert inbox gets „Застарен регистар“ | as above |
 | `source_removed` | No longer in the latest ФЗОМ snapshot (facility: no longer in the register) | as above |
 | `website_removed` | The latest import of the institution's site no longer lists the doctor (and ФЗОМ does not) | as above |
@@ -107,6 +107,63 @@ the ФЗОМ import marked `no_specialty` (§8).
   compare with the newest import of any slice). An entry no import listed within
   `IMPORT_WEBSITE_MAX_AGE_DAYS` (180) → `website_outdated`. Entries stored
   before this stamp existed are refreshed by the next import of their slice.
+
+### 2c. Licence grace: a renewal the list cannot show yet
+
+The Комора publishes its valid-licence list about every four months; the
+list states the date it was prepared („изготвени заклучно со 2.7.2026“). A
+licence that expires after that date was most likely renewed — the list
+simply cannot show it until the next one. So an expired licence still counts
+for the ФЗОМ rules (`fzom_licence`, and does not block `fzom_dentist`) when
+all of this holds:
+
+1. the licence expired **after** the date of the list it was last on
+   (`komora_licences.list_date`); one the list already showed as expired
+   gets no grace;
+2. that list is still the latest **complete** list imported
+   (`KomoraListDate::latestApplied()`: the latest successful complete
+   `import:komora-licences` run's `source_meta.list_date`). A partial
+   `--file` import of a few letters changes nothing for the others;
+3. ФЗОМ lists the doctor in its current snapshot (§2b). A staff page is not
+   an official register: `website_licence` gets no grace;
+4. the expiry is at most `IMPORT_LICENCE_GRACE_DAYS` (180, config
+   `import.verification.licence_grace_days`; 0 turns the grace off) ago.
+
+The newer list decides at once: renewed there → valid as usual; still
+expired there (the expiry is now before the list's date) → `licence_expired`;
+not on it → `licence_off_list`. After the grace days without a newer list →
+`licence_expired`.
+
+The verification keeps its basis and `verified_at` (nothing changes
+publicly). The evidence records the basis:
+`licence_grace: {expired_on, list_date, grace_until}`. Staff see it in
+English on the doctor's edit page (under the title), in the verification
+column's tooltip („Verified (licence grace)“) and in the verification
+modals: „Licence expired on 20.10.2026, after the latest Комора list
+(02.07.2026); awaiting a newer list — kept verified (grace until
+18.04.2027).“ (`LicenceGrace::adminNote()`).
+
+The public site never mentions the expiry. A doctor in grace keeps
+„Верификуван“, whose toggletip names the list: „Основа: Регистар на ФЗОМ и
+Лекарска комора. Според листата на Лекарска комора од 02.07.2026.“ The
+„Лиценца: важечка“ chip is **not** shown (it would be false: the list no
+longer shows the licence valid), and no other licence chip replaces it —
+a different wording („на листата од …“) would itself signal that something
+changed, and the badge already says which list it rests on.
+
+`import:komora-check` (monthly) tells staff when the Комора page shows a
+newer list (docs/data-import.md §3).
+
+### 2d. Public wording
+
+The doctor payload carries the list date, never the expiry:
+`verification.licence_list_date` (Y-m-d) for doctors verified on a licence
+rule (`fzom_licence`, `website_licence`; read from `evidence.list_date`),
+and `licence_list_date` beside `has_valid_licence` on the profile. The
+profile shows „Лиценца: важечка“ with the toggletip „Според листата на
+Лекарска комора од 02.07.2026.“, and the verified toggletip „Основа: … .
+Според листата на Лекарска комора од 02.07.2026.“ instead of „Податоците
+се потврдени“. Other bases keep their wording.
 
 ## 3. Facilities and pharmacies
 
@@ -182,7 +239,7 @@ verification it is extended:
 | Trigger | |
 |---|---|
 | After every successful import apply | ФЗОМ and Комора (listener `VerifyAfterImportRun` on `ImportRunFinished`), websites (the command). `IMPORT_VERIFY_AFTER_IMPORT=false` turns it off. A busy engine is skipped; a failing one never fails the import. |
-| Nightly, 05:50 | `import:adjudicate` (always on: it only reads and writes the database). An expired licence loses its badge on the day it expires. |
+| Nightly, 05:50 | `import:adjudicate` (always on: it only reads and writes the database). An expired licence loses its badge on the day it expires — unless the licence grace applies (§2c), which ends at the latest `IMPORT_LICENCE_GRACE_DAYS` after the expiry. |
 | By hand | `php artisan import:adjudicate` (apply), `--dry-run` (decide and count, write nothing; the licence re-match is skipped), `--report` (the owner's summary: verified by rule, unverified by reason, open questions by reason, drafts ready to publish, a stale-ФЗОМ warning — counts only, never names; like `--dry-run` it writes nothing to profiles but records its run as a dry-run `import_runs` row). |
 
 Each run is an `import_runs` row with source `verification` and its counts

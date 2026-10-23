@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\User;
+use App\Support\Verification\LicenceGrace;
 use App\Support\Verification\VerificationBasis;
 use App\Support\Verification\VerificationWriter;
 use Filament\Actions\Action;
@@ -126,10 +127,10 @@ final class VerificationActions
             ->badge()
             ->placeholder('Unverified')
             ->formatStateUsing(fn ($state, Doctor|Facility $record): string => $record->isVerified()
-                ? 'Verified'.($record->hasStaffVerificationDecision() ? ' (staff)' : '')
+                ? 'Verified'.($record->hasStaffVerificationDecision() ? ' (staff)' : (self::graceNote($record) !== null ? ' (licence grace)' : ''))
                 : 'Unverified')
             ->color(fn (Doctor|Facility $record): string => $record->isVerified() ? 'success' : 'gray')
-            ->tooltip(fn (Doctor|Facility $record): ?string => $record->verification_basis?->label())
+            ->tooltip(fn (Doctor|Facility $record): ?string => collect([$record->verification_basis?->label(), self::graceNote($record)])->filter()->implode(' — ') ?: null)
             ->sortable();
     }
 
@@ -158,6 +159,12 @@ final class VerificationActions
             $parts[] = $record->hasStaffVerificationDecision() ? 'decided by staff' : 'decided automatically';
         }
 
+        $grace = self::graceNote($record);
+
+        if ($grace !== null) {
+            $parts[] = rtrim($grace, '.');
+        }
+
         $last = $reasons['note'] ?? $reasons['reason'] ?? null;
 
         if (is_string($last) && $last !== '') {
@@ -165,6 +172,15 @@ final class VerificationActions
         }
 
         return implode(' · ', $parts).'.';
+    }
+
+    /**
+     * Doctors kept verified while a licence that expired after its Комора
+     * list awaits a newer list (LicenceGrace); null otherwise.
+     */
+    public static function graceNote(Doctor|Facility $record): ?string
+    {
+        return $record instanceof Doctor ? LicenceGrace::adminNote($record->verification_reasons) : null;
     }
 
     private static function allowed(Doctor|Facility $record): bool

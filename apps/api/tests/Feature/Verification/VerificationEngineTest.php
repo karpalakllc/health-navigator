@@ -6,6 +6,8 @@ use App\Enums\FacilityType;
 use App\Enums\ImportReviewKind;
 use App\Enums\ImportReviewStatus;
 use App\Enums\ImportRunStatus;
+use App\Enums\UserKind;
+use App\Filament\Resources\Doctors\Pages\EditDoctor;
 use App\Mail\ImportAlertMail;
 use App\Models\Doctor;
 use App\Models\Facility;
@@ -14,6 +16,7 @@ use App\Models\ImportReviewItem;
 use App\Models\ImportRun;
 use App\Models\KomoraLicence;
 use App\Models\LicenceSpecialtyMapping;
+use App\Models\SiteSetting;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Support\Import\NameKey;
@@ -22,14 +25,18 @@ use App\Support\Licences\SpecialtyKey;
 use App\Support\Verification\Engine\EvidenceLoader;
 use App\Support\Verification\Engine\VerificationEngine;
 use App\Support\Verification\Engine\VerifiedDraftPublisher;
+use App\Support\Verification\LicenceGrace;
 use App\Support\Verification\VerificationBasis;
 use App\Support\Verification\VerificationWriter;
 use Carbon\CarbonImmutable;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -259,6 +266,8 @@ class VerificationEngineTest extends TestCase
 
     public function test_an_expired_licence_or_a_doctor_gone_from_fzom_loses_the_verification_and_a_public_profile_is_flagged(): void
     {
+        // Without the licence grace (its own tests below): expiry un-verifies at once.
+        config(['import.verification.licence_grace_days' => 0]);
         $facility = $this->facility();
         $expiring = $this->fzomDoctor('Ема Истечена', $facility, published: true);
         $licence = $this->licence('Ема Истечена', 'педијатрија', $expiring, validUntil: '2026-10-20');
@@ -292,6 +301,201 @@ class VerificationEngineTest extends TestCase
         $this->assertTrue($expiring->fresh()->isVerified());
         $this->assertSame([], $this->uncertain('verification_lost'));
         $this->assertSame('no_longer_applies', ImportReviewItem::query()->find($lost[0]->id)?->resolution);
+    }
+
+    /**
+     * A complete Комора list import of $date (what import:komora-licences records).
+     */
+    private function komoraList(string $date, bool $complete = true): void
+    {
+        ImportRun::query()->create([
+            'source' => 'komora', 'dry_run' => false, 'status' => ImportRunStatus::Succeeded,
+            'started_at' => now(), 'finished_at' => now(), 'source_meta' => ['list_date' => $date, 'complete_list' => $complete],
+        ]);
+    }
+
+    /** The ФЗОМ snapshot and its records stay current while the test travels. */
+    private function fzomStillCurrent(): void
+    {
+        DB::table('import_runs')->where('source', 'fzom')->update(['started_at' => now()->subHour()]);
+        DB::table('source_records')->where('source', 'fzom')->update(['last_seen_at' => now()->subMinutes(55)]);
+    }
+
+    public function test_a_licence_that_expired_after_its_list_keeps_a_current_fzom_doctor_verified_in_grace(): void
+    {
+        $this->komoraList('2026-07-02');
+        $facility = $this->facility();
+        $doctor = $this->fzomDoctor('Ема Обновена', $facility, published: true);
+        $licence = $this->licence('Ема Обновена', 'педијатрија', $doctor, validUntil: '2026-10-20');
+        $dentist = $this->fzomDoctor('Вера Забна', $facility, 'Стоматологија');
+        DB::table('specialties')->where('name', 'Стоматологија')->update(['slug' => 'stomatologija']);
+        $this->licence('Вера Забна', 'педијатрија', $dentist, validUntil: '2026-10-15');
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified());
+        $verifiedAt = $doctor->fresh()->verified_at;
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-23 05:50'));
+        $this->fzomStillCurrent();
+        $run = $this->adjudicate();
+
+        $doctor->refresh();
+        $this->assertTrue($doctor->isVerified(), 'The 02.07.2026 list could not show a renewal yet.');
+        $this->assertEquals($verifiedAt, $doctor->verified_at, 'Nothing changed publicly.');
+        $this->assertSame(VerificationBasis::OfficialRegisters, $doctor->verification_basis);
+        $evidence = $doctor->verification_reasons['evidence'][0];
+        $this->assertSame('fzom_licence', $evidence['rule']);
+        $this->assertSame('2026-07-02', $evidence['list_date']);
+        $this->assertSame(['expired_on' => '2026-10-20', 'list_date' => '2026-07-02', 'grace_until' => '2027-04-18'], $evidence['licence_grace']);
+        $this->assertSame(1, $run->counts['doctors_verified.fzom_licence']);
+        $this->assertSame([], $this->uncertain('verification_lost'));
+        // A dentist's attached licence in grace does not count against the ФЗОМ contract either.
+        $this->assertTrue($dentist->fresh()->isVerified());
+        $this->assertSame('2026-10-15', $dentist->fresh()->verification_reasons['evidence'][0]['licence_grace']['expired_on']);
+
+        // Staff read it in English.
+        $note = 'Licence expired on 20.10.2026, after the latest Комора list (02.07.2026); awaiting a newer list — kept verified (grace until 18.04.2027).';
+        $this->assertSame($note, LicenceGrace::adminNote($doctor->verification_reasons));
+        $this->seed(RolesAndPermissionsSeeder::class);
+        SiteSetting::current();
+        $admin = User::factory()->create(['user_kind' => UserKind::Staff]);
+        $admin->syncRoles(['Administrator']);
+        $this->actingAs($admin);
+        Filament::setCurrentPanel('admin');
+        Livewire::test(EditDoctor::class, ['record' => $doctor->getKey()])->assertSee($note);
+
+        // The public profile says nothing about the expiry: no „Лиценца:
+        // важечка“ (it is not valid by the list), the verified badge with the
+        // list's date only.
+        auth()->logout();
+        $response = $this->withHeader('Accept-Language', 'mk')->getJson('/api/v1/doctors/'.$doctor->slug)->assertOk();
+        $response->assertJsonPath('data.has_valid_licence', false);
+        $response->assertJsonPath('data.licence_list_date', null);
+        $response->assertJsonPath('data.verification.status', 'verified');
+        $response->assertJsonPath('data.verification.licence_list_date', '2026-07-02');
+        $body = (string) $response->getContent();
+
+        foreach (['2026-10-20', '20.10.2026', '2027-04-18', 'grace', 'expired', 'valid_until', 'истеч', $licence->licence_number] as $secret) {
+            $this->assertStringNotContainsString($secret, $body);
+        }
+
+        $list = (string) $this->getJson('/api/v1/doctors')->assertOk()->getContent();
+        $this->assertStringNotContainsString('grace', $list);
+        $this->assertStringNotContainsString('2026-10-20', $list);
+    }
+
+    public function test_the_public_profile_names_the_list_a_valid_licence_and_the_verification_rest_on(): void
+    {
+        $this->komoraList('2026-07-02');
+        $doctor = $this->fzomDoctor('Ана Тестовска', $this->facility(), published: true);
+        $licence = $this->licence('Ана Тестовска', 'педијатрија', $doctor, validUntil: '2030-01-01');
+        $this->adjudicate();
+
+        $response = $this->getJson('/api/v1/doctors/'.$doctor->slug)->assertOk();
+        $response->assertJsonPath('data.has_valid_licence', true);
+        $response->assertJsonPath('data.licence_list_date', '2026-07-02');
+        $response->assertJsonPath('data.verification.licence_list_date', '2026-07-02');
+        $this->assertStringNotContainsString('2030-01-01', (string) $response->getContent());
+        $this->assertStringNotContainsString($licence->licence_number, (string) $response->getContent());
+    }
+
+    public function test_the_licence_grace_needs_a_current_fzom_contract(): void
+    {
+        $this->komoraList('2026-07-02');
+        $facility = $this->facility();
+        $this->website($facility);
+        $websiteOnly = $this->websiteDoctor('Гоце Сајтовски', $facility);
+        $this->licence('Гоце Сајтовски', 'педијатрија', $websiteOnly, validUntil: '2026-10-20');
+        $leaving = $this->fzomDoctor('Жарко Заминат', $facility);
+        $this->licence('Жарко Заминат', 'педијатрија', $leaving, validUntil: '2026-10-20');
+        $this->adjudicate();
+        $this->assertTrue($websiteOnly->fresh()->isVerified());
+        $this->assertTrue($leaving->fresh()->isVerified());
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-23 05:50'));
+        $this->fzomStillCurrent();
+        DB::table('source_records')->where('source', 'website')->update(['last_seen_at' => now()->subMinutes(55)]);
+        DB::table('doctors')->where('id', $leaving->id)->update(['import_missing_runs' => 1]);
+        $this->adjudicate();
+
+        // A staff page is no official register: no grace.
+        $this->assertFalse($websiteOnly->fresh()->isVerified());
+        $this->assertSame('licence_expired', $this->reasons($websiteOnly)['reason']);
+        $this->assertFalse($leaving->fresh()->isVerified());
+        $this->assertSame('licence_expired', $this->reasons($leaving)['reason']);
+    }
+
+    public function test_the_licence_grace_ends_after_the_configured_days(): void
+    {
+        config(['import.verification.licence_grace_days' => 30]);
+        $this->komoraList('2026-07-02');
+        $doctor = $this->fzomDoctor('Ема Обновена', $this->facility());
+        $this->licence('Ема Обновена', 'педијатрија', $doctor, validUntil: '2026-10-20');
+        $this->adjudicate();
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-19 05:50'));
+        $this->fzomStillCurrent();
+        $this->adjudicate();
+        $this->assertTrue($doctor->fresh()->isVerified(), 'Day 30 after the expiry is still in grace.');
+        $this->assertSame('2026-11-19', $this->reasons($doctor)['evidence'][0]['licence_grace']['grace_until']);
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 05:50'));
+        $this->fzomStillCurrent();
+        $this->adjudicate();
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('licence_expired', $this->reasons($doctor)['reason']);
+        $this->assertNull(LicenceGrace::adminNote($doctor->fresh()->verification_reasons));
+    }
+
+    public function test_a_newer_list_ends_the_licence_grace_at_once(): void
+    {
+        $this->komoraList('2026-07-02');
+        $facility = $this->facility();
+        $gone = $this->fzomDoctor('Ана Отпадната', $facility);
+        $goneLicence = $this->licence('Ана Отпадната', 'педијатрија', $gone, validUntil: '2026-10-10');
+        $still = $this->fzomDoctor('Бојан Неуобновен', $facility);
+        $stillLicence = $this->licence('Бојан Неуобновен', 'педијатрија', $still, validUntil: '2026-10-10');
+        $unread = $this->fzomDoctor('Весна Нечитлива', $facility);
+        $this->licence('Весна Нечитлива', 'педијатрија', $unread, validUntil: '2026-10-10');
+        $renewed = $this->fzomDoctor('Горан Обновен', $facility);
+        $renewedLicence = $this->licence('Горан Обновен', 'педијатрија', $renewed, validUntil: '2026-10-10');
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-20 05:50'));
+        $this->fzomStillCurrent();
+        $this->adjudicate();
+        $this->assertTrue($gone->fresh()->isVerified() && $still->fresh()->isVerified() && $unread->fresh()->isVerified() && $renewed->fresh()->isVerified());
+
+        // The list of 15.10.2026 is imported: it decides.
+        $this->komoraList('2026-10-15');
+        $goneLicence->update(['missing_since' => '2026-10-15']);
+        $stillLicence->update(['list_date' => '2026-10-15']);
+        $renewedLicence->update(['list_date' => '2026-10-15', 'valid_until' => '2031-10-10']);
+        $renewed->forceFill(['licence_valid_until' => '2031-10-10'])->saveQuietly();
+        $this->adjudicate();
+
+        $this->assertSame('licence_off_list', $this->reasons($gone)['reason'], 'Not on the newer list.');
+        $this->assertSame('licence_expired', $this->reasons($still)['reason'], 'Still expired on the newer list.');
+        $this->assertSame('licence_expired', $this->reasons($unread)['reason'], 'Last seen on an older list than the latest.');
+        $this->assertTrue($renewed->fresh()->isVerified());
+        $this->assertArrayNotHasKey('licence_grace', $this->reasons($renewed)['evidence'][0]);
+        $this->assertSame('2026-10-15', $this->reasons($renewed)['evidence'][0]['list_date']);
+
+        // A partial import of a newer list (some letters only) decides nothing for the others.
+        $this->komoraList('2026-11-01', complete: false);
+        $this->adjudicate();
+        $this->assertTrue($renewed->fresh()->isVerified());
+    }
+
+    public function test_a_licence_that_expired_before_its_list_date_gets_no_grace(): void
+    {
+        $this->komoraList('2026-07-02');
+        $doctor = $this->fzomDoctor('Ема Стара', $this->facility());
+        // The list of 02.07.2026 already showed it expired.
+        $this->licence('Ема Стара', 'педијатрија', $doctor, validUntil: '2026-06-30');
+
+        $this->adjudicate();
+
+        $this->assertFalse($doctor->fresh()->isVerified());
+        $this->assertSame('licence_expired', $this->reasons($doctor)['reason']);
     }
 
     public function test_a_licence_off_the_list_removes_the_verification(): void
@@ -692,6 +896,7 @@ class VerificationEngineTest extends TestCase
 
     public function test_a_lost_verification_item_stays_open_until_staff_act_or_the_verification_returns(): void
     {
+        config(['import.verification.licence_grace_days' => 0]);
         $doctor = $this->fzomDoctor('Ема Изгубена', $this->facility(), published: true);
         $licence = $this->licence('Ема Изгубена', 'педијатрија', $doctor, validUntil: '2026-10-08');
         $this->adjudicate();

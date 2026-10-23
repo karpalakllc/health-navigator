@@ -122,6 +122,17 @@ Schedule::command(ImportSchedule::command('komora'))
     ->when(fn (): bool => ImportSchedule::shouldRun('komora'))
     ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora', ImportSchedule::command('komora')));
 
+// Is there a Комора list newer than the last import? Monthly (the 1st,
+// before the import on the 3rd; KOMORA_CHECK_CRON), ON by default: it only
+// reads the list page and tells staff once per new list — never imports.
+Schedule::command(ImportSchedule::command('komora-check'))
+    ->cron((string) config('data_ops.schedule.komora-check.cron', '20 6 1 * *'))
+    ->timezone('Europe/Skopje')
+    ->onOneServer()
+    ->withoutOverlapping(30)
+    ->when(fn (): bool => ImportSchedule::shouldRun('komora-check'))
+    ->onFailure(fn () => app(ImportAlerter::class)->scheduledRunFailed('komora-check', ImportSchedule::command('komora-check')));
+
 // ФЗОМ pharmacy contracts (import:pharmacies, docs/data-import.md §4a):
 // weekly, after the doctor register, from the same XML (a conditional GET).
 // ON by default; new pharmacies stay hidden drafts until staff publish.

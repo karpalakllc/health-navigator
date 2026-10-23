@@ -32,6 +32,15 @@ return [
             'enabled' => filter_var(env('IMPORT_KOMORA_SCHEDULE', false), FILTER_VALIDATE_BOOLEAN),
             'command' => 'import:komora-licences',
         ],
+        // Not an import: a monthly look at the Комора page for a list newer
+        // than the last one imported, told to staff once (bell + the alert
+        // inbox). ON by default like the other read-only schedules; it
+        // never imports — the import above does, only when enabled.
+        'komora-check' => [
+            'enabled' => filter_var(env('IMPORT_KOMORA_CHECK_SCHEDULE', true), FILTER_VALIDATE_BOOLEAN),
+            'command' => 'import:komora-check',
+            'cron' => (string) env('KOMORA_CHECK_CRON', '20 6 1 * *'),
+        ],
         // ФЗОМ on-duty pharmacies: ON by default (owner, 2026-10-07); the
         // command also stops when import.on_duty_pharmacies.enabled is off.
         // ФЗОМ pharmacy contracts (import:pharmacies): weekly like ФЗОМ, ON by

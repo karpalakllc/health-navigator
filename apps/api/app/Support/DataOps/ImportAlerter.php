@@ -29,12 +29,15 @@ class ImportAlerter
     /** The verification engine found the ФЗОМ register older than its maximum age. */
     public const KIND_STALE_REGISTER = 'stale_register';
 
+    /** The Комора page shows a licence list newer than the last one imported (import:komora-check). */
+    public const KIND_NEW_LIST = 'new_list';
+
     private const ERROR_LIMIT = 300;
 
     /**
      * @param  array<string, int>  $counts
      */
-    public function send(string $source, string $kind, array $counts = [], ?string $error = null, ?string $reviewUrl = null): bool
+    public function send(string $source, string $kind, array $counts = [], ?string $error = null, ?string $reviewUrl = null, ?string $note = null): bool
     {
         $recipient = $this->recipient();
 
@@ -55,6 +58,7 @@ class ImportAlerter
                 counts: $counts,
                 error: $error === null ? null : self::clean($error),
                 reviewUrl: $reviewUrl,
+                note: $note === null ? null : self::clean($note),
             ));
         } catch (Throwable $e) {
             // Not sent: the next alert must not be throttled away.
@@ -81,7 +85,7 @@ class ImportAlerter
     {
         return match ($source) {
             'fzom' => 'ФЗОМ — Шифрарник на лекари',
-            'komora' => 'Лекарска комора — листа на важечки лиценци',
+            'komora', 'komora-check' => 'Лекарска комора — листа на важечки лиценци',
             'on-duty-pharmacies' => 'ФЗОМ — распоред на дежурни аптеки',
             'fzom-pharmacies', 'pharmacies' => 'ФЗОМ — аптеки со договор',
             default => $source,

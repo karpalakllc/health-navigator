@@ -20,6 +20,7 @@ final readonly class DoctorEvidence
      * @param  list<WebsiteFact>  $websites  staff-page entries that point at this profile
      * @param  list<string>  $specialtyNames  the profile's specialties (for staff-facing review items)
      * @param  bool  $fzomStale  the ФЗОМ register is older than the maximum age (nothing from it is current)
+     * @param  string|null  $komoraListDate  date of the latest complete Комора list applied (Y-m-d)
      */
     public function __construct(
         public int $doctorId,
@@ -39,6 +40,7 @@ final readonly class DoctorEvidence
         public array $websites,
         public array $specialtyNames = [],
         public bool $fzomStale = false,
+        public ?string $komoraListDate = null,
     ) {}
 
     /**
@@ -54,6 +56,7 @@ final readonly class DoctorEvidence
             array_map(fn (WebsiteFact $site): WebsiteFact => $site->trusting(), $this->websites),
             $this->specialtyNames,
             $this->fzomStale,
+            $this->komoraListDate,
         );
     }
 }

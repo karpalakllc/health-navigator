@@ -45,8 +45,9 @@ class VerificationBadgeTest extends TestCase
             'status' => 'verified',
             'basis' => 'official_registers',
             'basis_label' => 'Регистар на ФЗОМ и Лекарска комора',
+            'licence_list_date' => null,
         ]);
-        $list->assertJsonPath('data.1.verification', ['status' => 'unverified', 'basis' => null, 'basis_label' => null]);
+        $list->assertJsonPath('data.1.verification', ['status' => 'unverified', 'basis' => null, 'basis_label' => null, 'licence_list_date' => null]);
 
         $detail = $this->getJson('/api/v1/doctors/alpha')->assertOk();
         $detail->assertJsonPath('data.verification.status', 'verified');

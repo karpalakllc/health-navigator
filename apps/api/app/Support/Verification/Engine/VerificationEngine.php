@@ -28,7 +28,9 @@ use Throwable;
  *    and specialty mapping (new website drafts, mapping fixes);
  * 2. evaluates every profile (DoctorRules, FacilityRules): verified under
  *    a rule, or unverified with a reason; a lapsed licence or a record gone
- *    from its source removes a verification by itself;
+ *    from its source removes a verification by itself (a licence that
+ *    expired after its list's date waits for the next list while ФЗОМ
+ *    still lists the doctor: the licence grace, docs/verification.md §2c);
  * 3. raises the few genuinely uncertain cases as "uncertain" review items,
  *    grouped and prioritised (ReviewSignals), and closes those that no
  *    longer apply;

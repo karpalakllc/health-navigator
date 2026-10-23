@@ -63,7 +63,7 @@ final class Reason
     public const DESCRIPTIONS = [
         self::SUPPRESSED => 'Removed on objection or deleted: never verified automatically',
         self::LICENCE_OFF_LIST => 'The attached licence is no longer on the Комора list',
-        self::LICENCE_EXPIRED => 'The attached licence has expired',
+        self::LICENCE_EXPIRED => 'The attached licence has expired (no licence grace: before its list date, a newer list, or the grace is over)',
         self::SOURCE_REMOVED => 'No longer in the latest ФЗОМ snapshot',
         self::STALE_REGISTER => 'The ФЗОМ register is older than the maximum age: import ФЗОМ again',
         self::WEBSITE_REMOVED => 'No longer on the institution\'s staff page at its latest import',

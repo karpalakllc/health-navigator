@@ -18,6 +18,8 @@ class DoctorDetailResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $licenceListDate = $this->resource->validLicenceListDate();
+
         return [
             'slug' => $this->slug,
             'full_name' => $this->full_name,
@@ -39,9 +41,11 @@ class DoctorDetailResource extends JsonResource
             'verification' => $this->publicVerification(),
             'is_sponsored' => (bool) $this->is_sponsored,
             'city' => $this->city,
-            // „Лиценца: важечка“: a status only, never the number or the
-            // ФЗО facsimile (internal matching keys).
-            'has_valid_licence' => $this->resource->hasValidLicence(),
+            // „Лиценца: важечка“: a status only, never the number, the
+            // expiry or the ФЗО facsimile (internal matching keys) — with the
+            // date of the Комора list it rests on (null when not valid).
+            'has_valid_licence' => $licenceListDate !== null || $this->resource->hasValidLicence(),
+            'licence_list_date' => $licenceListDate,
             'phone' => $this->phone,
             'email' => $this->email,
             'specialties' => $this->specialties

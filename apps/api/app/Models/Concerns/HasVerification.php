@@ -74,7 +74,11 @@ trait HasVerification
      * The public `verification` object in API resources: status and the
      * public basis label only, never the internal evidence.
      *
-     * @return array{status: string, basis: string|null, basis_label: string|null}
+     * `licence_list_date` (Y-m-d): the date of the Лекарска комора list a
+     * doctor's verification rests on („Според листата на Лекарска комора од
+     * 02.07.2026.“), null for every other basis. Never the licence's expiry.
+     *
+     * @return array{status: string, basis: string|null, basis_label: string|null, licence_list_date: string|null}
      */
     public function publicVerification(): array
     {
@@ -84,7 +88,29 @@ trait HasVerification
             'status' => $this->verificationStatus()->value,
             'basis' => $basis?->value,
             'basis_label' => $basis?->publicLabel($this->verificationLabelSubject()),
+            'licence_list_date' => $basis !== null ? $this->verificationListDate() : null,
         ];
+    }
+
+    /**
+     * The list date the engine recorded for a licence rule (fzom_licence,
+     * website_licence); only that date is read from the evidence.
+     */
+    private function verificationListDate(): ?string
+    {
+        if (! $this instanceof Doctor || $this->hasStaffVerificationDecision()) {
+            return null;
+        }
+
+        $evidence = $this->verification_reasons['evidence'][0] ?? null;
+
+        if (! is_array($evidence) || ! in_array($evidence['rule'] ?? null, ['fzom_licence', 'website_licence'], true)) {
+            return null;
+        }
+
+        $date = $evidence['list_date'] ?? null;
+
+        return is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : null;
     }
 
     /**

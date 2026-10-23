@@ -10,7 +10,7 @@ namespace App\Support\Verification\Engine;
 final readonly class Verdict
 {
     /**
-     * @param  list<array<string, scalar|null>>  $evidence
+     * @param  list<array<string, scalar|array<string, scalar|null>|null>>  $evidence
      */
     private function __construct(
         public ?VerificationRule $rule,
@@ -19,7 +19,7 @@ final readonly class Verdict
     ) {}
 
     /**
-     * @param  array<string, scalar|null>  $evidence
+     * @param  array<string, scalar|array<string, scalar|null>|null>  $evidence
      */
     public static function verified(VerificationRule $rule, array $evidence): self
     {

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
@@ -179,6 +180,22 @@ class Doctor extends Model
             && $this->licence_valid_until->endOfDay()->isFuture()
             // Off the last complete Комора list: not shown as valid.
             && ! KomoraLicence::query()->where('licence_number', $this->licence_number)->whereNotNull('missing_since')->exists();
+    }
+
+    /**
+     * The date of the Комора list „Лиценца: важечка“ rests on (Y-m-d), shown
+     * as „Според листата на Лекарска комора од 02.07.2026.“ — null unless
+     * hasValidLicence(). Never the expiry date.
+     */
+    public function validLicenceListDate(): ?string
+    {
+        if (! $this->hasValidLicence()) {
+            return null;
+        }
+
+        $date = KomoraLicence::query()->where('licence_number', $this->licence_number)->value('list_date');
+
+        return $date === null ? null : Carbon::parse((string) $date)->toDateString();
     }
 
     /**

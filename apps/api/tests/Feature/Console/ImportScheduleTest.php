@@ -64,6 +64,15 @@ class ImportScheduleTest extends TestCase
         $this->assertFalse($this->scheduled('import:komora-licences')->filtersPass($this->app));
     }
 
+    public function test_the_komora_freshness_check_is_monthly_and_on_by_default_without_turning_the_import_on(): void
+    {
+        $this->assertSame('import:komora-check', ImportSchedule::command('komora-check'));
+        $this->assertSame('20 6 1 * *', $this->scheduled('import:komora-check')->expression);
+        $this->assertTrue(config('data_ops.schedule.komora-check.enabled'));
+        $this->assertTrue($this->scheduled('import:komora-check')->filtersPass($this->app));
+        $this->assertFalse(config('data_ops.schedule.komora.enabled'), 'The check never imports; the import stays the owner\'s switch.');
+    }
+
     public function test_an_enabled_import_runs_only_while_its_command_is_installed(): void
     {
         Artisan::command('import:w6c-installed', fn () => 0);
