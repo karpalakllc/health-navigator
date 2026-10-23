@@ -90,6 +90,18 @@ class ReviewInfolist
                     ->formatStateUsing(fn (): string => 'Profile received '.ReviewBurstDetector::THRESHOLD.'+ reviews within '.ReviewBurstDetector::WINDOW_HOURS.' h')
                     ->helperText('A signal only: nothing was changed automatically.')
                     ->visible(fn (Review $record): bool => $record->burst_flagged_at !== null),
+                TextEntry::make('via_shared_link')
+                    ->label('Started from the shared link')
+                    ->state('Yes')
+                    ->helperText('The author opened this profile through the „write a review“ share link (recorded only with their statistics consent). Same checks as any review.')
+                    ->visible(fn (Review $record): bool => $record->via_shared_link),
+                TextEntry::make('shared_link_burst_flagged_at')
+                    ->label('Shared-link burst')
+                    ->badge()
+                    ->color('warning')
+                    ->formatStateUsing(fn (): string => 'Profile received '.ReviewBurstDetector::SHARED_LINK_THRESHOLD.'+ shared-link reviews within '.ReviewBurstDetector::SHARED_LINK_WINDOW_HOURS.' h')
+                    ->helperText('A signal for extra review: look for the same wording, new accounts or a coordinated push. Nothing was changed automatically.')
+                    ->visible(fn (Review $record): bool => $record->shared_link_burst_flagged_at !== null),
             ]);
     }
 }

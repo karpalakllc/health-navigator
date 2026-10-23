@@ -43,6 +43,13 @@ class ReviewsTable
                     ->formatStateUsing(fn (): string => ReviewBurstDetector::THRESHOLD.'+ in '.ReviewBurstDetector::WINDOW_HOURS.' h')
                     ->tooltip('This profile received '.ReviewBurstDetector::THRESHOLD.' or more reviews within '.ReviewBurstDetector::WINDOW_HOURS.' hours. A signal for a closer look; nothing happens automatically.')
                     ->toggleable(),
+                TextColumn::make('shared_link_burst_flagged_at')
+                    ->label('Shared-link burst')
+                    ->badge()
+                    ->color('warning')
+                    ->formatStateUsing(fn (): string => ReviewBurstDetector::SHARED_LINK_THRESHOLD.'+ via link in '.ReviewBurstDetector::SHARED_LINK_WINDOW_HOURS.' h')
+                    ->tooltip('This profile received '.ReviewBurstDetector::SHARED_LINK_THRESHOLD.' or more reviews started from the shared „write a review“ link within '.ReviewBurstDetector::SHARED_LINK_WINDOW_HOURS.' hours. Check for coordinated or solicited reviews before approving; nothing happens automatically.')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
@@ -70,6 +77,10 @@ class ReviewsTable
                     ->label('Review bursts ('.ReviewBurstDetector::THRESHOLD.'+ on one profile within '.ReviewBurstDetector::WINDOW_HOURS.' h)')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('burst_flagged_at')),
+                Filter::make('shared_link_burst')
+                    ->label('Shared-link bursts ('.ReviewBurstDetector::SHARED_LINK_THRESHOLD.'+ via the share link on one profile within '.ReviewBurstDetector::SHARED_LINK_WINDOW_HOURS.' h)')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('shared_link_burst_flagged_at')),
             ])
             ->recordActions([
                 ViewAction::make(),

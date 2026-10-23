@@ -64,6 +64,10 @@ class ManageSiteSettings extends Page implements HasSchemas
             'forum_topics_require_moderation' => $settings->forum_topics_require_moderation,
             'forum_posts_require_moderation' => $settings->forum_posts_require_moderation,
             'doctor_replies_require_moderation' => (bool) ($settings->doctor_replies_require_moderation ?? true),
+            'reviews_prompt_on_profile' => (bool) $settings->reviews_prompt_on_profile,
+            'reviews_prompt_after_search' => (bool) $settings->reviews_prompt_after_search,
+            'reviews_share_link' => (bool) $settings->reviews_share_link,
+            'reviews_mobile_sticky_cta' => (bool) $settings->reviews_mobile_sticky_cta,
             'footer_emergency_text' => $settings->footer_emergency_text,
             'footer_disclaimer_text' => $settings->footer_disclaimer_text,
             'copyright_name' => $settings->copyright_name,
@@ -148,6 +152,22 @@ class ManageSiteSettings extends Page implements HasSchemas
                         Toggle::make('doctor_replies_require_moderation')
                             ->label('Require admin approval for doctor replies')
                             ->helperText('When on, a reply a linked doctor writes under a review is public only after staff approve it (Community → Doctor replies).'),
+                    ]),
+                Section::make('Review invitations')
+                    ->description('Ways the site invites patients to write the first reviews. They only invite: every review still needs a verified account, one per profile, the rate limits and moderation. Switching one off hides it completely.')
+                    ->schema([
+                        Toggle::make('reviews_prompt_on_profile')
+                            ->label('Prompt on profiles')
+                            ->helperText('„Дали сте биле кај …?“ card on doctor, facility and pharmacy profiles after a short read. Once per profile per device; never on the viewer\'s own profile or once they reviewed it.'),
+                        Toggle::make('reviews_prompt_after_search')
+                            ->label('Prompt after a search')
+                            ->helperText('Back on the doctor search results after opening a profile, one calm card asks about that doctor. At most once per session and once a week per device, never again after „Не сега“.'),
+                        Toggle::make('reviews_share_link')
+                            ->label('„Recommend a review“ share link')
+                            ->helperText('A share/copy button on doctor profiles. The link is the same for everyone (profile URL + fixed campaign tags) and carries no reward. Reviews started from it are marked for staff, with statistics consent, and 3+ within 48 h on one profile raise the „Shared-link burst“ flag.'),
+                        Toggle::make('reviews_mobile_sticky_cta')
+                            ->label('Sticky „Write a review“ button on phones')
+                            ->helperText('Adds „Напишете рецензија“ to the bottom bar of doctor profiles that have no published review yet. Phones only.'),
                     ]),
                 Section::make('Public modules')
                     ->description('When disabled, the API returns “coming soon” and the web shows a blurred placeholder.')

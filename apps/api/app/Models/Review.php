@@ -52,6 +52,7 @@ class Review extends Model
         'rejection_note',
         'removed_at',
         'removal_category',
+        'via_shared_link',
     ];
 
     /**
@@ -101,7 +102,10 @@ class Review extends Model
 
         static::deleted(fn (Review $review) => ReviewAggregates::recomputeFor($review));
 
-        static::created(fn (Review $review) => ReviewBurstDetector::check($review));
+        static::created(function (Review $review): void {
+            ReviewBurstDetector::check($review);
+            ReviewBurstDetector::checkSharedLink($review);
+        });
     }
 
     /**
@@ -148,6 +152,8 @@ class Review extends Model
             'removed_at' => 'datetime',
             'removal_category' => RemovalCategory::class,
             'burst_flagged_at' => 'datetime',
+            'via_shared_link' => 'boolean',
+            'shared_link_burst_flagged_at' => 'datetime',
             'resubmission_count' => 'integer',
             'resubmitted_at' => 'datetime',
             'first_refused_at' => 'datetime',

@@ -36,6 +36,23 @@ class SiteSetting extends Model
         'forum_topics_require_moderation',
         'forum_posts_require_moderation',
         'doctor_replies_require_moderation',
+        'reviews_prompt_on_profile',
+        'reviews_prompt_after_search',
+        'reviews_share_link',
+        'reviews_mobile_sticky_cta',
+    ];
+
+    /**
+     * The „first reviews“ switches (docs/reviews-growth.md): sent to the web
+     * as plain booleans; each hides its feature completely when off.
+     *
+     * @var list<string>
+     */
+    public const REVIEW_GROWTH_FLAGS = [
+        'reviews_prompt_on_profile',
+        'reviews_prompt_after_search',
+        'reviews_share_link',
+        'reviews_mobile_sticky_cta',
     ];
 
     protected function casts(): array
@@ -52,6 +69,10 @@ class SiteSetting extends Model
             'forum_topics_require_moderation' => 'boolean',
             'forum_posts_require_moderation' => 'boolean',
             'doctor_replies_require_moderation' => 'boolean',
+            'reviews_prompt_on_profile' => 'boolean',
+            'reviews_prompt_after_search' => 'boolean',
+            'reviews_share_link' => 'boolean',
+            'reviews_mobile_sticky_cta' => 'boolean',
         ];
     }
 
@@ -142,6 +163,10 @@ class SiteSetting extends Model
             'forum_topics_require_moderation' => true,
             'forum_posts_require_moderation' => true,
             'doctor_replies_require_moderation' => true,
+            'reviews_prompt_on_profile' => true,
+            'reviews_prompt_after_search' => true,
+            'reviews_share_link' => true,
+            'reviews_mobile_sticky_cta' => true,
         ];
 
         $testingDefaults = [
@@ -166,6 +191,10 @@ class SiteSetting extends Model
             'public_forum' => $this->public_forum,
             'registrations_enabled' => $this->registrations_enabled,
             'maintenance_mode' => $this->maintenance_mode,
+            'reviews_prompt_on_profile' => (bool) $this->reviews_prompt_on_profile,
+            'reviews_prompt_after_search' => (bool) $this->reviews_prompt_after_search,
+            'reviews_share_link' => (bool) $this->reviews_share_link,
+            'reviews_mobile_sticky_cta' => (bool) $this->reviews_mobile_sticky_cta,
         ];
     }
 

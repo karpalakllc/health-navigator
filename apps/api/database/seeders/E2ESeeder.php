@@ -76,7 +76,7 @@ class E2ESeeder extends Seeder
     public const ATTEMPTS = 3;
 
     /** @var list<string> each becomes "{prefix}-{attempt}@e2e.test" */
-    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported', 'account', 'doctor', 'impact'];
+    public const MUTABLE_MEMBER_PREFIXES = ['reviewer', 'forum', 'reset', 'reported', 'account', 'doctor', 'impact', 'first'];
 
     public const SPECIALTY_SLUG = 'e2e-kardiologija';
 
@@ -120,6 +120,15 @@ class E2ESeeder extends Seeder
 
     public const DOCTOR_CLAIM_NAME_PREFIX = 'д-р Петар Тестовски';
 
+    /**
+     * „First reviews“ (e2e/reviews-growth.spec.ts): one published doctor per
+     * attempt with no review at all, for "first-{attempt}@e2e.test" to write
+     * the first one. Re-seeding deletes whatever reviews they collected.
+     */
+    public const FIRST_REVIEW_SLUG_PREFIX = 'e2e-prva-recenzija';
+
+    public const FIRST_REVIEW_NAME_PREFIX = 'д-р Марија Првановска';
+
     public function run(): void
     {
         // Narrower than DeploymentEnvironment::NON_DEPLOYED: a shared
@@ -142,7 +151,33 @@ class E2ESeeder extends Seeder
         $this->seedReviews();
         $this->seedReportableReviews();
         $this->seedDoctorClaimProfiles();
+        $this->seedFirstReviewProfiles();
         $this->seedVerification();
+    }
+
+    private function seedFirstReviewProfiles(): void
+    {
+        for ($attempt = 0; $attempt < self::ATTEMPTS; $attempt++) {
+            $doctor = Doctor::query()->updateOrCreate(
+                ['slug' => self::FIRST_REVIEW_SLUG_PREFIX."-{$attempt}"],
+                [
+                    'full_name' => self::FIRST_REVIEW_NAME_PREFIX." {$attempt}",
+                    'title' => 'д-р',
+                    'bio' => 'Профил без рецензии за E2E тестови на првата рецензија.',
+                    'city' => 'Скопје',
+                    'phone' => "+389 70 200 00{$attempt}",
+                    'accepts_new_patients' => true,
+                    'is_published' => true,
+                    'published_at' => now(),
+                ],
+            );
+
+            Review::query()
+                ->where('reviewable_type', Doctor::class)
+                ->where('reviewable_id', $doctor->id)
+                ->get()
+                ->each->delete();
+        }
     }
 
     /**
@@ -164,6 +199,10 @@ class E2ESeeder extends Seeder
             // Replies from members publish immediately so the forum spec can see
             // one appear; new topics still go through moderation.
             'forum_posts_require_moderation' => false,
+            'reviews_prompt_on_profile' => true,
+            'reviews_prompt_after_search' => true,
+            'reviews_share_link' => true,
+            'reviews_mobile_sticky_cta' => true,
         ]);
     }
 

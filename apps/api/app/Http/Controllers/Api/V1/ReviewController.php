@@ -15,6 +15,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Doctor;
 use App\Models\Facility;
 use App\Models\Review;
+use App\Models\SiteSetting;
 use App\Services\AnalyticsService;
 use App\Support\Notifications\ImpactStats;
 use App\Support\ReviewHelpfulVotes;
@@ -255,6 +256,10 @@ class ReviewController extends Controller
                     'rating' => $request->integer('rating'),
                     'body' => $request->input('body'),
                     'status' => ReviewStatus::Pending,
+                    // Staff-only signal (docs/reviews-growth.md): the web sends
+                    // it only with statistics consent. It changes no check —
+                    // the review is pending like every other one.
+                    'via_shared_link' => $this->viaSharedLink($reviewable, $request),
                 ]);
 
                 foreach ($aspects as $aspect => $rating) {
@@ -284,6 +289,18 @@ class ReviewController extends Controller
             'status' => $review->status->value,
             'created_at' => $review->created_at?->toIso8601String(),
         ], 201);
+    }
+
+    /**
+     * Whether a new review says it was started from the shared „write a
+     * review“ link. Only doctor profiles carry the link, and only while the
+     * admin switch for it is on; anything else is ignored, not refused.
+     */
+    private function viaSharedLink(Doctor|Facility $reviewable, StoreReviewRequest $request): bool
+    {
+        return $reviewable instanceof Doctor
+            && (bool) SiteSetting::current()->reviews_share_link
+            && $request->boolean('via_shared_link');
     }
 
     /**

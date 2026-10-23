@@ -23,6 +23,8 @@ class StoreReviewRequest extends FormRequest
             // accepts depends on its type and is checked by the controller.
             'aspects' => ['sometimes', 'nullable', 'array'],
             'aspects.*' => ['nullable', 'integer', 'between:1,5'],
+            // Started from the shared „write a review“ link (staff-only signal).
+            'via_shared_link' => ['sometimes', 'boolean'],
         ];
     }
 }
