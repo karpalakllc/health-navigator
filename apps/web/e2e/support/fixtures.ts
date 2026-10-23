@@ -37,7 +37,8 @@ export function attemptUser(
     | "account"
     | "doctor"
     | "impact"
-    | "first",
+    | "first"
+    | "follower",
   retry: number,
 ): string {
   return `${prefix}-${retry}@e2e.test`;
