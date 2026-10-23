@@ -8,7 +8,12 @@ import {
   FuzzySearchNotice,
   suggestionListHref,
 } from "@/components/search/fuzzy-search-notice";
+import {
+  SearchReviewPrompt,
+  SearchVisitMarker,
+} from "@/components/reviews/search-review-prompt";
 import { fetchDoctors } from "@/lib/api/doctors";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import { fetchLanguages, knownLanguage } from "@/lib/api/languages";
 import { fetchSpecialties } from "@/lib/api/specialties";
 import { listCanonicalPath, pageMetadata } from "@/lib/metadata";
@@ -53,7 +58,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
     ? knownLanguage(params.language, await languagesRequest)
     : undefined;
 
-  const [specialties, languages, doctors] = await Promise.all([
+  const [specialties, languages, doctors, settings] = await Promise.all([
     fetchSpecialties(),
     languagesRequest,
     fetchDoctors({
@@ -66,7 +71,10 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       verified: onlyVerified ? true : undefined,
       page,
     }),
+    fetchPublicSettings(),
   ]);
+  // „Сте биле кај…?“ back on the results (docs/reviews-growth.md).
+  const searchPrompt = settings.reviews_prompt_after_search;
 
   const applied = {
     q: params.q ?? "",
@@ -119,6 +127,13 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
           </ResultsGrid>
         </>
       )}
+
+      {searchPrompt ? (
+        <>
+          <SearchVisitMarker />
+          <SearchReviewPrompt />
+        </>
+      ) : null}
 
       {doctors.data.length > 0 ? (
         <Pagination

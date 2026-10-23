@@ -11,11 +11,17 @@ import { ReviewList } from "@/components/reviews/review-list";
 import { ReviewViewTracker } from "@/components/reviews/review-view-tracker";
 import { ChooseUsernameNotice } from "@/components/usernames/choose-username-notice";
 import { Card } from "@/components/ui/card";
-import { Icon } from "@/components/ui/icons";
 import { Notice } from "@/components/ui/notice";
 import { StarRating } from "@/components/ui/star-rating";
 import { Tag } from "@/components/ui/tag";
-import { loginHref } from "@/lib/auth/login-href";
+import { subscribeConsent } from "@/lib/consent/consent";
+import {
+  REVIEW_ANCHOR,
+  clearReviewDraft,
+  isSharedReviewLanding,
+  persistSharedLanding,
+  rememberSharedLanding,
+} from "@/lib/review-growth";
 import type {
   PaginatedEnvelope,
   ReviewListItem,
@@ -34,6 +40,8 @@ type ReviewsPanelProps = {
   page: number;
   sort: string;
   rating: string;
+  /** The profile's public name (kept with a signed-out visitor's draft). */
+  profileName?: string;
 };
 
 export function ReviewsPanel({
@@ -46,6 +54,7 @@ export function ReviewsPanel({
   page,
   sort,
   rating,
+  profileName,
 }: ReviewsPanelProps) {
   const router = useRouter();
   const basePath = reviewsBasePath(kind, slug);
@@ -83,12 +92,37 @@ export function ReviewsPanel({
   useEffect(() => {
     const hash = window.location.hash;
 
-    if (hash !== "#reviews" && hash !== "#review-form") {
+    if (
+      hash !== "#reviews" &&
+      hash !== "#review-form" &&
+      hash !== `#${REVIEW_ANCHOR}`
+    ) {
       return;
     }
 
     document.getElementById(hash.slice(1))?.scrollIntoView?.();
   }, []);
+
+  // Opened through the „write a review“ share link: noted for the review
+  // (staff-only signal), and only once statistics are allowed.
+  useEffect(() => {
+    if (!isSharedReviewLanding(window.location.search)) {
+      return;
+    }
+
+    rememberSharedLanding(kind, slug);
+
+    return subscribeConsent(persistSharedLanding);
+  }, [kind, slug]);
+
+  // A draft for a profile the member can no longer review is of no use.
+  const canWrite = !viewerReview || viewerReview.can_resubmit === true;
+
+  useEffect(() => {
+    if (isLoggedIn && !canWrite) {
+      clearReviewDraft(kind, slug);
+    }
+  }, [isLoggedIn, canWrite, kind, slug]);
 
   function buildHref(next: { page?: number; sort?: string; rating?: string }) {
     const params = new URLSearchParams();
@@ -182,55 +216,42 @@ export function ReviewsPanel({
         />
       ) : null}
 
-      {viewerReview?.status === "pending" ? (
-        <PendingReviewCard review={viewerReview} />
-      ) : null}
+      <div id={REVIEW_ANCHOR} className="flex flex-col gap-4">
+        {viewerReview?.status === "pending" ? (
+          <PendingReviewCard review={viewerReview} />
+        ) : null}
 
-      {isLoggedIn &&
-      (!viewerReview || viewerReview.can_resubmit) &&
-      mustChooseUsername ? (
-        // „Напиши рецензија“ jumps to #review-form: land on the note.
-        <ChooseUsernameNotice
-          id="review-form"
-          returnTo={`${basePath}#reviews`}
-        />
-      ) : isLoggedIn && (!viewerReview || viewerReview.can_resubmit) ? (
-        <ReviewForm
-          kind={kind}
-          slug={slug}
-          previous={viewerReview}
-          onSubmitted={() => {
-            justSubmitted.current = true;
-          }}
-        />
-      ) : null}
+        {isLoggedIn &&
+        (!viewerReview || viewerReview.can_resubmit) &&
+        mustChooseUsername ? (
+          // „Напиши рецензија“ jumps to #review-form: land on the note.
+          <ChooseUsernameNotice
+            id="review-form"
+            returnTo={`${basePath}#reviews`}
+          />
+        ) : isLoggedIn && (!viewerReview || viewerReview.can_resubmit) ? (
+          <ReviewForm
+            kind={kind}
+            slug={slug}
+            previous={viewerReview}
+            onSubmitted={() => {
+              justSubmitted.current = true;
+            }}
+          />
+        ) : null}
 
-      {viewerReview?.status === "rejected" &&
-      !viewerReview.can_resubmit &&
-      !viewerReview.removed ? (
-        <FinalRejectionCard review={viewerReview} />
-      ) : null}
+        {viewerReview?.status === "rejected" &&
+        !viewerReview.can_resubmit &&
+        !viewerReview.removed ? (
+          <FinalRejectionCard review={viewerReview} />
+        ) : null}
 
-      {!isLoggedIn ? (
-        <Card
-          tone="sand"
-          padding="md"
-          className="flex items-start gap-3 type-body text-ink"
-        >
-          <Icon name="user" size={22} className="mt-0.5 shrink-0" />
-          {/* One sentence: the link stays inline so the rest of it does not
-              wrap onto a line of its own on a phone. */}
-          <p>
-            <Link
-              href={loginHref(`${basePath}#reviews`)}
-              className="link-underline font-semibold text-ink"
-            >
-              {t("nav.login")}
-            </Link>{" "}
-            {t("reviews.loginToSubmit")}
-          </p>
-        </Card>
-      ) : null}
+        {!isLoggedIn ? (
+          // Signed out: the same form; sending it goes through sign-in (or
+          // registration) and back here with the draft restored.
+          <ReviewForm kind={kind} slug={slug} guest profileName={profileName} />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -271,6 +292,15 @@ function PendingReviewCard({ review }: { review: ViewerReview }) {
         {t("reviews.pendingTitle")}
       </p>
       <p className="type-meta text-ink-2">{t("reviews.pendingBody")}</p>
+      <p className="type-meta text-ink">
+        {t("reviewGrowth.pendingImpact")}{" "}
+        <Link
+          href="/account/reviews"
+          className="link-underline font-semibold text-ink"
+        >
+          {t("reviewGrowth.pendingImpactLink")}
+        </Link>
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <StarRating value={review.rating} size="md" />
         <Tag tone="white" icon="clock">

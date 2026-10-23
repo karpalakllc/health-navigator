@@ -36,7 +36,8 @@ export function attemptUser(
     | "reported"
     | "account"
     | "doctor"
-    | "impact",
+    | "impact"
+    | "first",
   retry: number,
 ): string {
   return `${prefix}-${retry}@e2e.test`;
@@ -61,6 +62,20 @@ export function claimDoctor(retry: number): {
     slug: `e2e-doctor-claim-${retry}`,
     name: `д-р Петар Тестовски ${retry}`,
     reviewBody: `Внимателен и јасен лекар (E2E ${retry}).`,
+  };
+}
+
+/**
+ * „First reviews“ (reviews-growth.spec.ts): E2ESeeder::FIRST_REVIEW_* — one
+ * published doctor without any review per attempt, for "first-{retry}".
+ */
+export function firstReviewDoctor(retry: number): {
+  slug: string;
+  name: string;
+} {
+  return {
+    slug: `e2e-prva-recenzija-${retry}`,
+    name: `д-р Марија Првановска ${retry}`,
   };
 }
 

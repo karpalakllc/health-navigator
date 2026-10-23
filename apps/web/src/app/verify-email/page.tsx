@@ -1,5 +1,6 @@
 import { AuthPage } from "@/components/auth/auth-page";
 import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
+import { ContinueReviewLink } from "@/components/reviews/continue-review-link";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { pageMetadata } from "@/lib/metadata";
@@ -70,9 +71,12 @@ export default async function VerifyEmailPage({
             {t("auth.verifiedSetPasswordLink")}
           </Button>
         ) : (
-          <Button href="/login" size="lg" fullWidth>
-            {t("auth.signIn")}
-          </Button>
+          <>
+            <Button href="/login" size="lg" fullWidth>
+              {t("auth.signIn")}
+            </Button>
+            <ContinueReviewLink />
+          </>
         )}
       </div>
     </AuthPage>

@@ -167,6 +167,27 @@ describe("LoginForm", () => {
     });
   });
 
+  it("keeps the way back (e.g. to a half-written review) when going to register", () => {
+    setSearchParams({ redirect: "/doctors/ana#napishi-recenzija" });
+    render(<LoginForm />);
+
+    expect(
+      screen.getByRole("link", { name: t("auth.register") }),
+    ).toHaveAttribute(
+      "href",
+      `/register?redirect=${encodeURIComponent("/doctors/ana#napishi-recenzija")}`,
+    );
+  });
+
+  it("drops an off-site way back on the register link", () => {
+    setSearchParams({ redirect: "//evil.example" });
+    render(<LoginForm />);
+
+    expect(
+      screen.getByRole("link", { name: t("auth.register") }),
+    ).toHaveAttribute("href", "/register");
+  });
+
   it("redirects to a same-origin ?redirect= target after signing in", async () => {
     setSearchParams({ redirect: "/forum/zdravje?page=2" });
     mockFetch({ status: 200, body: { data: {} } });

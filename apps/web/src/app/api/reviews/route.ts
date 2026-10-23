@@ -15,6 +15,8 @@ type ReviewPayload = {
   body?: string | null;
   /** Optional aspect sub-ratings, {code: 1–5}; the API validates them. */
   aspects?: unknown;
+  /** Started from the shared „write a review“ link (staff-only signal). */
+  via_shared_link?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -74,6 +76,9 @@ export async function POST(request: Request) {
         rating: body.rating,
         body: body.body,
         aspects: aspectsForUpstream(body.aspects),
+        // Only a literal true is passed on; the API ignores it unless the
+        // profile is a doctor and the share link is switched on.
+        ...(body.via_shared_link === true ? { via_shared_link: true } : {}),
       }),
     }),
   );

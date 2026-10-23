@@ -35,6 +35,11 @@ export function LoginForm() {
   >({});
   // Set by the reset-password form once the new password is saved.
   const passwordWasReset = searchParams.get("reset") === "1";
+  // „Регистрирај се“ keeps the way back (e.g. to a half-written review).
+  const returnTo = safeRedirectTarget(searchParams.get("redirect"), "");
+  const registerHref = returnTo
+    ? `/register?redirect=${encodeURIComponent(returnTo)}`
+    : "/register";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -155,7 +160,7 @@ export function LoginForm() {
       </form>
       <p className="flex flex-wrap items-center gap-x-2 border-t border-line pt-4 type-body text-ink-2">
         <span>{t("auth.noAccount")}</span>
-        <TextLink href="/register">{t("auth.register")}</TextLink>
+        <TextLink href={registerHref}>{t("auth.register")}</TextLink>
       </p>
       <p className="type-meta text-ink-2">
         {t("auth.termsNotice")}{" "}

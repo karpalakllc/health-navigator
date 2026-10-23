@@ -24,6 +24,11 @@ export type PublicSettings = {
   forum_rules_enabled: boolean;
   forum_rules_title: string | null;
   forum_rules_body: string | null;
+  /** „First reviews“ switches (docs/reviews-growth.md). */
+  reviews_prompt_on_profile: boolean;
+  reviews_prompt_after_search: boolean;
+  reviews_share_link: boolean;
+  reviews_mobile_sticky_cta: boolean;
   /**
    * Web-side only, never sent by the API: true when /settings/public could not
    * be read and these values are the fallback. A module that reads as off is
@@ -53,6 +58,10 @@ export const publicSettingsDefaults: PublicSettings = {
     "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоките за симптоми се само информативни.",
   copyright_name: "Zdravje360",
   profile_avatar_min_messages: 10,
+  reviews_prompt_on_profile: true,
+  reviews_prompt_after_search: true,
+  reviews_share_link: true,
+  reviews_mobile_sticky_cta: true,
   degraded: false,
 };
 
@@ -71,6 +80,12 @@ export const publicSettingsUnavailable: PublicSettings = {
   public_products: false,
   public_pharmacies: false,
   public_forum: false,
+  // Invitations are extras: without the settings they stay out rather than
+  // show something the admin may have switched off.
+  reviews_prompt_on_profile: false,
+  reviews_prompt_after_search: false,
+  reviews_share_link: false,
+  reviews_mobile_sticky_cta: false,
 };
 
 export type PublicSettingsOutcome =

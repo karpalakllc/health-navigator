@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { buttonClassName, Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icons";
-import { loginHref } from "@/lib/auth/login-href";
 import { formatMkDate } from "@/lib/mk-date";
 import {
   canShowReviewPrompt,
@@ -25,8 +23,6 @@ type ReviewPromptProps = {
   slug: string;
   name: string;
   isLoggedIn: boolean;
-  /** Where „Оцени“ lands (the profile's review form). */
-  basePath: string;
 };
 
 /**
@@ -46,7 +42,6 @@ export function ReviewPrompt({
   slug,
   name,
   isLoggedIn,
-  basePath,
 }: ReviewPromptProps) {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -157,29 +152,21 @@ export function ReviewPrompt({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:pl-[52px]">
-            {isLoggedIn ? (
-              <Button
-                type="button"
-                leadingIcon="star"
-                onClick={() => {
-                  const form = document.getElementById("review-form");
-                  form?.scrollIntoView?.({ block: "center" });
-                  form
-                    ?.querySelector<HTMLElement>('[role="radio"]')
-                    ?.focus({ preventScroll: true });
-                }}
-              >
-                {t("reviewFlow.promptRate")}
-              </Button>
-            ) : (
-              <Link
-                href={loginHref(`${basePath}#review-form`)}
-                className={buttonClassName()}
-              >
-                <Icon name="star" size={20} />
-                <span>{t("reviewFlow.promptRate")}</span>
-              </Link>
-            )}
+            {/* Signed in or not: the form is on the page (a guest's draft
+                is kept across sign-in), so this only takes them there. */}
+            <Button
+              type="button"
+              leadingIcon="star"
+              onClick={() => {
+                const form = document.getElementById("review-form");
+                form?.scrollIntoView?.({ block: "center" });
+                form
+                  ?.querySelector<HTMLElement>('[role="radio"]')
+                  ?.focus({ preventScroll: true });
+              }}
+            >
+              {t("reviewFlow.promptRate")}
+            </Button>
             <Button
               type="button"
               variant="white"

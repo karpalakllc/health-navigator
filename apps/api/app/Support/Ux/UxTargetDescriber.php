@@ -25,6 +25,9 @@ final class UxTargetDescriber
         'home-forum-band' => 'Home: forum and transparency',
         'home-help' => 'Home: “Help someone” (unanswered questions)',
         'review-prompt' => 'Profile: “Have you been to…?” prompt',
+        'search-review-prompt' => 'Search results: “Have you been to…?” prompt after a profile',
+        'review-share' => 'Doctor profile: “Recommend a review” share button',
+        'sticky-review-cta' => 'Doctor profile: sticky “Write a review” (phones)',
         // Landmarks, when no component is named.
         'header' => 'Header',
         'nav' => 'Navigation',

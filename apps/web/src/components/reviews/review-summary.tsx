@@ -1,11 +1,14 @@
 import { formatAverage } from "@/components/directory/rating-line";
-import { reviewsBasePath } from "@/components/reviews/review-paths";
+import {
+  REVIEW_ANCHOR,
+  reviewsBasePath,
+} from "@/components/reviews/review-paths";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon, STAR_PATH } from "@/components/ui/icons";
 import { StarRating } from "@/components/ui/star-rating";
 import type { ReviewSummary } from "@/lib/api/types";
-import { loginHref } from "@/lib/auth/login-href";
+
 import { t, tCount, tFormat } from "@/i18n/t";
 
 export type RatingDistribution = Record<1 | 2 | 3 | 4 | 5, number>;
@@ -99,10 +102,12 @@ export function ReviewSummaryBlock({
         <Button
           // The full path, not a bare "#review-form": on a page already
           // opened at #reviews, next/link appended it ("#reviews#review-form").
+          // Signed out too: the form is open to everyone and only sending
+          // it asks for sign-in (the draft is kept across it).
           href={
             isLoggedIn
               ? `${basePath}#review-form`
-              : loginHref(`${basePath}#reviews`)
+              : `${basePath}#${REVIEW_ANCHOR}`
           }
           size="lg"
           fullWidth

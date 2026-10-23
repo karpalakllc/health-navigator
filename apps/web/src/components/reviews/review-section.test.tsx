@@ -19,6 +19,14 @@ vi.mock("@/lib/api/reviews", () => ({
   fetchPharmacyReviews: vi.fn(),
 }));
 
+const settings = {
+  ...(await import("@/lib/api/public-settings")).publicSettingsDefaults,
+};
+
+vi.mock("@/lib/api/settings", () => ({
+  fetchPublicSettings: async () => settings,
+}));
+
 const { ReviewSection, ratingDistribution } =
   await import("@/components/reviews/review-section");
 
@@ -89,6 +97,51 @@ describe("ReviewSection", () => {
     expect(fetchDoctorReviews).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByRole("list", { name: t("reviews.distribution") }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("ReviewSection — review invitations", () => {
+  beforeEach(() => {
+    fetchDoctorReviews.mockReset();
+    fetchDoctorReviews.mockResolvedValue(envelope(0, []));
+    settings.reviews_share_link = true;
+  });
+
+  async function renderDoctor() {
+    render(
+      await ReviewSection({
+        kind: "doctor",
+        slug: "ana",
+        profileName: "д-р Ана",
+        summary: { count: 0, average_rating: null },
+      }),
+    );
+  }
+
+  it("offers „Препорачајте рецензија“ on a doctor profile while the switch is on", async () => {
+    await renderDoctor();
+
+    expect(
+      screen.getByRole("button", { name: t("reviewGrowth.shareButton") }),
+    ).toBeInTheDocument();
+    // The form is there for a signed-out visitor too.
+    expect(
+      screen.getByRole("button", { name: t("reviewGrowth.guestSubmit") }),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves it out entirely when switched off (server-rendered, no flash)", async () => {
+    settings.reviews_share_link = false;
+    await renderDoctor();
+
+    expect(
+      screen.queryByRole("button", { name: t("reviewGrowth.shareButton") }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        tFormat("reviewGrowth.shareLead", { name: "д-р Ана" }),
+      ),
     ).not.toBeInTheDocument();
   });
 });

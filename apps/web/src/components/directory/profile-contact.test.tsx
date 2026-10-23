@@ -6,6 +6,7 @@ import {
   type ContactInfo,
 } from "@/components/directory/profile-contact";
 import { t } from "@/i18n/t";
+import { seriousA11yViolations } from "../../../test/axe";
 
 // Tuesday 10:00 in Skopje.
 const now = new Date("2026-10-06T10:00:00+02:00");
@@ -26,6 +27,56 @@ const info: ContactInfo = {
 };
 
 describe("ProfileCallBar", () => {
+  it("adds „Напишете рецензија“ beside the call when asked, with directions as a named icon", async () => {
+    const { container } = render(
+      <ProfileCallBar
+        info={info}
+        reviewHref="/doctors/ana#napishi-recenzija"
+      />,
+    );
+    const bar = screen.getByRole("region", {
+      name: t("reviewGrowth.stickyLabel"),
+    });
+
+    expect(
+      within(bar).getByRole("link", { name: t("reviews.write") }),
+    ).toHaveAttribute("href", "/doctors/ana#napishi-recenzija");
+    expect(
+      within(bar).getByRole("link", { name: t("directory.call") }),
+    ).toHaveAttribute("href", "tel:023124567");
+    const directions = within(bar).getByRole("link", {
+      name: t("directory.directions"),
+    });
+    // Icon-only so three fit a phone: the name comes from aria-label.
+    expect(directions).toHaveAttribute("aria-label", t("directory.directions"));
+    expect(directions).toHaveTextContent("");
+    // Phones only, like the call bar itself.
+    expect(bar.className).toContain("lg:hidden");
+    expect(await seriousA11yViolations(container)).toEqual([]);
+  });
+
+  it("shows the review action alone when there is nothing to call or find", () => {
+    render(
+      <ProfileCallBar
+        info={{ ...info, phone: null, directionsHref: null }}
+        reviewHref="/doctors/ana#napishi-recenzija"
+      />,
+    );
+
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(
+      screen.getByRole("link", { name: t("reviews.write") }),
+    ).toBeInTheDocument();
+  });
+
+  it("has no review action unless asked", () => {
+    render(<ProfileCallBar info={info} />);
+
+    expect(
+      screen.queryByRole("link", { name: t("reviews.write") }),
+    ).not.toBeInTheDocument();
+  });
+
   it("pins „Јави се“ (a tel: link) and „Насоки“ in a named region", () => {
     render(<ProfileCallBar info={info} />);
     const bar = screen.getByRole("region", {

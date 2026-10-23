@@ -19,7 +19,6 @@ function renderPrompt(props: Partial<Parameters<typeof ReviewPrompt>[0]> = {}) {
       slug="ana"
       name="д-р Ана Петровска"
       isLoggedIn={false}
-      basePath="/doctors/ana"
       {...props}
     />,
   );
@@ -122,17 +121,17 @@ describe("ReviewPrompt", () => {
     expect(screen.queryByText(QUESTION)).not.toBeInTheDocument();
   });
 
-  it("sends a guest to sign in and back to the form, without a reminder box", () => {
+  it("takes a guest to the form on the page (sign-in comes when sending), without a reminder box", () => {
     slotAt(5000);
     renderPrompt();
     dwell();
 
     expect(
-      screen.getByRole("link", { name: t("reviewFlow.promptRate") }),
-    ).toHaveAttribute(
-      "href",
-      `/login?redirect=${encodeURIComponent("/doctors/ana#review-form")}`,
-    );
+      screen.getByRole("button", { name: t("reviewFlow.promptRate") }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: t("reviewFlow.promptRate") }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText(t("reviewFlow.promptRemind")),
     ).not.toBeInTheDocument();

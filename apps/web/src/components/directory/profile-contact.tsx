@@ -8,7 +8,8 @@ import {
   ContactRow,
   MapPlaceholder,
 } from "@/components/directory/profile-parts";
-import { Button } from "@/components/ui/button";
+import { REVIEW_ANCHOR } from "@/components/reviews/review-paths";
+import { Button, IconButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icons";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
@@ -270,31 +271,83 @@ function ProfileStatusAndFee({ info }: { info: ContactInfo }) {
 }
 
 /** Mobile: „Јави се“ + „Насоки“ pinned above the tab bar. */
-export function ProfileCallBar({ info }: { info: ContactInfo }) {
+export function ProfileCallBar({
+  info,
+  reviewHref,
+}: {
+  info: ContactInfo;
+  /**
+   * „Напишете рецензија“ beside the call (doctor profiles without a
+   * published review, when the admin switch is on). With it, „Насоки“
+   * shrinks to an icon so the three fit a 360 px phone.
+   */
+  reviewHref?: string;
+}) {
   const tel = telHref(info.phone);
 
-  if (!tel && !info.directionsHref) {
+  if (!tel && !info.directionsHref && !reviewHref) {
     return null;
   }
 
+  const compactDirections = Boolean(reviewHref && tel);
+
   return (
-    <StickyActionBar label={t("directory.quickContact")}>
+    <StickyActionBar
+      label={
+        reviewHref ? t("reviewGrowth.stickyLabel") : t("directory.quickContact")
+      }
+      // Alone, the review action steps aside while the form it leads to is
+      // on screen.
+      hideWhileVisible={
+        reviewHref && !tel && !info.directionsHref ? REVIEW_ANCHOR : undefined
+      }
+    >
       {tel ? (
-        <Button href={tel} size="lg" leadingIcon="phone" className="flex-[1.2]">
+        <Button
+          href={tel}
+          size="lg"
+          leadingIcon="phone"
+          variant={reviewHref ? "soft" : "primary"}
+          className={reviewHref ? "flex-1 px-4" : "flex-[1.2]"}
+        >
           {t("directory.call")}
         </Button>
       ) : null}
       {info.directionsHref ? (
+        compactDirections ? (
+          <IconButton
+            href={info.directionsHref}
+            icon="navigation"
+            label={t("directory.directions")}
+            variant="soft"
+            size={56}
+            className="shrink-0"
+            target="_blank"
+            rel="noopener noreferrer"
+          />
+        ) : (
+          <Button
+            href={info.directionsHref}
+            variant="soft"
+            size="lg"
+            leadingIcon="navigation"
+            className="flex-1"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("directory.directions")}
+          </Button>
+        )
+      ) : null}
+      {reviewHref ? (
         <Button
-          href={info.directionsHref}
-          variant="soft"
+          href={reviewHref}
           size="lg"
-          leadingIcon="navigation"
-          className="flex-1"
-          target="_blank"
-          rel="noopener noreferrer"
+          leadingIcon="star"
+          className="flex-[1.6] px-4"
+          data-track="sticky-review-cta"
         >
-          {t("directory.directions")}
+          {t("reviews.write")}
         </Button>
       ) : null}
     </StickyActionBar>

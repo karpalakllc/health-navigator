@@ -53,27 +53,44 @@ describe("ReviewsPanel", () => {
     );
   });
 
-  it("sends a signed-out visitor to login and back to these reviews", () => {
+  it("offers a signed-out visitor the form itself, under the review anchor", () => {
     render(<ReviewsPanel {...props()} />);
 
-    // Login used to land on the home page, so the visitor had to find the
-    // doctor again to write the review.
-    expect(screen.getByRole("link", { name: t("nav.login") })).toHaveAttribute(
-      "href",
-      `/login?redirect=${encodeURIComponent("/doctors/ana-petrovska#reviews")}`,
-    );
+    // The login wall used to come first; now only sending asks for it.
+    const form = document.getElementById("review-form");
+    expect(form?.tagName).toBe("FORM");
+    expect(document.getElementById("napishi-recenzija")).toContainElement(form);
+    expect(
+      screen.getByRole("button", { name: t("reviewGrowth.guestSubmit") }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(t("reviewGrowth.guestNote"))).toBeInTheDocument();
   });
 
-  it("keeps the login link inside the sentence", () => {
-    render(<ReviewsPanel {...props()} />);
-
-    const link = screen.getByRole("link", { name: t("nav.login") });
-    // One paragraph holds the link and the rest of the sentence, so on a
-    // phone the words wrap with the link instead of under it.
-    expect(link.parentElement?.tagName).toBe("P");
-    expect(link.parentElement).toHaveTextContent(
-      `${t("nav.login")} ${t("reviews.loginToSubmit")}`,
+  it("shows a pending review with what happens next and where its impact is", () => {
+    render(
+      <ReviewsPanel
+        {...props({
+          isLoggedIn: true,
+          viewerReview: {
+            id: 7,
+            rating: 5,
+            body: null,
+            status: "pending",
+            can_resubmit: false,
+            created_at: "2026-10-20T10:00:00Z",
+            published_at: null,
+          },
+        })}
+      />,
     );
+
+    const card = screen.getByRole("article", {
+      name: t("reviews.pendingTitle"),
+    });
+    expect(card).toHaveTextContent(t("reviewGrowth.pendingImpact"));
+    expect(
+      screen.getByRole("link", { name: t("reviewGrowth.pendingImpactLink") }),
+    ).toHaveAttribute("href", "/account/reviews");
   });
 
   it("names the one-star filter option in the singular", () => {

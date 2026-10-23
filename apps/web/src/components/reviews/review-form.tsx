@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   AspectRatingInput,
   type AspectRatings,
@@ -14,7 +14,18 @@ import { FormError, FormSuccess } from "@/components/ui/form-message";
 import { Icon } from "@/components/ui/icons";
 import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/cn";
-import { t } from "@/i18n/t";
+import { loginHref } from "@/lib/auth/login-href";
+import {
+  REVIEW_ANCHOR,
+  cameFromSharedLink,
+  clearReviewDraft,
+  forgetSharedLanding,
+  readReviewDraft,
+  saveReviewDraft,
+  skipSearchPrompt,
+} from "@/lib/review-growth";
+import { reviewsBasePath } from "@/components/reviews/review-paths";
+import { t, tFormat } from "@/i18n/t";
 import type { ViewerReview } from "@/lib/api/types";
 import { isValidReviewRating } from "@/lib/rating";
 
@@ -28,10 +39,28 @@ type ReviewFormProps = {
    * and send once more: the form starts from it and says why it was refused.
    */
   previous?: ViewerReview | null;
+  /**
+   * Signed out: the form works the same, but „Продолжете кон најава“ keeps
+   * what was filled in on this device (a day at most) and goes to sign-in,
+   * which returns here with it restored.
+   */
+  guest?: boolean;
+  /** The profile's name, kept with a guest's draft („Продолжете ја…“). */
+  profileName?: string;
 };
+
+/** Longest comment the API accepts (StoreReviewRequest: max:2000). */
+const MAX_BODY = 2000;
 
 /** Shortest comment the API accepts (StoreReviewRequest: min:10). */
 const MIN_BODY = 10;
+
+/** Empty, or at least MIN_BODY characters once trimmed. */
+function validBodyLength(value: string): boolean {
+  const length = value.trim().length;
+
+  return length === 0 || length >= MIN_BODY;
+}
 
 /**
  * Stars first (W8-B): the form opens on one question and five stars, so a
@@ -45,6 +74,8 @@ export function ReviewForm({
   slug,
   onSubmitted,
   previous,
+  guest = false,
+  profileName,
 }: ReviewFormProps) {
   const router = useRouter();
   const isResubmit = Boolean(previous?.can_resubmit);
@@ -55,6 +86,7 @@ export function ReviewForm({
   const [ratingError, setRatingError] = useState(false);
   const ratingErrorId = useId();
   const titleId = useId();
+  const bodyFieldId = useId();
   const [body, setBody] = useState(isResubmit ? (previous?.body ?? "") : "");
   // Optional sub-ratings, folded away by default (W5-I).
   const [aspects, setAspects] = useState<AspectRatings>(
@@ -66,6 +98,33 @@ export function ReviewForm({
   // The extras appear once a star is chosen (and stay, even if the form
   // later shows an error), or at once when editing a refused review.
   const [expanded, setExpanded] = useState(isResubmit);
+  const [bodyError, setBodyError] = useState(false);
+  // A draft kept across sign-in (or registration) was put back.
+  const [restored, setRestored] = useState(false);
+  const basePath = reviewsBasePath(kind, slug);
+
+  // After hydration only: the draft lives in this browser's storage.
+  useEffect(() => {
+    if (isResubmit) {
+      return;
+    }
+
+    const draft = readReviewDraft(kind, slug);
+
+    if (!draft || (draft.rating === null && draft.body === "")) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      setRating(draft.rating);
+      setBody(draft.body);
+      setAspects(draft.aspects as AspectRatings);
+      setExpanded(true);
+      setRestored(!guest);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [kind, slug, guest, isResubmit]);
 
   const steps = [
     {
@@ -83,6 +142,9 @@ export function ReviewForm({
       optional: true,
       done: body.trim().length >= MIN_BODY,
     },
+    ...(guest
+      ? [{ label: t("reviewGrowth.stepLogin"), optional: false, done: false }]
+      : []),
   ];
 
   async function handleSubmit(event: React.FormEvent) {
@@ -90,8 +152,32 @@ export function ReviewForm({
     setError(null);
     setSuccess(false);
 
+    const trimmed = body.trim();
+    const tooShort = trimmed.length > 0 && trimmed.length < MIN_BODY;
+    setBodyError(tooShort);
+
     if (!isValidReviewRating(rating)) {
       setRatingError(true);
+      focusFirstStar();
+      return;
+    }
+
+    if (tooShort) {
+      document.getElementById(bodyFieldId)?.focus();
+      return;
+    }
+
+    if (guest) {
+      saveReviewDraft({
+        kind,
+        slug,
+        name: profileName ?? null,
+        path: basePath,
+        rating,
+        body: trimmed,
+        aspects,
+      });
+      router.push(loginHref(`${basePath}#${REVIEW_ANCHOR}`));
       return;
     }
 
@@ -107,6 +193,8 @@ export function ReviewForm({
           rating,
           body: body.trim() === "" ? null : body.trim(),
           ...(Object.keys(aspects).length > 0 ? { aspects } : {}),
+          // Staff-only, and only with statistics consent (lib/review-growth).
+          ...(cameFromSharedLink(kind, slug) ? { via_shared_link: true } : {}),
         }),
       });
 
@@ -124,6 +212,10 @@ export function ReviewForm({
       }
 
       setSuccess(true);
+      setRestored(false);
+      clearReviewDraft();
+      forgetSharedLanding();
+      skipSearchPrompt(kind, slug);
       setBody("");
       setRating(null);
       setAspects({});
@@ -134,6 +226,13 @@ export function ReviewForm({
     } finally {
       setPending(false);
     }
+  }
+
+  function focusFirstStar() {
+    document
+      .getElementById("review-form")
+      ?.querySelector<HTMLElement>('[role="radio"]')
+      ?.focus();
   }
 
   return (
@@ -152,6 +251,9 @@ export function ReviewForm({
           {isResubmit ? t("reviews.resubmitLastChance") : t("reviews.pending")}
         </p>
       </div>
+      {restored ? (
+        <Notice tone="success">{t("reviewGrowth.draftRestored")}</Notice>
+      ) : null}
       {isResubmit && previous?.rejection_note ? (
         <Notice tone="info" title={t("reviews.resubmitReasonTitle")}>
           <p className="whitespace-pre-line">{previous.rejection_note}</p>
@@ -237,9 +339,25 @@ export function ReviewForm({
           />
           {/* Step 3: the optional comment. */}
           <Textarea
+            id={bodyFieldId}
             label={t("reviews.body")}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              if (bodyError && validBodyLength(e.target.value)) {
+                setBodyError(false);
+              }
+            }}
+            onBlur={() => setBodyError(!validBodyLength(body))}
+            error={bodyError ? t("reviewGrowth.bodyTooShort") : undefined}
+            maxLength={MAX_BODY}
+            autoCapitalize="sentences"
+            enterKeyHint="done"
+            counter={
+              body.length > 0
+                ? tFormat("reviewGrowth.bodyCounter", { count: body.length })
+                : null
+            }
             rows={4}
           />
         </div>
@@ -257,15 +375,23 @@ export function ReviewForm({
         >
           {pending
             ? t("common.submitting")
-            : isResubmit
-              ? t("reviews.resubmitSubmit")
-              : t("reviews.submit")}
+            : guest
+              ? t("reviewGrowth.guestSubmit")
+              : isResubmit
+                ? t("reviews.resubmitSubmit")
+                : t("reviews.submit")}
         </Button>
         <p className="flex items-center gap-2 type-meta text-ink-2">
           <Icon name="lock" size={16} className="shrink-0" />
           {t("reviewFlow.safety")}
         </p>
       </div>
+      {guest ? (
+        <p className="flex gap-2 type-meta text-ink-2">
+          <Icon name="user" size={16} className="mt-0.5 shrink-0" />
+          {t("reviewGrowth.guestNote")}
+        </p>
+      ) : null}
     </Card>
   );
 }

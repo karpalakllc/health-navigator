@@ -15,6 +15,7 @@ import {
   UsernameField,
   type UsernameAvailability,
 } from "@/components/usernames/username-field";
+import { loginHref } from "@/lib/auth/login-href";
 import { normalizeUsername, usernameFormatError } from "@/lib/username";
 import {
   compactErrors,
@@ -27,6 +28,8 @@ import { t, type MessageKey } from "@/i18n/t";
 
 type RegisterFormProps = {
   registrationsEnabled: boolean;
+  /** Where sign-in should return to afterwards (a same-origin path). */
+  redirectTo?: string | null;
 };
 
 type Field =
@@ -73,7 +76,11 @@ function fieldId(field: Field): string {
   return `register-${field}`;
 }
 
-export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
+export function RegisterForm({
+  registrationsEnabled,
+  redirectTo = null,
+}: RegisterFormProps) {
+  const signInHref = loginHref(redirectTo);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [availability, setAvailability] = useState<UsernameAvailability>({
@@ -219,7 +226,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
           {t("auth.verifyCheckInboxBody")}
         </p>
         <PrivacyNote />
-        <Button href="/login" variant="secondary" size="lg" fullWidth>
+        <Button href={signInHref} variant="secondary" size="lg" fullWidth>
           {t("auth.signIn")}
         </Button>
       </div>
@@ -314,7 +321,7 @@ export function RegisterForm({ registrationsEnabled }: RegisterFormProps) {
       </form>
       <p className="flex flex-wrap items-center gap-x-2 border-t border-line pt-4 type-body text-ink-2">
         <span>{t("auth.haveAccount")}</span>
-        <TextLink href="/login">{t("auth.signIn")}</TextLink>
+        <TextLink href={signInHref}>{t("auth.signIn")}</TextLink>
       </p>
     </div>
   );

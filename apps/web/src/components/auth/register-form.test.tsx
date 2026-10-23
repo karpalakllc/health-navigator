@@ -149,6 +149,22 @@ describe("RegisterForm", () => {
     ).toHaveAccessibleDescription(/Ова корисничко име не е дозволено\./);
   });
 
+  it("returns to where the visitor was going through the sign-in link", () => {
+    render(
+      <RegisterForm
+        registrationsEnabled
+        redirectTo="/doctors/ana#napishi-recenzija"
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", { name: t("auth.signIn") }),
+    ).toHaveAttribute(
+      "href",
+      `/login?redirect=${encodeURIComponent("/doctors/ana#napishi-recenzija")}`,
+    );
+  });
+
   it("shows only the disabled notice when registration is closed", () => {
     render(<RegisterForm registrationsEnabled={false} />);
 

@@ -23,7 +23,12 @@ import {
 } from "@/components/directory/profile-parts";
 import { DoctorClaimLink } from "@/components/doctor-dashboard/doctor-claim-link";
 import { ProfileCorrectionLinks } from "@/components/corrections/profile-correction-links";
-import { ReviewSection } from "@/components/reviews/review-section";
+import {
+  ReviewSection,
+  reviewViewerState,
+} from "@/components/reviews/review-section";
+import { REVIEW_ANCHOR } from "@/components/reviews/review-paths";
+import { showStickyReviewCta } from "@/lib/review-growth";
 import { Icon } from "@/components/ui/icons";
 import { SponsoredBadge } from "@/components/ui/sponsored-badge";
 import { FeaturedTag, Tag } from "@/components/ui/tag";
@@ -108,7 +113,21 @@ export default async function DoctorDetailPage({
     throw error;
   }
 
-  const forumTopics = await forumTopicsPromise;
+  const [forumTopics, settings] = await Promise.all([
+    forumTopicsPromise,
+    fetchPublicSettings(),
+  ]);
+  // Sticky „Напишете рецензија“ (phones): see showStickyReviewCta. The
+  // viewer state is the review section's own read (one per request).
+  const stickyEnabled =
+    settings.reviews_mobile_sticky_cta && doctor.review_summary.count === 0;
+  const stickyReview = showStickyReviewCta({
+    enabled: stickyEnabled,
+    publishedReviews: doctor.review_summary.count,
+    viewer: stickyEnabled
+      ? await reviewViewerState("doctor", slug, reviewQuery).catch(() => null)
+      : null,
+  });
   const breadcrumbs = breadcrumbJsonLd([
     { name: t("common.home"), url: absoluteUrl("/") },
     { name: t("doctors.title"), url: absoluteUrl("/doctors") },
@@ -366,7 +385,16 @@ export default async function DoctorDetailPage({
           </>
         }
         sidebar={<ProfileContactCard info={contact} />}
-        footer={<ProfileCallBar info={contact} />}
+        footer={
+          <ProfileCallBar
+            info={contact}
+            reviewHref={
+              stickyReview
+                ? `/doctors/${doctor.slug}#${REVIEW_ANCHOR}`
+                : undefined
+            }
+          />
+        }
       />
     </>
   );

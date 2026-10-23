@@ -8,6 +8,11 @@ import { AdvancedSearchTrigger } from "@/components/search/advanced-search-trigg
 import { SearchQueryForm } from "@/components/search/search-query-form";
 import { enabledDirectorySections } from "@/components/search/search-states";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
+import {
+  SearchReviewPrompt,
+  SearchVisitMarker,
+} from "@/components/reviews/search-review-prompt";
+import { fetchPublicSettings } from "@/lib/api/settings";
 import type { IconName } from "@/components/ui/icons";
 import { directorySearchHref, normalizeSearchQuery } from "@/lib/search";
 import { pageMetadata } from "@/lib/metadata";
@@ -44,6 +49,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   // A chosen city is enough on its own: it lists everything in that city.
   if (qNormalized || city) {
+    const settings = await fetchPublicSettings();
+
     return (
       <SearchLayout
         eyebrow={t("search.directoryBadge")}
@@ -55,6 +62,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         form={<SearchQueryForm q={qRaw} city={params.city} />}
       >
         <UnifiedSearchResults q={qNormalized} city={city} />
+        {settings.reviews_prompt_after_search ? (
+          <>
+            <SearchVisitMarker />
+            <SearchReviewPrompt className="mt-6" />
+          </>
+        ) : null}
       </SearchLayout>
     );
   }
