@@ -23,6 +23,7 @@ Code: `apps/api/app/Support/Import/**` (import core, ФЗОМ, websites),
 | ФЗОМ pharmacy contracts (the `TipDogovorID` 4 „Аптеки“ rows of the same primary-care XML) | `import:pharmacies` | Per contract unit (ФЗО code = one pharmacy branch): branch and legal name, tax number, address, town; the ФЗО code as matching key. Then links the on-duty schedule to the pharmacies (§4a) | The pharmacists in those rows (names, facsimiles, team members): never read, never stored | Weekly (Monday 06:10 Skopje), ON by default |
 | ФЗОМ „Распоред на дежурни аптеки“ (monthly .xlsx, fzo.org.mk/dezurni-apteki) | `import:on-duty-pharmacies` | Town, pharmacy name as printed, duty dates, phone **numbers**, the stated hours; linked to a directory pharmacy by `OnDutyLinker` (§4a; else the review queue; nothing is created); a linked pharmacy without a phone gets the schedule's | Pharmacists' names some towns write in the phone column | 1st, 15th and 28th of each month, 06:40 (ON by default; docs/urgent-care.md) |
 | Institutions' own websites (a research slice prepared outside the app) | `import:institutions-json` | Facility contact details, logo, cover photos (each with its source URL); names and specialties of listed physicians and dentists | Photos of people, nurses and other staff | By hand only |
+| Facilities' own websites or official social pages (an image set prepared outside the app, by facility id) | `import:facility-images` | Logo and cover photos of existing facilities and pharmacies (each with its source URL); an empty website field | Photos of people; anything for a facility that already has a logo or cover | By hand only |
 
 Dentists come from ФЗОМ (and websites) only: there is no public dental licence
 list, so they never get a licence status. Both downloaders identify themselves
@@ -508,7 +509,8 @@ Provenance source `website`, with the page URL per field.
   page, **Website images** offers **Use as cover** and **Remove image**:
   removal deletes the file at once, clears it from the profile, locks that
   field and is written to the activity log (`facility_media`); a removed
-  image is never imported again. Use it for any takedown request.
+  image (the same file, or any file from the same source URL) is never
+  imported again. Use it for any takedown request.
 - Photos of people are out of scope (not collected).
 
 ## 6a. Website facilities that duplicate a register facility (`import:facility-duplicates`)
@@ -581,6 +583,53 @@ website-only facilities → 54 high, 54 medium, 24 low, 38 without a
 candidate. The high ones move 815 workplace links; of the 310 published
 doctors with no visible workplace, 174 get one (262 if the medium ones are
 merged too).
+
+## 6b. Images for existing facilities (`import:facility-images`)
+
+For logos and cover photos only, of facilities that are already in the
+directory — clinics, hospitals, labs **and pharmacies**. `import:institutions-json`
+cannot be used for these: it matches by name and would create clinic drafts
+for pharmacies. This importer matches nothing and creates nothing.
+
+```
+php artisan import:facility-images /path/to/slice/images.json --dry-run
+php artisan import:facility-images /path/to/slice/images.json
+```
+
+Input: `images.json` — `{slice, generated_at, facilities: [{facility_id,
+name, confidence: "high"|"medium", official_url, logo: {file, source_url} |
+null, covers: [{file, source_url}]}]}`; `file` paths are relative to the
+JSON's folder (files outside it are refused). `official_url` is the
+facility's own site or official social page the images came from (optional).
+
+- Stored exactly like the website import's images (`facility_media`, same
+  statuses, source URL per image; provenance source `website`): the logo →
+  avatar (`trademark-identification`), the first valid cover → the cover
+  (`website`), the other covers stay as alternatives under **Website images**.
+- **Only fills.** A facility that already has a logo or cover keeps it, and
+  nothing is stored for that field; a locked field (a takedown locks it) is
+  not filled; a removed image is never imported again (§6).
+- `official_url`, when it is a normal website (not Facebook, Instagram or
+  another social page), fills an **empty** website field.
+- **Skipped and listed** at the end of the run: a facility id that does not
+  exist, a deleted or merged facility (not moved to the one that stayed —
+  check it by hand), a `name` that does not roughly match the facility's
+  (a guard against a wrong id: legal form and town ignored, the words of one
+  name contained in the other or at least half shared), and every entry
+  whose confidence is not `high` (*needs review*: nothing imported; look at
+  it and re-run with `high` if it is right).
+- Files: a real JPEG, PNG or WebP (checked from the file, not its name);
+  logo at least 64 × 64 px, cover at least 600 px wide; at most
+  `IMPORT_WEBSITE_MAX_IMAGE_BYTES` (2 MB). Others are skipped and counted
+  (`images_not_an_image`, `images_too_small`, `images_too_large`,
+  `images_missing_file`).
+- Counts: `facilities_matched`, `logos_filled`, `covers_filled`,
+  `websites_filled`, `*_skipped_existing`, `*_skipped_locked`,
+  `images_skipped_removed`, `needs_review`, `names_mismatched`,
+  `facilities_missing`, `facilities_merged_or_deleted`. A dry run stores no
+  files (`logos_would_store`, `covers_would_store`). Re-running the same
+  file changes nothing. A logo or cover added to a published facility shows
+  as a *changed* item in the review queue.
 
 ## 7. Specialty wording: aliases and the licence mapping
 

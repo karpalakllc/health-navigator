@@ -90,7 +90,10 @@ Never imported: pharmacists, nurses' names (`ClenNaTim`), absence reasons
 (`RedovnaZamena`), ЕМБГ, private phones or e-mails, photos of people. From
 institutions' own websites (by hand, `import:institutions-json`) we take
 facility contact details, the logo and cover photos, and the names and
-specialties of listed physicians and dentists; an institution can ask for an
+specialties of listed physicians and dentists; `import:facility-images` (by
+hand) adds only a logo, cover photos and an empty website address to
+existing facilities and pharmacies, from their own site or official social
+page; an institution can ask for an
 image to be removed (one click for staff, never re-imported). New profiles
 from an import stay hidden until staff publish them.
 

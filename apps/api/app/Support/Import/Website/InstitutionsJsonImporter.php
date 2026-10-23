@@ -20,12 +20,9 @@ use App\Support\Import\Names\PersonName;
 use App\Support\Import\ProvenanceWriter;
 use App\Support\Import\SpecialtyResolver;
 use App\Support\Import\TextCase;
-use App\Support\Media\ImageOptimizer;
 use App\Support\UrgentCare\UrgentCareDeriver;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-use Throwable;
 
 /**
  * Imports institutions and their listed doctors compiled from the
@@ -39,7 +36,8 @@ use Throwable;
  * - Logo → the facility avatar (status "trademark-identification"); cover
  *   candidates are stored, the first one becomes the cover (owner decision,
  *   status "website"), the others stay as alternatives in the admin. Every
- *   image keeps its source URL; removed images never come back.
+ *   image keeps its source URL; removed images never come back
+ *   (FacilityImageStore, shared with import:facility-images).
  * - Workers: physicians and dentists only. Matched to existing doctors by
  *   normalised name at this facility, then name + specialty + town;
  *   ambiguous → review; otherwise a hidden draft queued for licence
@@ -64,7 +62,7 @@ final class InstitutionsJsonImporter
     private const WORKER_ROLES = ['physician', 'dentist'];
 
     /** Legal-form words ignored when comparing institution names. */
-    private const LEGAL_WORDS = ['ЈЗУ', 'ПЗУ', 'ЗУ', 'ДООЕЛ', 'ДОО', 'ЈЗО', 'АД', 'ТП', 'СКОПЈЕ'];
+    public const LEGAL_WORDS = ['ЈЗУ', 'ПЗУ', 'ЗУ', 'ДООЕЛ', 'ДОО', 'ЈЗО', 'АД', 'ТП', 'СКОПЈЕ'];
 
     /** @var array<string, list<int>> */
     private array $byHost = [];
@@ -77,7 +75,7 @@ final class InstitutionsJsonImporter
     /** @var list<string> external keys this run listed */
     private array $seenKeys = [];
 
-    public function __construct(private readonly ImageOptimizer $images) {}
+    public function __construct(private readonly FacilityImageStore $images) {}
 
     public function import(ImportContext $context, string $jsonPath): void
     {
@@ -277,103 +275,23 @@ final class InstitutionsJsonImporter
         $logo = is_array($institution['logo'] ?? null) ? $institution['logo'] : null;
 
         if ($logo !== null) {
-            $media = $this->storeImage($context, $facility, FacilityMedia::KIND_LOGO, $logo, $baseDir, 0);
+            $media = $this->images->store($context, $facility, FacilityMedia::KIND_LOGO, $logo, $baseDir, 0);
 
             if ($media?->path !== null) {
-                $this->setImage($p, $facility, 'avatar_url', $media, $recordId, $label);
+                $this->images->point($p, $facility, 'avatar_url', $media, $recordId, $label);
             }
         }
 
         $first = null;
 
         foreach (array_values(array_filter((array) ($institution['covers'] ?? []), 'is_array')) as $position => $cover) {
-            $media = $this->storeImage($context, $facility, FacilityMedia::KIND_COVER, $cover, $baseDir, $position);
+            $media = $this->images->store($context, $facility, FacilityMedia::KIND_COVER, $cover, $baseDir, $position);
             $first ??= $media?->path !== null ? $media : null;
         }
 
         if ($first !== null) {
-            $this->setImage($p, $facility, 'cover_path', $first, $recordId, $label);
+            $this->images->point($p, $facility, 'cover_path', $first, $recordId, $label);
         }
-    }
-
-    /**
-     * Points the facility at an imported image. Saving replaces the column,
-     * and DeletesReplacedMedia deletes the previous file: if that was an
-     * earlier imported image, its row is marked replaced so nobody can
-     * switch back to a file that no longer exists.
-     */
-    private function setImage(ProvenanceWriter $p, Facility $facility, string $column, FacilityMedia $media, int $recordId, string $label): void
-    {
-        $previous = $facility->getAttribute($column);
-
-        if ($p->from($media->source_url)->scalar($facility, $column, $media->path, false, $recordId, $label) !== 'written' || $previous === null) {
-            return;
-        }
-
-        FacilityMedia::query()->where('facility_id', $facility->getKey())->where('path', $previous)
-            ->update(['path' => null, 'status' => FacilityMedia::STATUS_REPLACED, 'updated_at' => now()]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $image
-     */
-    private function storeImage(ImportContext $context, Facility $facility, string $kind, array $image, string $baseDir, int $position): ?FacilityMedia
-    {
-        $relative = (string) ($image['file'] ?? '');
-        $path = realpath($baseDir.'/'.$relative);
-
-        // Only files inside the dataset folder.
-        if ($relative === '' || $path === false || ! str_starts_with($path, rtrim((string) realpath($baseDir), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) || ! is_file($path)) {
-            $context->increment('images_missing_file');
-
-            return null;
-        }
-
-        if (filesize($path) > (int) config('import.website.max_image_bytes')) {
-            $context->increment('images_too_large');
-
-            return null;
-        }
-
-        $hash = (string) hash_file('sha256', $path);
-        $existing = FacilityMedia::query()->where('facility_id', $facility->getKey())->where('kind', $kind)->where('content_hash', $hash)->first();
-
-        if ($existing !== null) {
-            $context->increment($existing->isRemoved() ? 'images_skipped_removed' : 'images_unchanged');
-
-            return $existing->isRemoved() ? null : $existing;
-        }
-
-        if ($context->dryRun) {
-            $context->increment($kind === FacilityMedia::KIND_LOGO ? 'logos_would_store' : 'covers_would_store');
-
-            return null;
-        }
-
-        try {
-            $file = new UploadedFile($path, basename($path), null, null, true);
-            $stored = $kind === FacilityMedia::KIND_LOGO
-                ? $this->images->storeBranding($file, 'facilities')
-                : $this->images->store($file, 'facilities/covers', 1600, 900);
-        } catch (Throwable $exception) {
-            $context->increment('images_rejected');
-            $context->record('facility', 'image_rejected', $facility, (string) $facility->name, $kind, null, null, $exception->getMessage());
-
-            return null;
-        }
-
-        $context->increment($kind === FacilityMedia::KIND_LOGO ? 'logos_stored' : 'covers_stored');
-
-        return FacilityMedia::query()->create([
-            'facility_id' => $facility->getKey(),
-            'kind' => $kind,
-            'source' => self::SOURCE,
-            'source_url' => self::url($image['source_url'] ?? null),
-            'content_hash' => $hash,
-            'path' => $stored,
-            'status' => $kind === FacilityMedia::KIND_LOGO ? FacilityMedia::STATUS_TRADEMARK : FacilityMedia::STATUS_WEBSITE,
-            'position' => $position,
-        ]);
     }
 
     /**

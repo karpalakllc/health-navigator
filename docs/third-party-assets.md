@@ -55,8 +55,9 @@ the interface.
 
 ## Images from institutions' websites
 
-Facility logos and cover photos imported by `import:institutions-json` come
-from each institution's own public website, with the source URL kept per image
+Facility logos and cover photos imported by `import:institutions-json` and
+`import:facility-images` come from each institution's own public website (or,
+for the latter, its official social page), with the source URL kept per image
 (`facility_media.source_url`). Logos are used to identify the institution;
 cover photos show its building or premises. Neither is shipped in this
 repository (they live on the media disk of the running app). An institution
