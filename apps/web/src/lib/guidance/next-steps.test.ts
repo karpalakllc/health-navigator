@@ -37,6 +37,15 @@ describe("urgentCareLinkFor", () => {
     );
   });
 
+  it("sends a go-now outcome to emergency departments", () => {
+    expect(
+      urgentCareLinkFor(
+        outcome("emergency_department_now", "emergency_department"),
+        "Битола",
+      ),
+    ).toBe("/urgent-care/bitola?type=ed");
+  });
+
   it("sends a same-day outcome to every urgent service, a dental one to dental emergency", () => {
     expect(urgentCareLinkFor(outcome("urgent_same_day"), "Струмица")).toBe(
       "/urgent-care/strumica",

@@ -34,6 +34,7 @@ export type GuidanceSummary = {
 
 export const LEVEL_KEYS: Record<OutcomeLevel, MessageKey> = {
   emergency_now: "guidance.levelEmergency",
+  emergency_department_now: "guidance.levelEmergencyDepartment",
   urgent_same_day: "guidance.levelUrgent",
   see_doctor_24_48h: "guidance.levelDoctor",
   see_gp_this_week: "guidance.levelGp",

@@ -30,6 +30,7 @@ const OUTCOME_LEVELS: Record<OutcomeLevel, CareLevel> = {
   see_gp_this_week: "gp",
   see_doctor_24_48h: "gp",
   urgent_same_day: "urgent",
+  emergency_department_now: "urgent",
   emergency_now: "emergency",
 };
 

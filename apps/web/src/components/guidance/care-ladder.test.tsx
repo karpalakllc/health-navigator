@@ -14,6 +14,7 @@ describe("careLevelForOutcome", () => {
     ["see_gp_this_week", "gp"],
     ["see_doctor_24_48h", "gp"],
     ["urgent_same_day", "urgent"],
+    ["emergency_department_now", "urgent"],
     ["emergency_now", "emergency"],
   ] as const)("places %s on the %s rung", (code, level) => {
     expect(careLevelForOutcome(code)).toBe(level);

@@ -3,6 +3,7 @@ import type { GuidanceOutcomeV2, OutcomeLevel } from "@/lib/api/guidance-v2";
 /** Most urgent first (docs/triage-flows.md §8.1). */
 export const OUTCOME_LEVELS: OutcomeLevel[] = [
   "emergency_now",
+  "emergency_department_now",
   "urgent_same_day",
   "see_doctor_24_48h",
   "see_gp_this_week",
@@ -69,6 +70,7 @@ export function directoryLinks(
   if (
     setting === "emergency_department" ||
     setting === "on_call" ||
+    outcome.level === "emergency_department_now" ||
     outcome.level === "urgent_same_day"
   ) {
     links.push({

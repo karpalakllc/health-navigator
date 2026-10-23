@@ -687,6 +687,41 @@ describe("GuidanceGuide next steps", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a go-now result with its level, emergency departments first and 194 if the visitor cannot get there", async () => {
+    const goNow: GuidanceOutcomeV2 = {
+      ...gpOutcome,
+      id: "o_ed_now",
+      level: "emergency_department_now",
+      title: "Одете во итно одделение веднаш",
+      care: {
+        setting: "emergency_department",
+        specialties: [],
+        facility_types: [],
+      },
+    };
+    api.answerQuestion.mockResolvedValueOnce(result(goNow));
+    const user = await start();
+    await toQuestion(user);
+    await user.type(
+      screen.getByRole("textbox", { name: t("guidance.numberLabel") }),
+      "2",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t("guidance.continue") }),
+    );
+    await screen.findByRole("heading", { name: goNow.title });
+
+    expect(
+      screen.getAllByText(t("guidance.levelEmergencyDepartment")).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("link", { name: t("guidance.linkUrgentCare") }),
+    ).toHaveAttribute("href", "/urgent-care?type=ed");
+    const call = document.querySelector("[data-guidance-ed-call]")!;
+    expect(call).toHaveTextContent(t("guidance.edNowCall"));
+    expect(call.querySelector("a")).toHaveAttribute("href", "tel:194");
+  });
+
   it("counts each step reached once, and the outcome, as anonymous drop-off", async () => {
     api.answerQuestion
       .mockResolvedValueOnce(q2)

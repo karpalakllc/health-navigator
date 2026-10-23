@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icons";
+import { NoticeTelLink } from "@/components/ui/notice";
 import { Tag } from "@/components/ui/tag";
 import type { GuidanceOutcomeV2, GuidanceState } from "@/lib/api/guidance-v2";
 import { directoryLinks, type DirectoryLink } from "@/lib/guidance/care";
@@ -146,6 +147,14 @@ export function GuidanceResult({
               {t(LEVEL_KEYS[primary.level])}
             </Tag>
             <p className="type-reading measure text-ink">{primary.summary}</p>
+            {primary.level === "emergency_department_now" ? (
+              <p
+                className="type-reading measure text-ink"
+                data-guidance-ed-call
+              >
+                {t("guidance.edNowCall")} <NoticeTelLink number="194" />.
+              </p>
+            ) : null}
           </div>
         </Card>
 

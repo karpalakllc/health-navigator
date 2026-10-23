@@ -77,14 +77,17 @@ export function firstAidLinksForResult(
 
 /**
  * „Каде веднаш“ for an outcome that needs care today: emergency departments
- * after a call to 194, every urgent service (or dental emergency) for the
- * same day. Null for less urgent levels.
+ * after a call to 194 or when the visitor should go to one now, every urgent
+ * service (or dental emergency) for the same day. Null for less urgent levels.
  */
 export function urgentCareLinkFor(
   outcome: Pick<GuidanceOutcomeV2, "level" | "care">,
   city: string | null | undefined,
 ): string | null {
-  if (outcome.level === "emergency_now") {
+  if (
+    outcome.level === "emergency_now" ||
+    outcome.level === "emergency_department_now"
+  ) {
     return urgentCareHref({ city, type: "ed" });
   }
 

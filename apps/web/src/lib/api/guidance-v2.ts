@@ -48,6 +48,7 @@ export type BodyArea =
 
 export type OutcomeLevel =
   | "emergency_now"
+  | "emergency_department_now"
   | "urgent_same_day"
   | "see_doctor_24_48h"
   | "see_gp_this_week"
