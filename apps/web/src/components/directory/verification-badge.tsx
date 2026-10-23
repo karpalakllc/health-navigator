@@ -1,5 +1,6 @@
 import { DisclosureBadge } from "@/components/ui/disclosure-badge";
 import type { Verification } from "@/lib/api/types";
+import { formatListDate } from "@/lib/mk-date";
 import { t, tFormat, type MessageKey } from "@/i18n/t";
 
 /** The transparency section that explains verification. */
@@ -59,12 +60,21 @@ export function VerificationBadge({
   const verified = verification.status === "verified";
   const feminine = kind !== "doctor";
 
-  // The public basis names the source; without one, the kind's sources.
+  // The public basis names the source; without one, the kind's sources. A
+  // doctor verified on a Комора licence: the list and its date instead of
+  // an absolute claim.
+  const listDate =
+    kind === "doctor" ? formatListDate(verification.licence_list_date) : null;
   const explanation = verified
     ? verification.basis_label
-      ? tFormat("verification.verifiedInfoBasis", {
-          basis: verification.basis_label,
-        })
+      ? listDate
+        ? tFormat("verification.verifiedInfoBasisList", {
+            basis: verification.basis_label,
+            date: listDate,
+          })
+        : tFormat("verification.verifiedInfoBasis", {
+            basis: verification.basis_label,
+          })
       : t(SOURCES[kind])
     : t("verification.unverifiedInfo");
 

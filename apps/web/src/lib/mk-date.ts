@@ -24,3 +24,13 @@ export function formatMkDate(iso: string | null | undefined): string | null {
 
   return `${get("day")} ${month} ${get("year")}`;
 }
+
+/**
+ * „02.07.2026“ from a plain calendar date („2026-07-02“, no time zone: the
+ * date a source states, e.g. a Лекарска комора list). Null for anything else.
+ */
+export function formatListDate(date: string | null | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? "");
+
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : null;
+}

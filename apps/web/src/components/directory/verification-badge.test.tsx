@@ -94,6 +94,27 @@ describe("VerificationBadge", () => {
     ).toHaveAttribute("href", VERIFICATION_MORE_HREF);
   });
 
+  it("names the Комора list and its date for a doctor verified on a licence", async () => {
+    const user = userEvent.setup();
+    render(
+      <VerificationBadge
+        verification={{ ...verified, licence_list_date: "2026-07-02" }}
+        kind="doctor"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: t("verification.whyVerified") }),
+    );
+
+    const panel = screen.getByRole("status");
+    expect(panel).toHaveTextContent(
+      "Основа: Регистар на ФЗОМ и Лекарска комора. Според листата на Лекарска комора од 02.07.2026.",
+    );
+    expect(panel).not.toHaveTextContent("Податоците се потврдени");
+    expect(panel).not.toHaveTextContent(/истеч/i);
+  });
+
   it.each([
     ["doctor", "verification.verifiedInfo"],
     ["facility", "verification.verifiedInfoFacility"],

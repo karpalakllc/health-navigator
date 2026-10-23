@@ -144,6 +144,11 @@ export type Verification = {
     | "owner_claim"
     | null;
   basis_label: string | null;
+  /**
+   * Doctors verified on a Лекарска комора licence: the date of the list it
+   * rests on („2026-07-02“); null otherwise. Never the licence's expiry.
+   */
+  licence_list_date?: string | null;
 };
 
 export type DoctorListItem = {
@@ -250,6 +255,8 @@ export type DoctorDetail = {
    * we simply do not know (dentists, profiles without a match).
    */
   has_valid_licence: boolean;
+  /** The date of the Комора list `has_valid_licence` rests on; null when not valid. */
+  licence_list_date?: string | null;
 };
 
 export type FacilityType = "clinic" | "hospital" | "laboratory";

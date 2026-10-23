@@ -256,7 +256,10 @@ export default async function DoctorDetailPage({
                   ) : (
                     <Tag>{t("doctors.notAcceptingPatients")}</Tag>
                   )}
-                  <LicenceStatusTag valid={doctor.has_valid_licence} />
+                  <LicenceStatusTag
+                    valid={doctor.has_valid_licence}
+                    listDate={doctor.licence_list_date}
+                  />
                   {doctor.years_experience ? (
                     <Tag icon="award">
                       {tFormat("doctors.yearsExperience", {
