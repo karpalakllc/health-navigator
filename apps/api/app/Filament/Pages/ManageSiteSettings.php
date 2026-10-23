@@ -102,7 +102,8 @@ class ManageSiteSettings extends Page implements HasSchemas
                             ->rows(2)
                             ->columnSpanFull(),
                         Textarea::make('footer_disclaimer_text')
-                            ->label('Disclaimer paragraph')
+                            ->label('Footer paragraph (optional)')
+                            ->helperText('Empty by default: the footer then shows no paragraph. The /disclaimer page stays linked.')
                             ->rows(4)
                             ->columnSpanFull(),
                         TextInput::make('copyright_name')

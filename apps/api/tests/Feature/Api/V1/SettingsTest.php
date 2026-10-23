@@ -60,6 +60,25 @@ class SettingsTest extends TestCase
         $this->assertSame('Свој текст од администраторот.', SiteSetting::query()->first()->footer_emergency_text);
     }
 
+    public function test_footer_paragraph_is_empty_by_default_and_the_migration_clears_only_the_old_default(): void
+    {
+        $this->getJson('/api/v1/settings/public')
+            ->assertOk()
+            ->assertJsonPath('data.footer_disclaimer_text', '');
+
+        $migration = require database_path('migrations/2026_10_23_130001_clear_default_footer_disclaimer_text.php');
+
+        SiteSetting::current()->update(['footer_disclaimer_text' => SiteSetting::LEGACY_FOOTER_DISCLAIMER]);
+        $migration->up();
+        $this->assertNull(SiteSetting::query()->first()->footer_disclaimer_text);
+
+        SiteSetting::query()->first()->update(['footer_disclaimer_text' => 'Свој параграф.']);
+        $migration->up();
+        $this->assertSame('Свој параграф.', SiteSetting::query()->first()->footer_disclaimer_text);
+        $this->getJson('/api/v1/settings/public')
+            ->assertJsonPath('data.footer_disclaimer_text', 'Свој параграф.');
+    }
+
     /**
      * The admin "Site font" setting was removed with the D2a redesign: the
      * column is dropped and the public payload no longer carries it.

@@ -64,8 +64,9 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
  * Sand footer with 28px top corners. Mobile: logo, a 2-column link grid
  * (48px rows), then the bottom lines. Desktop: a 12-column grid (5 brand +
  * 3 link columns) and a ruled bottom line. The bottom line carries the
- * admin-editable footer copy in ink-2 — no red box, no repeats; the optional
- * emergency line is empty (not rendered) by default. The sand
+ * optional admin-editable footer copy in ink-2 — no red box, no repeats; both
+ * the emergency line and the paragraph are empty (not rendered) by default.
+ * The legal column always links /disclaimer. The sand
  * runs down behind the mobile tab bar (bottom padding = --tabbar-space).
  */
 export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
@@ -199,9 +200,9 @@ export function SiteFooterContent({ settings }: { settings: PublicSettings }) {
         <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 lg:mt-10 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
           <div className="flex max-w-[760px] flex-col gap-1 type-meta text-ink-2">
             <EmergencyLine text={settings.footer_emergency_text} />
-            <p>
-              {t("footer.informational")} {settings.footer_disclaimer_text}
-            </p>
+            {settings.footer_disclaimer_text?.trim() ? (
+              <p>{settings.footer_disclaimer_text}</p>
+            ) : null}
           </div>
           <p className="type-meta text-ink-2 lg:whitespace-nowrap">
             {tFormat("footer.copyright", {

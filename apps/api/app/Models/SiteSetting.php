@@ -16,7 +16,8 @@ class SiteSetting extends Model
      */
     public const LEGACY_FOOTER_EMERGENCY = 'При медицинска итност повикајте 194 или 112 веднаш.';
 
-    public const DEFAULT_FOOTER_DISCLAIMER = 'Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоките за симптоми се само информативни.';
+    /** The footer paragraph's old default; empty by default since 2026-10-23 (see above). */
+    public const LEGACY_FOOTER_DISCLAIMER = 'Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоките за симптоми се само информативни.';
 
     protected $fillable = [
         'registrations_enabled',
@@ -162,7 +163,7 @@ class SiteSetting extends Model
             'public_pharmacies' => false,
             'public_forum' => true,
             'footer_emergency_text' => null,
-            'footer_disclaimer_text' => self::DEFAULT_FOOTER_DISCLAIMER,
+            'footer_disclaimer_text' => null,
             'copyright_name' => 'Zdravje360',
             'profile_avatar_min_messages' => 10,
             'forum_topics_require_moderation' => true,
@@ -216,7 +217,7 @@ class SiteSetting extends Model
             'placeholder_pharmacy_url' => MediaUrl::resolve(BrandingUploadPath::normalize($this->placeholder_pharmacy_path)),
             // Optional: empty unless the admin writes a line (then the web shows it).
             'footer_emergency_text' => trim((string) $this->footer_emergency_text),
-            'footer_disclaimer_text' => $this->footer_disclaimer_text ?: self::DEFAULT_FOOTER_DISCLAIMER,
+            'footer_disclaimer_text' => trim((string) $this->footer_disclaimer_text),
             'copyright_name' => $this->copyright_name ?: 'Zdravje360',
             'profile_avatar_min_messages' => $this->profile_avatar_min_messages ?? 10,
             'maintenance_message' => $this->maintenance_message,

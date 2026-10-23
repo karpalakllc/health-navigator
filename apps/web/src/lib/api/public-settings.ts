@@ -53,11 +53,10 @@ export const publicSettingsDefaults: PublicSettings = {
   forum_rules_enabled: true,
   forum_rules_title: null,
   forum_rules_body: null,
-  // Empty by default (owner decision 2026-10-23): the footer shows nothing
-  // until the admin writes a line.
+  // Empty by default (owner decision 2026-10-23): the footer shows neither
+  // until the admin writes one.
   footer_emergency_text: "",
-  footer_disclaimer_text:
-    "Корисничките рецензии се модерираат пред објава. Цените во аптеките се референтни податоци од администратор, не понуди за купување на оваа страница. Насоките за симптоми се само информативни.",
+  footer_disclaimer_text: "",
   copyright_name: "Zdravje360",
   profile_avatar_min_messages: 10,
   reviews_prompt_on_profile: true,

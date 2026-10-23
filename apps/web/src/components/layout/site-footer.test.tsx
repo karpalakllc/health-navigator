@@ -5,6 +5,7 @@ import {
   SiteFooterContent,
 } from "@/components/layout/site-footer";
 import { publicSettingsDefaults } from "@/lib/api/public-settings";
+import { t } from "@/i18n/t";
 
 describe("SiteFooter emergency line", () => {
   it("renders no 194/112 line by default (the setting is empty)", () => {
@@ -54,5 +55,35 @@ describe("SiteFooter emergency line", () => {
     expect(screen.getByText((_, el) => el?.tagName === "P")).toHaveTextContent(
       "Повикајте 1940 или 194, не 2112.",
     );
+  });
+});
+
+describe("SiteFooter paragraph", () => {
+  it("renders no disclaimer paragraph by default, but keeps the /disclaimer link", () => {
+    const { container } = render(
+      <SiteFooterContent settings={publicSettingsDefaults} />,
+    );
+
+    expect(publicSettingsDefaults.footer_disclaimer_text).toBe("");
+    expect(container).not.toHaveTextContent(/информативен директориум/);
+    expect(container).not.toHaveTextContent(/не го заменува/);
+    expect(
+      screen.getByRole("link", { name: t("footer.disclaimer") }),
+    ).toHaveAttribute("href", "/disclaimer");
+  });
+
+  it("shows the admin's paragraph as written when there is one", () => {
+    render(
+      <SiteFooterContent
+        settings={{
+          ...publicSettingsDefaults,
+          footer_disclaimer_text: "Свој параграф од администраторот.",
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("Свој параграф од администраторот."),
+    ).toBeInTheDocument();
   });
 });
