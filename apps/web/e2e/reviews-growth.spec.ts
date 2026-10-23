@@ -133,7 +133,13 @@ test.describe("first reviews on a phone", () => {
     const href = await firstCard.getAttribute("href");
     await firstCard.tap();
     await expect(page).toHaveURL(/\/doctors\/[^/?#]+/);
-    await page.waitForLoadState("networkidle");
+    // A soft navigation: wait until the profile has rendered and noted the
+    // doctor (a reader spends longer than that on it anyway).
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem("z360:search-return:v1")),
+      )
+      .not.toBeNull();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/doctors$/);
@@ -155,7 +161,11 @@ test.describe("first reviews on a phone", () => {
 
     // Once per session: the same round trip does not ask again.
     await firstCard.tap();
-    await page.waitForLoadState("networkidle");
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem("z360:search-return:v1")),
+      )
+      .not.toBeNull();
     await page.goBack();
     await page.waitForLoadState("networkidle");
     await expect(
