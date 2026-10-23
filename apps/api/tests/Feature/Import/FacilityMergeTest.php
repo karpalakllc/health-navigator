@@ -333,6 +333,19 @@ class FacilityMergeTest extends TestCase
         $this->assertFalse($draft->fresh()->trashed());
     }
 
+    public function test_a_draft_that_was_published_is_never_merged_automatically(): void
+    {
+        $this->register();
+        $draft = $this->draft();
+        $draft->forceFill(['is_published' => true, 'published_at' => now()])->save();
+        $planner = app(FacilityDuplicatePlanner::class);
+
+        $result = $planner->apply($planner->plan(), $this->admin);
+
+        $this->assertSame(1, $result['changed_since_plan']);
+        $this->assertFalse($draft->fresh()->trashed());
+    }
+
     public function test_the_next_import_of_the_site_updates_the_register_facility(): void
     {
         $dir = sys_get_temp_dir().'/fmerge-json-'.bin2hex(random_bytes(4));

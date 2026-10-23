@@ -159,6 +159,12 @@ final class FacilityDuplicatePlanner
             return FacilityMergeResult::alreadyMerged();
         }
 
+        // A draft that was ever published has a public address that would
+        // stop resolving: that merge is a staff decision, never automatic.
+        if ($from !== null && ((bool) $from->is_published || $from->published_at !== null)) {
+            return null;
+        }
+
         $fresh = $this->freshProposal($fromId);
 
         if ($fresh === null || $fresh['confidence'] !== FacilityDuplicateMatcher::HIGH || (int) $fresh['suggested_facility_id'] !== $intoId) {

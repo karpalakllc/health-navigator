@@ -21,6 +21,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -126,5 +127,30 @@ class FacilityMergeActionsTest extends TestCase
 
         $this->assertTrue(Facility::withTrashed()->find($draft->id)?->trashed());
         $this->assertSame(1, DB::table('doctor_facility')->where('facility_id', $register->id)->count());
+    }
+
+    public function test_a_user_without_import_permission_cannot_merge(): void
+    {
+        $register = $this->register('ПЗУ Попоски', 'Охрид');
+        $draft = $this->draft('Попоски Дентал', 'Охрид');
+        $viewer = User::factory()->create(['user_kind' => UserKind::Staff, 'app_authentication_secret' => 'JBSWY3DPEHPK3PXP']);
+        $viewer->syncRoles([]);
+        $viewer->givePermissionTo('imports.view');
+        $this->actingAs($viewer);
+
+        $this->assertSame(403, $this->tryMerge($draft, $register));
+        $this->assertFalse($draft->fresh()->trashed());
+    }
+
+    private function tryMerge(Facility $draft, Facility $register): int
+    {
+        try {
+            Livewire::test(EditFacility::class, ['record' => $draft->getKey()])
+                ->callAction('mergeIntoRegisterFacility', ['facility_id' => $register->id]);
+        } catch (\Throwable $e) {
+            return $e instanceof HttpException ? $e->getStatusCode() : 403;
+        }
+
+        return 200;
     }
 }

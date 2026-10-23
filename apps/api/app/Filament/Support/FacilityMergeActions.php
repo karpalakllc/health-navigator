@@ -222,7 +222,7 @@ final class FacilityMergeActions
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof User || ! $user->can('imports.manage')) {
             abort(403);
         }
 
